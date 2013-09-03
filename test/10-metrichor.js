@@ -83,5 +83,42 @@ describe('Array', function(){
 	    });
 	});
 
+	it('should start a workflow_instance', function() {
+	    extRequestStub.post = function(obj, cb) {
+		assert.equal(obj.uri,    "http://metrichor.local:8080/workflow_instance.js");
+		assert.equal(obj.apikey, "FooBar02");
+		assert.equal(JSON.parse(obj.json).workflow, "test");
+		cb(null, null, '{"id_workflow_instance":"1","id_user":"1"}');
+	    };
+
+	    var Client = new metrichor({
+		"url"    : "http://metrichor.local:8080",
+		"apikey" : "FooBar02"
+	    });
+
+	    Client.start_workflow('test', function(err, obj) {
+		assert.equal(err, null, 'no error reported');
+		assert.deepEqual(obj, {"id_workflow_instance":"1","id_user":"1"}, 'workflow_instance start response');
+	    });
+	});
+
+	it('should stop a workflow_instance', function() {
+	    extRequestStub.put = function(obj, cb) {
+		assert.equal(obj.uri,    "http://metrichor.local:8080/workflow_instance/stop/test.js");
+		assert.equal(obj.apikey, "FooBar02");
+		cb(null, null, '{"id_workflow_instance":"1","id_user":"1","stop_requested_date":"2013-09-03 15:17:00"}');
+	    };
+
+	    var Client = new metrichor({
+		"url"    : "http://metrichor.local:8080",
+		"apikey" : "FooBar02"
+	    });
+
+	    Client.stop_workflow('test', function(err, obj) {
+		assert.equal(err, null, 'no error reported');
+		assert.deepEqual(obj, {"id_workflow_instance":"1","id_user":"1","stop_requested_date":"2013-09-03 15:17:00"}, 'workflow_instance stop response');
+	    });
+	});
+
     });
 });
