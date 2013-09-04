@@ -67,8 +67,8 @@ describe('Array', function(){
 	it('should update a workflow', function() {
 	    extRequestStub.post = function(obj, cb) {
 		assert.equal(obj.uri,    "http://metrichor.local:8080/workflow/test.js");
-		assert.equal(obj.apikey, "FooBar02");
-		assert.deepEqual(JSON.parse(obj.json), {"description":"test workflow", "rev":"1.1"});
+		assert.equal(obj.form.apikey, "FooBar02");
+		assert.deepEqual(JSON.parse(obj.form.json), {"description":"test workflow", "rev":"1.1"});
 		cb(null, null, '{"description":"a workflow","rev":"1.0"}');
 	    };
 
@@ -86,8 +86,8 @@ describe('Array', function(){
 	it('should start a workflow_instance', function() {
 	    extRequestStub.post = function(obj, cb) {
 		assert.equal(obj.uri,    "http://metrichor.local:8080/workflow_instance.js");
-		assert.equal(obj.apikey, "FooBar02");
-		assert.equal(JSON.parse(obj.json).workflow, "test");
+		assert.equal(obj.form.apikey, "FooBar02");
+		assert.equal(JSON.parse(obj.form.json).workflow, "test");
 		cb(null, null, '{"id_workflow_instance":"1","id_user":"1"}');
 	    };
 
@@ -105,7 +105,7 @@ describe('Array', function(){
 	it('should stop a workflow_instance', function() {
 	    extRequestStub.put = function(obj, cb) {
 		assert.equal(obj.uri,    "http://metrichor.local:8080/workflow_instance/stop/test.js");
-		assert.equal(obj.apikey, "FooBar02");
+		assert.equal(obj.form.apikey, "FooBar02");
 		cb(null, null, '{"id_workflow_instance":"1","id_user":"1","stop_requested_date":"2013-09-03 15:17:00"}');
 	    };
 
