@@ -16,7 +16,7 @@ describe('Array', function(){
 	    assert.equal(Client.apikey(),  null, 'default apikey');
 	    assert.equal(Client.url('http://metrichor.local:90'), 'http://metrichor.local:90', 'accessor overwrites url');
 	    assert.equal(Client.apikey('FooBar01'),               'FooBar01',                  'accessor overwrites apikey');
-	    assert.equal(Client._file_backed, false, 'defaults - portal backed');
+	    assert.equal(Client.file_backed, false, 'defaults - portal backed');
 	});
 
 	it('should create a metrichor from constructor with defaults and allow overwriting', function() {
@@ -28,7 +28,7 @@ describe('Array', function(){
 	    }, Error, 'Client obtained');
 
 	    assert.equal(Client.url(),     'http://metrichor.oxfordnanolabs.local', 'url set as empty string');
-	    assert.equal(Client._file_backed, false, 'defaults - portal backed');
+	    assert.equal(Client.file_backed, false, 'defaults - portal backed');
 	});
 
 	it('should create a metrichor with opts', function() {
@@ -41,7 +41,7 @@ describe('Array', function(){
 	    }, Error, 'Client obtained');
 	    assert.equal(Client.url(),    'https://metrichor.local:8000', 'url built from constructor');
 	    assert.equal(Client.apikey(), 'FooBar02',                     'apikey built from constructor');
-	    assert.equal(Client._file_backed, false, 'https - portal backed');
+	    assert.equal(Client.file_backed, false, 'https - portal backed');
 	});
 
 	it('should list workflows', function() {
@@ -55,7 +55,7 @@ describe('Array', function(){
 		"apikey" : "FooBar02"
 	    });
 
-	    assert.equal(Client._file_backed, false, 'http://metrichor.local:8080 backed');
+	    assert.equal(Client.file_backed, false, 'http://metrichor.local:8080 backed');
 	    Client.workflows(function(err, obj) {
 		assert.equal(err, null, 'no error reported');
 		assert.deepEqual(obj, [{"description":"a workflow"}], 'workflow list');
@@ -73,7 +73,7 @@ describe('Array', function(){
 		"apikey" : "FooBar02"
 	    });
 
-	    assert.equal(Client._file_backed, false, 'http://metrichor.local:8080 backed');
+	    assert.equal(Client.file_backed, false, 'http://metrichor.local:8080 backed');
 	    Client.workflow('test', function(err, obj) {
 		assert.equal(err, null, 'no error reported');
 		assert.deepEqual(obj, {"description":"a workflow","rev":"1.0"}, 'workflow read');
@@ -93,7 +93,7 @@ describe('Array', function(){
 		"apikey" : "FooBar02"
 	    });
 
-	    assert.equal(Client._file_backed, false, 'http://metrichor.local:8080 backed');
+	    assert.equal(Client.file_backed, false, 'http://metrichor.local:8080 backed');
 	    Client.workflow('test', {"description":"test workflow", "rev":"1.1"}, function(err, obj) {
 		assert.equal(err, null, 'no error reported');
 		assert.deepEqual(obj, {"description":"a workflow","rev":"1.0"}, 'workflow read');
@@ -113,7 +113,7 @@ describe('Array', function(){
 		"apikey" : "FooBar02"
 	    });
 
-	    assert.equal(Client._file_backed, false, 'http://metrichor.local:8080 backed');
+	    assert.equal(Client.file_backed, false, 'http://metrichor.local:8080 backed');
 	    Client.start_workflow('test', function(err, obj) {
 		assert.equal(err, null, 'no error reported');
 		assert.deepEqual(obj, {"id_workflow_instance":"1","id_user":"1"}, 'workflow_instance start response');
@@ -132,7 +132,7 @@ describe('Array', function(){
 		"apikey" : "FooBar02"
 	    });
 
-	    assert.equal(Client._file_backed, false, 'http://metrichor.local:8080 backed');
+	    assert.equal(Client.file_backed, false, 'http://metrichor.local:8080 backed');
 	    Client.stop_workflow('test', function(err, obj) {
 		assert.equal(err, null, 'no error reported');
 		assert.deepEqual(obj, {"id_workflow_instance":"1","id_user":"1","stop_requested_date":"2013-09-03 15:17:00"}, 'workflow_instance stop response');
@@ -150,7 +150,7 @@ describe('Array', function(){
 		"apikey" : "FooBar02"
 	    });
 
-	    assert.equal(Client._file_backed, false, 'http://metrichor.local:8080 backed');
+	    assert.equal(Client.file_backed, false, 'http://metrichor.local:8080 backed');
 	    Client.workflow_instances(function(err, obj) {
 		assert.equal(err, null, 'no error reported');
 		assert.deepEqual(obj, [{"id_workflow_instance":"149","state":"running","workflow_filename":"DNA_Sequencing.js","start_requested_date":"2013-09-16 09:25:15","stop_requested_date":"2013-09-16 09:26:04","start_date":"2013-09-16 09:25:17","stop_date":"2013-09-16 09:26:11","control_url":"127.0.0.1:8001","data_url":"localhost:3006"}], 'workflow instance list');
@@ -168,7 +168,7 @@ describe('Array', function(){
 		"apikey" : "FooBar02"
 	    });
 
-	    assert.equal(Client._file_backed, false, 'http://metrichor.local:8080 backed');
+	    assert.equal(Client.file_backed, false, 'http://metrichor.local:8080 backed');
 	    Client.workflow_instance(149, function(err, obj) {
 		assert.equal(err, null, 'no error reported');
 		assert.deepEqual(obj, {"id_workflow_instance":"149","state":"running","workflow_filename":"DNA_Sequencing.js","start_requested_date":"2013-09-16 09:25:15","stop_requested_date":"2013-09-16 09:26:04","start_date":"2013-09-16 09:25:17","stop_date":"2013-09-16 09:26:11","control_url":"127.0.0.1:8001","data_url":"localhost:3006"}, 'workflow read');

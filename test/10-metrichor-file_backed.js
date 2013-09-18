@@ -17,7 +17,7 @@ describe('Array', function(){
 		    } );
 	    }, Error, 'Client obtained');
 
-	    assert.equal(Client._file_backed, true, 'file backed');
+	    assert.equal(Client.file_backed, true, 'file backed');
       Client.workflows(function(err, arr) {
         assert.equal(err, null, 'no error');
         assert.equal(arr[0].filename, 'Load.js', 'file url arr[0].filename');
@@ -66,7 +66,7 @@ describe('Array', function(){
 		    } );
 	    }, Error, 'Client obtained');
 
-	    assert.equal(Client._file_backed, true, 'file backed');
+	    assert.equal(Client.file_backed, true, 'file backed');
 	    assert.equal(Client._url, cwd + '/test/data/workflows/Load.js', 'file:/// based url - sorted correctly');
       Client.workflows(function(err, arr) {
         assert.equal(err, null, 'no error');
@@ -89,7 +89,7 @@ describe('Array', function(){
 		    } );
 	    }, Error, 'Client obtained');
 
-	    assert.equal(Client._file_backed, true, 'file backed');
+	    assert.equal(Client.file_backed, true, 'file backed');
       Client.workflows(function(err, arr) {
         assert.equal(err, null, 'no error');
         assert.equal(arr[0].filename, 'Load.js', 'file url arr.filename');
