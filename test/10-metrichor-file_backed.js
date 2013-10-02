@@ -133,6 +133,9 @@ describe('Array', function(){
       Client.workflow_instance( 'Load.js', function (err, body) {
         assert.equal(err, 'workflow_instance not applicable to file_backed resource (offline)', 'no workflow_instance when offline');
       } );
+      Client.component_vitals( 'Load.js', {}, function (err, body) {
+        assert.equal(err, 'component_vitals not applicable to file_backed resource (offline)', 'no workflow_instance when offline');
+      } );
     });
 
   })
