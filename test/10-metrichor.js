@@ -193,6 +193,24 @@ describe('Array', function(){
 	assert.deepEqual(obj, {"data":"ws://metrichor:3000/"}, 'component_vitals returned');
       });
     });
+
+    it('should post telemetry', function() {
+      extRequestStub.post = function(obj, cb) {
+    	  assert.equal(obj.uri,         "http://metrichor.local:8080/workflow_instance/telemetry/150.js");
+        assert.equal(obj.form.apikey, "FooBar02");
+        cb(null, null, '{"tracers":{}, "packets":{}}');
+      };
+
+      var Client = new metrichor({
+    	  "url"    : "http://metrichor.local:8080",
+    	  "apikey" : "FooBar02"
+      });
+
+      Client.telemetry(150, {"tracers":{}, "packets":{}}, function(err, obj) {
+        assert.equal(err, null, 'no error reported');
+        assert.deepEqual(obj, {"tracers":{}, "packets":{}}, 'telemetry returned');
+      });
+    });
     
   });
 });

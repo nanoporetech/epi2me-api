@@ -136,6 +136,9 @@ describe('Array', function(){
       Client.component_vitals( 'Load.js', {}, function (err, body) {
         assert.equal(err, 'component_vitals not applicable to file_backed resource (offline)', 'no workflow_instance when offline');
       } );
+      Client.telemetry( 'Load.js', {}, function (err, body) {
+        assert.equal(err, 'telemetry not applicable to file_backed resource (offline)', 'no workflow_instance when offline');
+      } );
     });
 
   })
