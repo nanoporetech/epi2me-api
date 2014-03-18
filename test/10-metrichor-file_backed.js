@@ -121,21 +121,23 @@ describe('Array', function(){
 		      url : cwd + '/test/data/workflows'
 		    } );
 	    }, Error, 'Client obtained');
+
       Client.start_workflow( 'Load.js', function (err, body) {
         assert.equal(err, 'start_workflow not applicable to file_backed resource (offline)', 'no start_workflow when offline');
       });
+
       Client.stop_workflow( 'Load.js', function (err, body) {
         assert.equal(err, 'stop_workflow not applicable to file_backed resource (offline)', 'no stop_workflow when offline');
       });
+
       Client.workflow_instances( function (err, body) {
         assert.equal(err, 'workflow_instances not applicable to file_backed resource (offline)', 'no workflow_instances when offline');
       });
+
       Client.workflow_instance( 'Load.js', function (err, body) {
         assert.equal(err, 'workflow_instance not applicable to file_backed resource (offline)', 'no workflow_instance when offline');
       } );
-      Client.component_vitals( 'Load.js', {}, function (err, body) {
-        assert.equal(err, 'component_vitals not applicable to file_backed resource (offline)', 'no workflow_instance when offline');
-      } );
+
       Client.telemetry( 'Load.js', {}, function (err, body) {
         assert.equal(err, 'telemetry not applicable to file_backed resource (offline)', 'no workflow_instance when offline');
       } );

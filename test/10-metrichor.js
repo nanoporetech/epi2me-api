@@ -175,25 +175,6 @@ describe('Array', function(){
       });
     });
 
-    it('should post component_vitals', function() {
-      extRequestStub.put = function(obj, cb) {
-    	assert.equal(obj.uri,         "http://metrichor.local:8080/workflow_instance/receivers/150.js");
-    	assert.equal(obj.form.apikey, "FooBar02");
-    	cb(null, null, '{"data":"ws://metrichor:3000/"}');
-      };
-      
-      var Client = new metrichor({
-	"url"    : "http://metrichor.local:8080",
-	"apikey" : "FooBar02"
-      });
-      
-      assert.equal(Client.file_backed, false, 'http://metrichor.local:8080 backed');
-      Client.component_vitals(150, {"webSocketURL":"ws://metrichor:3000/"}, function(err, obj) {
-	assert.equal(err, null, 'no error reported');
-	assert.deepEqual(obj, {"data":"ws://metrichor:3000/"}, 'component_vitals returned');
-      });
-    });
-
     it('should post telemetry', function() {
       extRequestStub.post = function(obj, cb) {
     	  assert.equal(obj.uri,         "http://metrichor.local:8080/workflow_instance/telemetry/150.js");
