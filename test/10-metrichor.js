@@ -58,6 +58,25 @@ describe('Array', function(){
 	    });
 	});
     
+	it('should list workflows via a proxy', function() {
+	    extRequestStub.get = function(obj, cb) {
+		assert.equal(obj.uri, "http://metrichor.local:8080/workflow.js?apikey=FooBar02");
+		assert.equal(obj.proxy, "https://myproxy.com:3128/", 'proxy is passed through');
+		cb(null, null, '{"workflows":[{"description":"a workflow"}]}');
+	    };
+      
+	    var Client = new metrichor({
+		url    : "http://metrichor.local:8080",
+		apikey : "FooBar02",
+		proxy  : "https://myproxy.com:3128/"
+	    });
+
+	    Client.workflows(function(err, obj) {
+		assert.equal(err, null, 'no error reported');
+		assert.deepEqual(obj, [{"description":"a workflow"}], 'workflow list');
+	    });
+	});
+
 	it('should read a workflow', function() {
 	    extRequestStub.get = function(obj, cb) {
 		assert.equal(obj.uri, "http://metrichor.local:8080/workflow/test.js?apikey=FooBar02");
