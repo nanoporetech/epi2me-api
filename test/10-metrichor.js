@@ -1,7 +1,7 @@
 var proxyquire     = require('proxyquire');
 var assert         = require("assert")
 var extRequestStub = {};
-var metrichor      = proxyquire('../lib/ONT/metrichor', { 'request' : extRequestStub });
+var metrichor      = proxyquire('../metrichor', { 'request' : extRequestStub });
 
 describe('Array', function(){
     describe('metrichor', function(){

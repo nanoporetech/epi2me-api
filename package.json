@@ -2,7 +2,7 @@
   "name": "metrichor-api",
   "version": "0.3.6",
   "private": true,
-  "main": "lib/ONT/metrichor.js",
+  "main": "metrichor.js",
   "dependencies": {
     "mocha": "1.9.0",
     "request":"2.26.0",
