@@ -209,23 +209,22 @@ metrichor.prototype = {
     },
   
     _responsehandler : function(e,r,body, cb) {
-	if ( e ) {
-	    return cb( e, {} );
+	if ( res_e ) {
+	    return cb( res_e, {} );
 	}
 
 	var json;
 	try {
 	    json=JSON.parse( body );
 
-	} catch(e) {
-	    console.log(e);
-	    return cb( e, {} );
+	} catch(jsn_e) {
+	    return cb( jsn_e, {} );
 	}
     
 	if ( json.error ) {
-	    return cb({"error":json.error}, {});
+	    return cb({"error": json.error}, {});
 	}
     
-	return cb(e, json);
+	return cb(null, json);
     }
 };
