@@ -134,13 +134,13 @@ metrichor.prototype = {
 	uri      = uri.replace(/\/+/g, "/");
 	var call = srv + uri;
 	var mc   = this;
-    
+console.log("REQUEST ", uri);
 	extRequest.get(
 	    {
 		uri   : call,
 		proxy : this._proxy
 	    },
-	    function (e,r,body) { mc._responsehandler( e,r,body,cb ) }
+	    function (e,r,body) { console.log(e,r,body,cb); mc._responsehandler( e,r,body,cb ) }
 	);
     },
   
