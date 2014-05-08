@@ -208,7 +208,7 @@ metrichor.prototype = {
 	);
     },
   
-    _responsehandler : function(e,r,body, cb) {
+    _responsehandler : function(res_e, r, body, cb) {
 	if ( res_e ) {
 	    return cb( res_e, {} );
 	}
