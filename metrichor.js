@@ -21,7 +21,6 @@ module.exports.version = '0.3.6';
 
 var fs         = require('fs');
 var extRequest = require('request');
-var path       = require('path');
 
 function metrichor (opt_string) {
     this.className = 'metrichor';
