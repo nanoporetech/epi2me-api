@@ -205,7 +205,7 @@ metrichor.prototype = {
 	};
 
         if(this._agent_version) {
-            form[agent_version] = this._agent_version;
+            form.agent_version = this._agent_version;
         }
 
 	var srv  = this.url();
