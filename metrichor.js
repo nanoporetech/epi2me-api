@@ -17,7 +17,7 @@
  */
 
 module.exports = metrichor;
-module.exports.version = '0.3.6';
+module.exports.version = '1.0.0';
 
 var fs         = require('fs');
 var extRequest = require('request');
@@ -35,9 +35,12 @@ function metrichor (opt_string) {
 	opts = opt_string;
     }
 
-    this._url    = opts.url ? opts.url : 'https://metrichor.com';
-    this._apikey = opts.apikey;
-    this._proxy  = opts.proxy;
+    this._url           = opts.url ? opts.url : 'https://metrichor.com';
+    this._apikey        = opts.apikey;
+    this._proxy         = opts.proxy;
+    this._agent_version = opts.agent_version;
+
+    return this;
 };
 
 metrichor.prototype = {
@@ -129,11 +132,17 @@ metrichor.prototype = {
 	// do something to get/set data in metrichor
 	var srv  = this.url();
 	srv      = srv.replace(/\/+$/, ""); // clip trailing /s
-	var uri  = '/' + uri + '.js?apikey='+this.apikey();
+	var uri  = "/" + uri + ".js?apikey=" + this.apikey();
 	uri      = uri.replace(/\/+/g, "/");
+
+        if(this._agent_version) {
+            uri = uri + ";agent_version=" + this._agent_version;
+        }
+
 	var call = srv + uri;
 	var mc   = this;
     
+
 	extRequest.get(
 	    {
 		uri   : call,
@@ -144,12 +153,15 @@ metrichor.prototype = {
     },
   
     _post : function(uri, id, obj, cb) {
-    
 	var form = {
 	    'apikey' : this.apikey(),
 	    'json'   : JSON.stringify(obj)
 	};
-      
+
+        if(this._agent_version) {
+            form.agent_version = this._agent_version;
+        }
+
 	/* if id is an object, merge it into form post parameters */
 	if(typeof id === 'object') {
 	    for (var attr in id) {
@@ -188,9 +200,13 @@ metrichor.prototype = {
 	}
     
 	var form = {
-	    'apikey' : this.apikey(),
-	    'json'   : JSON.stringify(obj)
+	    'apikey'        : this.apikey(),
+	    'json'          : JSON.stringify(obj)
 	};
+
+        if(this._agent_version) {
+            form[agent_version] = this._agent_version;
+        }
 
 	var srv  = this.url();
 	srv      = srv.replace(/\/+$/, ""); // clip trailing /s
