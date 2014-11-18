@@ -98,6 +98,10 @@ metrichor.prototype = {
         return this._read('workflow_instance', id, cb);
     },
 
+    token : function (cb) { /* should this be passed a hint at what the token is for? */
+        return this._post('token', null, {}, cb);
+    },
+
     telemetry : function (id_workflow_instance, obj, cb) {
         if (cb === null) {
             // two args: get object
