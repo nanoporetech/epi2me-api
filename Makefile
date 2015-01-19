@@ -12,7 +12,7 @@ test_common:
 
 test: deps
 	$(MAKE) test_common
-	node node_modules/mocha/bin/mocha --reporter xunit-file
+	node node_modules/mocha/bin/mocha --recursive --reporter xunit-file
 
 just_test: test_common
 	node node_modules/mocha/bin/mocha
@@ -21,4 +21,4 @@ cover: deps
 	$(MAKE) just_cover
 
 just_cover:
-	node_modules/.bin/istanbul cover node_modules//mocha/bin/_mocha -- --reporter xunit-file test/*js
+	node node_modules/istanbul/lib/cli cover node_modules/mocha/bin/_mocha -- --recursive --reporter xunit-file test

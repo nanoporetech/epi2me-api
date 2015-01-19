@@ -16,7 +16,7 @@
  *   proxy: "http://myproxy.com:3128/"
  */
 /*jslint nomen: true*/
-
+/*global require */
 "use strict";
 
 var fs         = require('fs');
