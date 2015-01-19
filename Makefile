@@ -1,18 +1,24 @@
+MAKE     := make
+
+ifeq ($(OS),Windows_NT)
+    MAKE     = gmake
+endif
+
 deps:
 	npm install
 
 test_common:
-	node_modules/.bin/jslint metrichor.js
+	node node_modules/jslint/bin/jslint metrichor.js
 
 test: deps
-	make test_common
-	@./node_modules/.bin/mocha --reporter xunit-file
+	$(MAKE) test_common
+	node node_modules/mocha/bin/mocha --reporter xunit-file
 
 just_test: test_common
-	@./node_modules/.bin/mocha
+	node node_modules/mocha/bin/mocha
 
 cover: deps
-	make just_cover
+	$(MAKE) just_cover
 
 just_cover:
 	node_modules/.bin/istanbul cover node_modules//mocha/bin/_mocha -- --reporter xunit-file test/*js
