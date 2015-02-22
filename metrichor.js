@@ -16,13 +16,13 @@
  *   proxy: "http://myproxy.com:3128/"
  */
 /*jslint nomen: true*/
-/*global require */
-"use strict";
+/*global require, module */
 
 var fs         = require('fs');
 var extRequest = require('request');
 
 function metrichor(opt_string) {
+    "use strict";
     opt_string = opt_string || '{}';
     var opts;
 
@@ -47,6 +47,7 @@ module.exports.version = '0.4.0';
 
 metrichor.prototype = {
     _accessor : function (field, value) {
+        "use strict";
         var store = '_' + field;
         if (value !== undefined) {
             this[store] = value;
@@ -55,22 +56,27 @@ metrichor.prototype = {
     },
 
     url : function (url) {
+        "use strict";
         return this._accessor('url', url);
     },
 
     apikey : function (apikey) {
+        "use strict";
         return this._accessor('apikey', apikey);
     },
 
     user : function (cb) {
+        "use strict";
         return this._get('user', cb);
     },
 
     workflows : function (cb) {
+        "use strict";
         return this._list('workflow', cb);
     },
 
     workflow : function (id, obj, cb) {
+        "use strict";
 
         if (cb === null) {
             // two args: get object
@@ -83,26 +89,32 @@ metrichor.prototype = {
     },
 
     start_workflow : function (workflow_id, cb) {
+        "use strict";
         return this._post('workflow_instance', null, { "workflow": workflow_id }, cb);
     },
 
     stop_workflow : function (instance_id, cb) {
+        "use strict";
         return this._put('workflow_instance/stop', instance_id, cb);
     },
 
     workflow_instances : function (cb) {
+        "use strict";
         return this._list('workflow_instance', cb);
     },
 
     workflow_instance : function (id, cb) {
+        "use strict";
         return this._read('workflow_instance', id, cb);
     },
 
     token : function (cb) { /* should this be passed a hint at what the token is for? */
+        "use strict";
         return this._post('token', null, {}, cb);
     },
 
     telemetry : function (id_workflow_instance, obj, cb) {
+        "use strict";
         if (cb === null) {
             // two args: get object
             cb = obj;
@@ -114,16 +126,19 @@ metrichor.prototype = {
     },
 
     _list : function (entity, cb) {
+        "use strict";
         return this._get(entity, function (e, json) {
             cb(e, json[entity + "s"]);
         });
     },
 
     _read : function (entity, id, cb) {
+        "use strict";
         return this._get(entity + '/' + id, cb);
     },
 
     _get : function (uri, cb) {
+        "use strict";
         // do something to get/set data in metrichor
         var call, mc,
             srv = this.url();
@@ -151,6 +166,7 @@ metrichor.prototype = {
     },
 
     _post : function (uri, id, obj, cb) {
+        "use strict";
         var srv, call, mc,
             form = {
                 apikey: this.apikey(),
@@ -194,6 +210,7 @@ metrichor.prototype = {
     },
 
     _put : function (uri, id, obj, cb) {
+        "use strict";
         /* three-arg _put call (no parameters) */
         if (typeof obj === 'function') {
             cb = obj;
@@ -228,6 +245,7 @@ metrichor.prototype = {
     },
 
     _responsehandler : function (res_e, r, body, cb) {
+        "use strict";
         if (res_e) {
             return cb(res_e, {});
         }
