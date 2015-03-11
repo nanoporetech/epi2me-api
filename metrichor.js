@@ -13,7 +13,9 @@
  *   rejectUnauthorized: false,
  *   requestCert: true,
  *   agent: false,
- *   proxy: "http://myproxy.com:3128/"
+ *
+ * FOR PROXY SUPPORT USE ENVIRONMENT VARIABLES http_proxy/https_proxy
+ *
  */
 /*jslint nomen: true*/
 /*global require, module */
@@ -36,7 +38,6 @@ function metrichor(opt_string) {
 
     this._url           = opts.url || 'https://metrichor.com';
     this._apikey        = opts.apikey;
-    this._proxy         = opts.proxy;
     this._agent_version = opts.agent_version;
 
     return this;
@@ -157,7 +158,6 @@ metrichor.prototype = {
         extRequest.get(
             {
                 uri   : call,
-                proxy : this._proxy
             },
             function (e, r, body) {
                 mc._responsehandler(e, r, body, cb);
@@ -201,7 +201,6 @@ metrichor.prototype = {
             {
                 uri   : call,
                 form  : form,
-                proxy : this._proxy
             },
             function (e, r, body) {
                 mc._responsehandler(e, r, body, cb);
@@ -236,7 +235,6 @@ metrichor.prototype = {
             {
                 uri   : call,
                 form  : form,
-                proxy : this._proxy
             },
             function (e, r, body) {
                 mc._responsehandler(e, r, body, cb);
