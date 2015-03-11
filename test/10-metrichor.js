@@ -21,9 +21,10 @@ describe('Array', function(){
         it('should create a metrichor from constructor with defaults and allow overwriting', function() {
             var Client;
             assert.doesNotThrow( function () {
-                Client = new metrichor( {
+                Client = new metrichor({
                     url : ''
-                } );
+                });
+		delete extRequestStub.get;
             }, Error, 'Client obtained');
 
             assert.equal(Client.url(),     'https://metrichor.com', 'url set as empty string');
@@ -36,88 +37,90 @@ describe('Array', function(){
                     url:     'https://metrichor.local:8000',
                     apikey:  'FooBar02'
                 });
+		delete extRequestStub.get;
             }, Error, 'Client obtained');
             assert.equal(Client.url(),    'https://metrichor.local:8000', 'url built from constructor');
             assert.equal(Client.apikey(), 'FooBar02',                     'apikey built from constructor');
         });
     
         it('should list workflows', function() {
-            var Client = new metrichor({
-                "url"    : "http://metrichor.local:8080",
-                "apikey" : "FooBar02"
-            });
+            var uri, err, obj,
+		Client = new metrichor({
+                    "url"    : "http://metrichor.local:8080",
+                    "apikey" : "FooBar02"
+		});
 
-            extRequestStub.get = function(obj, cb) {
-                assert.equal(obj.uri, "http://metrichor.local:8080/workflow.js?apikey=FooBar02");
+            extRequestStub.get = function(o, cb) {
+                uri = o.uri;
                 cb(null, null, '{"workflows":[{"description":"a workflow"}]}');
             };
-      
-            Client.workflows(function(err, obj) {
-                assert.equal(err, null, 'no error reported');
-                assert.deepEqual(obj, [{"description":"a workflow"}], 'workflow list');
-            });
+
+	    assert.doesNotThrow(function () {
+		Client.workflows(function(e, o) {
+		    err = e;
+		    obj = o;
+		});
+		delete extRequestStub.get;
+	    });
+	    assert.equal(uri,     "http://metrichor.local:8080/workflow.js?apikey=FooBar02");
+            assert.equal(err,     null, 'no error reported');
+            assert.deepEqual(obj, [{"description":"a workflow"}], 'workflow list');
         });
     
         it('should list workflows and include agent_version', function() {
-            var Client = new metrichor({
+            var obj1, obj2, err, Client = new metrichor({
                 "url"           : "http://metrichor.local:8080",
                 "apikey"        : "FooBar02",
                 "agent_version" : "0.18.12345",
             });
 
-            extRequestStub.get = function(obj, cb) {
-                assert.equal(obj.uri, "http://metrichor.local:8080/workflow.js?apikey=FooBar02;agent_version=0.18.12345");
+            extRequestStub.get = function(o, cb) {
+		obj1 = o.uri;
                 cb(null, null, '{"workflows":[{"description":"a workflow"}]}');
             };
       
-            Client.workflows(function(err, obj) {
-                assert.equal(err,     null, 'no error reported');
-                assert.deepEqual(obj, [{"description":"a workflow"}], 'workflow list');
-            });
-        });
-
-        it('should list workflows via a proxy', function() {
-            var Client = new metrichor({
-                url    : "http://metrichor.local:8080",
-                apikey : "FooBar02",
-                proxy  : "https://myproxy.com:3128/"
-            });
-
-            extRequestStub.get = function(obj, cb) {
-                assert.equal(obj.uri, "http://metrichor.local:8080/workflow.js?apikey=FooBar02");
-                assert.equal(obj.proxy, "https://myproxy.com:3128/", 'proxy is passed through');
-                cb(null, null, '{"workflows":[{"description":"a workflow"}]}');
-            };
-      
-            Client.workflows(function(err, obj) {
-                assert.equal(err, null, 'no error reported');
-                assert.deepEqual(obj, [{"description":"a workflow"}], 'workflow list');
-            });
+	    assert.doesNotThrow(function () {
+		Client.workflows(function(e, o) {
+		    err = e;
+		    obj2 = o;
+		});
+		delete extRequestStub.get;
+	    });
+            assert.equal(obj1,     "http://metrichor.local:8080/workflow.js?apikey=FooBar02;agent_version=0.18.12345");
+            assert.equal(err,      null, 'no error reported');
+            assert.deepEqual(obj2, [{"description":"a workflow"}], 'workflow list');
         });
 
         it('should read a workflow', function() {
-            var Client = new metrichor({
+            var obj1, obj2, err, Client = new metrichor({
                 "url"    : "http://metrichor.local:8080",
                 "apikey" : "FooBar02"
             });
 
-            extRequestStub.get = function(obj, cb) {
-                assert.equal(obj.uri, "http://metrichor.local:8080/workflow/test.js?apikey=FooBar02");
+            extRequestStub.get = function(o, cb) {
+		obj1 = o.uri;
                 cb(null, null, '{"description":"a workflow","rev":"1.0"}');
             };
       
-            Client.workflow('test', function(err, obj) {
-                assert.equal(err, null, 'no error reported');
-                assert.deepEqual(obj, {"description":"a workflow","rev":"1.0"}, 'workflow read');
-            });
+	    assert.doesNotThrow(function () {
+		Client.workflow('test', function(e, o) {
+		    err  = e;
+		    obj2 = o;
+		});
+		delete extRequestStub.get;
+	    });
+	    assert.equal(obj1,     "http://metrichor.local:8080/workflow/test.js?apikey=FooBar02");
+            assert.equal(err,      null, 'no error reported');
+            assert.deepEqual(obj2, {"description":"a workflow","rev":"1.0"}, 'workflow read');
         });
-    
+
         it('should update a workflow', function() {
             var Client = new metrichor({
                 "url"    : "http://metrichor.local:8080",
                 "apikey" : "FooBar02"
             });
-      
+
+
             extRequestStub.post = function(obj, cb) {
                 assert.equal(obj.uri,    "http://metrichor.local:8080/workflow/test.js");
                 assert.equal(obj.form.apikey, "FooBar02");
