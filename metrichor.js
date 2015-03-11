@@ -79,7 +79,7 @@ metrichor.prototype = {
     workflow : function (id, obj, cb) {
         "use strict";
 
-        if (cb === null) {
+        if (!cb) {
             // two args: get object
             cb = obj;
             return this._read('workflow', id, cb);
