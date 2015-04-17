@@ -20,7 +20,6 @@
 /*jslint nomen: true*/
 /*global require, module */
 
-var fs         = require('fs');
 var extRequest = require('request');
 
 function metrichor(opt_string) {
