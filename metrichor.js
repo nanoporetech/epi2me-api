@@ -43,7 +43,7 @@ function metrichor(opt_string) {
 }
 
 module.exports = metrichor;
-module.exports.version = '0.4.0';
+module.exports.version = '0.4.1';
 
 metrichor.prototype = {
     _accessor : function (field, value) {
@@ -108,9 +108,15 @@ metrichor.prototype = {
         return this._read('workflow_instance', id, cb);
     },
 
-    token : function (cb) { /* should this be passed a hint at what the token is for? */
+    token : function (instance_id, cb) {
         "use strict";
-        return this._post('token', null, {}, cb);
+        if (typeof instance_id === 'function') {
+            // "classic" / static token mode
+            cb          = instance_id;
+            instance_id = null;
+        }
+
+        return this._post('token', null, { "id_workflow_instance": instance_id }, cb);
     },
 
     telemetry : function (id_workflow_instance, obj, cb) {
