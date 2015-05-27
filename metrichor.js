@@ -13,14 +13,38 @@
  *   rejectUnauthorized: false,
  *   requestCert: true,
  *   agent: false,
- *
- * FOR PROXY SUPPORT USE ENVIRONMENT VARIABLES http_proxy/https_proxy
- *
+ *   proxy: "http://myproxy.com:3128/"
  */
 /*jslint nomen: true*/
 /*global require, module */
 
-var extRequest = require('request');
+var extRequest, jqWrap;
+
+if(typeof $ !== 'undefined') {
+    // JQUERY MODE
+    var jqWrap = function (method, params, cb) {
+	$.ajax({
+	    url:     params.uri,
+	    type:    method,
+	    success: function (data,  status, jqXHR)  { cb(null,   data, jqXHR.responseText); },
+	    error:   function (jqXHR, status, errStr) { cb(errStr, null, jqXHR.responseText); }, /* better do something sensible with this! */
+	    data:    params.form,
+	    dataType: "json"
+        });
+    };
+
+    extRequest = {
+	put:  function (params, cb) { return jqWrap('PUT',  params, cb); },
+	get:  function (params, cb) { return jqWrap('GET',  params, cb); },
+	post: function (params, cb) { return jqWrap('POST', params, cb); }
+    };
+} else {
+    // NODEJS MODE
+    extRequest = require('request');
+
+    module.exports = metrichor;
+    module.exports.version = '0.4.1';
+}
 
 function metrichor(opt_string) {
     "use strict";
@@ -37,13 +61,11 @@ function metrichor(opt_string) {
 
     this._url           = opts.url || 'https://metrichor.com';
     this._apikey        = opts.apikey;
+    this._proxy         = opts.proxy;
     this._agent_version = opts.agent_version;
 
     return this;
 }
-
-module.exports = metrichor;
-module.exports.version = '0.4.1';
 
 metrichor.prototype = {
     _accessor : function (field, value) {
@@ -78,7 +100,7 @@ metrichor.prototype = {
     workflow : function (id, obj, cb) {
         "use strict";
 
-        if (!cb) {
+        if (cb === null) {
             // two args: get object
             cb = obj;
             return this._read('workflow', id, cb);
@@ -108,15 +130,9 @@ metrichor.prototype = {
         return this._read('workflow_instance', id, cb);
     },
 
-    token : function (instance_id, cb) {
+    token : function (cb) { /* should this be passed a hint at what the token is for? */
         "use strict";
-        if (typeof instance_id === 'function') {
-            // "classic" / static token mode
-            cb          = instance_id;
-            instance_id = null;
-        }
-
-        return this._post('token', null, { "id_workflow_instance": instance_id }, cb);
+        return this._post('token', null, {}, cb);
     },
 
     telemetry : function (id_workflow_instance, obj, cb) {
@@ -163,6 +179,7 @@ metrichor.prototype = {
         extRequest.get(
             {
                 uri   : call,
+                proxy : this._proxy
             },
             function (e, r, body) {
                 mc._responsehandler(e, r, body, cb);
@@ -206,6 +223,7 @@ metrichor.prototype = {
             {
                 uri   : call,
                 form  : form,
+                proxy : this._proxy
             },
             function (e, r, body) {
                 mc._responsehandler(e, r, body, cb);
@@ -240,6 +258,7 @@ metrichor.prototype = {
             {
                 uri   : call,
                 form  : form,
+                proxy : this._proxy
             },
             function (e, r, body) {
                 mc._responsehandler(e, r, body, cb);
