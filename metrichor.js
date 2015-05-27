@@ -45,7 +45,7 @@ if (typeof $ !== 'undefined') {
     extRequest = require('request');
 
     module.exports = metrichor;
-    module.exports.version = '0.4.1';
+    module.exports.version = '0.6.0';
 }
 
 function metrichor(opt_string) {
