@@ -130,9 +130,9 @@ metrichor.prototype = {
         return this._read('workflow_instance', id, cb);
     },
 
-    token : function (cb) { /* should this be passed a hint at what the token is for? */
+    token : function (id, cb) { /* should this be passed a hint at what the token is for? */
         "use strict";
-        return this._post('token', null, {}, cb);
+        return this._post('token', null, {id_workflow_instance: id}, cb);
     },
 
     telemetry : function (id_workflow_instance, obj, cb) {
