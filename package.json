@@ -1,6 +1,8 @@
 {
     "name"      : "metrichor-api",
     "version"   : "0.6.0",
+    "repository": "https://git.oxfordnanolabs.local/metrichor/api.git",
+    "description": "Reference API for communicating with the Metrichor website(s)",
     "private"   : true,
     "main"      : "metrichor.js",
     "dependencies": {
