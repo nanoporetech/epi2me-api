@@ -13,15 +13,40 @@
  *   rejectUnauthorized: false,
  *   requestCert: true,
  *   agent: false,
- *
- * FOR PROXY SUPPORT USE ENVIRONMENT VARIABLES http_proxy/https_proxy
- *
+ *   proxy: "http://myproxy.com:3128/"
  */
 /*jslint nomen: true*/
-/*global require, module */
+/*global require, module, $, metrichor */
 
-var fs         = require('fs');
-var extRequest = require('request');
+var extRequest, jqWrap;
+
+if (typeof $ !== 'undefined') {
+    // JQUERY MODE
+    var jqWrap = function (method, params, cb) {
+        "use strict";
+        /*jslint unparam: true*/
+        $.ajax({
+            url:     params.uri,
+            type:    method,
+            success: function (data,  status, jqXHR) { cb(null,   data, jqXHR.responseText); },
+            error:   function (jqXHR, status, errStr) { cb(errStr, null, jqXHR.responseText); }, /* better do something sensible with this! */
+            data:    params.form,
+            dataType: "json"
+        });
+    };
+
+    extRequest = {
+        put:  function (params, cb) { "use strict"; return jqWrap('PUT',  params, cb); },
+        get:  function (params, cb) { "use strict"; return jqWrap('GET',  params, cb); },
+        post: function (params, cb) { "use strict"; return jqWrap('POST', params, cb); }
+    };
+} else {
+    // NODEJS MODE
+    extRequest = require('request');
+
+    module.exports = metrichor;
+    module.exports.version = '0.4.1';
+}
 
 function metrichor(opt_string) {
     "use strict";
@@ -38,13 +63,11 @@ function metrichor(opt_string) {
 
     this._url           = opts.url || 'https://metrichor.com';
     this._apikey        = opts.apikey;
+    this._proxy         = opts.proxy;
     this._agent_version = opts.agent_version;
 
     return this;
 }
-
-module.exports = metrichor;
-module.exports.version = '0.4.0';
 
 metrichor.prototype = {
     _accessor : function (field, value) {
@@ -79,7 +102,7 @@ metrichor.prototype = {
     workflow : function (id, obj, cb) {
         "use strict";
 
-        if (!cb) {
+        if (cb === null) {
             // two args: get object
             cb = obj;
             return this._read('workflow', id, cb);
@@ -109,9 +132,9 @@ metrichor.prototype = {
         return this._read('workflow_instance', id, cb);
     },
 
-    token : function (cb) { /* should this be passed a hint at what the token is for? */
+    token : function (id, cb) { /* should this be passed a hint at what the token is for? */
         "use strict";
-        return this._post('token', null, {}, cb);
+        return this._post('token', {id_workflow_instance: id}, null, cb);
     },
 
     telemetry : function (id_workflow_instance, obj, cb) {
@@ -158,6 +181,7 @@ metrichor.prototype = {
         extRequest.get(
             {
                 uri   : call,
+                proxy : this._proxy
             },
             function (e, r, body) {
                 mc._responsehandler(e, r, body, cb);
@@ -170,8 +194,11 @@ metrichor.prototype = {
         var srv, call, mc,
             form = {
                 apikey: this.apikey(),
-                json:   JSON.stringify(obj)
             };
+
+        if (obj !== undefined) {
+            form.json = JSON.stringify(obj);
+        }
 
         if (this._agent_version) {
             form.agent_version = this._agent_version;
@@ -201,6 +228,7 @@ metrichor.prototype = {
             {
                 uri   : call,
                 form  : form,
+                proxy : this._proxy
             },
             function (e, r, body) {
                 mc._responsehandler(e, r, body, cb);
@@ -235,6 +263,7 @@ metrichor.prototype = {
             {
                 uri   : call,
                 form  : form,
+                proxy : this._proxy
             },
             function (e, r, body) {
                 mc._responsehandler(e, r, body, cb);
