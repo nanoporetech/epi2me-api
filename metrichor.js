@@ -16,27 +16,29 @@
  *   proxy: "http://myproxy.com:3128/"
  */
 /*jslint nomen: true*/
-/*global require, module */
+/*global require, module, $, metrichor */
 
 var extRequest, jqWrap;
 
-if(typeof $ !== 'undefined') {
+if (typeof $ !== 'undefined') {
     // JQUERY MODE
     var jqWrap = function (method, params, cb) {
-	$.ajax({
-	    url:     params.uri,
-	    type:    method,
-	    success: function (data,  status, jqXHR)  { cb(null,   data, jqXHR.responseText); },
-	    error:   function (jqXHR, status, errStr) { cb(errStr, null, jqXHR.responseText); }, /* better do something sensible with this! */
-	    data:    params.form,
-	    dataType: "json"
+        "use strict";
+        /*jslint unparam: true*/
+        $.ajax({
+            url:     params.uri,
+            type:    method,
+            success: function (data,  status, jqXHR) { cb(null,   data, jqXHR.responseText); },
+            error:   function (jqXHR, status, errStr) { cb(errStr, null, jqXHR.responseText); }, /* better do something sensible with this! */
+            data:    params.form,
+            dataType: "json"
         });
     };
 
     extRequest = {
-	put:  function (params, cb) { return jqWrap('PUT',  params, cb); },
-	get:  function (params, cb) { return jqWrap('GET',  params, cb); },
-	post: function (params, cb) { return jqWrap('POST', params, cb); }
+        put:  function (params, cb) { "use strict"; return jqWrap('PUT',  params, cb); },
+        get:  function (params, cb) { "use strict"; return jqWrap('GET',  params, cb); },
+        post: function (params, cb) { "use strict"; return jqWrap('POST', params, cb); }
     };
 } else {
     // NODEJS MODE
@@ -132,7 +134,7 @@ metrichor.prototype = {
 
     token : function (id, cb) { /* should this be passed a hint at what the token is for? */
         "use strict";
-        return this._post('token', null, {id_workflow_instance: id}, cb);
+        return this._post('token', {id_workflow_instance: id}, null, cb);
     },
 
     telemetry : function (id_workflow_instance, obj, cb) {
@@ -192,8 +194,11 @@ metrichor.prototype = {
         var srv, call, mc,
             form = {
                 apikey: this.apikey(),
-                json:   JSON.stringify(obj)
             };
+
+        if (obj !== undefined) {
+            form.json = JSON.stringify(obj);
+        }
 
         if (this._agent_version) {
             form.agent_version = this._agent_version;
