@@ -1,6 +1,7 @@
 var Metrichor = require("../lib/metrichor");
 var m = new Metrichor({
-    watchFolder:          "/Users/rmp/whats-in-my-pot",
+    inputFolder:          "/Users/rmp/whats-in-my-pot.tiny",
+    outputFolder:         "/Users/rmp/whats-in-my-pot.tiny/downloads",
     id_workflow_instance: 61427,
     url:                  "https://dev.metrichor.com",
     apikey:               "27448a89ee9794f241307b7e8b9170ba0234b74e",
@@ -8,16 +9,16 @@ var m = new Metrichor({
     inputQueueName:       "000-chain-test-rmp-01",
     outputQueueName:      "000-chain-test-rmp-01",
     bucketFolder:         "rmp-test", // private outputqueue,
-    targetComponentId:    "",
     chain: {
-	components: {}
+	components: {},
+	targetComponentId:    ""
     },
 });
 
 m.autoConfigure();
 
 var statsInterval = setInterval(function () {
-    console.log("[" + (new Date()).toISOString() + "] stats", m.stats("sts_expiration"), m.stats("upload"), m.stats("download"));
+    console.log("[" + (new Date()).toISOString() + "] stats expiry=", m.stats("sts_expiration"), "upload=", m.stats("upload"), "download=", m.stats("download"));
 }, 5000);
 
 

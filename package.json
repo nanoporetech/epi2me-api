@@ -7,7 +7,9 @@
     "main"      : "lib/metrichor.js",
     "dependencies": {
 	"aws-sdk"          : "2.1.34",
-	"request"          : "2.53.0"
+	"request"          : "2.53.0",
+	"graceful-fs"      : "3.0.8",
+	"mkdirp"           : "0.5.1"
     },
     "devDependencies": {
 	"istanbul"         : "0.3.2",
