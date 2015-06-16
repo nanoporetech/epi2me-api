@@ -1,15 +1,16 @@
 {
     "name"      : "metrichor-api",
-    "version"   : "0.7.0",
+    "version"   : "2.31.0",
     "repository": "https://git.oxfordnanolabs.local/metrichor/api.git",
     "description": "API for communicating with the Metrichor website(s)",
     "private"   : true,
     "main"      : "lib/metrichor.js",
     "dependencies": {
 	"aws-sdk"          : "2.1.34",
-	"request"          : "2.53.0",
 	"graceful-fs"      : "3.0.8",
-	"mkdirp"           : "0.5.1"
+	"mkdirp"           : "0.5.1",
+	"proxy-agent"      : "1.1.0",
+	"request"          : "2.53.0"
     },
     "devDependencies": {
 	"istanbul"         : "0.3.2",
