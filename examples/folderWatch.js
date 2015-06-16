@@ -15,20 +15,27 @@ var m = new Metrichor({
     },
 });
 
+
+
+function dumpstats () {
+    console.log("[" + (new Date()).toISOString() + "] stats expiry=", m.stats("sts_expiration"),
+		"upload=", m.stats("upload"),
+		"download=", m.stats("download"));
+}
+
+function cleanup (cb) {
+    clearInterval(statsInterval);
+    m.stop_everything(cb);
+    dumpstats();
+}
+
 m.autoConfigure();
 
-var statsInterval = setInterval(function () {
-    console.log("[" + (new Date()).toISOString() + "] stats expiry=", m.stats("sts_expiration"), "upload=", m.stats("upload"), "download=", m.stats("download"));
-}, 5000);
+var statsInterval = setInterval(dumpstats, 5000);
 
-
-setTimeout(function () {
-    m.stop_everything();
-    clearInterval(statsInterval);
-}, 20000);
+setTimeout(cleanup, 20000);
 
 process.on('SIGINT', function () {
     console.log('Got SIGINT. Stopping.');
-    clearInterval(statsInterval);
-    m.stop_everything(function () { process.exit(); });
+    cleanup(function () { process.exit(); });
 });
