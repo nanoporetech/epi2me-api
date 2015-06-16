@@ -18,9 +18,7 @@ var m = new Metrichor({
 
 
 function dumpstats () {
-    console.log("[" + (new Date()).toISOString() + "] stats expiry=", m.stats("sts_expiration"),
-		"upload=", m.stats("upload"),
-		"download=", m.stats("download"));
+    console.log("[" + (new Date()).toISOString() + "] stats ", m.stats("upload").success, "/", m.stats("download").success);
 }
 
 function cleanup (cb) {
