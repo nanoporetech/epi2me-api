@@ -10,6 +10,7 @@
 	"graceful-fs"      : "3.0.8",
 	"mkdirp"           : "0.5.1",
 	"proxy-agent"      : "1.1.0",
+	"queue-async"      : "1.0.7",
 	"request"          : "2.53.0"
     },
     "devDependencies": {
