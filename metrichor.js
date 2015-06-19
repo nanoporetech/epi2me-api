@@ -20,27 +20,29 @@
 
 var extRequest, jqWrap;
 
-if (typeof $ !== 'undefined') {
-    // JQUERY MODE
-    var jqWrap = function (method, params, cb) {
-        "use strict";
-        /*jslint unparam: true*/
-        $.ajax({
-            url:     params.uri,
-            type:    method,
-            success: function (data,  status, jqXHR) { cb(null,   data, jqXHR.responseText); },
-            error:   function (jqXHR, status, errStr) { cb(errStr, null, jqXHR.responseText); }, /* better do something sensible with this! */
-            data:    params.form,
-            dataType: "json"
-        });
-    };
+try {
+    if ($) { // typeof $ !== 'undefined'
+        // JQUERY MODE
+        var jqWrap = function (method, params, cb) {
+            "use strict";
+            /*jslint unparam: true*/
+            $.ajax({
+                url:     params.uri,
+                type:    method,
+                success: function (data,  status, jqXHR) { cb(null,   data, jqXHR.responseText); },
+                error:   function (jqXHR, status, errStr) { cb(errStr, null, jqXHR.responseText); }, /* better do something sensible with this! */
+                data:    params.form,
+                dataType: "json"
+            });
+        };
 
-    extRequest = {
-        put:  function (params, cb) { "use strict"; return jqWrap('PUT',  params, cb); },
-        get:  function (params, cb) { "use strict"; return jqWrap('GET',  params, cb); },
-        post: function (params, cb) { "use strict"; return jqWrap('POST', params, cb); }
-    };
-} else {
+        extRequest = {
+            put:  function (params, cb) { "use strict"; return jqWrap('PUT',  params, cb); },
+            get:  function (params, cb) { "use strict"; return jqWrap('GET',  params, cb); },
+            post: function (params, cb) { "use strict"; return jqWrap('POST', params, cb); }
+        };
+    }
+} catch (exception) {
     // NODEJS MODE
     extRequest = require('request');
 
