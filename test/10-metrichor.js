@@ -1,8 +1,12 @@
 var proxyquire     = require('proxyquire');
 var assert         = require("assert");
 var sinon          = require("sinon");
+var path           = require("path");
 var requestProxy   = {};
-var Metrichor      = proxyquire('../lib/metrichor', { 'request' : requestProxy });
+var fsProxy        = {};
+var mkdirpProxy    = {};
+var awsProxy       = {};
+var Metrichor      = proxyquire('../lib/metrichor', { 'aws-sdk': awsProxy, 'request' : requestProxy, 'fs': fsProxy, 'mkdirp': mkdirpProxy });
 
 describe('Array', function(){
     describe('metrichor constructor', function () {
@@ -88,6 +92,111 @@ describe('Array', function(){
     });
 
     describe('metrichor api', function(){
+        describe('.autoConfigure method', function () {
+
+            var conf = {
+                inputFolder: "in",
+                outputFolder: "out"
+            };
+
+            function newApi(error, instance) {
+                var client = new Metrichor(conf);
+
+                client.uploadWorkerPool = {
+                    defer: function () {}
+                };
+
+                client._stats = {
+                    upload:   {
+                        success: 0,
+                        failure: {},
+                        queueLength: 0
+                    },
+                    download: {
+                        success: 0,
+                        fail: 0,
+                        failure: {},
+                        queueLength: 0
+                    }
+                };
+
+                sinon.stub(client.log, "warn");
+                sinon.stub(client.log, "info");
+                sinon.stub(client.log, "error");
+                sinon.stub(client, "enqueueUploadJob");
+                return client;
+            }
+
+            describe('', function () {
+                var api = newApi();
+
+                api.autoConfigure({
+                    bucketFolder: "a",
+                    inputQueueName: "a",
+                    outputQueueName: "a"
+                });
+
+                beforeEach(function () {
+                    mkdirpProxy.sync = function (folder) {
+                        assert.equal(conf.outputFolder, folder);
+                    };
+
+                    fsProxy.createWriteStream = function (p) {
+                        assert.equal(path.join(conf.outputFolder, "telemetry.log"), p); // Telemetry logging
+                    };
+
+                    sinon.stub(mkdirpProxy, 'sync');
+                    sinon.stub(fsProxy, 'createWriteStream');
+                });
+
+                it('should write to options.outputFolder', function () {
+
+                });
+
+                afterEach(function () {
+                    // Cleanup
+                    delete fsProxy.createWriteStream;
+                    delete mkdirpProxy.sync;
+                });
+
+            });
+
+            it('should register folderChange event handler', function () {
+                var api = newApi(),
+                    eventHandler;
+
+                mkdirpProxy.sync = function () {};
+                fsProxy.createWriteStream = function () {};
+
+                api.on = function (evt, handler) {
+                    if (evt === "folderChange") {
+                        eventHandler = handler;
+                    }
+                };
+
+                api.autoConfigure({
+                    bucketFolder: "a",
+                    inputQueueName: "a",
+                    outputQueueName: "a"
+                });
+
+                assert.equal(typeof eventHandler, 'function');
+                assert.doesNotThrow(eventHandler); // Empty input
+
+                eventHandler("add", "cwd/MINICOL138_20141030_FNFAA05515_MN02092_Dev_Sequencing_DanS_96_ONLL1398_Elec5_28195_ch10_file53_strand.fast5");
+                assert.equal(api._stats.upload.queueLength, 1);
+
+                eventHandler("add", "cwd/MINICOL138_20141030_FNFAA05515_MN02092_Dev_Sequencing_DanS_96_ONLL1398_Elec5_28195_ch10_file53_strand.fast5.tmp");
+                assert.equal(api._stats.upload.queueLength, 1);
+
+                eventHandler("change", "cwd/dd 3_strand.fast5");
+                assert.equal(api._stats.upload.queueLength, 2);
+
+                eventHandler("unlink", "cwd/bla.fast5");
+                assert.equal(api._stats.upload.queueLength, 1); // decrement
+            });
+        });
+
         describe('.autoStart method', function () {
 
             function newApi(error, instance) {
@@ -97,8 +206,12 @@ describe('Array', function(){
                     cb(error, instance);
                 };
 
+                client.autoConfigure = function (id, cb) {
+                    cb();
+                };
+
                 sinon.stub(client.log, "warn");
-                sinon.stub(client, "autoConfigure");
+                sinon.spy(client, "autoConfigure");
                 sinon.stub(client, "resetStats");
                 sinon.spy(client,  "start_workflow");
                 return client;
@@ -111,14 +224,15 @@ describe('Array', function(){
                         outputqueue: "queue"
                     });
 
-                client.autoStart(111);
-                assert(client.resetStats.calledOnce);
-                assert(client.start_workflow.calledOnce);
-                assert(client.autoConfigure.calledOnce);
+                client.autoStart(111, function () {
+                    assert(client.resetStats.calledOnce);
+                    assert(client.start_workflow.calledOnce);
+                    assert(client.autoConfigure.calledOnce);
 
-                var args = client.autoConfigure.args[0][0];
-                assert.equal(args.id_workflow_instance, 10);
-                assert.equal(args.bucketFolder, "queue/user/10");
+                    var args = client.autoConfigure.args[0][0];
+                    assert.equal(args.id_workflow_instance, 10);
+                    assert.equal(args.bucketFolder, "queue/user/10");
+                });
             });
 
             it('should handle start_workflow errors', function () {
@@ -129,12 +243,13 @@ describe('Array', function(){
                         state: "stopped"
                     });
 
-                client.autoStart(111);
-                assert(client.resetStats.calledOnce);
-                assert(client.start_workflow.calledOnce);
-                assert(client.log.warn.calledOnce);
-                assert(client.log.warn.calledWith("failed to start workflow: Message"));
-                assert(client.autoConfigure.notCalled);
+                client.autoStart(111, function () {
+                    assert(client.resetStats.calledOnce);
+                    assert(client.start_workflow.calledOnce);
+                    assert(client.log.warn.calledOnce);
+                    assert(client.log.warn.calledWith("failed to start workflow: Message"));
+                    assert(client.autoConfigure.notCalled);
+                });
             });
         });
 
@@ -148,8 +263,12 @@ describe('Array', function(){
                     cb(error, instance);
                 };
 
+                client.autoConfigure = function (id, cb) {
+                    cb();
+                };
+
                 sinon.stub(client.log, "warn");
-                sinon.stub(client, "autoConfigure");
+                sinon.spy(client, "autoConfigure");
                 sinon.stub(client, "resetStats");
                 sinon.spy(client,  "workflow_instance");
                 return client;
@@ -162,14 +281,15 @@ describe('Array', function(){
                         outputqueue: "queue"
                     });
 
-                client.autoJoin(111);
-                assert(client.resetStats.calledOnce);
-                assert(client.workflow_instance.calledOnce);
-                assert(client.autoConfigure.calledOnce);
+                client.autoJoin(111, function () {
+                    assert(client.resetStats.calledOnce);
+                    assert(client.workflow_instance.calledOnce);
+                    assert(client.autoConfigure.calledOnce);
 
-                var args = client.autoConfigure.args[0][0];
-                assert.equal(args.id_workflow_instance, 10);
-                assert.equal(args.bucketFolder, "queue/user/10");
+                    var args = client.autoConfigure.args[0][0];
+                    assert.equal(args.id_workflow_instance, 10);
+                    assert.equal(args.bucketFolder, "queue/user/10");
+                });
             });
 
             it('should handle workflow_instance errors', function () {
@@ -180,12 +300,13 @@ describe('Array', function(){
                         state: "stopped"
                     });
 
-                client.autoJoin(111);
-                assert(client.resetStats.calledOnce);
-                assert(client.workflow_instance.calledOnce);
-                assert(client.log.warn.calledOnce);
-                assert(client.log.warn.calledWith("failed to join workflow: Message"));
-                assert(client.autoConfigure.notCalled);
+                client.autoJoin(111, function () {
+                    assert(client.resetStats.calledOnce);
+                    assert(client.workflow_instance.calledOnce);
+                    assert(client.log.warn.calledOnce);
+                    assert(client.log.warn.calledWith("failed to join workflow: Message"));
+                    assert(client.autoConfigure.notCalled);
+                });
             });
 
             it('should not join an instance where state === stopped', function () {
@@ -194,11 +315,196 @@ describe('Array', function(){
                         state: "stopped"
                     });
 
+                client.autoJoin(111, function () {
+                    assert(client.workflow_instance.calledOnce);
+                    assert(client.autoConfigure.notCalled);
+                    //assert(client.log.warn.calledWith("workflow 111 is already stopped"));
+                });
+            });
+        });
 
-                client.autoJoin(111);
-                assert(client.workflow_instance.calledOnce);
-                assert(client.autoConfigure.notCalled);
-                //assert(client.log.warn.calledWith("workflow 111 is already stopped"));
+        describe('.sendMessage method', function () {
+
+            var client, args,
+                sqsMock = {
+                    sendMessage: function () {
+                        args = arguments;
+                    }
+                };
+
+            beforeEach(function () {
+
+                fsProxy.rename = function () {};
+                mkdirpProxy = function () {};
+
+                client = new Metrichor({
+                    inputFolder: 'path'
+                });
+                client.workflow_instance = function (id, cb) {
+                    cb(error, instance);
+                };
+
+                client.autoConfigure = function (id, cb) {
+                    cb();
+                };
+
+                sinon.stub(client.log, "warn");
+                sinon.stub(client.log, "info");
+                sinon.stub(client, "enqueueUploadJob");
+            });
+
+            afterEach(function () {
+                // Cleanup
+                delete fsProxy.rename;
+                delete awsProxy.SQS;
+                mkdirpProxy = {};
+            });
+
+            it('sqs callback should log warning on error and re-enqueue item', function () {
+                var cb,
+                    item = 'filename.fast5';
+
+                client.sendMessage(sqsMock, 10, item, function () {});
+
+                cb = args[1];
+                cb("Error message");
+                assert(client.log.warn.calledOnce);
+                assert(client.enqueueUploadJob.calledOnce);
+                assert(client.enqueueUploadJob.calledWith(item));
+            });
+
+            it('sqs callback should move file to the ./uploaded folder', function () {
+                var cb,
+                    item = 'filename.fast5';
+
+                client.sendMessage(sqsMock, 10, item, function () {});
+
+                cb = args[1];
+                // cb();
+                //assert(client.enqueueUploadJob.calledOnce);
+                //assert(client.enqueueUploadJob.calledWith(item));
+            });
+
+        });
+
+        describe('._responseHandler method', function () {
+            var client,
+                container;
+
+            beforeEach(function () {
+                client = new Metrichor();
+                container = {
+                    callback: function () {}
+                };
+                sinon.stub(container, 'callback');
+            });
+
+            it('should handle error status codes', function () {
+                client._responsehandler(null, {statusCode: 400}, '', container.callback);
+                assert(container.callback.calledWith({"error": "HTTP status 400"}));
+                assert(container.callback.calledOnce);
+            });
+
+            it('should handle errors', function () {
+                client._responsehandler('message', '', ''); // ensure it checks callback exists
+                client._responsehandler('message', '', '', container.callback);
+                assert(container.callback.calledWith('message'));
+                assert(container.callback.calledOnce);
+            });
+
+            it('should parse body and handle bad json', function () {
+                client._responsehandler(null, '', '{\"error\": \"message\"}');
+                client._responsehandler(null, '', '{\"error\": \"message\"}', container.callback);
+                assert(container.callback.calledWith({error: 'message'}));
+                assert(container.callback.calledOnce);
+                client._responsehandler(null, '', '{error: message}', container.callback); // Handles JSON error gracefully
+                assert(container.callback.calledTwice);
+            });
+        });
+
+        describe('.uploadComplete method', function () {
+            var client;
+
+            beforeEach(function () {
+                client = new Metrichor();
+                client.sessionedSQS = function (cb) {
+                    cb();
+                };
+                sinon.stub(client.log, "info");
+                sinon.stub(client, "enqueueUploadJob");
+                sinon.stub(client, "sendMessage");
+                sinon.stub(client, "discoverQueue");
+            });
+
+            it('should requeue item on error', function () {
+                var errorCallback;
+                client.sessionedSQS = function (cb) {
+                    cb(null, {});
+                };
+                client.discoverQueue = function (sqs, queueName, cb, errorCb) {
+                    cb();
+
+                    assert(client.enqueueUploadJob.notCalled);
+                    errorCb();
+                };
+                sinon.spy(client, "sessionedSQS");
+
+                client.uploadComplete(null, 'item', function () {});
+                assert(client.enqueueUploadJob.calledOnce);
+                assert(client.enqueueUploadJob.calledWith('item'));
+            });
+        });
+
+        describe('.processMessage method', function () {
+            var client;
+
+            beforeEach(function () {
+                client = new Metrichor();
+                client.sessionedSQS = function (cb) { cb(); };
+                sinon.stub(client.log, "info");
+                sinon.stub(client.log, "warn");
+                sinon.stub(client.log, "error");
+                sinon.stub(client, "deleteMessage");
+                fsProxy.createWriteStream = function () {};
+                mkdirpProxy.sync = function () {};
+                sinon.spy(fsProxy, 'createWriteStream');
+                client.sessionedS3 = function () {};
+                sinon.spy(client, 'sessionedS3');
+            });
+
+            afterEach(function () {
+                delete fsProxy.createWriteStream;
+                delete mkdirpProxy.sync;
+            });
+
+            it('should validate input', function () {
+                client.processMessage();
+                assert(client.log.info.calledWith('empty message'));
+                client.processMessage(null, function () {});
+            });
+
+            it('should handle bad message json', function () {
+                var msg = { Body: '{message: body}' };
+                client.processMessage(msg);
+                assert(client.deleteMessage.calledWith(msg));
+                assert(client.log.error.calledOnce);
+            });
+
+            it('should parse message json', function () {
+                client.sessionedS3 = function (cb) {
+                    cb('error message');
+                };
+                sinon.spy(client, 'sessionedS3');
+
+                client.processMessage({
+                    Body: '{"message": "body"}'
+                });
+                assert(client.log.warn.calledOnce); // No path
+
+                /*
+                client.processMessage({
+                    Body: '{"path": "body"}'
+                });*/
             });
         });
 
@@ -411,6 +717,4 @@ describe('Array', function(){
             assert.deepEqual(obj2, {"description":"a workflow","rev":"1.0"}, 'workflow read');
         });
     });
-
-
 });
