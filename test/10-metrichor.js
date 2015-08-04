@@ -189,11 +189,8 @@ describe('Array', function(){
                 eventHandler("add", "cwd/MINICOL138_20141030_FNFAA05515_MN02092_Dev_Sequencing_DanS_96_ONLL1398_Elec5_28195_ch10_file53_strand.fast5.tmp");
                 assert.equal(api._stats.upload.queueLength, 1);
 
-                eventHandler("change", "cwd/dd 3_strand.fast5");
-                assert.equal(api._stats.upload.queueLength, 2);
-
                 eventHandler("unlink", "cwd/bla.fast5");
-                assert.equal(api._stats.upload.queueLength, 1); // decrement
+                assert.equal(api._stats.upload.queueLength, 0); // decrement
             });
         });
 
