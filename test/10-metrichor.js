@@ -5,8 +5,15 @@ var path           = require("path");
 var requestProxy   = {};
 var fsProxy        = {};
 var mkdirpProxy    = {};
+var readdirpProxy  = {};
 var awsProxy       = {};
-var Metrichor      = proxyquire('../lib/metrichor', { 'aws-sdk': awsProxy, 'request' : requestProxy, 'fs': fsProxy, 'mkdirp': mkdirpProxy });
+var Metrichor      = proxyquire('../lib/metrichor', {
+    'aws-sdk'   : awsProxy,
+    'request'   : requestProxy,
+    'fs'        : fsProxy,
+    'readdirp'  : function () { readdirpProxy.args = arguments; return readdirpProxy },
+    'mkdirp'    : mkdirpProxy
+});
 
 describe('Array', function(){
     describe('metrichor constructor', function () {
@@ -321,6 +328,95 @@ describe('Array', function(){
                     assert(client.autoConfigure.notCalled);
                     //assert(client.log.warn.calledWith("workflow 111 is already stopped"));
                 });
+            });
+        });
+
+        describe('.loadUploadFiles method', function () {
+
+            var client,
+                callbacks,
+                conf = {
+                    inputFolder: "in",
+                    outputFolder: "out",
+                    uploadQueueLimit: 2
+                };
+
+            beforeEach(function () {
+                client = new Metrichor(conf);
+                client._seenFiles = {};
+                sinon.stub(client, 'enqueueUploadJob');
+                sinon.stub(client.log, 'warn');
+                sinon.stub(client.log, 'error');
+                sinon.stub(client.log, 'info');
+
+                callbacks = {};
+                readdirpProxy.on = function (key, cb) {
+                    callbacks[key] = cb;
+                    return this;
+                };
+                readdirpProxy.destroy = function () {};
+                readdirpProxy.pipe = function () { return this; };
+
+            });
+
+            afterEach(function () {
+                readdirpProxy = {};
+            });
+
+            it('should register readdirp event handlers', function () {
+
+                client.loadUploadFiles();
+
+                assert.equal(callbacks.hasOwnProperty('error'), true);
+                assert.equal(callbacks.hasOwnProperty('warn'), true);
+                assert.equal(callbacks.hasOwnProperty('data'), true);
+                callbacks.warn();
+                callbacks.warn('msg');
+                assert(client.log.warn.calledWith('Non-fatal stream error: msg'));
+
+                callbacks.error('message');
+                callbacks.error();
+
+                assert(client.log.error.calledWith('Fatal stream error: message'));
+
+            });
+
+            it('should stream files to that.enqueueUploadJob', function () {
+
+                client.loadUploadFiles();
+
+                assert.doesNotThrow(function () {
+                    callbacks.data(); // handle empty input
+                }, Error);
+
+                callbacks.data({ path: 'file1.fast5', size: 100 });
+                assert.deepEqual(client._seenFiles, { 'file1.fast5': { 'size': 100 }});
+
+                // Ignoring the same file
+                callbacks.data({ path: 'file1.fast5', size: 100 });
+                assert(client.enqueueUploadJob.calledWith('file1.fast5'));
+                assert.deepEqual(client._seenFiles, { 'file1.fast5': { 'size': 100 }});
+
+                callbacks.data({ path: 'file2.fast5', size: 100 });
+                assert(client.enqueueUploadJob.calledWith('file2.fast5'));
+                assert(!client.log.info.calledWith('destroying readdir stream. uploadQueueLimit reached'));
+                callbacks.data({ path: 'file3.fast5', size: 100 });
+                assert(!client.enqueueUploadJob.calledWith('file3.fast5'));
+                assert(client.log.info.calledWith('destroying readdir stream. uploadQueueLimit reached'));
+                assert.equal(client._readdirpStream, null);
+            });
+
+            it('should delete old stream and filter files', function () {
+                client._readdirpStream = {};
+                client._stats.upload.queueLength = 2;
+                client.loadUploadFiles();
+                client._stats.upload.queueLength = 0;
+                client.loadUploadFiles();
+                var filter = readdirpProxy.args[0].fileFilter;
+                assert(!filter({ path: 'uploads/file.fast5' }));
+                assert(!filter({ path: 'downloaded/file.fast5' }));
+                assert(!filter({ path: 'file.fast5.tmp' }));
+                assert(filter({ path: 'file.fast5' }));
             });
         });
 
