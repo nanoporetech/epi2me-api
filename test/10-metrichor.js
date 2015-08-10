@@ -338,7 +338,8 @@ describe('Array', function(){
                 conf = {
                     inputFolder: "in",
                     outputFolder: "out",
-                    uploadQueueLimit: 2
+                    uploadQueueLimit: 2,
+                    uploadQueueThreshold: 1
                 };
 
             beforeEach(function () {
@@ -348,64 +349,31 @@ describe('Array', function(){
                 sinon.stub(client.log, 'warn');
                 sinon.stub(client.log, 'error');
                 sinon.stub(client.log, 'info');
-
-                callbacks = {};
-                readdirpProxy.on = function (key, cb) {
-                    callbacks[key] = cb;
-                    return this;
-                };
-                readdirpProxy.destroy = function () {};
-                readdirpProxy.pipe = function () { return this; };
-
             });
 
             afterEach(function () {
-                readdirpProxy = {};
+                fsProxy = {};
             });
 
             it('should register readdirp event handlers', function () {
-
+                var files = ['file1.fast5', 'file2.fast5', 'file3', 'file4'];
+                fsProxy.readdir = function (dir, cb) {
+                    return cb(null, files);
+                };
+                sinon.spy(fsProxy, 'readdir');
+                client._dirScanInProgress = true;
                 client.loadUploadFiles();
+                assert(fsProxy.readdir.notCalled);
 
-                assert.equal(callbacks.hasOwnProperty('error'), true);
-                assert.equal(callbacks.hasOwnProperty('warn'), true);
-                assert.equal(callbacks.hasOwnProperty('data'), true);
-                callbacks.warn();
-                callbacks.warn('msg');
-                assert(client.log.warn.calledWith('Non-fatal stream error: msg'));
+                client._dirScanInProgress = false;
+                client.loadUploadFiles();
+                assert(fsProxy.readdir.calledWith('in'));
 
-                callbacks.error('message');
-                callbacks.error();
-
-                assert(client.log.error.calledWith('Fatal stream error: message'));
+                console.log(client._fileStash)
 
             });
 
-            it('should stream files to that.enqueueUploadJob', function () {
-
-                client.loadUploadFiles();
-
-                assert.doesNotThrow(function () {
-                    callbacks.data(); // handle empty input
-                }, Error);
-
-                callbacks.data({ path: 'file1.fast5', size: 100 });
-                assert.deepEqual(client._seenFiles, { 'file1.fast5': { 'size': 100 }});
-
-                // Ignoring the same file
-                callbacks.data({ path: 'file1.fast5', size: 100 });
-                assert(client.enqueueUploadJob.calledWith('file1.fast5'));
-                assert.deepEqual(client._seenFiles, { 'file1.fast5': { 'size': 100 }});
-
-                callbacks.data({ path: 'file2.fast5', size: 100 });
-                assert(client.enqueueUploadJob.calledWith('file2.fast5'));
-                assert(!client.log.info.calledWith('destroying readdir stream. uploadQueueLimit reached'));
-                callbacks.data({ path: 'file3.fast5', size: 100 });
-                assert(!client.enqueueUploadJob.calledWith('file3.fast5'));
-                assert(client.log.info.calledWith('destroying readdir stream. uploadQueueLimit reached'));
-                assert.equal(client._readdirpStream, null);
-            });
-
+            /*
             it('should delete old stream and filter files', function () {
                 client._readdirpStream = {};
                 client._stats.upload.queueLength = 2;
@@ -418,6 +386,7 @@ describe('Array', function(){
                 assert(!filter({ path: 'file.fast5.tmp' }));
                 assert(filter({ path: 'file.fast5' }));
             });
+            */
         });
 
         describe('.sendMessage method', function () {
