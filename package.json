@@ -1,23 +1,27 @@
 {
-    "name"      : "metrichor-api",
-    "version"   : "2.32.0",
-    "repository": "https://git.oxfordnanolabs.local/metrichor/api.git",
-    "description": "API for communicating with the Metrichor website(s)",
-    "private"   : true,
-    "main"      : "lib/metrichor.js",
-    "dependencies": {
-	"aws-sdk"          : "2.1.34",
-	"graceful-fs"      : "3.0.8",
-	"mkdirp"           : "0.5.1",
-	"proxy-agent"      : "1.1.0",
-	"queue-async"      : "1.0.7",
-	"request"          : "2.53.0"
-    },
-    "devDependencies": {
-	"istanbul"         : "0.3.2",
-	"mocha"            : "2.2.5",
-	"proxyquire"       : "1.5.0",
-        "jslint"           : "0.3.3",
-	"xunit-file"       : "*"
-    }
+  "name": "metrichor-api",
+  "version": "2.32.4",
+  "repository": "https://git.oxfordnanolabs.local/metrichor/api.git",
+  "description": "API for communicating with the Metrichor website(s)",
+  "private": true,
+  "main": "lib/metrichor.js",
+  "dependencies": {
+    "aws-sdk": "2.1.43",
+    "graceful-fs": "4.1.2",
+    "mkdirp": "0.5.1",
+    "proxy-agent": "1.1.0",
+    "queue-async": "git+https://github.com/rmp/queue.git",
+    "request": "2.53.0"
+  },
+  "devDependencies": {
+    "istanbul": "0.3.2",
+    "jslint": "0.3.3",
+    "mocha": "2.2.5",
+    "proxyquire": "1.5.0",
+    "sinon": "^1.15.4",
+    "xunit-file": "*"
+  },
+  "scripts": {
+    "postinstall": "perl -M\"File::Copy move\" -e \"move(q[node_modules/proxy-agent/node_modules/pac-proxy-agent], q[node_modules/pac-proxy-agent]); move(q[node_modules/proxy-agent/node_modules/socks-proxy-agent], q[node_modules/socks-proxy-agent]); move(q[node_modules/proxy-agent/node_modules/https-proxy-agent], q[node_modules/https-proxy-agent]); move(q[node_modules/proxy-agent/node_modules/http-proxy-agent], q[node_modules/http-proxy-agent]); move(q[node_modules/pac-proxy-agent/node_modules/pac-resolver], q[node_modules/pac-resolver]);\""
+  }
 }
