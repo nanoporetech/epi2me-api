@@ -5,13 +5,13 @@ var path           = require("path");
 var requestProxy   = {};
 var fsProxy        = {};
 var mkdirpProxy    = {};
-var readdirpProxy  = {};
+//var readdirpProxy  = {};
 var awsProxy       = {};
 var Metrichor      = proxyquire('../lib/metrichor', {
     'aws-sdk'   : awsProxy,
     'request'   : requestProxy,
     'fs'        : fsProxy,
-    'readdirp'  : function () { readdirpProxy.args = arguments; return readdirpProxy },
+//    'readdirp'  : function () { readdirpProxy.args = arguments; return readdirpProxy },
     'mkdirp'    : mkdirpProxy
 });
 
@@ -354,7 +354,7 @@ describe('Array', function(){
             afterEach(function () {
                 fsProxy = {};
             });
-
+/*
             it('should register readdirp event handlers', function () {
                 var files = ['file1.fast5', 'file2.fast5', 'file3', 'file4'];
                 fsProxy.readdir = function (dir, cb) {
