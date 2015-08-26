@@ -1,6 +1,6 @@
 {
   "name": "metrichor-api",
-  "version": "2.32.4",
+  "version": "2.33.1",
   "repository": "https://git.oxfordnanolabs.local/metrichor/api.git",
   "description": "API for communicating with the Metrichor website(s)",
   "private": true,
