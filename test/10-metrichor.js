@@ -416,7 +416,6 @@ describe('Array', function(){
 
                 sinon.stub(client.log, "warn");
                 sinon.stub(client.log, "info");
-                sinon.stub(client, "enqueueUploadJob");
             });
 
             afterEach(function () {
@@ -426,7 +425,7 @@ describe('Array', function(){
                 mkdirpProxy = {};
             });
 
-            it('sqs callback should log warning on error and re-enqueue item', function () {
+            it('sqs callback should handle error and log warning', function () {
                 var cb,
                     item = 'filename.fast5';
 
@@ -435,8 +434,6 @@ describe('Array', function(){
                 cb = args[1];
                 cb("Error message");
                 assert(client.log.warn.calledOnce);
-                assert(client.enqueueUploadJob.calledOnce);
-                assert(client.enqueueUploadJob.calledWith(item));
             });
 
             it('sqs callback should move file to the ./uploaded folder', function () {
@@ -497,27 +494,21 @@ describe('Array', function(){
                     cb();
                 };
                 sinon.stub(client.log, "info");
-                sinon.stub(client, "enqueueUploadJob");
                 sinon.stub(client, "sendMessage");
                 sinon.stub(client, "discoverQueue");
             });
 
-            it('should requeue item on error', function () {
+            it('should handle error', function () {
                 var errorCallback;
                 client.sessionedSQS = function (cb) {
                     cb(null, {});
                 };
                 client.discoverQueue = function (sqs, queueName, cb, errorCb) {
                     cb();
-
-                    assert(client.enqueueUploadJob.notCalled);
                     errorCb();
                 };
                 sinon.spy(client, "sessionedSQS");
-
                 client.uploadComplete(null, 'item', function () {});
-                assert(client.enqueueUploadJob.calledOnce);
-                assert(client.enqueueUploadJob.calledWith('item'));
             });
         });
 
