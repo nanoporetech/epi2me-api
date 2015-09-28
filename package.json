@@ -6,7 +6,7 @@
   "private": true,
   "main": "lib/metrichor.js",
   "dependencies": {
-    "aws-sdk": "2.2.3",
+    "aws-sdk": "2.2.4",
     "graceful-fs": "4.1.2",
     "mkdirp": "0.5.1",
     "proxy-agent": "1.1.0",
