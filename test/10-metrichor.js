@@ -2,16 +2,16 @@ var proxyquire     = require('proxyquire');
 var assert         = require("assert");
 var sinon          = require("sinon");
 var path           = require("path");
+var tmp            = require('tmp');
+var fs             = require('fs');
 var requestProxy   = {};
 var fsProxy        = {};
 var mkdirpProxy    = {};
-//var readdirpProxy  = {};
 var awsProxy       = {};
 var Metrichor      = proxyquire('../lib/metrichor', {
     'aws-sdk'   : awsProxy,
     'request'   : requestProxy,
-    'fs'        : fsProxy,
-//    'readdirp'  : function () { readdirpProxy.args = arguments; return readdirpProxy },
+    'graceful-fs' : fsProxy,
     'mkdirp'    : mkdirpProxy
 });
 
@@ -134,75 +134,6 @@ describe('Array', function(){
                 sinon.stub(fsProxy, 'watch');
                 return client;
             }
-            /*
-            describe('', function () {
-
-                var api = newApi();
-
-                api.autoConfigure({
-                    bucketFolder: "a",
-                    inputQueueName: "a",
-                    outputQueueName: "a"
-                });
-
-                beforeEach(function () {
-                    mkdirpProxy.sync = function (folder) {
-                        assert.equal(conf.outputFolder, folder);
-                    };
-
-                    fsProxy.createWriteStream = function (p) {
-                        assert.equal(path.join(conf.outputFolder, "telemetry.log"), p); // Telemetry logging
-                    };
-
-                    sinon.stub(mkdirpProxy, 'sync');
-                    sinon.stub(fsProxy, 'createWriteStream');
-
-                });
-
-                it('should write to options.outputFolder', function () {
-
-                });
-
-                afterEach(function () {
-                    // Cleanup
-                    delete fsProxy.createWriteStream;
-                    delete mkdirpProxy.sync;
-                });
-
-            });
-
-            it('should register folderChange event handler', function () {
-                var api = newApi(),
-                    eventHandler;
-
-                mkdirpProxy.sync = function () {};
-                fsProxy.createWriteStream = function () {};
-
-                api.on = function (evt, handler) {
-                    if (evt === "folderChange") {
-                        eventHandler = handler;
-                    }
-                };
-
-                api.autoConfigure({
-                    bucketFolder: "a",
-                    inputQueueName: "a",
-                    outputQueueName: "a"
-                });
-
-                assert.equal(typeof eventHandler, 'function');
-                assert.doesNotThrow(eventHandler); // Empty input
-
-                eventHandler("add", "cwd/MINICOL138_20141030_FNFAA05515_MN02092_Dev_Sequencing_DanS_96_ONLL1398_Elec5_28195_ch10_file53_strand.fast5");
-                assert.equal(api._stats.upload.queueLength, 1);
-
-                eventHandler("add", "cwd/MINICOL138_20141030_FNFAA05515_MN02092_Dev_Sequencing_DanS_96_ONLL1398_Elec5_28195_ch10_file53_strand.fast5.tmp");
-                assert.equal(api._stats.upload.queueLength, 1);
-
-                eventHandler("unlink", "cwd/bla.fast5");
-                assert.equal(api._stats.upload.queueLength, 0); // decrement
-            });
-            */
         });
 
         describe('.autoStart method', function () {
@@ -227,10 +158,10 @@ describe('Array', function(){
 
             it('should initiate a new workflow instance', function () {
                 var client = newApi(null, {
-                        id_workflow_instance: 10,
-                        id_user: "user",
-                        outputqueue: "queue"
-                    });
+                    id_workflow_instance: 10,
+                    id_user: "user",
+                    outputqueue: "queue"
+                });
 
                 client.autoStart(111, function () {
                     assert(client.resetStats.calledOnce);
@@ -284,10 +215,10 @@ describe('Array', function(){
 
             it('should join an existing workflow instance', function () {
                 var client = newApi(null, {
-                        id_workflow_instance: 10,
-                        id_user: "user",
-                        outputqueue: "queue"
-                    });
+                    id_workflow_instance: 10,
+                    id_user: "user",
+                    outputqueue: "queue"
+                });
 
                 client.autoJoin(111, function () {
                     assert(client.resetStats.calledOnce);
@@ -330,11 +261,10 @@ describe('Array', function(){
                 });
             });
         });
-
+        /*
         describe('.loadUploadFiles method', function () {
 
             var client,
-                callbacks,
                 conf = {
                     inputFolder: "in",
                     outputFolder: "out",
@@ -350,43 +280,125 @@ describe('Array', function(){
                 sinon.stub(client.log, 'error');
                 sinon.stub(client.log, 'info');
             });
+        });
+        */
 
-            afterEach(function () {
-                fsProxy = {};
-            });
-/*
-            it('should register readdirp event handlers', function () {
-                var files = ['file1.fast5', 'file2.fast5', 'file3', 'file4'];
-                fsProxy.readdir = function (dir, cb) {
-                    return cb(null, files);
+        // MC-1304 - test download streams
+        describe('._initiateDownloadStream method', function () {
+
+            var client, tmpfile, tmpdir, writeStream;
+
+            function s3Mock(cb) {
+                return {
+                    getObject: function () {
+                        return {
+                            createReadStream: cb
+                        }
+                    }
+                }
+            }
+
+            beforeEach(function () {
+                tmpdir = tmp.dirSync({unsafeCleanup: true});
+                fs.writeFile(path.join(tmpdir.name, 'tmpfile.txt'), "dataset", function () {});
+
+                fsProxy.unlink = function () { };
+                fsProxy.stat = function () { };
+                fsProxy.createWriteStream = function () {
+                    writeStream = fs.createWriteStream.apply(this, arguments);
+                    return writeStream;
                 };
-                sinon.spy(fsProxy, 'readdir');
-                client._dirScanInProgress = true;
-                client.loadUploadFiles();
-                assert(fsProxy.readdir.notCalled);
 
-                client._dirScanInProgress = false;
-                client.loadUploadFiles();
-                assert(fsProxy.readdir.calledWith('in'));
-
-                console.log(client._fileStash)
-
+                client = new Metrichor({});
+                sinon.stub(client.log, "error");
+                sinon.stub(client.log, "warn");
+                sinon.stub(client.log, "info");
+                sinon.stub(client, "deleteMessage");
             });
 
-            /*
-            it('should delete old stream and filter files', function () {
-                client._readdirpStream = {};
-                client._stats.upload.queueLength = 2;
-                client.loadUploadFiles();
-                client._stats.upload.queueLength = 0;
-                client.loadUploadFiles();
-                var filter = readdirpProxy.args[0].fileFilter;
-                assert(!filter({ path: 'uploads/file.fast5' }));
-                assert(!filter({ path: 'downloaded/file.fast5' }));
-                assert(!filter({ path: 'file.fast5.tmp' }));
-                assert(filter({ path: 'file.fast5' }));
+            afterEach(function cleanup() {
+                writeStream = null;
+                delete fsProxy.stat;
+                delete fsProxy.unlink;
+                delete fsProxy.createWriteStream;
+                tmpfile ? tmpfile.removeCallback() : null;
+                tmpdir ? tmpdir.removeCallback() : null;
             });
-            */
+
+            it('should handle s3 error', function (done) {
+                var s3 = s3Mock(function () { throw "Error" });
+                client._initiateDownloadStream(s3, {}, {}, path.join(tmpdir.name, 'tmpfile.txt'), function () {
+                    assert(client.log.error.calledOnce, "should log error message");
+                    done();
+                });
+            });
+
+            it('should open read stream and write to outputFile', function (done) {
+                var readStream,
+                    msg = {msg: 'bla'},
+                    s3 = s3Mock(function cb() {
+                        var tmpfile = tmp.fileSync({ prefix: 'prefix-', postfix: '.txt' });
+                        readStream = fs.createReadStream(tmpfile.name, function (err) {});
+                        return readStream;
+                    });
+                var filename = path.join(tmpdir.name, 'tmpfile.txt');
+                client._initiateDownloadStream(s3, {}, msg, filename, function cb() {
+                    assert.equal(readStream.destroyed, true, "should destroy the read stream");
+                    assert(client.deleteMessage.calledWith(msg), "should delete sqs message on success");
+                    assert.equal(client._stats.download.success, 1, "should count as download as success");
+                    done();
+                });
+            });
+
+
+            it('should handle read stream errors', function (done) {
+                var readStream, tmpfile, s3, filename;
+                s3 = s3Mock(function cb() {
+                    tmpfile = tmp.fileSync({ prefix: 'prefix-', postfix: '.txt' });
+                    readStream = fs.createReadStream(tmpfile.name, function (err) { });
+                    readStream.on("open", function () {
+                        readStream.emit("error", new Error("Test"));
+                    });
+                    return readStream;
+                });
+                filename = path.join(tmpdir.name, 'tmpfile.txt');
+
+                client._initiateDownloadStream(s3, {}, {}, filename, function cb() {
+                    assert.equal(readStream.destroyed, true, "should destroy the read stream");
+                    assert(client.deleteMessage.notCalled, "should not delete sqs message on error");
+                    assert.equal(client._stats.download.success, 0, "should not count as download success on error");
+                    done();
+                });
+                assert.equal(client._stats.download.success, 0);
+            });
+
+            it('should handle write stream errors', function (done) {
+                var readStream, tmpfile, s3, filename;
+                s3 = s3Mock(function cb() {
+                    tmpfile = tmp.fileSync({ prefix: 'prefix-', postfix: '.txt' });
+                    readStream = fs.createReadStream(tmpfile.name, function (err) { });
+                    return readStream;
+                });
+                filename = path.join(tmpdir.name, 'tmpfile2.txt');
+
+                client._initiateDownloadStream(s3, {}, {}, filename, function cb() {
+                    assert.equal(readStream.destroyed, true, "should destroy the read stream");
+                    assert(client.deleteMessage.notCalled, "should not delete sqs message on error");
+                    assert.equal(client._stats.download.success, 0, "should not count as download success on error");
+                    done();
+                });
+                writeStream.on("open", function () {
+                    writeStream.emit("error", new Error("Test"));
+                });
+            });
+
+            it('should handle createWriteStream error', function (done) {
+                assert.doesNotThrow(function () {
+                    client._initiateDownloadStream(s3Mock(function cb() {}), {}, {}, null, function cb() {
+                        done();
+                    });
+                });
+            });
         });
 
         describe('.sendMessage method', function () {
@@ -493,6 +505,7 @@ describe('Array', function(){
                 client.sessionedSQS = function (cb) {
                     cb();
                 };
+                sinon.stub(client.log, "warn");
                 sinon.stub(client.log, "info");
                 sinon.stub(client, "sendMessage");
                 sinon.stub(client, "discoverQueue");
@@ -559,30 +572,30 @@ describe('Array', function(){
                 assert(client.log.warn.calledOnce); // No path
 
                 /*
-                client.processMessage({
-                    Body: '{"path": "body"}'
-                });*/
+                 client.processMessage({
+                 Body: '{"path": "body"}'
+                 });*/
             });
         });
 
         it('should list workflows', function() {
             var uri, err, obj,
-            client = new Metrichor({
-                        "url"    : "http://metrichor.local:8080",
-                        "apikey" : "FooBar02"
-            });
+                client = new Metrichor({
+                    "url"    : "http://metrichor.local:8080",
+                    "apikey" : "FooBar02"
+                });
 
-                requestProxy.get = function(o, cb) {
-                    uri = o.uri;
-                    cb(null, null, '{"workflows":[{"description":"a workflow"}]}');
-            delete requestProxy.get;
-                };
+            requestProxy.get = function(o, cb) {
+                uri = o.uri;
+                cb(null, null, '{"workflows":[{"description":"a workflow"}]}');
+                delete requestProxy.get;
+            };
 
             assert.doesNotThrow(function () {
-            client.workflows(function(e, o) {
-                err = e;
-                obj = o;
-            });
+                client.workflows(function(e, o) {
+                    err = e;
+                    obj = o;
+                });
             });
 
             assert.equal(uri,     "http://metrichor.local:8080/workflow.js?apikey=FooBar02");
@@ -598,9 +611,9 @@ describe('Array', function(){
             });
 
             requestProxy.get = function(o, cb) {
-		        obj1 = o.uri;
+                obj1 = o.uri;
                 cb(null, null, '{"workflows":[{"description":"a workflow"}]}');
-		        delete requestProxy.get;
+                delete requestProxy.get;
             };
 
             assert.doesNotThrow(function () {
@@ -627,7 +640,7 @@ describe('Array', function(){
                 assert.equal(obj.form.apikey, "FooBar02");
                 assert.deepEqual(JSON.parse(obj.form.json), {"description":"test workflow", "rev":"1.1"});
                 cb(null, null, '{"description":"a workflow","rev":"1.0"}');
-		        delete requestProxy.post;
+                delete requestProxy.post;
             };
 
             client.workflow('test', {"description":"test workflow", "rev":"1.1"}, function(err, obj) {
@@ -647,7 +660,7 @@ describe('Array', function(){
                 assert.equal(obj.form.apikey, "FooBar02");
                 assert.equal(JSON.parse(obj.form.json).workflow, "test");
                 cb(null, null, '{"id_workflow_instance":"1","id_user":"1"}');
-		        delete requestProxy.post;
+                delete requestProxy.post;
             };
 
             client.start_workflow('test', function(err, obj) {
@@ -666,7 +679,7 @@ describe('Array', function(){
                 assert.equal(obj.uri,    "http://metrichor.local:8080/workflow_instance/stop/test.js");
                 assert.equal(obj.form.apikey, "FooBar02");
                 cb(null, null, '{"id_workflow_instance":"1","id_user":"1","stop_requested_date":"2013-09-03 15:17:00"}');
-		        delete requestProxy.get;
+                delete requestProxy.get;
             };
 
             client.stop_workflow('test', function(err, obj) {
@@ -701,52 +714,12 @@ describe('Array', function(){
             requestProxy.get = function(obj, cb) {
                 assert.equal(obj.uri, "http://metrichor.local:8080/workflow_instance/149.js?apikey=FooBar02");
                 cb(null, null, '{"id_workflow_instance":"149","state":"running","workflow_filename":"DNA_Sequencing.js","start_requested_date":"2013-09-16 09:25:15","stop_requested_date":"2013-09-16 09:26:04","start_date":"2013-09-16 09:25:17","stop_date":"2013-09-16 09:26:11","control_url":"127.0.0.1:8001","data_url":"localhost:3006"}');
-		        delete requestProxy.get;
+                delete requestProxy.get;
             };
 
             client.workflow_instance(149, function(err, obj) {
                 assert.equal(err, null, 'no error reported');
                 assert.deepEqual(obj, {"id_workflow_instance":"149","state":"running","workflow_filename":"DNA_Sequencing.js","start_requested_date":"2013-09-16 09:25:15","stop_requested_date":"2013-09-16 09:26:04","start_date":"2013-09-16 09:25:17","stop_date":"2013-09-16 09:26:11","control_url":"127.0.0.1:8001","data_url":"localhost:3006"}, 'workflow read');
-            });
-        });
-
-        it('should post telemetry', function() {
-            var client = new Metrichor({
-                    "url"    : "http://metrichor.local:8080",
-                    "apikey" : "FooBar02"
-            });
-
-            requestProxy.post = function(obj, cb) {
-                assert.equal(obj.uri,         "http://metrichor.local:8080/workflow_instance/telemetry/150.js");
-                assert.equal(obj.form.apikey, "FooBar02");
-                cb(null, null, '{"tracers":{}, "packets":{}}');
-		        delete requestProxy.post;
-            };
-
-            client.telemetry(150, {"tracers":{}, "packets":{}}, function(err, obj) {
-                assert.equal(err, null, 'no error reported');
-                assert.deepEqual(obj, {"tracers":{}, "packets":{}}, 'telemetry returned');
-            });
-        });
-
-        it('should post telemetry with agent_version', function() {
-            var client = new Metrichor({
-                "url"           : "http://metrichor.local:8080",
-                "apikey"        : "FooBar02",
-                "agent_version" : "0.18.23456"
-            });
-
-            requestProxy.post = function(obj, cb) {
-                assert.equal(obj.uri,                "http://metrichor.local:8080/workflow_instance/telemetry/150.js");
-                assert.equal(obj.form.apikey,        "FooBar02");
-                assert.equal(obj.form.agent_version, "0.18.23456");
-                cb(null, null, '{"tracers":{}, "packets":{}}');
-		        delete requestProxy.post;
-            };
-
-            client.telemetry(150, {"tracers":{}, "packets":{}}, function(err, obj) {
-                assert.equal(err,     null, 'no error reported');
-                assert.deepEqual(obj, {"tracers":{}, "packets":{}}, 'telemetry returned');
             });
         });
 
@@ -757,19 +730,19 @@ describe('Array', function(){
             });
 
             requestProxy.get = function(o, cb) {
-		        obj1 = o.uri;
+                obj1 = o.uri;
                 cb(null, null, '{"description":"a workflow","rev":"1.0"}');
-		        delete requestProxy.get;
+                delete requestProxy.get;
             };
 
-	    assert.doesNotThrow(function () {
-            client.workflow('test', function(e, o) {
-                err  = e;
-                obj2 = o;
+            assert.doesNotThrow(function () {
+                client.workflow('test', function(e, o) {
+                    err  = e;
+                    obj2 = o;
+                });
             });
-	    });
 
-	    assert.equal(obj1,     "http://metrichor.local:8080/workflow/test.js?apikey=FooBar02");
+            assert.equal(obj1,     "http://metrichor.local:8080/workflow/test.js?apikey=FooBar02");
             assert.equal(err,      null, 'no error reported');
             assert.deepEqual(obj2, {"description":"a workflow","rev":"1.0"}, 'workflow read');
         });
