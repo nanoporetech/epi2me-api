@@ -11,7 +11,7 @@ var awsProxy       = {};
 var Metrichor      = proxyquire('../lib/metrichor', {
     'aws-sdk'   : awsProxy,
     'request'   : requestProxy,
-    'fs'        : fsProxy,
+    'graceful-fs' : fsProxy,
     'mkdirp'    : mkdirpProxy
 });
 
@@ -300,14 +300,16 @@ describe('Array', function(){
 
             beforeEach(function () {
                 tmpdir = tmp.dirSync({unsafeCleanup: true});
-                fs.writeFile(path.join(tmpdir.name, 'tmpfile.txt'), "dataset", function (err) {
-                    if (err) {
-                        return console.log(err);
-                    }
-                });
-                client = new Metrichor({});
+                fs.writeFile(path.join(tmpdir.name, 'tmpfile.txt'), "dataset", function () {});
+
                 fsProxy.unlink = function () { };
                 fsProxy.stat = function () { };
+                fsProxy.createWriteStream = function () {
+                    writeStream = fs.createWriteStream.apply(this, arguments);
+                    return writeStream;
+                };
+
+                client = new Metrichor({});
                 sinon.stub(client.log, "error");
                 sinon.stub(client.log, "warn");
                 sinon.stub(client.log, "info");
@@ -318,7 +320,7 @@ describe('Array', function(){
                 writeStream = null;
                 delete fsProxy.stat;
                 delete fsProxy.unlink;
-                //delete fsProxy.createWriteStream;
+                delete fsProxy.createWriteStream;
                 tmpfile ? tmpfile.removeCallback() : null;
                 tmpdir ? tmpdir.removeCallback() : null;
             });
@@ -369,36 +371,34 @@ describe('Array', function(){
                 });
                 assert.equal(client._stats.download.success, 0);
             });
-            /*
-                fsProxy.createWriteStream = function (fn, cb) {
-                    writeStream = fs.createWriteStream(fn, cb);
-                    writeStream.on("open", function () {
-                        writeStream.emit("error", new Error("Test"));
-                    });
-                    return writeStream;
-                };
-                it('should handle write stream errors', function (done) {
 
+            it('should handle write stream errors', function (done) {
+                var readStream, tmpfile, s3, filename;
+                s3 = s3Mock(function cb() {
+                    tmpfile = tmp.fileSync({ prefix: 'prefix-', postfix: '.txt' });
+                    readStream = fs.createReadStream(tmpfile.name, function (err) { });
+                    return readStream;
+                });
+                filename = path.join(tmpdir.name, 'tmpfile2.txt');
 
+                client._initiateDownloadStream(s3, {}, {}, filename, function cb() {
+                    assert.equal(readStream.destroyed, true, "should destroy the read stream");
+                    assert(client.deleteMessage.notCalled, "should not delete sqs message on error");
+                    assert.equal(client._stats.download.success, 0, "should not count as download success on error");
+                    done();
+                });
+                writeStream.on("open", function () {
+                    writeStream.emit("error", new Error("Test"));
+                });
+            });
 
-
-                    var readStream, tmpfile, s3, filename;
-                    s3 = s3Mock(function cb() {
-                        tmpfile = tmp.fileSync({ prefix: 'prefix-', postfix: '.txt' });
-                        readStream = fs.createReadStream(tmpfile.name, function (err) { });
-                        readStream.on("open", function () {
-                            console.log(writeStream)
-                        });
-                        return readStream;
-                    });
-                    filename = path.join(tmpdir.name, 'tmpfile.txt');
-
-                    client._initiateDownloadStream(s3, {}, {}, filename, function cb() {
+            it('should handle createWriteStream error', function (done) {
+                assert.doesNotThrow(function () {
+                    client._initiateDownloadStream(s3Mock(function cb() {}), {}, {}, null, function cb() {
                         done();
-                        delete fsProxy.createWriteStream;
                     });
                 });
-            */
+            });
         });
 
         describe('.sendMessage method', function () {
