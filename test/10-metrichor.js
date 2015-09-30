@@ -286,7 +286,7 @@ describe('Array', function(){
         // MC-1304 - test download streams
         describe('._initiateDownloadStream method', function () {
 
-            var client, tmpfile, tmpdir, writeStream;
+            var tmpfile, tmpdir, writeStream;
 
             function s3Mock(cb) {
                 return {
@@ -296,6 +296,13 @@ describe('Array', function(){
                         }
                     }
                 }
+            }
+
+            function stub(client) {
+                sinon.stub(client.log, "error");
+                sinon.stub(client.log, "warn");
+                sinon.stub(client.log, "info");
+                sinon.stub(client, "deleteMessage");
             }
 
             beforeEach(function () {
@@ -308,12 +315,6 @@ describe('Array', function(){
                     writeStream = fs.createWriteStream.apply(this, arguments);
                     return writeStream;
                 };
-
-                client = new Metrichor({});
-                sinon.stub(client.log, "error");
-                sinon.stub(client.log, "warn");
-                sinon.stub(client.log, "info");
-                sinon.stub(client, "deleteMessage");
             });
 
             afterEach(function cleanup() {
@@ -326,6 +327,8 @@ describe('Array', function(){
             });
 
             it('should handle s3 error', function (done) {
+                var client = new Metrichor({});
+                stub(client);
                 var s3 = s3Mock(function () { throw "Error" });
                 client._initiateDownloadStream(s3, {}, {}, path.join(tmpdir.name, 'tmpfile.txt'), function () {
                     assert(client.log.error.calledOnce, "should log error message");
@@ -334,6 +337,8 @@ describe('Array', function(){
             });
 
             it('should open read stream and write to outputFile', function (done) {
+                var client = new Metrichor({});
+                stub(client);
                 var readStream,
                     msg = {msg: 'bla'},
                     s3 = s3Mock(function cb() {
@@ -350,8 +355,9 @@ describe('Array', function(){
                 });
             });
 
-
             it('should handle read stream errors', function (done) {
+                var client = new Metrichor({});
+                stub(client);
                 var readStream, tmpfile, s3, filename;
                 s3 = s3Mock(function cb() {
                     tmpfile = tmp.fileSync({ prefix: 'prefix-', postfix: '.txt' });
@@ -373,6 +379,8 @@ describe('Array', function(){
             });
 
             it('should handle write stream errors', function (done) {
+                var client = new Metrichor({});
+                stub(client);
                 var readStream, tmpfile, s3, filename;
                 s3 = s3Mock(function cb() {
                     tmpfile = tmp.fileSync({ prefix: 'prefix-', postfix: '.txt' });
@@ -393,10 +401,31 @@ describe('Array', function(){
             });
 
             it('should handle createWriteStream error', function (done) {
+                var client = new Metrichor({});
+                stub(client);
                 assert.doesNotThrow(function () {
                     client._initiateDownloadStream(s3Mock(function cb() {}), {}, {}, null, function cb() {
                         done();
                     });
+                });
+            });
+
+            it('should handle transfer timeout errors', function (done) {
+                var readStream, tmpfile, filename, s3,
+                    client = new Metrichor({downloadTimeout: 0.0000001});
+                stub(client);
+
+                s3 = s3Mock(function cb() {
+                    tmpfile = tmp.fileSync({ prefix: 'prefix-', postfix: '.txt' });
+                    readStream = fs.createReadStream(tmpfile.name, function (err) { });
+                    return readStream;
+                });
+                filename = path.join(tmpdir.name, 'tmpfile.txt');
+                client._initiateDownloadStream(s3, {}, {}, filename, function cb() {
+                    assert(readStream.destroyed, "should destroy the read stream");
+                    assert(client.deleteMessage.notCalled, "should not delete sqs message on error");
+                    assert.equal(client._stats.download.success, 0, "should not count as download success on error");
+                    done();
                 });
             });
         });
