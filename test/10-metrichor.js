@@ -9,10 +9,10 @@ var fsProxy        = {};
 var mkdirpProxy    = {};
 var awsProxy       = {};
 var Metrichor      = proxyquire('../lib/metrichor', {
-    'aws-sdk'   : awsProxy,
-    'request'   : requestProxy,
+    'aws-sdk'     : awsProxy,
+    'request'     : requestProxy,
     'graceful-fs' : fsProxy,
-    'mkdirp'    : mkdirpProxy
+    'mkdirp'      : mkdirpProxy
 });
 
 describe('Array', function(){
@@ -170,7 +170,8 @@ describe('Array', function(){
 
                     var args = client.autoConfigure.args[0][0];
                     assert.equal(args.id_workflow_instance, 10);
-                    assert.equal(args.bucketFolder, "queue/user/10");
+                    assert.equal(args.id_user, 'user');
+                    assert.equal(args.outputqueue, 'queue');
                 });
             });
 
@@ -227,7 +228,8 @@ describe('Array', function(){
 
                     var args = client.autoConfigure.args[0][0];
                     assert.equal(args.id_workflow_instance, 10);
-                    assert.equal(args.bucketFolder, "queue/user/10");
+                    assert.equal(args.id_user, 'user');
+                    assert.equal(args.outputqueue, 'queue');
                 });
             });
 
