@@ -9,10 +9,10 @@ var fsProxy        = {};
 var mkdirpProxy    = {};
 var awsProxy       = {};
 var Metrichor      = proxyquire('../lib/metrichor', {
-    'aws-sdk'   : awsProxy,
-    'request'   : requestProxy,
+    'aws-sdk'     : awsProxy,
+    'request'     : requestProxy,
     'graceful-fs' : fsProxy,
-    'mkdirp'    : mkdirpProxy
+    'mkdirp'      : mkdirpProxy
 });
 
 describe('Array', function(){
@@ -170,7 +170,8 @@ describe('Array', function(){
 
                     var args = client.autoConfigure.args[0][0];
                     assert.equal(args.id_workflow_instance, 10);
-                    assert.equal(args.bucketFolder, "queue/user/10");
+                    assert.equal(args.id_user, 'user');
+                    assert.equal(args.outputqueue, 'queue');
                 });
             });
 
@@ -227,7 +228,8 @@ describe('Array', function(){
 
                     var args = client.autoConfigure.args[0][0];
                     assert.equal(args.id_workflow_instance, 10);
-                    assert.equal(args.bucketFolder, "queue/user/10");
+                    assert.equal(args.id_user, 'user');
+                    assert.equal(args.outputqueue, 'queue');
                 });
             });
 
@@ -261,27 +263,51 @@ describe('Array', function(){
                 });
             });
         });
-        /*
+
         describe('.loadUploadFiles method', function () {
 
             var client,
                 conf = {
                     inputFolder: "in",
                     outputFolder: "out",
+                    inputFormat: 'fileExt',
                     uploadQueueLimit: 2,
                     uploadQueueThreshold: 1
                 };
 
-            beforeEach(function () {
-                client = new Metrichor(conf);
-                client._seenFiles = {};
+            function stub() {
                 sinon.stub(client, 'enqueueUploadJob');
                 sinon.stub(client.log, 'warn');
                 sinon.stub(client.log, 'error');
                 sinon.stub(client.log, 'info');
+            }
+
+            afterEach(function () {
+                delete fsProxy.readdir;
+            });
+
+            it('should ignore files with the wrong extension', function () {
+                fsProxy.readdir = function (dir, cb) {
+                    cb(null, ['blabab/defe/fef.fileExt', 'f2.fileExt tmp', 'f2.fileExt.tmp']);
+                };
+                client = new Metrichor(conf);
+                stub();
+                client.loadUploadFiles();
+                assert(!client._fileStash.length);
+                assert(client.enqueueUploadJob.calledOnce);
+            });
+
+            it('should handle readdir errors', function () {
+                fsProxy.readdir = function (dir, cb) {
+                    cb("ERROR");
+                };
+                client = new Metrichor(conf);
+                stub();
+                client.loadUploadFiles();
+                assert(client.log.error.calledOnce);
+                assert(!client._fileStash.length);
             });
         });
-        */
 
         // MC-1304 - test download streams
         describe('._initiateDownloadStream method', function () {
@@ -411,8 +437,9 @@ describe('Array', function(){
             });
 
             it('should handle transfer timeout errors', function (done) {
+                // This test interacts with the other async test
                 var readStream, tmpfile, filename, s3,
-                    client = new Metrichor({downloadTimeout: 0.0000001});
+                    client = new Metrichor({downloadTimeout: 1e-50});
                 stub(client);
 
                 s3 = s3Mock(function cb() {
