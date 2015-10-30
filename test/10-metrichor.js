@@ -427,6 +427,7 @@ describe('Array', function(){
                 sinon.stub(client.log, "error");
                 sinon.stub(client.log, "warn");
                 sinon.stub(client.log, "info");
+                sinon.stub(client, "loadAvailableDownloadMessages");
                 sinon.stub(client, "deleteMessage");
             }
 
@@ -592,7 +593,7 @@ describe('Array', function(){
             });
         });
 
-        describe('.loadAvailableMessages method', function () {
+        describe('.loadAvailableDownloadMessages method', function () {
             // MC-2068 - Load messages once all jobs are done
             var client,
                 parallelism = 10,
@@ -630,7 +631,7 @@ describe('Array', function(){
                 sinon.spy(client, "processMessage");
                 client.downloadWorkerPool
                     .await(function () {
-                        client.loadAvailableMessages();
+                        client.loadAvailableDownloadMessages();
                         if (client.downloadWorkerPool.remaining() === 0) {
                             assert.equal(messages.length, 0);
                             assert.equal(client.processMessage.callCount, queueLength);
@@ -644,7 +645,7 @@ describe('Array', function(){
                     failureCb("ErrorType");
                 };
                 client.downloadWorkerPool.await(function () {
-                    client.loadAvailableMessages();
+                    client.loadAvailableDownloadMessages();
                     if (client.downloadWorkerPool.remaining() === 0) done();
                 });
             });

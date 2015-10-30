@@ -7,7 +7,8 @@
  *
  */
 
-if (require('os').type() !== 'Darwin') {
+// if (require('os').type() !== 'Darwin') {
+if (require('os').type() !== 'Darwidn' || process.env.NODE_ENV !== 'development') {
     console.log('WARNING: e2e tests only configured for OSX');
     return;
 }
@@ -18,7 +19,6 @@ var sinon          = require("sinon");
 var path           = require("path");
 var tmp            = require('tmp');
 var queue          = require('queue-async');
-var fake           = require('./s3-fake-server.js');
 var exec           = require('child_process').exec;
 var AWS            = require('aws-sdk');
 var fs             = require('fs');
@@ -130,6 +130,8 @@ var awsProxy = {
         }
     },
     S3: function () { // s3 object constructor
+        // Key s3 mock: https://github.com/jubos/fake-s3
+        // fakes3 -r /mnt/fakes3_root -p 4567
 
         var config = {
             s3ForcePathStyle: true,
@@ -141,9 +143,6 @@ var awsProxy = {
         return new AWS.S3(config);
     }
 };
-
-// Key s3 mock: https://github.com/jubos/fake-s3
-// fakes3 -r /mnt/fakes3_root -p 4567
 
 var Metrichor      = proxyquire('../lib/metrichor', {
     'aws-sdk'     : awsProxy,
