@@ -10,6 +10,9 @@ deps:
 mocha:
 	node node_modules/istanbul/lib/cli cover node_modules/mocha/bin/_mocha -- --recursive
 
+integration_test:
+	node node_modules/istanbul/lib/cli cover node_modules/mocha/bin/_mocha ./test/e2e-metrichor.js
+
 test: deps
 	node node_modules/jslint/bin/jslint lib/metrichor.js
 	node node_modules/mocha/bin/mocha --recursive --reporter xunit-file
