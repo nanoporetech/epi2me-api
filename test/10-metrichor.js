@@ -3,6 +3,7 @@ var assert         = require("assert");
 var sinon          = require("sinon");
 var path           = require("path");
 var tmp            = require('tmp');
+var queue          = require('queue-async');
 var fs             = require('fs');
 var requestProxy   = {};
 var fsProxy        = {};
@@ -309,6 +310,104 @@ describe('Array', function(){
             });
         });
 
+        describe('.uploadHandler method', function () {
+
+            var tmpfile = 'tmpfile.txt', tmpdir, readStream;
+
+            function stub(client) {
+                sinon.stub(client.log, "error");
+                sinon.stub(client.log, "warn");
+                sinon.stub(client.log, "info");
+            }
+
+            beforeEach(function () {
+                tmpdir = tmp.dirSync({unsafeCleanup: true});
+                fs.writeFile(path.join(tmpdir.name, tmpfile));
+            });
+
+            afterEach(function cleanup() {
+                readStream = null;
+                delete fsProxy.createWriteStream;
+                tmpdir ? tmpdir.removeCallback() : null;
+            });
+
+            it('should open readStream', function (done) {
+                var client = new Metrichor({
+                    inputFolder: tmpdir.name
+                });
+                stub(client);
+                client.sessionedS3 = function (cb) {
+                    cb(null, {
+                        upload: function (params, options, cb) {
+                            cb();
+                            assert(params)
+                        }
+                    });
+                };
+                client.uploadComplete = function (objectId, item, successCb) {
+                    successCb();
+                };
+                client.uploadHandler(tmpfile, function (msg) {
+                    assert(typeof msg === 'undefined', 'success');
+                    done();
+                });
+
+            });
+
+            it('should handle s3 error', function (done) {
+                var client = new Metrichor({
+                    inputFolder: tmpdir.name
+                });
+                stub(client);
+                client.sessionedS3 = function (cb) {
+                    cb("error");
+                };
+                client.uploadHandler(tmpfile, function (msg) {
+                    assert(client.log.warn.calledOnce, "should log error message");
+                    assert(typeof msg !== 'undefined', 'failure');
+                    done();
+                });
+            });
+
+            it('should handle read stream errors', function (done) {
+                fsProxy.createReadStream = function () {
+                    readStream = fs.createReadStream.apply(this, arguments);
+                    return readStream;
+                };
+                var client = new Metrichor({
+                    inputFolder: tmpdir.name
+                });
+                stub(client);
+                client.sessionedS3 = function (cb) {
+                    cb(null, {
+                        upload: function (params, options, cb) {
+                            cb();
+                        }
+                    });
+                };
+                client.uploadHandler(tmpfile, function (msg) {
+                    assert.equal(msg, "upload exception", 'failure');
+                    setTimeout(done, 10);
+                });
+                readStream.emit("error");
+
+            });
+
+            it('should handle bad file name - ENOENT', function (done) {
+                var client = new Metrichor({
+                    inputFolder: tmpdir.name
+                });
+                stub(client);
+                client.sessionedS3 = function (cb) {
+                    cb();
+                };
+                client.uploadHandler('bad file name', function (msg) {
+                    assert(typeof msg !== 'undefined', 'failure');
+                    done();
+                });
+            });
+        });
+
         // MC-1304 - test download streams
         describe('._initiateDownloadStream method', function () {
 
@@ -328,13 +427,13 @@ describe('Array', function(){
                 sinon.stub(client.log, "error");
                 sinon.stub(client.log, "warn");
                 sinon.stub(client.log, "info");
+                sinon.stub(client, "loadAvailableDownloadMessages");
                 sinon.stub(client, "deleteMessage");
             }
 
             beforeEach(function () {
                 tmpdir = tmp.dirSync({unsafeCleanup: true});
                 fs.writeFile(path.join(tmpdir.name, 'tmpfile.txt'), "dataset", function () {});
-
                 fsProxy.unlink = function () { };
                 fsProxy.stat = function () { };
                 fsProxy.createWriteStream = function () {
@@ -439,12 +538,14 @@ describe('Array', function(){
             it('should handle transfer timeout errors', function (done) {
                 // This test interacts with the other async test
                 var readStream, tmpfile, filename, s3,
-                    client = new Metrichor({downloadTimeout: 1e-50});
+                    client = new Metrichor({downloadTimeout: 1e-10}); // effectively zero. Zero would result in default value
                 stub(client);
 
                 s3 = s3Mock(function cb() {
                     tmpfile = tmp.fileSync({ prefix: 'prefix-', postfix: '.txt' });
                     readStream = fs.createReadStream(tmpfile.name, function (err) { });
+                    // Writing random data to file so that the timeout fails before the readstream is done
+                    fs.writeFileSync(tmpfile.name, new Array(1e5).join('aaa'));
                     return readStream;
                 });
                 filename = path.join(tmpdir.name, 'tmpfile.txt');
@@ -454,6 +555,199 @@ describe('Array', function(){
                     assert.equal(client._stats.download.success, 0, "should not count as download success on error");
                     done();
                 });
+            });
+        });
+
+        describe('.receiveMessages method', function () {
+            // MC-2068 - Load messages once all jobs are done
+            var client;
+
+            beforeEach(function () {
+                client = new Metrichor({});
+                client.processMessage = function (msg, queueCb) {
+                    setTimeout(queueCb, 1);
+                };
+                client.downloadWorkerPool = queue(10);
+                sinon.stub(client.log, "warn");
+                sinon.stub(client.log, "info");
+            });
+
+            it('should handle error and log warning', function () {
+                client.receiveMessages('Error Message');
+                assert(client.log.warn.calledOnce);
+            });
+
+            it('should ignore empty message', function () {
+                client.receiveMessages(null, {});
+                assert(client.log.info.calledWith("complete (empty)"));
+            });
+
+            it('should queue and process download messages using downloadWorkerPool', function (done) {
+                client.receiveMessages(null, { Messages: [1, 2, 3, 4] }, function () {
+                    assert.equal(client.downloadWorkerPool.remaining(), 4);
+                });
+                client.downloadWorkerPool.await(function () {
+                    assert.equal(client.downloadWorkerPool.remaining(), 0);
+                    done();
+                });
+            });
+        });
+
+        describe('.loadAvailableDownloadMessages method', function () {
+            // MC-2068 - Load messages once all jobs are done
+            var client,
+                parallelism = 10,
+                queueLength = 50,
+                messages;
+
+            beforeEach(function () {
+                messages = Array.apply(null, Array(queueLength)).map(Number.prototype.valueOf, 0);
+                client = new Metrichor({});
+                client.queueLength = function (url, cb) {
+                    cb(messages.length);
+                };
+                client.sessionedSQS = function (cb) {
+                    cb(null, {
+                        receiveMessage: function (opts, cb) {
+                            cb(null, {
+                                Messages: messages.splice(0, parallelism) // fetch 10 messages each time
+                            });
+                        }
+                    });
+                };
+                client.downloadWorkerPool = queue(parallelism);
+                sinon.stub(client.log, "warn");
+                sinon.stub(client.log, "info");
+                sinon.spy(client, "processMessage");
+            });
+
+            it('should process all messages', function (done) {
+                client.discoverQueue = function (qs, queueName, successCb, failureCb) {
+                    successCb("queueUrl");
+                };
+                client.processMessage = function (msg, queueCb) {
+                    setTimeout(queueCb);
+                };
+                sinon.spy(client, "processMessage");
+                client.downloadWorkerPool
+                    .await(function () {
+                        client.loadAvailableDownloadMessages();
+                        if (client.downloadWorkerPool.remaining() === 0) {
+                            assert.equal(messages.length, 0);
+                            assert.equal(client.processMessage.callCount, queueLength);
+                            done();
+                        }
+                    });
+            });
+
+            it('should handle discoverQueue errors', function (done) {
+                client.discoverQueue = function (qs, queueName, successCb, failureCb) {
+                    failureCb("ErrorType");
+                };
+                client.downloadWorkerPool.await(function () {
+                    client.loadAvailableDownloadMessages();
+                    if (client.downloadWorkerPool.remaining() === 0) done();
+                });
+            });
+        });
+
+        describe('.queueLength method', function () {
+            var client, queueUrl = 'queueUrl';
+            beforeEach(function () {
+                client = new Metrichor({});
+                sinon.stub(client.log, "warn");
+                sinon.stub(client.log, "error");
+                sinon.stub(client.log, "info");
+            });
+
+            it('should return sqs queue', function (done) {
+                client.sessionedSQS = function (cb) {
+                    cb(null, {
+                        getQueueAttributes: function (opts, cb) {
+                            assert.equal(opts.QueueUrl, queueUrl);
+                            cb(null, { Attributes: { ApproximateNumberOfMessages: 10 } });
+                            assert(completeCb.calledOnce);
+                            assert.equal(completeCb.lastCall.args[0], 10);
+                            cb("Error");
+                            assert(client.log.warn.calledOnce);
+                            assert(completeCb.calledTwice);
+                            done();
+                        }
+                    });
+                };
+                var completeCb = sinon.spy();
+                client.queueLength(queueUrl, completeCb);
+            });
+
+            it('should handle sessionedSQS errors', function () {
+                client.sessionedSQS = function (cb) {
+                    cb(null, {
+                        getQueueAttributes: function (opts, cb) {
+                            throw Error;
+                        }
+                    });
+                    cb("Error");
+                };
+                var completeCb = sinon.spy();
+                client.queueLength(queueUrl, completeCb);
+                assert(completeCb.calledTwice, 'call callback even for errors');
+                assert.equal(completeCb.firstCall.args[0], undefined);
+                assert.equal(completeCb.secondCall.args[0], undefined);
+                assert(client.log.error.calledOnce);
+                assert.doesNotThrow(function () {
+                    client.queueLength(queueUrl);
+                    client.queueLength();
+                }, 'Error');
+            });
+        });
+
+        describe('.discoverQueue method', function () {
+            var client, queueUrl = 'queueUrl';
+            beforeEach(function () {
+                client = new Metrichor({});
+                sinon.stub(client.log, "warn");
+                sinon.stub(client.log, "error");
+                sinon.stub(client.log, "info");
+            });
+
+            it('should return sqs queue', function () {
+                var sqs = {
+                    getQueueUrl: function (opts, cb) {
+                        cb("Error");
+                        assert(client.log.warn.calledOnce);
+                        cb(null, {QueueUrl: "result"});
+                        assert(client.log.warn.calledOnce);
+                        throw Error
+                    }
+                };
+                var successCb = sinon.spy();
+                var faliureCb = sinon.spy();
+                client.discoverQueue(sqs, 'queueName', successCb, faliureCb);
+                assert.equal(successCb.firstCall.args[0], "result");
+                assert.equal(faliureCb.firstCall.args[0], "getqueueurl error");
+                assert.equal(faliureCb.lastCall.args[0], "getqueueurl exception");
+                client.discoverQueue(sqs, 'queueName', successCb, faliureCb);
+            });
+
+            it('should handle sessionedSQS errors', function () {
+                client.sessionedSQS = function (cb) {
+                    cb(null, {
+                        getQueueAttributes: function (opts, cb) {
+                            throw Error;
+                        }
+                    });
+                    cb("Error");
+                };
+                var completeCb = sinon.spy();
+                client.queueLength(queueUrl, completeCb);
+                assert(completeCb.calledTwice, 'call callback even for errors');
+                assert.equal(completeCb.firstCall.args[0], undefined);
+                assert.equal(completeCb.secondCall.args[0], undefined);
+                assert(client.log.error.calledOnce);
+                assert.doesNotThrow(function () {
+                    client.queueLength(queueUrl);
+                    client.queueLength();
+                }, 'Error');
             });
         });
 
