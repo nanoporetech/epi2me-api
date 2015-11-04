@@ -24,6 +24,6 @@
   },
 
   "scripts": {
-    "postinstall": "perl -M\"File::Copy move\" -e \"move(q[node_modules/proxy-agent/node_modules/pac-proxy-agent], q[node_modules/pac-proxy-agent]); move(q[node_modules/proxy-agent/node_modules/socks-proxy-agent], q[node_modules/socks-proxy-agent]); move(q[node_modules/proxy-agent/node_modules/https-proxy-agent], q[node_modules/https-proxy-agent]); move(q[node_modules/proxy-agent/node_modules/http-proxy-agent], q[node_modules/http-proxy-agent]); move(q[node_modules/pac-resolver/node_modules/regenerator], q[node_modules/regenerator]); move(q[node_modules/pac-resolver/node_modules/degenerator], q[node_modules/degenerator]); move(q[node_modules/pac-proxy-agent/node_modules/pac-resolver], q[node_modules/pac-resolver]);\""
+    "postinstall": "perl -M\"File::Copy move\" -e \"move(q[node_modules/proxy-agent/node_modules/pac-proxy-agent], q[node_modules/pac-proxy-agent]); move(q[node_modules/proxy-agent/node_modules/socks-proxy-agent], q[node_modules/socks-proxy-agent]); move(q[node_modules/proxy-agent/node_modules/https-proxy-agent], q[node_modules/https-proxy-agent]); move(q[node_modules/proxy-agent/node_modules/http-proxy-agent], q[node_modules/http-proxy-agent]); move(q[node_modules/pac-proxy-agent/node_modules/pac-resolver/node_modules/regenerator], q[node_modules/regenerator]); move(q[node_modules/pac-proxy-agent/node_modules/pac-resolver/node_modules/degenerator], q[node_modules/degenerator]); move(q[node_modules/pac-proxy-agent/node_modules/pac-resolver], q[node_modules/pac-resolver]);\""
   }
 }
