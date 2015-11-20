@@ -472,7 +472,7 @@ describe('Array', function(){
                         return readStream;
                     });
                 var filename = path.join(tmpdir.name, 'tmpfile.txt');
-		client._stats.download.success = 1; // required for recent min(download,upload) fudge
+//		client._stats.download.success = 1; // required for recent min(download,upload) fudge?
                 client._initiateDownloadStream(s3, {}, msg, filename, function cb() {
 //                    assert.equal(readStream.destroyed, true, "should destroy the read stream"); // fails on node > 2.2.1
 //                    assert(client.deleteMessage.calledWith(msg), "should delete sqs message on success"); // fails on node > 2.2.1
