@@ -52,15 +52,18 @@ describe('session fetchInstanceToken methods', function () {
         cli._stats.sts_expiration = new Date(Date.now() - 100);
         sinon.spy(cli, "token");
         sinon.spy(cli, "fetchInstanceToken");
+
         cli.session(function () {
             assert(cli.token.calledOnce, "first call - fetch token");
         });
-        for (var i=0;i<10;i++) {
+
+        for (var i=0; i<10; i++) {
             cli.session(function () {}); // following calls - don't fetch token
         }
+
         cli.session(function () {
             assert(cli.token.calledOnce, "last call - don't fetch token");
-            assert.equal(cli.sessionQueue.remaining(), 0, "last call - don't fetch token");
+            assert.equal(cli.sessionQueue.remaining(), 1, "last call - don't fetch token");
             done();
         });
     });
@@ -74,7 +77,10 @@ describe('session fetchInstanceToken methods', function () {
             assert(typeof error_msg !== 'undefined');
             done();
         };
-        cli.fetchInstanceToken(cb.queueCb, cb.success);
+        cli.fetchInstanceToken(function (arg) {
+	    cb.queueCb();
+	    return cb.success(arg);
+	});
     });
 
     it('should throw and error when id_workflow_instance is missing', function () {
