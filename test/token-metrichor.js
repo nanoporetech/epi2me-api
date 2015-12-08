@@ -18,9 +18,10 @@ var Metrichor      = proxyquire('../lib/metrichor', {
 
 describe('session fetchInstanceToken methods', function () {
 
-    var cb = {};
+    var cb;
 
     function newApi(opts, tokenError, token) {
+        cb = {};
         cb.queueCb = function () {};
         sinon.stub(cb, 'queueCb');
         var client = new Metrichor(opts);
@@ -70,17 +71,14 @@ describe('session fetchInstanceToken methods', function () {
 
     it('should handle that.token error', function (done) {
         // set instance_id without
-        var cli = newApi({id_workflow_instance: 10}, "ERROR MESSAGE", null);
+        var cli = newApi({id_workflow_instance: 10, waitTokenError: 0.01}, "ERROR MESSAGE", null);
         cb.success = function (error_msg) {
-            assert(cli.log.warn.calledOnce);
-            assert(cb.queueCb.calledOnce, 'clear queue slot');
-            assert(typeof error_msg !== 'undefined');
+            assert(cli.log.warn.calledOnce, 'log warning message');
             done();
         };
         cli.fetchInstanceToken(function (arg) {
-	    cb.queueCb();
-	    return cb.success(arg);
-	});
+            return cb.success(arg);
+        });
     });
 
     it('should throw and error when id_workflow_instance is missing', function () {

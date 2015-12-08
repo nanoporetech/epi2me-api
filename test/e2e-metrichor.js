@@ -8,7 +8,7 @@
  */
 
 // if (require('os').type() !== 'Darwin') {
-if (require('os').type() !== 'Darwidn' || process.env.NODE_ENV !== 'development') {
+if (require('os').type() !== 'Darwin' || process.env.NODE_ENV !== 'development') {
     console.log('WARNING: e2e tests only configured for OSX');
     return;
 }
