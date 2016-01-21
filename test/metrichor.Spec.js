@@ -292,6 +292,7 @@ describe('Array', function(){
                     cb(null, ['blabab/defe/fef.fileExt', 'f2.fileExt tmp', 'f2.fileExt.tmp']);
                 };
                 client = new Metrichor(conf);
+                client._uploadedFiles = {};
                 stub();
                 client.loadUploadFiles();
                 assert(!client._fileStash.length);
@@ -760,12 +761,12 @@ describe('Array', function(){
             requestProxy.post = function(obj, cb) {
                 assert.equal(obj.uri,    "http://metrichor.local:8080/workflow_instance.js");
                 assert.equal(obj.form.apikey, "FooBar02");
-                assert.equal(JSON.parse(obj.form.json).workflow, "test");
+                assert.equal(JSON.parse(obj.form.json).id_workflow, "test");
                 cb(null, null, '{"id_workflow_instance":"1","id_user":"1"}');
                 delete requestProxy.post;
             };
 
-            client.start_workflow('test', function(err, obj) {
+            client.start_workflow({id_workflow: 'test'}, function(err, obj) {
                 assert.equal(err, null, 'no error reported');
                 assert.deepEqual(obj, {"id_workflow_instance":"1","id_user":"1"}, 'workflow_instance start response');
             });
