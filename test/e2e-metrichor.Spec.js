@@ -6,10 +6,14 @@
  * on OSX: gem install fakes3
  *
  */
-
-// if (require('os').type() !== 'Darwin') {
-if (require('os').type() !== 'Darwin' || process.env.NODE_ENV !== 'development') {
+if (require("os").type() !== 'Darwin') {
     console.log('WARNING: e2e tests only configured for OSX');
+    return;
+} else if (process.env.NODE_ENV !== 'development') {
+    console.log('WARNING: e2e tests require env variable NODE_ENV to equal development');
+    return;
+} else if (!process.env.API_KEY) {
+    console.log('WARNING: e2e tests require env variable API_KEY to be set');
     return;
 }
 
@@ -19,21 +23,172 @@ var sinon          = require("sinon");
 var path           = require("path");
 var tmp            = require('tmp');
 var queue          = require('queue-async');
-var exec           = require('child_process').exec;
-var AWS            = require('aws-sdk');
 var fs             = require('fs');
 var fsProxy        = {};
+var api_key        = process.env.API_KEY;
+var workflowID     = 486;
+var timeout        = 50000;
+var fileCount      = 3;
+var serviceUrl     = 'https://dev.metrichor.com';
+var fileExp        = new RegExp('fast5$');
+var Metrichor      = proxyquire('../lib/metrichor', {
+    'graceful-fs' : fsProxy
+});
 
-/**
- * TODO:
- * generate a lot of files
- * upload: get readStream and stream to tmp directory
- * download: provide readStream
- * throw random errors
- */
+describe('metrichor api', function () {
 
-var cp,
+    after(function () {
+        //fakeS3process.stop();
+    });
+
+    before(function (done) {
+        this.timeout(timeout);
+        //fakeS3process.exec();
+        setTimeout(done, 500);
+    });
+
+    function logging() {
+        return {
+            warn: function (msg) {
+                console.log(msg);
+            },
+            error: function (err) {
+                console.log(err);
+            },
+            info: function (msg) {
+                console.log(msg)
+            }
+        }
+    };
+
+    describe('uploading', function () {
+
+        var tmpInputDir, tmpOutputDir, client;
+        beforeEach(function () {
+            tmpInputDir = tmp.dirSync({unsafeCleanup: true});
+            tmpOutputDir = tmp.dirSync({unsafeCleanup: true});
+
+            // Generating 100 empty .fast5 files
+            for (var i = 0; i<fileCount; i++) {
+                fs.writeFile(path.join(tmpInputDir.name, i + '.fast5'));
+            }
+        });
+
+        afterEach(function cleanup() {
+            tmpInputDir ? tmpInputDir.removeCallback() : null;
+            tmpOutputDir ? tmpOutputDir.removeCallback() : null;
+        });
+
+        function runTests(client, uploadDir, downloadDir, done) {
+
+            var ustats = client.stats("upload");
+            var dstats = client.stats("download");
+            assert.equal(ustats.success, fileCount, 'upload all files');
+            assert.equal(dstats.success, fileCount, 'download all files');
+            queue()
+                .defer(function (cb) {
+                    fs.readdir(uploadDir, function (err, files) {
+                        var filtered = files.filter(function (f) { return f.match(fileExp); });
+                        assert.equal(filtered.length, 0, 'move all uploaded files from the upload folder');
+                        cb();
+                    });
+                })
+                .defer(function (cb) {
+                    fs.readdir(path.join(uploadDir, 'uploaded'), function (err, files) {
+                        var filtered = files.filter(function (f) { return f.match(fileExp); });
+                        assert.equal(filtered.length, fileCount, 'move all uploaded files to +uploaded');
+                        cb();
+                    });
+                })
+                .defer(function (cb) {
+                    fs.readdir(path.join(downloadDir, 'fail'), function (err, files) {
+                        var filtered = files.filter(function (f) { return f.match(fileExp); });
+                        assert.equal(filtered.length, fileCount, 'move all downloaded files to the downloadDir/fail');
+                        cb();
+                    });
+                })
+                .awaitAll(done);
+        }
+
+        it('should initiate and upload files', function (done) {
+            this.timeout(timeout);
+            client = new Metrichor({
+                apikey: api_key,
+                url: serviceUrl,
+                agent_version: '10000.0.0',
+                log: logging(),
+                fileCheckInterval: 4,
+                initDelay: 100,
+                downloadMode: "data+telemetry",
+                inputFolder:  tmpInputDir.name,
+                outputFolder: tmpOutputDir.name
+            });
+            client.autoStart(workflowID, function (err, state) {
+                setTimeout(function () {
+                    client.stop_everything();
+                    setTimeout(function () {
+                        runTests(client, tmpInputDir.name, tmpOutputDir.name, done);
+                    }, 800);
+                }, timeout - 10000);
+                setInterval(function () {
+                    // Exit early if all files have been uploaded
+                    if (client.stats("download").success === fileCount) {
+                        client.stop_everything();
+                        setTimeout(function () {
+                            runTests(client, tmpInputDir.name, tmpOutputDir.name, done);
+                        }, 800);
+                    }
+                }, 500);
+            });
+        });
+    });
+});
+
+/*
+        it('should initiate and upload files', function (done) {
+            this.timeout(timeout);
+            client = new Metrichor({
+                apikey: api_key,
+                url: serviceUrl,
+                fileCheckInterval: 1,
+                initDelay: 100,
+                filter: "off",
+                log: logging(),
+                downloadMode: "telemetry",
+                inputFolder:  tmpInputDir.name,
+                outputFolder: tmpOutputDir.name
+            });
+            client.autoStart(workflowID, function (err, state) {
+                setTimeout(function () {
+                    client.stop_everything();
+                    setTimeout(done, 800);
+                }, timeout - 10000);
+            });
+        });
+        */
+        /*
+        it('should join workflow and upload files', function (done) {
+            this.timeout(3000);
+            client = new Metrichor({
+                fileCheckInterval: 1,
+                initDelay: 100,
+                log: logging(),
+                inputFolder:  tmpInputDir.name,
+                outputFolder: tmpOutputDir.name
+            });
+            client.autoJoin(486, function (err, state) {
+                setTimeout(function () {
+                    client.stop_everything();
+                    setTimeout(done, 800);
+                }, 2000);
+            });
+        });
+        */
+/*
+var cp;
+
     s3tmpdir,
+
     fakeS3port = 10001,
     fakeS3process = {
         exec: function () {
@@ -59,6 +214,7 @@ var cp,
             cp.kill('SIGINT');
         }
     };
+
 
 var fakeS3 = {
     get: function (opts, cb) {
@@ -143,103 +299,4 @@ var awsProxy = {
         return new AWS.S3(config);
     }
 };
-
-var Metrichor      = proxyquire('../lib/metrichor', {
-    'aws-sdk'     : awsProxy,
-    'request'     : fakeS3,
-    'graceful-fs' : fsProxy
-});
-
-describe('metrichor api', function () {
-
-    after(function () {
-        fakeS3process.stop();
-    });
-
-    before(function (done) {
-        this.timeout(3000);
-        fakeS3process.exec();
-        setTimeout(done, 500);
-    });
-
-    function logging() {
-        return {
-            warn: function () {},
-            error: function () {},
-            info: function () {}
-        }
-    };
-
-    describe('uploading', function () {
-
-        var tmpInputDir, tmpOutputDir, client;
-        beforeEach(function () {
-            tmpInputDir = tmp.dirSync({unsafeCleanup: true});
-            tmpOutputDir = tmp.dirSync({unsafeCleanup: true});
-
-            // Generating 100 empty .fast5 files
-            for (var i = 0; i<100; i++) {
-                fs.writeFile(path.join(tmpInputDir.name, i + '.fast5'));
-            }
-        });
-
-        afterEach(function cleanup() {
-            tmpInputDir ? tmpInputDir.removeCallback() : null;
-            tmpOutputDir ? tmpOutputDir.removeCallback() : null;
-        });
-
-        it('should initiate and upload files', function (done) {
-            this.timeout(3000);
-            client = new Metrichor({
-                log: logging(),
-                fileCheckInterval: 1,
-                initDelay: 100,
-                inputFolder:  tmpInputDir.name,
-                outputFolder: tmpOutputDir.name
-            });
-            client.autoStart("123", function (err, state) {
-                setTimeout(function () {
-                    client.stop_everything();
-                    client.stop_everything();
-                    setTimeout(done, 800);
-                }, 2000);
-            });
-        });
-
-        it('should initiate and upload files', function (done) {
-            this.timeout(3000);
-            client = new Metrichor({
-                fileCheckInterval: 1,
-                initDelay: 100,
-                filter: "off",
-                log: logging(),
-                downloadMode: "telemetry",
-                inputFolder:  tmpInputDir.name,
-                outputFolder: tmpOutputDir.name
-            });
-            client.autoStart("123", function (err, state) {
-                setTimeout(function () {
-                    client.stop_everything();
-                    setTimeout(done, 800);
-                }, 2000);
-            });
-        });
-
-        it('should join workflow and upload files', function (done) {
-            this.timeout(3000);
-            client = new Metrichor({
-                fileCheckInterval: 1,
-                initDelay: 100,
-                log: logging(),
-                inputFolder:  tmpInputDir.name,
-                outputFolder: tmpOutputDir.name
-            });
-            client.autoJoin("123", function (err, state) {
-                setTimeout(function () {
-                    client.stop_everything();
-                    setTimeout(done, 800);
-                }, 2000);
-            });
-        });
-    });
-});
+*/
