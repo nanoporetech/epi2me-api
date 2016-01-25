@@ -188,7 +188,7 @@ describe('Array', function(){
                     assert(client.resetStats.calledOnce);
                     assert(client.start_workflow.calledOnce);
                     assert(client.log.warn.calledOnce);
-                    assert(client.log.warn.calledWith("failed to start workflow: Message"));
+                    assert(client.log.warn.calledWith("Failed to start workflow: Message"));
                     assert(client.autoConfigure.notCalled);
                 });
             });
@@ -246,7 +246,7 @@ describe('Array', function(){
                     assert(client.resetStats.calledOnce);
                     assert(client.workflow_instance.calledOnce);
                     assert(client.log.warn.calledOnce);
-                    assert(client.log.warn.calledWith("failed to join workflow: Message"));
+                    assert(client.log.warn.calledWith("Failed to join workflow: Message"));
                     assert(client.autoConfigure.notCalled);
                 });
             });
@@ -632,7 +632,7 @@ describe('Array', function(){
             var client;
 
             beforeEach(function () {
-                client = new Metrichor();
+                client = new Metrichor({downloadMode: "telemetry"});
                 client.sessionedSQS = function (cb) { cb(); };
                 sinon.stub(client.log, "info");
                 sinon.stub(client.log, "warn");
@@ -650,17 +650,13 @@ describe('Array', function(){
                 delete mkdirpProxy.sync;
             });
 
-            it('should validate input', function () {
-                client.processMessage();
-                assert(client.log.info.calledWith('empty message'));
-                client.processMessage(null, function () {});
-            });
-
-            it('should handle bad message json', function () {
+            it('should handle bad message json', function (done) {
                 var msg = { Body: '{message: body}' };
-                client.processMessage(msg);
-                assert(client.deleteMessage.calledWith(msg));
-                assert(client.log.error.calledOnce);
+                client.processMessage(msg, function () {
+                    assert(client.deleteMessage.calledWith(msg));
+                    assert(client.log.error.calledOnce);
+                    done();
+                });
             });
 
             it('should parse message json', function () {
@@ -671,13 +667,8 @@ describe('Array', function(){
 
                 client.processMessage({
                     Body: '{"message": "body"}'
-                });
+                }, function () {});
                 assert(client.log.warn.calledOnce); // No path
-
-                /*
-                 client.processMessage({
-                 Body: '{"path": "body"}'
-                 });*/
             });
         });
 
