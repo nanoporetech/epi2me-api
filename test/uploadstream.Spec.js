@@ -8,12 +8,10 @@ var fs             = require('fs');
 var requestProxy   = {};
 var awsProxy       = {};
 var fsProxy        = {};
-var mkdirpProxy    = {};
 var Metrichor      = proxyquire('../lib/metrichor', {
     'aws-sdk'     : awsProxy,
     'request'     : requestProxy,
-    'graceful-fs' : fsProxy,
-    'mkdirp'      : mkdirpProxy
+    'graceful-fs' : fsProxy
 });
 
 describe('.uploadHandler method', function () {
@@ -130,9 +128,10 @@ describe('._moveUploadedFile method', function () {
     beforeEach(function () {
         tmpdir = tmp.dirSync({unsafeCleanup: true});
         tmpfile = path.join(tmpdir.name, fileName);
+        tmpfileOut = path.join(tmpdir.name, 'uploaded', fileName);
+
         fs.writeFileSync(tmpfile, new Array(10000).join('aaa'));
-        tmpdirOut = tmp.dirSync({unsafeCleanup: true});
-        tmpfileOut = path.join(tmpdirOut.name, 'uploaded.txt');
+
         fsProxy.createReadStream = function (fn) {
             readStream = fs.createReadStream.apply(this, arguments);
             return readStream;
@@ -151,34 +150,30 @@ describe('._moveUploadedFile method', function () {
     });
 
     it('should move file to upload folder', function (done) {
-        var client = new Metrichor({});
+        var client = new Metrichor({
+            inputFolder: tmpdir.name,
+            uploadedFolder:'+uploaded'
+        });
         stub(client);
-        client._moveUploadedFile(tmpfile, tmpfileOut, fileName, function (msg) {
+        client._moveUploadedFile(fileName, function (msg) {
             fs.stat(tmpfileOut, function fsStatCallback(err, stats) {
                 assert(!err, 'throws no errors');
                 assert(client.log.error.notCalled, 'logs no error messages');
-                done();
-            });
-
-        });
-    });
-
-    it('should delete file once it has been moved', function (done) {
-        var client = new Metrichor({});
-        stub(client);
-        client._moveUploadedFile(tmpfile, tmpfileOut, fileName, function () {
-            assert(arguments.length !== 0, "throws error");
-            fs.stat(tmpfile, function fsStatCallback(err, stats) {
-                assert(err && err.code === 'ENOENT', 'file should not exist');
-                done();
+                fs.stat(tmpfile, function fsStatCallback(err, stats) {
+                    assert(err && err.code === 'ENOENT', 'file should not exist');
+                    done();
+                });
             });
         });
     });
 
     it('should handle writeStream errors and flag the file as uploaded', function (done) {
-        var client = new Metrichor({});
+        var client = new Metrichor({
+            inputFolder: tmpdir.name,
+            uploadedFolder:'+uploaded'
+        });
         stub(client);
-        client._moveUploadedFile(tmpfile, tmpfileOut, fileName, function (success) {
+        client._moveUploadedFile(fileName, function (success) {
             assert(!success, "do not pass any arguments to successCb");
             assert(client._uploadedFiles.hasOwnProperty(fileName), "flag file as uploaded");
             fs.stat(tmpfileOut, function fsStatCallback(err) {
@@ -186,14 +181,20 @@ describe('._moveUploadedFile method', function () {
                 done();
             });
         });
-        writeStream.emit("error", new Error("Test"));
+        setTimeout(function() {
+            // needs to be placed at the end of callstack - so mkdirp can finish
+            writeStream.emit("error", new Error("Test"));
+        });
     });
 
     it('should handle non-existing input file', function (done) {
-        var client = new Metrichor({});
+        var client = new Metrichor({
+            inputFolder: tmpdir.name,
+            uploadedFolder:'+uploaded'
+        });
         stub(client);
         var target = tmpfile = path.join(tmpdir.name, "test");
-        client._moveUploadedFile('source', target, 'fileName', function (success) {
+        client._moveUploadedFile('fileName', function (success) {
             assert(!success, "do not pass any arguments to successCb");
             assert(client._uploadedFiles.hasOwnProperty('fileName'), "flag file as uploaded");
             fs.stat(target, function fsStatCallback(err) {
