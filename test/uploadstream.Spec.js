@@ -130,7 +130,7 @@ describe('._moveUploadedFile method', function () {
         tmpfile = path.join(tmpdir.name, fileName);
         tmpfileOut = path.join(tmpdir.name, 'uploaded', fileName);
 
-        fs.writeFileSync(tmpfile, new Array(10000).join('aaa'));
+        fs.writeFileSync(tmpfile, new Array(5e6).join('aaa'));
 
         fsProxy.createReadStream = function (fn) {
             readStream = fs.createReadStream.apply(this, arguments);
@@ -157,8 +157,13 @@ describe('._moveUploadedFile method', function () {
         stub(client);
         client._moveUploadedFile(fileName, function (msg) {
             fs.stat(tmpfileOut, function fsStatCallback(err, stats) {
-                assert(!err, 'throws no errors');
+                if (err) {
+                    console.log(err);
+                }
                 assert(client.log.error.notCalled, 'logs no error messages');
+                assert(!err, 'throws no errors');
+
+
                 fs.stat(tmpfile, function fsStatCallback(err, stats) {
                     assert(err && err.code === 'ENOENT', 'file should not exist');
                     done();
@@ -173,8 +178,8 @@ describe('._moveUploadedFile method', function () {
             uploadedFolder:'+uploaded'
         });
         stub(client);
-        client._moveUploadedFile(fileName, function (success) {
-            assert(!success, "do not pass any arguments to successCb");
+        client._moveUploadedFile(fileName, function (errorMsg) {
+            assert(!errorMsg, "do not pass any arguments to successCb");
             assert(client._uploadedFiles.hasOwnProperty(fileName), "flag file as uploaded");
             fs.stat(tmpfileOut, function fsStatCallback(err) {
                 assert(err && err.code === 'ENOENT', 'clean up target file. should not exist');
@@ -194,8 +199,8 @@ describe('._moveUploadedFile method', function () {
         });
         stub(client);
         var target = tmpfile = path.join(tmpdir.name, "test");
-        client._moveUploadedFile('fileName', function (success) {
-            assert(!success, "do not pass any arguments to successCb");
+        client._moveUploadedFile('fileName', function (errorMsg) {
+            assert(!errorMsg, "do not pass any arguments to successCb");
             assert(client._uploadedFiles.hasOwnProperty('fileName'), "flag file as uploaded");
             fs.stat(target, function fsStatCallback(err) {
                 assert(err && err.code === 'ENOENT', 'clean up target file. should not exist');
