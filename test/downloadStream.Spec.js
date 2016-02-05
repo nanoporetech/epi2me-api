@@ -41,6 +41,7 @@ describe('._initiateDownloadStream method', function () {
 
     beforeEach(function () {
         tmpdir = tmp.dirSync({unsafeCleanup: true});
+        tmpfile = tmp.fileSync({ prefix: 'prefix-', postfix: '.txt' });
         fs.writeFile(path.join(tmpdir.name, 'tmpfile.txt'), "dataset", function () {});
         fsProxy.unlink = function () { };
         fsProxy.stat = function () { };
@@ -63,29 +64,32 @@ describe('._initiateDownloadStream method', function () {
         var client = new Metrichor({});
         stub(client);
         var s3 = s3Mock(function () { throw "Error" });
-        client._initiateDownloadStream(s3, {}, {}, path.join(tmpdir.name, 'tmpfile.txt'), function () {
+        client._initiateDownloadStream(s3, {}, {}, tmpfile.name, function () {
             assert(client.log.error.calledOnce, "should log error message");
             done();
         });
     });
 
     it('should open read stream and write to outputFile', function (done) {
-        var client = new Metrichor({});
+        var client = new Metrichor({
+            inputFolder: tmpdir.name,
+            uploadedFolder: '+uploaded',
+            outputFolder: '+downloads'
+        });
         stub(client);
         var readStream,
             msg = {msg: 'bla'},
             s3 = s3Mock(function cb() {
-                var tmpfile = tmp.fileSync({ prefix: 'prefix-', postfix: '.txt' });
-                readStream = fs.createReadStream(tmpfile.name, function (err) {});
+                readStream = fs.createReadStream(tmpfile.name);
                 return readStream;
             });
-        var filename = path.join(tmpdir.name, 'tmpfile.txt');
+
 //		client._stats.download.success = 1; // required for recent min(download,upload) fudge?
-        client._initiateDownloadStream(s3, {}, msg, filename, function cb() {
+        client._initiateDownloadStream(s3, {}, msg, tmpfile.name, function cb() {
 //                    assert.equal(readStream.destroyed, true, "should destroy the read stream"); // fails on node > 2.2.1
 //                    assert(client.deleteMessage.calledWith(msg), "should delete sqs message on success"); // fails on node > 2.2.1
-            //assert(client.log.error.notCalled, "should not throw exception");
-            //assert(client.log.warn.notCalled, "should not throw warning");
+            assert(client.log.error.notCalled, "should not throw exception");
+            assert(client.log.warn.notCalled, "should not throw warning");
             //assert.equal(client._stats.download.success, 1, "should count as download success");
             done();
         });
