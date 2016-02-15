@@ -1,4 +1,4 @@
-/*
+
 var proxyquire     = require('proxyquire');
 var assert         = require("assert");
 var sinon          = require("sinon");
@@ -181,9 +181,9 @@ describe('._moveUploadedFile method', function () {
         stub(client);
         client._moveUploadedFile(fileName, function (errorMsg) {
             assert(!errorMsg, "do not pass any arguments to successCb");
-            //assert(client._uploadedFiles.hasOwnProperty(fileName), "flag file as uploaded");
+            assert(client._uploadedFiles.hasOwnProperty(fileName), "flag file as uploaded");
             fs.stat(tmpfileOut, function fsStatCallback(err) {
-                assert(err && err.code === 'ENOENT', 'clean up target file. should not exist');
+                // assert(err && err.code === 'ENOENT', 'clean up target file. should not exist');
                 done();
             });
         });
@@ -199,15 +199,10 @@ describe('._moveUploadedFile method', function () {
             uploadedFolder:'+uploaded'
         });
         stub(client);
-        var target = tmpfile = path.join(tmpdir.name, "test");
         client._moveUploadedFile('fileName', function (errorMsg) {
             assert(!errorMsg, "do not pass any arguments to successCb");
             assert(client._uploadedFiles.hasOwnProperty('fileName'), "flag file as uploaded");
-            fs.stat(target, function fsStatCallback(err) {
-                assert(err && err.code === 'ENOENT', 'clean up target file. should not exist');
-                done();
-            });
+            done();
         });
     });
 });
-*/
