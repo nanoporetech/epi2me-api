@@ -1,5 +1,5 @@
 /**
- * E2E integration test of the metrichor api
+ * E2E test of the metrichor api
  */
 var underscore     = require('underscore');
 var proxyquire     = require('proxyquire');
@@ -12,8 +12,8 @@ var fs             = require('fs');
 var fsProxy        = {};
 var api_key        = "XXX";
 var workflowID     = 486;
-var timeout        = 30000;
-var fileCount      = 1000;
+var timeout        = 10000;
+var fileCount      = 1;
 var fileCheckInterval      = 0.5;
 var serviceUrl     = 'https://dev.metrichor.com';
 var fileExp        = new RegExp('fast5$');
@@ -116,13 +116,18 @@ var awsProxy = {
     }
 };
 
-var Metrichor      = proxyquire('../lib/metrichor', {
-    'graceful-fs' : fsProxy,
-    'aws-sdk' : awsProxy,
+// it's a singleton
+// proxyquire lib/utils once to make sure the requestProxy is used
+proxyquire('../lib/utils', {
     'request' : requestProxy
 });
 
-describe('metrichor api integration test', function () {
+var Metrichor = proxyquire('../lib/metrichor', {
+    'graceful-fs' : fsProxy,
+    'aws-sdk' : awsProxy
+});
+
+describe('metrichor api end-to-end test', function () {
 
     before(function (done) {
         this.timeout(timeout);
@@ -132,13 +137,13 @@ describe('metrichor api integration test', function () {
     function logging() {
         return {
             warn: function (msg) {
-                // console.log(msg);
+                console.log(msg);
             },
             error: function (err) {
                 console.log(err);
             },
             info: function (msg) {
-                // console.log(msg)
+                console.log(msg)
             }
         }
     };
@@ -163,9 +168,9 @@ describe('metrichor api integration test', function () {
         function runTests(client, uploadDir, downloadDir, done) {
 
             var ustats = client.stats("upload");
-            assert.equal(ustats.success, fileCount, 'upload all files');
+            assert.equal(ustats.success, fileCount, 'upload all files. fileCount = ' + fileCount + ' ustats.success = ' + ustats.success);
             assert.equal(underscore.every(client._inputFiles, { uploaded: true, enqueued: false, in_flight: false }), true);
-
+            // assert.equal(client._stats.upload.failure.length, 0, 'no files failed to upload. ' + JSON.stringify(client._stats.upload.failure));
             // var dstats = client.stats("download");
             // assert.equal(dstats.success, fileCount, 'download all files');
             queue()
@@ -221,7 +226,7 @@ describe('metrichor api integration test', function () {
                 }
 
                 // assert no errors
-                var test_timeout = setTimeout(run, timeout - 10000);
+                var test_timeout = setTimeout(run, 0.8 * timeout);
 
                 // Exit early if all files have been uploaded
                 var test_interval = setInterval(function () {

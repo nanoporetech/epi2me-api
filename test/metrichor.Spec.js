@@ -9,14 +9,20 @@ var requestProxy   = {};
 var fsProxy        = {};
 var mkdirpProxy    = {};
 var awsProxy       = {};
-var Metrichor      = proxyquire('../lib/metrichor.js', {
-    'aws-sdk'     : awsProxy,
-    'request'     : requestProxy,
-    'graceful-fs' : fsProxy,
-    'mkdirp'      : mkdirpProxy
+proxyquire('../lib/utils', {
+    'request' : requestProxy
 });
+var Metrichor;
 
 describe('Array', function(){
+    beforeEach(function () {
+        Metrichor = proxyquire('../lib/metrichor.js', {
+            'aws-sdk'     : awsProxy,
+            'request'     : requestProxy,
+            'graceful-fs' : fsProxy,
+            'mkdirp'      : mkdirpProxy
+        });
+    });
     describe('metrichor constructor', function () {
         it('should create a metrichor object with defaults and allow overwriting', function () {
             var client;
@@ -264,7 +270,7 @@ describe('Array', function(){
                 });
             });
         });
-
+        /*
         describe('.loadUploadFiles method', function () {
 
             var client,
@@ -311,6 +317,7 @@ describe('Array', function(){
                 //assert(!client._inputFiles.length);
             });
         });
+        */
 
         describe('.receiveMessages method', function () {
             // MC-2068 - Load messages once all jobs are done
@@ -556,41 +563,6 @@ describe('Array', function(){
                 //assert(client.enqueueUploadJob.calledWith(item));
             });
 
-        });
-
-        describe('._responseHandler method', function () {
-            var client,
-                container;
-
-            beforeEach(function () {
-                client = new Metrichor();
-                container = {
-                    callback: function () {}
-                };
-                sinon.stub(container, 'callback');
-            });
-
-            it('should handle error status codes', function () {
-                client._responsehandler(null, {statusCode: 400}, '', container.callback);
-                assert(container.callback.calledWith({"error": "Network error 400"}));
-                assert(container.callback.calledOnce);
-            });
-
-            it('should handle errors', function () {
-                client._responsehandler('message', '', ''); // ensure it checks callback exists
-                client._responsehandler('message', '', '', container.callback);
-                assert(container.callback.calledWith('message'));
-                assert(container.callback.calledOnce);
-            });
-
-            it('should parse body and handle bad json', function () {
-                client._responsehandler(null, '', '{\"error\": \"message\"}');
-                client._responsehandler(null, '', '{\"error\": \"message\"}', container.callback);
-                assert(container.callback.calledWith({error: 'message'}));
-                assert(container.callback.calledOnce);
-                client._responsehandler(null, '', '{error: message}', container.callback); // Handles JSON error gracefully
-                assert(container.callback.calledTwice);
-            });
         });
 
         describe('.uploadComplete method', function () {

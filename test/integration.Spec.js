@@ -2,6 +2,7 @@
  * end-to-end test of the metrichor api
  *
  */
+
 if (require("os").type() !== 'Darwin') {
     console.log('WARNING: e2e tests only configured for OSX');
     return;
@@ -27,11 +28,12 @@ var timeout        = 50000;
 var fileCount      = 3;
 var serviceUrl     = 'https://dev.metrichor.com';
 var fileExp        = new RegExp('fast5$');
+
 var Metrichor      = proxyquire('../lib/metrichor', {
     'graceful-fs' : fsProxy
 });
 
-describe('metrichor api', function () {
+describe('metrichor api integration test', function () {
 
     after(function () {
         //fakeS3process.stop();

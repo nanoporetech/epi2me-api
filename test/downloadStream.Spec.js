@@ -9,6 +9,11 @@ var requestProxy   = {};
 var fsProxy        = {};
 var mkdirpProxy    = {};
 var awsProxy       = {};
+
+proxyquire('../lib/utils', {
+    'request' : requestProxy
+});
+
 var Metrichor      = proxyquire('../lib/metrichor', {
     'aws-sdk'     : awsProxy,
     'request'     : requestProxy,
