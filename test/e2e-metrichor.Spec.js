@@ -12,11 +12,13 @@ var fs             = require('fs');
 var fsProxy        = {};
 var api_key        = "XXX";
 var workflowID     = 486;
-var timeout        = 10000;
-var fileCount      = 1;
+var TEST_TIMEOUT   = 100 * 1000;
+var fileCount      = 500;
 var fileCheckInterval      = 0.5;
 var serviceUrl     = 'https://dev.metrichor.com';
 var fileExp        = new RegExp('fast5$');
+
+var uploadedFiles = [];
 
 var requestProxy = {
     get: function (opts, cb) {
@@ -26,8 +28,8 @@ var requestProxy = {
                 chain : null,
                 remote_addr : "remote_addr",
                 bucket : "bucket",
-                inputqueue : "inputqueue",
-                outputqueue : "inputqueue",
+                inputqueue : "input-queue",
+                outputqueue : "output-queue",
                 region : "region",
                 state : "started"
             }));
@@ -42,8 +44,8 @@ var requestProxy = {
             ret.chain = null;
             ret.remote_addr = "remote_addr";
             ret.bucket = "bucket";
-            ret.inputqueue = "inputqueue";
-            ret.outputqueue = "inputqueue";
+            ret.inputqueue = "input-queue";
+            ret.outputqueue = "output-queue";
             ret.region = "region";
             ret.state = "started";
             cb(null, { statusCode: 200 }, JSON.stringify(ret));
@@ -66,12 +68,12 @@ var awsProxy = {
         return { // sqs object constructor
             receiveMessage: function (opts, cb) {
                 // Used to queue messages to be downloaded
-                cb({ Messages: ['1.fast5'] });
+                cb(null, { Messages: uploadedFiles.splice(0, 10) });
             },
             getQueueAttributes: function (opts, cb) {
                 cb(null, {
                     Attributes: {
-                        ApproximateNumberOfMessages: 0
+                        ApproximateNumberOfMessages: uploadedFiles.length
                     }
                 });
             },
@@ -79,7 +81,7 @@ var awsProxy = {
                 cb();
             },
             getQueueUrl: function (opts, cb) {
-                cb(null, { QueueUrl: "queue-url" });
+                cb(null, { QueueUrl: opts.QueueName + "-url" });
             },
             deleteMessage: function (opts, cb) {
                 cb();
@@ -109,6 +111,13 @@ var awsProxy = {
                 if (cb && params && options) {
                     cb();
                 }
+            },
+            getObject: function (opts) {
+                return {
+                    createReadStream: function () {
+                        return fs.createReadStream(opts.Key);
+                    }
+                }
             }
         };
 
@@ -128,9 +137,9 @@ var Metrichor = proxyquire('../lib/metrichor', {
 });
 
 describe('metrichor api end-to-end test', function () {
-
+    this.timeout(TEST_TIMEOUT);
     before(function (done) {
-        this.timeout(timeout);
+        this.timeout(TEST_TIMEOUT);
         setTimeout(done, 500);
     });
 
@@ -143,25 +152,47 @@ describe('metrichor api end-to-end test', function () {
                 console.log(err);
             },
             info: function (msg) {
-                console.log(msg)
+                // console.log(msg)
             }
         }
     };
 
     describe('startWorkflow', function () {
-
-        var tmpInputDir, tmpOutputDir, client;
+        this.timeout(TEST_TIMEOUT);
+        var tmpInputDir, tmpS3Dir, tmpOutputDir, client;
         beforeEach(function () {
             tmpInputDir = tmp.dirSync({unsafeCleanup: true});
+            tmpS3Dir = tmp.dirSync({unsafeCleanup: true});
             tmpOutputDir = tmp.dirSync({unsafeCleanup: true});
             // Generating 100 empty .fast5 files
+            var fileQ = queue(1);
             for (var i = 0; i<fileCount; i++) {
-                fs.writeFile(path.join(tmpInputDir.name, i + '.fast5'), "HELLO");
+                fileQ.defer(function (done) {
+                    // fs.writeFile(path.join(), "DATA STRING");
+                    fs.closeSync(fs.openSync(path.join(tmpInputDir.name, i + '.fast5'), 'w'));
+
+                    var fn = path.join(tmpS3Dir.name, i + '-download.fast5');
+                    var message = {
+                        Body: JSON.stringify({
+                            telemetry: {
+                                json: {
+                                    exit_status: 'S_OK'
+                                }
+                            },
+                            path: fn
+                        })
+                    };
+                    uploadedFiles.push(message);
+                    // fs.writeFile(fn, "DATA STRING");
+                    fs.closeSync(fs.openSync(fn, 'w'));
+                    done();
+                });
             }
         });
 
         afterEach(function cleanup() {
             tmpInputDir ? tmpInputDir.removeCallback() : null;
+            tmpS3Dir ? tmpS3Dir.removeCallback() : null;
             tmpOutputDir ? tmpOutputDir.removeCallback() : null;
         });
 
@@ -169,10 +200,16 @@ describe('metrichor api end-to-end test', function () {
 
             var ustats = client.stats("upload");
             assert.equal(ustats.success, fileCount, 'upload all files. fileCount = ' + fileCount + ' ustats.success = ' + ustats.success);
-            assert.equal(underscore.every(client._inputFiles, { uploaded: true, enqueued: false, in_flight: false }), true);
-            // assert.equal(client._stats.upload.failure.length, 0, 'no files failed to upload. ' + JSON.stringify(client._stats.upload.failure));
-            // var dstats = client.stats("download");
-            // assert.equal(dstats.success, fileCount, 'download all files');
+            assert(!client._uploadedFiles.length, "_uploadedFiles array should be empty");
+
+            for (var key in client._stats.upload.failure) {
+                assert.equal(typeof client._stats.upload.failure[key], 'undefined', 'no files failed to upload. ' + JSON.stringify(key, client._stats.upload.failure[key]));
+            }
+            for (var key in client._stats.download.failure) {
+                assert.equal(typeof client._stats.download.failure[key], 'undefined', 'no files failed to upload. ' + JSON.stringify(key, client._stats.download.failure[key]));
+            }
+            var dstats = client.stats("download");
+            assert.equal(dstats.success, fileCount, 'download all files');
             queue()
                 .defer(function (cb) {
                     fs.readdir(uploadDir, function (err, files) {
@@ -192,24 +229,25 @@ describe('metrichor api end-to-end test', function () {
                         cb();
                     });
                 })
-                /*.defer(function (cb) {
+                .defer(function (cb) {
                     fs.readdir(path.join(downloadDir, 'fail'), function (err, files) {
                         var filtered = files.filter(function (f) { return f.match(fileExp); });
                         assert.equal(filtered.length, fileCount, 'move all downloaded files to the downloadDir/fail');
                         cb();
                     });
-                })*/
+                })
                 .awaitAll(done);
         }
 
         it('should initiate and upload files', function (done) {
-            this.timeout(timeout);
+            this.timeout(TEST_TIMEOUT);
             client = new Metrichor({
                 apikey: api_key,
                 url: serviceUrl,
                 agent_version: '10000.0.0',
                 log: logging(),
                 fileCheckInterval: fileCheckInterval,
+                downloadCheckInterval: 1,
                 initDelay: 100,
                 downloadMode: "data+telemetry",
                 inputFolder:  tmpInputDir.name,
@@ -226,11 +264,11 @@ describe('metrichor api end-to-end test', function () {
                 }
 
                 // assert no errors
-                var test_timeout = setTimeout(run, 0.8 * timeout);
+                var test_timeout = setTimeout(run, 0.8 * TEST_TIMEOUT);
 
                 // Exit early if all files have been uploaded
                 var test_interval = setInterval(function () {
-                    if (client.stats("upload").success === fileCount) {
+                    if (client.stats("download").success === fileCount && client.stats("upload").success === fileCount) {
                         clearTimeout(test_timeout);
                         clearInterval(test_interval);
                         run();

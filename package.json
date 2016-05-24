@@ -1,13 +1,13 @@
 {
   "name": "metrichor-api",
-  "version": "2.40.1",
+  "version": "2.40.15",
   "repository": "https://git.oxfordnanolabs.local/metrichor/api.git",
   "description": "API for communicating with the Metrichor website(s)",
   "private": true,
   "main": "lib/metrichor.js",
   "dependencies": {
-    "aws-sdk": "2.2.4",
-    "graceful-fs": "4.1.2",
+    "aws-sdk": "2.3.14",
+    "graceful-fs": "4.1.4",
     "mkdirp": "0.5.1",
     "proxy-agent": "1.1.0",
     "queue-async": "git+https://github.com/rmp/queue.git",

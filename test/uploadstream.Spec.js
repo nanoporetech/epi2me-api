@@ -8,6 +8,9 @@ var fs             = require('fs');
 var requestProxy   = {};
 var awsProxy       = {};
 var fsProxy        = {};
+proxyquire('../lib/utils', {
+    'request' : requestProxy
+});
 var Metrichor      = proxyquire('../lib/metrichor', {
     'aws-sdk'     : awsProxy,
     'request'     : requestProxy,
@@ -78,7 +81,7 @@ describe('.uploadHandler method', function () {
             };
         };
         client.uploadHandler(tmpfile, function (msg) {
-            assert(msg.match(/failed to upload/), 'unexpected error message format: ' + msg);
+            assert(msg.match(/error in upload readstream/), 'unexpected error message format: ' + msg);
             setTimeout(done, 10);
         });
         readStream.emit("error");
@@ -104,7 +107,7 @@ describe('._moveUploadedFile method', function () {
         tmpfile, tmpdir, tmpdirOut, tmpfileOut;
 
     function stub(client) {
-        client._uploadedFiles = {};
+        client._uploadedFiles = [];
         sinon.stub(client.log, "error");
         sinon.stub(client.log, "warn");
         sinon.stub(client.log, "info");
@@ -146,8 +149,7 @@ describe('._moveUploadedFile method', function () {
                     console.log(err);
                 }
                 //assert(client.log.error.notCalled, 'logs no error messages');
-                assert(!err, 'throws no errors');
-
+                assert(!err, 'throws no errors: ' + err);
 
                 fs.stat(tmpfile, function fsStatCallback(err, stats) {
                     //assert(err && err.code === 'ENOENT', 'file should not exist');
@@ -164,7 +166,7 @@ describe('._moveUploadedFile method', function () {
         });
         stub(client);
         client._moveUploadedFile(fileName, function (errorMsg) {
-            assert(!errorMsg, "do not pass any arguments to successCb");
+            assert.equal(typeof errorMsg, "string", "pass error message to successCb: " + errorMsg);
             //assert(file.uploaded, "flag file as uploaded");
             fs.stat(tmpfileOut, function fsStatCallback(err) {
                 // assert(err && err.code === 'ENOENT', 'clean up target file. should not exist');
@@ -185,8 +187,7 @@ describe('._moveUploadedFile method', function () {
         stub(client);
         var file = 'fileName';
         client._moveUploadedFile(file, function (errorMsg) {
-            assert(!errorMsg, "do not pass any arguments to successCb");
-            // assert(file.uploaded, "flag file as uploaded");
+            assert(errorMsg.match(/ENOENT/), "pass error message to successCb: " + errorMsg);
             done();
         });
     });
