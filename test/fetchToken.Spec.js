@@ -16,7 +16,7 @@ var Metrichor      = proxyquire('../lib/metrichor', {
     'mkdirp'      : mkdirpProxy
 });
 
-describe('session fetchInstanceToken methods', function () {
+describe('session fetchInstanceToken method', function () {
 
     var cb;
 
@@ -38,35 +38,30 @@ describe('session fetchInstanceToken methods', function () {
 
     // Should clear queue and call success callback
 
-    it('should not fetch token when still valid', function (done) {
+    it('should not fetch token when still valid', function () {
         var cli = newApi({id_workflow_instance: 10}, null, "abc");
         cli._stats.sts_expiration = new Date(Date.now() + 100);
         sinon.spy(cli, "token");
-        cli.session(function () {
-            assert(cli.token.notCalled);
-            done();
-        });
+        cli.session();
+        assert(cli.token.notCalled);
     });
 
-    it('should fetch token only once when expired', function (done) {
+    it('should fetch token only once when expired', function () {
         var cli = newApi({id_workflow_instance: 10}, null, { expiration: Date.now() + 1000000 });
         cli._stats.sts_expiration = new Date(Date.now() - 100);
         sinon.spy(cli, "token");
         sinon.spy(cli, "fetchInstanceToken");
 
-        cli.session(function () {
-            assert(cli.token.calledOnce, "first call - fetch token");
-        });
+        cli.session();
+        assert(cli.token.calledOnce, "first call - fetch token");
 
         for (var i=0; i<10; i++) {
-            cli.session(function () {}); // following calls - don't fetch token
+            cli.session(); // following calls - don't fetch token
         }
 
-        cli.session(function () {
-            assert(cli.token.calledOnce, "last call - don't fetch token");
-            assert.equal(cli.sessionQueue.remaining(), 1, "last call - don't fetch token");
-            done();
-        });
+        cli.session();
+        assert(cli.token.calledOnce, "last call - don't fetch token");
+        assert.equal(cli.sessionQueue.remaining(), 1, "last call - don't fetch token");
     });
 
     it('should handle that.token error', function (done) {

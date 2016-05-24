@@ -1,22 +1,7 @@
 /**
- * E2E integration test of the metrichor api
- *
- * Requires 'fasts3' to be installed (https://github.com/jubos/fake-s3)
- *
- * on OSX: gem install fakes3
- *
+ * E2E test of the metrichor api
  */
-if (require("os").type() !== 'Darwin') {
-    console.log('WARNING: e2e tests only configured for OSX');
-    return;
-} else if (process.env.NODE_ENV !== 'development') {
-    console.log('WARNING: e2e tests require env variable NODE_ENV to equal development');
-    return;
-} else if (!process.env.API_KEY) {
-    console.log('WARNING: e2e tests require env variable API_KEY to be set');
-    return;
-}
-
+var underscore     = require('underscore');
 var proxyquire     = require('proxyquire');
 var assert         = require("assert");
 var sinon          = require("sinon");
@@ -25,25 +10,136 @@ var tmp            = require('tmp');
 var queue          = require('queue-async');
 var fs             = require('fs');
 var fsProxy        = {};
-var api_key        = process.env.API_KEY;
+var api_key        = "XXX";
 var workflowID     = 486;
-var timeout        = 50000;
-var fileCount      = 3;
+var TEST_TIMEOUT   = 100 * 1000;
+var fileCount      = 500;
+var fileCheckInterval      = 0.5;
 var serviceUrl     = 'https://dev.metrichor.com';
 var fileExp        = new RegExp('fast5$');
-var Metrichor      = proxyquire('../lib/metrichor', {
-    'graceful-fs' : fsProxy
+
+var uploadedFiles = [];
+
+var requestProxy = {
+    get: function (opts, cb) {
+        if (opts.uri && opts.uri.match("workflow_instance")) {
+            cb(null, { statusCode: 200 }, JSON.stringify({
+                id_workflow_instance : "id_workflow_instance",
+                chain : null,
+                remote_addr : "remote_addr",
+                bucket : "bucket",
+                inputqueue : "input-queue",
+                outputqueue : "output-queue",
+                region : "region",
+                state : "started"
+            }));
+        } else {
+            cb({});
+        }
+    },
+    post: function (opts, cb) {
+        var ret = {};
+        if (opts.uri && opts.uri.match('workflow_instance')) {
+            ret.id_workflow_instance = "id_workflow_instance";
+            ret.chain = null;
+            ret.remote_addr = "remote_addr";
+            ret.bucket = "bucket";
+            ret.inputqueue = "input-queue";
+            ret.outputqueue = "output-queue";
+            ret.region = "region";
+            ret.state = "started";
+            cb(null, { statusCode: 200 }, JSON.stringify(ret));
+        } else if (opts.uri && opts.uri.match("token")) {
+            cb(null, { statusCode: 200 }, JSON.stringify({expiration: new Date(1e13)}));
+        } else {
+            cb("ERROR. Invalid POST arguments");
+        }
+    },
+    put: function (opts, cb) {
+        cb({});
+    }
+};
+
+var awsProxy = {
+    config: {
+        update: function () {}
+    },
+    SQS: function () {
+        return { // sqs object constructor
+            receiveMessage: function (opts, cb) {
+                // Used to queue messages to be downloaded
+                cb(null, { Messages: uploadedFiles.splice(0, 10) });
+            },
+            getQueueAttributes: function (opts, cb) {
+                cb(null, {
+                    Attributes: {
+                        ApproximateNumberOfMessages: uploadedFiles.length
+                    }
+                });
+            },
+            sendMessage: function (opts, cb) {
+                cb();
+            },
+            getQueueUrl: function (opts, cb) {
+                cb(null, { QueueUrl: opts.QueueName + "-url" });
+            },
+            deleteMessage: function (opts, cb) {
+                cb();
+            }
+        }
+    },
+    S3: function () { // s3 object constructor
+        /*
+        // Key s3 mock: https://github.com/jubos/fake-s3
+        // fakes3 -r /mnt/fakes3_root -p 4567
+        var config = {
+            s3ForcePathStyle: true,
+            accessKeyId: 'ACCESS_KEY_ID',
+            secretAccessKey: 'SECRET_ACCESS_KEY',
+            endpoint: new AWS.Endpoint('http://localhost:' + fakeS3port) // fake-s3 server
+        };
+        return new AWS.S3(config);
+         */
+
+        return {
+            deleteObject: function (cnf, cb) {
+                if (cb && cnf) {
+                    cb();
+                }
+            },
+            upload: function (params, options, cb) {
+                if (cb && params && options) {
+                    cb();
+                }
+            },
+            getObject: function (opts) {
+                return {
+                    createReadStream: function () {
+                        return fs.createReadStream(opts.Key);
+                    }
+                }
+            }
+        };
+
+
+    }
+};
+
+// it's a singleton
+// proxyquire lib/utils once to make sure the requestProxy is used
+proxyquire('../lib/utils', {
+    'request' : requestProxy
 });
 
-describe('metrichor api', function () {
+var Metrichor = proxyquire('../lib/metrichor', {
+    'graceful-fs' : fsProxy,
+    'aws-sdk' : awsProxy
+});
 
-    after(function () {
-        //fakeS3process.stop();
-    });
-
+describe('metrichor api end-to-end test', function () {
+    this.timeout(TEST_TIMEOUT);
     before(function (done) {
-        this.timeout(timeout);
-        //fakeS3process.exec();
+        this.timeout(TEST_TIMEOUT);
         setTimeout(done, 500);
     });
 
@@ -56,38 +152,70 @@ describe('metrichor api', function () {
                 console.log(err);
             },
             info: function (msg) {
-                console.log(msg)
+                // console.log(msg)
             }
         }
     };
 
-    describe('uploading', function () {
-
-        var tmpInputDir, tmpOutputDir, client;
+    describe('startWorkflow', function () {
+        this.timeout(TEST_TIMEOUT);
+        var tmpInputDir, tmpS3Dir, tmpOutputDir, client;
         beforeEach(function () {
             tmpInputDir = tmp.dirSync({unsafeCleanup: true});
+            tmpS3Dir = tmp.dirSync({unsafeCleanup: true});
             tmpOutputDir = tmp.dirSync({unsafeCleanup: true});
-
             // Generating 100 empty .fast5 files
+            var fileQ = queue(1);
             for (var i = 0; i<fileCount; i++) {
-                fs.writeFile(path.join(tmpInputDir.name, i + '.fast5'));
+                fileQ.defer(function (done) {
+                    // fs.writeFile(path.join(), "DATA STRING");
+                    fs.closeSync(fs.openSync(path.join(tmpInputDir.name, i + '.fast5'), 'w'));
+
+                    var fn = path.join(tmpS3Dir.name, i + '-download.fast5');
+                    var message = {
+                        Body: JSON.stringify({
+                            telemetry: {
+                                json: {
+                                    exit_status: 'S_OK'
+                                }
+                            },
+                            path: fn
+                        })
+                    };
+                    uploadedFiles.push(message);
+                    // fs.writeFile(fn, "DATA STRING");
+                    fs.closeSync(fs.openSync(fn, 'w'));
+                    done();
+                });
             }
         });
 
         afterEach(function cleanup() {
             tmpInputDir ? tmpInputDir.removeCallback() : null;
+            tmpS3Dir ? tmpS3Dir.removeCallback() : null;
             tmpOutputDir ? tmpOutputDir.removeCallback() : null;
         });
 
         function runTests(client, uploadDir, downloadDir, done) {
 
             var ustats = client.stats("upload");
+            assert.equal(ustats.success, fileCount, 'upload all files. fileCount = ' + fileCount + ' ustats.success = ' + ustats.success);
+            assert(!client._uploadedFiles.length, "_uploadedFiles array should be empty");
+
+            for (var key in client._stats.upload.failure) {
+                assert.equal(typeof client._stats.upload.failure[key], 'undefined', 'no files failed to upload. ' + JSON.stringify(key, client._stats.upload.failure[key]));
+            }
+            for (var key in client._stats.download.failure) {
+                assert.equal(typeof client._stats.download.failure[key], 'undefined', 'no files failed to upload. ' + JSON.stringify(key, client._stats.download.failure[key]));
+            }
             var dstats = client.stats("download");
-            assert.equal(ustats.success, fileCount, 'upload all files');
             assert.equal(dstats.success, fileCount, 'download all files');
             queue()
                 .defer(function (cb) {
                     fs.readdir(uploadDir, function (err, files) {
+                        if (err) {
+                            console.log(err);
+                        }
                         var filtered = files.filter(function (f) { return f.match(fileExp); });
                         assert.equal(filtered.length, 0, 'move all uploaded files from the upload folder');
                         cb();
@@ -95,6 +223,7 @@ describe('metrichor api', function () {
                 })
                 .defer(function (cb) {
                     fs.readdir(path.join(uploadDir, 'uploaded'), function (err, files) {
+                        assert(files && files.length, 'no files found in uploaded folder');
                         var filtered = files.filter(function (f) { return f.match(fileExp); });
                         assert.equal(filtered.length, fileCount, 'move all uploaded files to +uploaded');
                         cb();
@@ -111,192 +240,41 @@ describe('metrichor api', function () {
         }
 
         it('should initiate and upload files', function (done) {
-            this.timeout(timeout);
+            this.timeout(TEST_TIMEOUT);
             client = new Metrichor({
                 apikey: api_key,
                 url: serviceUrl,
                 agent_version: '10000.0.0',
                 log: logging(),
-                fileCheckInterval: 4,
+                fileCheckInterval: fileCheckInterval,
+                downloadCheckInterval: 1,
                 initDelay: 100,
                 downloadMode: "data+telemetry",
                 inputFolder:  tmpInputDir.name,
                 outputFolder: tmpOutputDir.name
             });
+
             client.autoStart(workflowID, function (err, state) {
-                setTimeout(function () {
+
+                function run() {
                     client.stop_everything();
                     setTimeout(function () {
                         runTests(client, tmpInputDir.name, tmpOutputDir.name, done);
                     }, 800);
-                }, timeout - 10000);
-                setInterval(function () {
-                    // Exit early if all files have been uploaded
-                    if (client.stats("download").success === fileCount) {
-                        client.stop_everything();
-                        setTimeout(function () {
-                            runTests(client, tmpInputDir.name, tmpOutputDir.name, done);
-                        }, 800);
+                }
+
+                // assert no errors
+                var test_timeout = setTimeout(run, 0.8 * TEST_TIMEOUT);
+
+                // Exit early if all files have been uploaded
+                var test_interval = setInterval(function () {
+                    if (client.stats("download").success === fileCount && client.stats("upload").success === fileCount) {
+                        clearTimeout(test_timeout);
+                        clearInterval(test_interval);
+                        run();
                     }
                 }, 500);
             });
         });
     });
 });
-
-/*
-        it('should initiate and upload files', function (done) {
-            this.timeout(timeout);
-            client = new Metrichor({
-                apikey: api_key,
-                url: serviceUrl,
-                fileCheckInterval: 1,
-                initDelay: 100,
-                filter: "off",
-                log: logging(),
-                downloadMode: "telemetry",
-                inputFolder:  tmpInputDir.name,
-                outputFolder: tmpOutputDir.name
-            });
-            client.autoStart(workflowID, function (err, state) {
-                setTimeout(function () {
-                    client.stop_everything();
-                    setTimeout(done, 800);
-                }, timeout - 10000);
-            });
-        });
-        */
-        /*
-        it('should join workflow and upload files', function (done) {
-            this.timeout(3000);
-            client = new Metrichor({
-                fileCheckInterval: 1,
-                initDelay: 100,
-                log: logging(),
-                inputFolder:  tmpInputDir.name,
-                outputFolder: tmpOutputDir.name
-            });
-            client.autoJoin(486, function (err, state) {
-                setTimeout(function () {
-                    client.stop_everything();
-                    setTimeout(done, 800);
-                }, 2000);
-            });
-        });
-        */
-/*
-var cp;
-
-    s3tmpdir,
-
-    fakeS3port = 10001,
-    fakeS3process = {
-        exec: function () {
-
-            var execOptions = {
-                stdout: true,
-                stderr: true,
-                stdin: true,
-                failOnError: true,
-                stdinRawMode: false
-            };
-
-            s3tmpdir = tmp.dirSync();
-            var cmd = "fakes3 -r " + s3tmpdir.name + " -p " + fakeS3port;
-            cp = exec(cmd, execOptions, function (err, stdout, stderr) {}.bind(this));
-            cp.stdout.pipe(process.stdout);
-            cp.stderr.pipe(process.stderr);
-            process.stdin.resume();
-            process.stdin.setEncoding('utf8');
-            process.stdin.pipe(cp.stdin);
-        },
-        stop: function () {
-            cp.kill('SIGINT');
-        }
-    };
-
-
-var fakeS3 = {
-    get: function (opts, cb) {
-        if (opts.uri && opts.uri.match("workflow_instance")) {
-            cb(null, {statusCode: 200}, JSON.stringify({
-                id_workflow_instance : "id_workflow_instance",
-                chain : null,
-                remote_addr : "remote_addr",
-                bucket : "bucket",
-                inputqueue : "inputqueue",
-                outputqueue : "inputqueue",
-                region : "region",
-                state : "started"
-            }));
-        } else {
-            cb({});
-        }
-    },
-    post: function (opts, cb) {
-        // Called by
-        var ret = {};
-        if (opts.uri && opts.uri.match('workflow_instance')) {
-            ret.id_workflow_instance = "id_workflow_instance";
-            ret.chain = null;
-            ret.remote_addr = "remote_addr";
-            ret.bucket = "bucket";
-            ret.inputqueue = "inputqueue";
-            ret.outputqueue = "inputqueue";
-            ret.region = "region";
-            ret.state = "started";
-            cb(null, {statusCode: 200}, JSON.stringify(ret));
-        } else if (opts.uri && opts.uri.match("token")) {
-            cb(null, {statusCode: 200}, JSON.stringify({expiration: new Date(1e13)}));
-        } else {
-            cb("ERROR");
-        }
-    },
-    put: function (opts, cb) {
-        cb({});
-    }
-};
-
-var awsProxy = {
-    config: {
-        update: function () {}
-    },
-    SQS: function () {
-        return { // sqs object constructor
-            receiveMessage: function (opts, cb) {
-                // Used to queue messages to be downloaded
-                cb({ Messages: ['1.fast5'] });
-            },
-            getQueueAttributes: function (opts, cb) {
-                cb(null, {
-                    Attributes: {
-                        ApproximateNumberOfMessages: 0
-                    }
-                });
-            },
-            sendMessage: function (opts, cb) {
-                cb();
-            },
-            getQueueUrl: function (opts, cb) {
-                cb(null, { QueueUrl: "queue-url" });
-            },
-            deleteMessage: function (opts, cb) {
-                cb();
-            }
-        }
-    },
-    S3: function () { // s3 object constructor
-        // Key s3 mock: https://github.com/jubos/fake-s3
-        // fakes3 -r /mnt/fakes3_root -p 4567
-
-        var config = {
-            s3ForcePathStyle: true,
-            accessKeyId: 'ACCESS_KEY_ID',
-            secretAccessKey: 'SECRET_ACCESS_KEY',
-            endpoint: new AWS.Endpoint('http://localhost:' + fakeS3port) // fake-s3 server
-        };
-
-        return new AWS.S3(config);
-    }
-};
-*/
