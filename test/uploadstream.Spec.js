@@ -1,4 +1,3 @@
-
 var proxyquire     = require('proxyquire');
 var assert         = require("assert");
 var sinon          = require("sinon");
@@ -9,6 +8,9 @@ var fs             = require('fs');
 var requestProxy   = {};
 var awsProxy       = {};
 var fsProxy        = {};
+proxyquire('../lib/utils', {
+    'request' : requestProxy
+});
 var Metrichor      = proxyquire('../lib/metrichor', {
     'aws-sdk'     : awsProxy,
     'request'     : requestProxy,
@@ -20,6 +22,9 @@ describe('.uploadHandler method', function () {
     var tmpfile = 'tmpfile.txt', tmpdir, readStream;
 
     function stub(client) {
+        sinon.stub(client, "session");
+        sinon.stub(client, "sessionedS3");
+        sinon.stub(client, "uploadComplete");
         sinon.stub(client.log, "error");
         sinon.stub(client.log, "warn");
         sinon.stub(client.log, "info");
@@ -40,37 +45,22 @@ describe('.uploadHandler method', function () {
             inputFolder: tmpdir.name
         });
         stub(client);
-        client.sessionedS3 = function (cb) {
-            cb(null, {
+        client.sessionedS3 = function () {
+            return {
                 upload: function (params, options, cb) {
                     cb();
                     assert(params)
                 }
-            });
+            };
         };
         client.uploadComplete = function (objectId, item, successCb) {
             successCb();
         };
-        client.uploadHandler(tmpfile, function (msg) {
-            assert(typeof msg === 'undefined', 'success');
+        client.uploadHandler(tmpfile, function (error) {
+            assert(typeof error === 'undefined', 'unexpected error message: ' + error);
             done();
         });
 
-    });
-
-    it('should handle s3 error', function (done) {
-        var client = new Metrichor({
-            inputFolder: tmpdir.name
-        });
-        stub(client);
-        client.sessionedS3 = function (cb) {
-            cb("error");
-        };
-        client.uploadHandler(tmpfile, function (msg) {
-            assert(client.log.warn.calledOnce, "should log error message");
-            assert(typeof msg !== 'undefined', 'failure');
-            done();
-        });
     });
 
     it('should handle read stream errors', function (done) {
@@ -82,19 +72,19 @@ describe('.uploadHandler method', function () {
             inputFolder: tmpdir.name
         });
         stub(client);
-        client.sessionedS3 = function (cb) {
-            cb(null, {
+        client.sessionedS3 = function () {
+            return {
                 upload: function (params, options, cb) {
                     cb();
+                    assert(params)
                 }
-            });
+            };
         };
         client.uploadHandler(tmpfile, function (msg) {
-            assert.equal(msg, "upload exception", 'failure');
+            assert(msg.match(/error in upload readstream/), 'unexpected error message format: ' + msg);
             setTimeout(done, 10);
         });
         readStream.emit("error");
-
     });
 
     it('should handle bad file name - ENOENT', function (done) {
@@ -102,9 +92,6 @@ describe('.uploadHandler method', function () {
             inputFolder: tmpdir.name
         });
         stub(client);
-        client.sessionedS3 = function (cb) {
-            cb();
-        };
         client.uploadHandler('bad file name', function (msg) {
             assert(typeof msg !== 'undefined', 'failure');
             done();
@@ -120,7 +107,7 @@ describe('._moveUploadedFile method', function () {
         tmpfile, tmpdir, tmpdirOut, tmpfileOut;
 
     function stub(client) {
-        client._uploadedFiles = {};
+        client._uploadedFiles = [];
         sinon.stub(client.log, "error");
         sinon.stub(client.log, "warn");
         sinon.stub(client.log, "info");
@@ -162,8 +149,7 @@ describe('._moveUploadedFile method', function () {
                     console.log(err);
                 }
                 //assert(client.log.error.notCalled, 'logs no error messages');
-                assert(!err, 'throws no errors');
-
+                assert(!err, 'throws no errors: ' + err);
 
                 fs.stat(tmpfile, function fsStatCallback(err, stats) {
                     //assert(err && err.code === 'ENOENT', 'file should not exist');
@@ -180,8 +166,8 @@ describe('._moveUploadedFile method', function () {
         });
         stub(client);
         client._moveUploadedFile(fileName, function (errorMsg) {
-            assert(!errorMsg, "do not pass any arguments to successCb");
-            assert(client._uploadedFiles.hasOwnProperty(fileName), "flag file as uploaded");
+            assert.equal(typeof errorMsg, "string", "pass error message to successCb: " + errorMsg);
+            //assert(file.uploaded, "flag file as uploaded");
             fs.stat(tmpfileOut, function fsStatCallback(err) {
                 // assert(err && err.code === 'ENOENT', 'clean up target file. should not exist');
                 done();
@@ -199,9 +185,9 @@ describe('._moveUploadedFile method', function () {
             uploadedFolder:'+uploaded'
         });
         stub(client);
-        client._moveUploadedFile('fileName', function (errorMsg) {
-            assert(!errorMsg, "do not pass any arguments to successCb");
-            assert(client._uploadedFiles.hasOwnProperty('fileName'), "flag file as uploaded");
+        var file = 'fileName';
+        client._moveUploadedFile(file, function (errorMsg) {
+            assert(errorMsg.match(/ENOENT/), "pass error message to successCb: " + errorMsg);
             done();
         });
     });
