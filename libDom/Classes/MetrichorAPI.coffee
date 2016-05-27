@@ -23,7 +23,7 @@ class MetrichorAPI
     @post 'workflow', id, resource, done
 
   start_workflow: (config, done) ->
-    @post 'workflow_instance', no, config, done
+    @post 'workflow_instance', no, { json: config }, done
 
   stop_workflow: (instance_id, done) ->
     @put 'workflow_instance/stop', instance_id, done
@@ -38,7 +38,8 @@ class MetrichorAPI
     @get "workflow/config/#{id}", done
 
   postToken: (id, done) ->
-    @post "token", { id_workflow_instance: id }, done
+    console.log 'posttoken', id
+    @post "token", no, { id_workflow_instance: id }, done
 
 
 
@@ -67,14 +68,12 @@ class MetrichorAPI
 
   # Post or Put some data to the metrichor API. We combine these methods to stay DRY. The two methods underneath abstract this into recognisable http apis.
 
-  postOrPut: (verb, resource, id, object = {}, done) ->
-    return done new Error "Invalid ID" if id and typeof id isnt 'string'
+  postOrPut: (verb, resource, id, form = {}, done) ->
     id = "/#{id}" if id
+    form.json = JSON.stringify form.json if form.json
 
-    form =
-      apikey: @options.apikey
-      json: JSON.stringify object
-      agent_version: @options.agent_version or ''
+    form.apikey = @options.apikey
+    form.agent_version = @options.agent_version or ''
 
     unirest[verb] "#{@options.url}/#{resource}#{id or ''}.js"
       .proxy @options.proxy
@@ -82,7 +81,10 @@ class MetrichorAPI
       .form form
       .end (response) ->
         return done new Error response.code if not response.ok
-        done no, JSON.parse(response.body or '{}')
+        try
+          if JSON.parse(response.body)?.error
+            return done new Error response.body.error
+        done no, response.body
 
   post: (resource, id, object, done) ->
     @postOrPut 'post', resource, id, object, done

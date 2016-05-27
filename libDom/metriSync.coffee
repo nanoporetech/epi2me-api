@@ -5,11 +5,8 @@ MetrichorAPI = require './Classes/MetrichorAPI'
 LocalDirectory = require './Classes/LocalDirectory'
 RemoteDirectory = require './Classes/RemoteDirectory'
 
-console.log 'class'
-
 class metriSync
   constructor: (options) ->
-    console.log 'inst'
     @metrichorAPI = new MetrichorAPI options
     @localDirectory = new LocalDirectory options
     @remoteDirectory = new RemoteDirectory options
@@ -26,14 +23,13 @@ class metriSync
   autoStart: (config, done) ->
     @localDirectory.reset (error) =>
       @metrichorAPI.start_workflow config, (error, instance) =>
-        console.log instance
-        return (done(new Error error) if done)
-        if id and instance.state is 'stopped'
-          return (done(new Error "#{id} not running") if done)
+        return (done(new Error error) if done) if error
+        if instance.state is 'stopped'
+          return (done(new Error "Workflow didn't start") if done)
 
-        @localDirectory.start id, (error) =>
-          @remoteDirectory.start id, (error) =>
-            console.log "Started workflow #{instance}"
+        @localDirectory.start instance, (error) =>
+          @remoteDirectory.start instance, (error) =>
+            console.log "Started workflow #{instance.id_workflow_instance}"
             return (done() if done) no
 
 
@@ -44,44 +40,19 @@ class metriSync
   autoJoin: (id, done) ->
     @metrichorAPI.workflow_instance id, (error, instance) =>
       return done new Error error if error
-      if id and instance.state is 'stopped'
-        return done new Error "#{id} not running"
-
-      @localDirectory.start id, (error) =>
-        @remoteDirectory.start id, (error) =>
-          console.log "Joined workflow #{instance}"
+      if instance.state is 'stopped'
+        return (done(new Error "Workflow didn't start") if done)
+      console.log "Joined workflow #{instance.id_workflow_instance}"
+      @localDirectory.start instance, (error) =>
+        @remoteDirectory.start instance, (error) =>
           return done no
 
 
 
 
-    stop_everything: (done) ->
-      that = this
-      if _config.instance.id_workflow_instance
-        that.stop_workflow _config.instance.id_workflow_instance, ->
-          that.log.info 'workflow instance ' + _config.instance.id_workflow_instance + ' stopped'
-          return
-      if that._downloadCheckInterval
-        that.log.info 'clearing _downloadCheckInterval interval'
-        clearInterval that._downloadCheckInterval
-        that._downloadCheckInterval = null
-      if that._stateCheckInterval
-        that.log.info 'clearing stateCheckInterval interval'
-        clearInterval that._stateCheckInterval
-        that._stateCheckInterval = null
-      if that._fileCheckInterval
-        that.log.info 'clearing _fileCheckInterval interval'
-        clearInterval that._fileCheckInterval
-        that._fileCheckInterval = null
-      if that.uploadWorkerPool
-        that.log.info 'clearing uploadWorkerPool'
-        that.uploadWorkerPool.drain()
-        that.uploadWorkerPool = null
-      if that.downloadWorkerPool
-        that.log.info 'clearing downloadWorkerPool'
-        that.downloadWorkerPool.drain()
-        that.downloadWorkerPool = null
-      done() if done
+  stop_everything: (done) ->
+    @localDirectory.stop()
+    done() if done
 
 
 
@@ -94,12 +65,27 @@ module.exports = metriSync
 
 app = require('express')().listen 3000
 sync = new metriSync
-  localDirectoryLocation: '/Users/dvinyard/Documents/Dev/api/libDom/input'
+  agent_address:
+    geo:
+      lat: '50'
+      lng: '0'
+      remote_addr: '193.240.53.18'
+  agent_version: "2.40.16"
+  apikey: "bb23e4e9dbb55468b058331b42d6178c3abbb041"
+  downloadMode: "data+telemetry"
+  filter: "on"
+  inputFolder: "/Users/dvinyard/Documents/Dev/api/input"
+  outputFolder: "/Users/dvinyard/Documents/Dev/api/output"
+  sortInputFiles: no
+  uploadedFolder: "+uploaded"
+  url: "https://metrichor.com"
+
+test = ->
+  hi = 'hi'
+  console.log hi
 
 process.stdin.resume().setEncoding('utf8').on 'data', (text) ->
   command = text.replace '\n', ''
-
-  if command is 'start'
-    sync.autoStart
-      localDirectoryLocation: '/Users/dvinyard/Documents/Dev/api/libDom/input'
-      id_workflow_instance: no
+  sync.autoStart workflow: 627 if command is 'start'
+  sync.localDirectory.reset() if command is 'reset'
+  test() if command is 'hi'
