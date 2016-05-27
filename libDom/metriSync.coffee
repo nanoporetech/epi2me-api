@@ -5,8 +5,11 @@ MetrichorAPI = require './Classes/MetrichorAPI'
 LocalDirectory = require './Classes/LocalDirectory'
 RemoteDirectory = require './Classes/RemoteDirectory'
 
+console.log 'class'
+
 class metriSync
   constructor: (options) ->
+    console.log 'inst'
     @metrichorAPI = new MetrichorAPI options
     @localDirectory = new LocalDirectory options
     @remoteDirectory = new RemoteDirectory options
@@ -18,19 +21,20 @@ class metriSync
 
 
 
-  # Start an experiment. This will call the autoJoin function above with no ID in order to start a new instance.
+  # Start an experiment. This will create a new instance
 
   autoStart: (config, done) ->
     @localDirectory.reset (error) =>
       @metrichorAPI.start_workflow config, (error, instance) =>
-        return done new Error error if error
+        console.log instance
+        return (done(new Error error) if done)
         if id and instance.state is 'stopped'
-          return done new Error "#{id} not running"
+          return (done(new Error "#{id} not running") if done)
 
         @localDirectory.start id, (error) =>
           @remoteDirectory.start id, (error) =>
             console.log "Started workflow #{instance}"
-            return done no
+            return (done() if done) no
 
 
 
@@ -51,7 +55,39 @@ class metriSync
 
 
 
-# Export the API. Create a little project to test things.
+    stop_everything: (done) ->
+      that = this
+      if _config.instance.id_workflow_instance
+        that.stop_workflow _config.instance.id_workflow_instance, ->
+          that.log.info 'workflow instance ' + _config.instance.id_workflow_instance + ' stopped'
+          return
+      if that._downloadCheckInterval
+        that.log.info 'clearing _downloadCheckInterval interval'
+        clearInterval that._downloadCheckInterval
+        that._downloadCheckInterval = null
+      if that._stateCheckInterval
+        that.log.info 'clearing stateCheckInterval interval'
+        clearInterval that._stateCheckInterval
+        that._stateCheckInterval = null
+      if that._fileCheckInterval
+        that.log.info 'clearing _fileCheckInterval interval'
+        clearInterval that._fileCheckInterval
+        that._fileCheckInterval = null
+      if that.uploadWorkerPool
+        that.log.info 'clearing uploadWorkerPool'
+        that.uploadWorkerPool.drain()
+        that.uploadWorkerPool = null
+      if that.downloadWorkerPool
+        that.log.info 'clearing downloadWorkerPool'
+        that.downloadWorkerPool.drain()
+        that.downloadWorkerPool = null
+      done() if done
+
+
+
+
+
+# Export the API. Create a little project server to test things.
 
 module.exports.version = '2.40.0'
 module.exports = metriSync
@@ -61,5 +97,9 @@ sync = new metriSync
   localDirectoryLocation: '/Users/dvinyard/Documents/Dev/api/libDom/input'
 
 process.stdin.resume().setEncoding('utf8').on 'data', (text) ->
-  function_name = text.replace '\n', ''
-  sync.localDirectory[function_name]() if sync.localDirectory[function_name]
+  command = text.replace '\n', ''
+
+  if command is 'start'
+    sync.autoStart
+      localDirectoryLocation: '/Users/dvinyard/Documents/Dev/api/libDom/input'
+      id_workflow_instance: no

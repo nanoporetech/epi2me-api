@@ -37,6 +37,9 @@ class MetrichorAPI
   workflow_config: (id, done) ->
     @get "workflow/config/#{id}", done
 
+  postToken: (id, done) ->
+    @post "token", { id_workflow_instance: id }, done
+
 
 
 
@@ -81,8 +84,11 @@ class MetrichorAPI
         return done new Error response.code if not response.ok
         done no, JSON.parse(response.body or '{}')
 
-  post: (id, object, done) -> @postOrPut 'post', id, object, done
-  put: (id, object, done) -> @postOrPut 'put', id, object, done
+  post: (resource, id, object, done) ->
+    @postOrPut 'post', resource, id, object, done
+
+  put: (resource, id, object, done) ->
+    @postOrPut 'put', resource, id, object, done
 
 
 

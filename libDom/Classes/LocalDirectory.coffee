@@ -1,5 +1,5 @@
 
-# LocalDirectory. Best thought of as a service on the input directory. This represents the root directory of the filesystem where the .fast5 files are placed from the device. This is tasked with batching up the files in this directory (lots of files!), uploading the batches, and moving completed files.
+# LocalDirectory. Best thought of as a service on the input directory. This represents the root directory of the filesystem where the .fast5 files are placed from the device. This is tasked with batching up the files in this directory (lots of files!), uploading the batches, and generally moving files around between its various subdirectories.
 
 MetrichorAPI = require './MetrichorAPI'
 mv = require 'mv'
@@ -8,21 +8,21 @@ fs = require 'fs.extra'
 path = require 'path'
 chokidar = require 'chokidar'
 async = require 'async'
+s3 = require 's3'
+
+AWS = require 'aws-sdk'
 
 class LocalDirectory
   constructor: (@options) ->
     @metrichorAPI = new MetrichorAPI @options
     @stats = success: 0, fail: 0, failure: {}, queueLength: 0, totalSize: 0
     @location = @options.localDirectoryLocation
-
-    # The uploader is a constantly running process. Even when the localDirectory service is not running it will call itself in a loop awaiting the isRunning flag. This prevents it from ever being called twice.
-
-    @uploader()
+    @subdirectories = ['pending', 'uploaded', 'upload_failed']
 
 
 
 
-  # Get things ready to start. First let's get all files from all subdirectories back into root if they are not already.
+  # Reset the directory and get ready to start. After stopping the service if it's already running, get all files from all subdirectories back into root if they are not already and remove all of the empty batch directories.
 
   reset: (done) ->
     @stop =>
@@ -30,61 +30,40 @@ class LocalDirectory
       rootWalker.on "file", (root, stat, next) =>
         source = path.join root, stat.name
         destination = "#{@location}/#{stat.name}"
-        mv source, destination, (error) ->
-          next()
+        mv source, destination, next
       rootWalker.on 'end', =>
         pendingWalker = fs.walk "#{@location}/pending"
         pendingWalker.on "directory", (root, stat, next) =>
           fs.rmdir path.join root, stat.name
           next()
+
+        # And once we have returned everything to root, we ensure the correct subdirectories are present: /pending, /uploaded, /upload_failed.
+
         pendingWalker.on 'end', =>
-
-          # Once we have returned everything to root, we then ensure the correct subdirectories are present and empty: /pending, /uploaded, /upload_failed.
-
-          for subdirectory in ['pending', 'uploaded', 'upload_failed']
+          for subdirectory in @subdirectories
             source = "#{@location}/#{subdirectory}"
             fs.rmdir source if fs.existsSync source
-          console.log 'localDirectory Reset. Restore input directory.'
           done() if done
 
 
 
 
-  # When the localDirectory service has been started, we batch the root directory and set a watcher for new files. We also trip the isRunning flag so that the uploader can actually get stuff done.
+  # After creating (or confirming existance of) the required subdirectories, we batch up the files in the root directory and set a watcher for new files. When a new file arrives we try to create a new batch (we disable the watcher while this happens so that the batcher isn't hit multiple times at once). When the directory is fully batched we start the uploader loop so that the uploader can start looking for batches of files to upload (uploadScan will call itself in a loop until it is stopped).
 
   start: (id, done) ->
-    console.log 'localDirectory Start. Batch files and watch for new ones.'
-    subdirectories = ['pending', 'uploaded', 'upload_failed']
-    mkdirp "#{@location}/#{subdirectory}" for subdirectory in subdirectories
+    mkdirp "#{@location}/#{subdirectory}" for subdirectory in @subdirectories
     @createBatches yes, =>
-      @isRunning = yes
-      @watcher = chokidar.watch @location,
-        usePolling: yes
-        depth: 0
-        ignoreInitial: yes
-
-      # When a file is added we call createBatches but we disable the watcher while this happens so that createBatches doesn't get hit multiple times at once.
-
+      @uploadScan()
+      @watcher = chokidar.watch @location, { depth: 0, ignoreInitial: yes }
       @watcher.on 'add', (path) =>
-        console.log "#{path} added"
         @watcher.unwatch @location
         @createBatches yes, =>
           @watcher.add @location
 
-  # When the localDirectory is stopped, we kill the filewatcher so that the batcher doesn't run and also disable the isRunning flag so that the uploader doesn't run.
-
-  stop: (done) ->
-    console.log 'localDirectory Stop. Kill all batching and uploading.'
-    @isRunning = no
-    if @watcher
-      @watcher.unwatch @location
-      @watcher.close()
-    done() if done
 
 
 
-
-  # This is the batcher. It will get called upon start (Which may be a fairly intensive process because there may be loads of files), and it will also get called when a new file arrives.
+  # This is the batcher. It's job is to search for files in the input directory and group them into batches in the input/pending directory. enforceBatchSize allows us to create batches even if they do not meet the specified batch size. This is great if there are not enough files for a full batch but there are still outstanding items in the input folder.
 
   createBatches: (enforceBatchSize, done) ->
     batchSize = 5
@@ -95,7 +74,7 @@ class LocalDirectory
         batches.pop() if batches[batches.length - 1]?.length < batchSize
         return (done() if done) if batches.length is 0
 
-      # Actually turning the files into batches. These async operations use setImmidate to stop the stack from building up and throwing an overflow.
+      # Here we actually turn the files into batches. These async operations use setImmidate to stop the stack from building up and throwing an overflow.
 
       moveFile = (file, next) =>
         mv file.source, file.destination, { mkdirp: yes }, (error) =>
@@ -121,43 +100,83 @@ class LocalDirectory
 
 
 
-  # The uploader is called once upon instantiation and then calls itself. It can (and must) only be called from inside itself and then only ever once. If the localDirectory instance isn't running, just keep checking over and over until it is.
+  # Once uploadScan is called it will continue to call itself in a loop when it either fails to find something or finishes uploading something. Calling killUploadScan
 
-  uploader: ->
-    return @uploaderSleep 5 if not @isRunning
+  nextUploadScan: (delay) ->
+    return if @scannerKilled
+    return @uploadScan() if not delay
+    @nextScanTimer = setTimeout ( => @uploadScan() ), 5000
+
+  killUploadScan: ->
+    @scannerKilled = yes
+    clearTimeout @nextScanTimer
+
+  uploadScan: ->
+    @scannerKilled = no
     fs.readdir "#{@location}/pending", (error, batches) =>
-      batches = batches
-        .filter (item) -> return item.slice(0, 6) is 'batch_'
+      batches = batches?.filter (item) -> return item.slice(0, 6) is 'batch_'
         .filter (item) -> return item.slice(-11) isnt '.processing'
 
-      # If we are running, but no batches are found, try and create a batch from leftover unbatched files in the input root. If none of those are found either, just sleep for a while.
+      # If no batches are found, exit. But do try and create a batch from leftover unbatched files in the input root. These will then be picked up by the next uploadScan.
 
       if not batches?.length
-        fs.readdir @location, (error, files) =>
+        return fs.readdir @location, (error, files) =>
           files = files.filter (item) -> return item.slice(-6) is '.fast5'
-          return @createBatches no, (=> @uploader()) if files.length > 0
-          console.log "No Files found to upload. Try again in 30 seconds"
-          return @uploaderSleep 30
+          @createBatches no if files.length isnt 0
+          @nextUploadScan yes
 
       # If we are running and we found a batch, append .processing to the subdirectory name and start the upload. Once complete, timeout or error, call the uplaader again.
 
-      batch = batches[0]
-      source = "#{@location}/pending/#{batch}"
+      source = "#{@location}/pending/#{batches[0]}"
       mv source, "#{source}.processing", { mkdirp: yes }, (error) =>
-        console.log "Upload #{batch}"
-        @uploadComplete_sleep batch, =>
-          @uploader()
+        @upload batches[0]
 
-  # Call uploader again with a delay after it has finished.
 
-  uploaderSleep: (seconds) -> setTimeout (=> @uploader()), 1000 * seconds
+
+
+  # We found a batch, let's upload it.
+
+  upload: (batch) ->
+
+    @instance =
+      inputQueueName: null
+      inputQueueURL: null
+      outputQueueName: null
+      outputQueueURL: null
+      _discoverQueueCache: {}
+      id_workflow_instance: @options.id_workflow_instance or null
+      bucket: null
+      bucketFolder: null
+      remote_addr: null
+      chain: null
+      awssettings: region: options.region or 'eu-west-1'
+
+    metrichorAPI.postToken @options.id_workflow_instance, (error, token) ->
+      AWS.config.update token
+      client = s3.createClient s3Client: new AWS.S3()
+
+      uploader = client.uploadDir
+        localFDir: batch
+        s3Params:
+          Prefix: ''
+          Bucket: 's3 bucket name'
+
+      uploader.on 'error', (err) ->
+        console.error "unable to sync:", err.stack
+
+      uploader.on 'progress', ->
+        console.log "progress", uploader.progressAmount, uploader.progressTotal
+
+      uploader.on 'end', ->
+        console.log "#{batch} finished uploading"
+        @uploadComplete(batch)
 
 
 
 
   # When an upload is complete, move the files from pending into uploaded and delete the batch.
 
-  uploadComplete: (batch, done) ->
+  uploadComplete: (batch) ->
     source = "#{@location}/pending/#{batch}.processing"
     destination = "#{@location}/uploaded"
 
@@ -166,14 +185,28 @@ class LocalDirectory
         async.setImmediate next
 
     fs.readdir source, (error, batch) =>
-      async.eachSeries batch, moveFile, (error) ->
+      async.eachSeries batch, moveFile, (error) =>
         fs.rmdir source if fs.existsSync source
+        @nextUploadScan()
+
+
+
+
+  # When the localDirectory is stopped, we kill the filewatcher so that the batcher doesn't run and also disable the uploader loop.
+
+  stop: (done) ->
+    @killUploadScan()
+    @watcher.unwatch(@location).close() if @watcher
+
+    # If a batch is in the middle of being processed we mark it as no longer being processed. We find some way to cancel the upload and then we negate @isUploading so the uploadScanner doesn't get stuck.
+
+    fs.readdir "#{@location}/pending", (error, batches) =>
+      batches = batches?.filter (item)-> return item.slice(-11) is '.processing'
+      return (done() if done) if not batches?.length
+      batch = batches[0]
+      source = "#{@location}/pending/#{batch.slice(0, -11)}"
+      mv "#{source}.processing", source, { mkdirp: yes }, (error) =>
         done() if done
-
-  uploadComplete_sleep: (batch, done) ->
-    setTimeout (=> @uploadComplete(batch, done)), 15000
-
-
 
 
 
