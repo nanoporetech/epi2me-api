@@ -130,7 +130,8 @@ class LocalDirectory
   # We found a batch, let's upload it.
 
   upload: (batch) ->
-    console.log @instance
+    # console.log @instance
+    return console.log 'upload', batch
     @metrichorAPI.postToken @instance.id_workflow_instance, (error, token) ->
       AWS.config.update token
       client = s3.createClient s3Client: new AWS.S3()

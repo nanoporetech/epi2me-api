@@ -24,6 +24,7 @@ class metriSync
     @localDirectory.reset (error) =>
       @metrichorAPI.start_workflow config, (error, instance) =>
         return (done(new Error error) if done) if error
+        @instance = instance
         if instance.state is 'stopped'
           return (done(new Error "Workflow didn't start") if done)
 
@@ -40,6 +41,7 @@ class metriSync
   autoJoin: (id, done) ->
     @metrichorAPI.workflow_instance id, (error, instance) =>
       return done new Error error if error
+      @instance = instance
       if instance.state is 'stopped'
         return (done(new Error "Workflow didn't start") if done)
       console.log "Joined workflow #{instance.id_workflow_instance}"
@@ -50,17 +52,23 @@ class metriSync
 
 
 
+  # Stop it all.
+
   stop_everything: (done) ->
     @localDirectory.stop()
-    done() if done
-
-
+    id = @instance.id_workflow_instance
+    return (done(new Error "No workflow found") if done) if not id
+    return @metrichorAPI.stop_workflow id, (error, response) =>
+      console.log error
+      return (done(new Error error) if done) if error
+      console.log "Stopped workflow #{@instance.id_workflow_instance}"
+      done() if done
 
 
 
 # Export the API. Create a little project server to test things.
 
-module.exports.version = '2.40.0'
+module.exports.version = '2.50.0'
 module.exports = metriSync
 
 app = require('express')().listen 3000
@@ -70,22 +78,22 @@ sync = new metriSync
       lat: '50'
       lng: '0'
       remote_addr: '193.240.53.18'
-  agent_version: "2.40.16"
-  apikey: "bb23e4e9dbb55468b058331b42d6178c3abbb041"
+  agent_version: "2.50.0"
+  apikey: "534373b27eaf4b2e448c1d4c930701f1631d115a"
   downloadMode: "data+telemetry"
   filter: "on"
+  user_agent: 'Metrichor API'
   inputFolder: "/Users/dvinyard/Documents/Dev/api/input"
   outputFolder: "/Users/dvinyard/Documents/Dev/api/output"
   sortInputFiles: no
   uploadedFolder: "+uploaded"
-  url: "https://metrichor.com"
-
-test = ->
-  hi = 'hi'
-  console.log hi
+  url: "https://dev.metrichor.com"
 
 process.stdin.resume().setEncoding('utf8').on 'data', (text) ->
   command = text.replace '\n', ''
   sync.autoStart workflow: 627 if command is 'start'
   sync.localDirectory.reset() if command is 'reset'
-  test() if command is 'hi'
+  sync.stop_everything() if command is 'stop'
+#
+# sync.metrichorAPI.workflows (error, workflows) ->
+#   console.log workflows

@@ -5,7 +5,6 @@ unirest = require 'unirest'
 
 class MetrichorAPI
   constructor: (@options) ->
-    @headers = 'X-Metrichor-Client': @options?.user_agent
 
 
 
@@ -23,10 +22,10 @@ class MetrichorAPI
     @post 'workflow', id, resource, done
 
   start_workflow: (config, done) ->
-    @post 'workflow_instance', no, { json: config }, done
+    @post 'workflow_instance', { json: config }, done
 
-  stop_workflow: (instance_id, done) ->
-    @put 'workflow_instance/stop', instance_id, done
+  stop_workflow: (id, done) ->
+    @put "workflow_instance/stop/#{id}", {}, done
 
   workflow_instance: (id, done) ->
     @list 'workflow_instance', id, done
@@ -38,8 +37,7 @@ class MetrichorAPI
     @get "workflow/config/#{id}", done
 
   postToken: (id, done) ->
-    console.log 'posttoken', id
-    @post "token", no, { id_workflow_instance: id }, done
+    @post "token", { id_workflow_instance: id }, done
 
 
 
@@ -68,33 +66,35 @@ class MetrichorAPI
 
   # Post or Put some data to the metrichor API. We combine these methods to stay DRY. The two methods underneath abstract this into recognisable http apis.
 
-  postOrPut: (verb, resource, id, form = {}, done) ->
-    id = "/#{id}" if id
+  postOrPut: (verb, resource, form = {}, done) ->
     form.json = JSON.stringify form.json if form.json
 
     form.apikey = @options.apikey
     form.agent_version = @options.agent_version or ''
 
-    unirest[verb] "#{@options.url}/#{resource}#{id or ''}.js"
+    console.log "#{@options.url}/#{resource}.js"
+    console.log form
+
+    unirest[verb] "#{@options.url}/#{resource}.js"
       .proxy @options.proxy
-      .headers @headers
+      .headers "X-Metrichor-Client": @options.user_agent
       .form form
       .end (response) ->
-        return done new Error response.code if not response.ok
+        return done response.code if not response.ok
         try
           if JSON.parse(response.body)?.error
-            return done new Error response.body.error
+            return done response.body.error
         done no, response.body
 
-  post: (resource, id, object, done) ->
-    @postOrPut 'post', resource, id, object, done
+  post: (resource, object, done) ->
+    @postOrPut 'post', resource, object, done
 
-  put: (resource, id, object, done) ->
-    @postOrPut 'put', resource, id, object, done
-
-
+  put: (resource, object, done) ->
+    @postOrPut 'put', resource, object, done
 
 
-# Export. Public methods are get(), read(), list(), post(), and put().
+
+
+# Export.
 
 module.exports = MetrichorAPI
