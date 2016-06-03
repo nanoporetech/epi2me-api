@@ -1,15 +1,25 @@
 
-# This wraps the http Metrichor API methods. This is presented as a singleton. Using the unirest http request module. The options are passed in.
-
 unirest = require 'unirest'
+
+
+
+
+# MetrichorAPI. This wraps the http Metrichor API methods and takes care of instance and token persistance. Basically, if we are connected to an instance then @currentIntance will be set, this is a truth canonical to the application.
 
 class MetrichorAPI
   constructor: (@options) ->
     @options.url = @options.url or 'https://metrichor.com'
     @options.user_agent = @options.user_agent or 'Metrichor API'
     @options.downloadMode = @options.downloadMode or 'data+telemetry'
+    @options.region = @options.region or 'eu-west-1'
+
+
+
+
+  # Instance persistance. If we are connected to an instance it will be available in @currentInstance. As all other parts of the application have access to the api, this can be accessed from anywhere using @api.currentInstance. We can either set it (which appends to it a handy .id property) or we can unset it here. We can also use it to build the s3 path.
 
   setInstance: (instance) ->
+    return @resetInstance if not instance
     @currentInstance = instance
     @currentInstance.id = @currentInstance.id_workflow_instance
 
@@ -17,130 +27,139 @@ class MetrichorAPI
     @currentToken = no
     @currentInstance = no
 
+  getS3Path: ->
+    return [@currentInstance.outputqueue, @currentInstance.id_user, @currentInstance.id_workflow_instance, @currentInstance.inputqueue].join '/'
 
-  # API Methods. These are wrappers around common requests to the Metrichor API. These should be called rather than using the http methods directly.
 
-  user: (done) ->
-    @get 'user', done
 
-  listApps: (done) ->
-    @list 'workflow', done
 
-  getApp: (id, done) ->
-    @get "workflow/#{id}", done
+  # Token. If we need a token we'll ask for it here, if one already exists just give it to us, otherwise generate a new one and give us that instead.
 
-  updateApp: (id, updated, done) ->
-    @post "workflow/#{id}", updated, done
+  token: (done) ->
+    if @currentToken
+      expires = new Date(@currentToken.expiration) - new Date()
+      minutesUntilExpiry = Math.floor(expires / 1000 / 60)
+      @currentToken = no if minutesUntilExpiry < 10
+
+    return done? no, @currentToken if @currentToken
+
+    options =
+      id_workflow_instance: @currentInstance.id
+      region: @options.region
+    @post "token", options, (error, token) =>
+      return done? new Error 'No Token Generated' if not token
+      token.region = @options.region
+      @currentToken = token
+      done? error, token
+
+
+
+
+  # API Methods. Private. These are methods that we use internally to communicate with the Metrichor platform. These are undocumented because we don't want to let the user load (or especially create) instances which are completely decoupled from any sort of directory processes.
 
   createInstance: (config, done) ->
     config.workflow = config.app if config.app
     @resetInstance()
     @post 'workflow_instance', { json: config }, (error, instance) =>
       @setInstance instance
-      if instance.state is 'stopped'
-        return done new Error "App Instance didn't start"
-      done error, instance
-
-  stopInstance: (done) ->
-    return done new Error "No instance found" if not @currentInstance.id
-    @resetInstance()
-    @put "workflow_instance/stop/#{@currentInstance.id}", {}, done
+      if @currentInstance.state is 'stopped'
+        return done? new Error "App Instance didn't start"
+      done? error, @currentInstance
 
   loadInstance: (instance_id, done) ->
     @resetInstance()
     @get "workflow_instance/#{instance_id}", (error, instance) =>
       @setInstance instance
-      if not @instance.id
-        return done new Error "App Instance not found"
-      if @instance.state is 'stopped'
-        return (done(new Error "App Instance didn't start") if done)
-      done error, @instance
+      if not @currentInstance.id
+        return done? new Error "App Instance not found"
+      if @currentInstance.state is 'stopped'
+        return done? new Error "App Instance didn't start"
+      done? error, @currentInstance
+
+  stopCurrentInstance: (done) ->
+    return done? new Error "No App Instance running" if not @currentInstance.id
+    @resetInstance()
+    @put "workflow_instance/stop/#{@currentInstance.id}", no, done
+
+
+
+
+  # API Methods. Public. These are methods that are exposed for users of this library. These can be run in isolation without any adverse concequences. The only public command which causes the system state to change is stopInstance. Check the documentation for descriptions of these.
+
+  user: (done) ->
+    @get 'user', done
+
+  getApp: (id, done) ->
+    @listApps (error, apps) ->
+      done? error, apps.filter((app) -> app.id_workflow is id)[0]
+
+  getAppConfig: (app_id, done) ->
+    @get "workflow/config/#{app_id}", (error, json) ->
+      if error?.message is 'Response is not an object'
+        return done new Error 'No config found for that instance'
+      done error, json
+
+  listApps: (done) ->
+    @get 'workflow', (error, json) ->
+      done? error, json.workflows
+
+  getInstance: (instance_id, done) ->
+    @get "workflow_instance/#{instance_id}", (error, json) =>
+      done? error, json
 
   listInstances: (done) ->
-    @list 'workflow_instance', done
+    @get 'workflow_instance', (error, json) ->
+      done? error, json.workflow_instances
 
-  getInstanceConfig: (instance_id, done) ->
-    @get "workflow/config/#{instance_id}", done
-
-  # postToken: (instance_id, done) ->
-  #   @post "token", { id_workflow_instance: instance_id }, done
-
-  token: (done) ->
-    @currentToken = no if false # token expired
-    return done no, @token if @token
-    options = { id_workflow_instance: @currentInstance.id }
-    @post "token", options, (error, token) =>
-      @currentToken = token
-      done error, token
+  stopInstance: (id, done) ->
+    @put "workflow_instance/stop/#{id}", no, done
 
 
 
 
-  # Legacy Requests
-
-  workflows: (done) -> @listApps done
-  workflow_instances: (done) -> @listInstances done
-  workflow_config: (id, done) -> @getInstanceConfig id, done
-  workflow: (id, resource, done) ->
-    @getApp id, resource if !done
-    @updateApp id, resource, done
-
-
-
-
-  # Get some data from the metrichor API. We parse the json before returning it. We also define a list endpoint wrapper, which pluralises the query and returns a list.
+  # Define our get, post and put methods. These just wrap http commands using the unirest module.
 
   get: (resource, done) ->
-    query =
-      apikey: @options.apikey
-      agent_version: @options.agent_version or ''
-
     unirest.get "#{@options.url}/#{resource}.js"
       .proxy @options.proxy
       .headers "X-Metrichor-Client": @options.user_agent
-      .query query
-      .end (response) ->
-        return done new Error response.code if not response.ok
-        try
-          if JSON.parse(response.body)?.error
-            return done response.body.error
-        done no, response.body
-
-  list: (resource, done) ->
-    @get resource, (error, json) ->
-      done error, json["#{resource}s"] if done
-
-
-
-
-  # Post or Put some data to the metrichor API. We combine these methods to stay DRY. The two methods underneath abstract this into recognisable http apis.
+      .query
+        apikey: @options.apikey
+        agent_version: @options.agent_version or ''
+      .end (response) => @parseResponse response, done
 
   postOrPut: (verb, resource, form = {}, done) ->
     form.json = JSON.stringify form.json if form.json
-
     form.apikey = @options.apikey
     form.agent_version = @options.agent_version or ''
-
     unirest[verb] "#{@options.url}/#{resource}.js"
       .proxy @options.proxy
       .headers "X-Metrichor-Client": @options.user_agent
       .form form
-      .end (response) ->
-        return done response.code if not response.ok
-        try
-          if JSON.parse(response.body)?.error
-            return done response.body.error
-        done no, response.body
+      .end (response) => @parseResponse response, done
 
-  post: (resource, object, done) ->
-    @postOrPut 'post', resource, object, done
-
-  put: (resource, object, done) ->
-    @postOrPut 'put', resource, object, done
+  post: (resource, object, done) -> @postOrPut 'post', resource, object, done
+  put: (resource, object, done) -> @postOrPut 'put', resource, object, done
 
 
 
 
-# Export.
+  # Finally, we handle the response. This is basically just trying to prise a javascript object out of the response and return it to done().
+
+  parseResponse: (response, done) ->
+    return done new Error response.code if not response.ok
+    return done new Error 'No response' if not response?.body
+    if typeof response.body is 'string'
+      try
+        response.body = JSON.parse(response.body)
+      catch
+        return done new Error 'Response is not an object'
+    return done response.body.error if response.body?.error
+    done no, response.body
+
+
+
+
+  # export the module
 
 module.exports = MetrichorAPI

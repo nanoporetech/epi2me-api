@@ -1,6 +1,4 @@
 
-# LocalDirectory. This represents the root directory of the filesystem where the .fast5 files are placed from the device. This is tasked with batching up the files in this directory (lots of files!), uploading the batches, and moving files around between various subdirectories once uploaded. The batch size determines the amount we break up the files for upload. We also define a @progress EventEmitter which will be read from the main app.
-
 mv = require 'mv'
 mkdirp = require 'mkdirp'
 fs = require 'fs.extra'
@@ -10,6 +8,13 @@ async = require 'async'
 AWS = require 'aws-sdk'
 EventEmitter = require('events').EventEmitter
 
+
+
+
+# LocalDirectory. This represents the root directory of the filesystem where the .fast5 files are placed from the device. This is tasked with batching up the files in this directory (lots of files!), uploading the batches, and moving files around between various subdirectories once uploaded.
+
+# The batch size determines the amount we break up the files for upload. We also extend ourselves as an EventEmitter so we can emit progress updates.
+
 class LocalDirectory extends EventEmitter
   constructor: (@root, @api) ->
     @batchSize = 4
@@ -17,105 +22,89 @@ class LocalDirectory extends EventEmitter
 
 
 
-  # 1. RESET. Reset the directory and get ready to start (after stopping the service if it's already running). Get all files from all subdirectories back into root if they are not already and remove all of the empty batch_ directories. If a batch is in the middle of being processed we can mark it as no longer being processed.
+  # Reset the directory and get ready to start (after stopping the service if it's already running). Get all files from all subdirectories back into root if they are not already and remove all of the empty batch_ directories.
 
   reset: (done) ->
-    return done new Error "Cannot reset while instance is running" if @isRunning
+    if @isRunning
+      return done? new Error "Cannot reset while instance is running"
     @stop =>
       rootWalker = fs.walk @root
-      total_files = 0
-      rootWalker.on "file", (root, stat, next) =>
-        source = path.join root, stat.name
-        total_files += 1 if stat.name.slice(-6) is '.fast5'
-        destination = "#{@root}/#{stat.name}"
-        mv source, destination, next
+      rootWalker.on "file", (directory, stat, next) =>
+        mv path.join(directory, stat.name), path.join(@root, stat.name), next
       rootWalker.on 'end', =>
-        pendingWalker = fs.walk "#{@root}/pending"
-        pendingWalker.on "directory", (root, stat, next) =>
-          fs.rmdir path.join root, stat.name
-          next()
-        console.log "Reset. #{total_files} fast5 files moved to root."
-        done no if done
-
-  unmarkProcessing: (done) ->
-    fs.readdir "#{@root}/pending", (error, batches) =>
-      batches = batches?.filter (item)-> return item.slice(-11) is '.processing'
-      return (done() if done) if not batches?.length
-      batch = batches[0]
-      source = "#{@root}/pending/#{batch.slice(0, -11)}"
-      mv "#{source}.processing", source, { mkdirp: yes }, (error) =>
-        done() if done
+        pendingWalker = fs.walk path.join(@root, 'pending')
+        pendingWalker.on "directory", (directory, stat, next) =>
+          fs.rmdir path.join(directory, stat.name), next
+        pendingWalker.on 'end', => done? no
 
 
 
 
-  # 2. START. After creating (or confirming the existance of) the required subdirectories, we batch up the files in the root directory and set a watcher for new files. When a new file arrives we try to create a new batch. When the directory is fully batched we start the uploader loop so that the uploader can start looking for batches of files to upload (uploadScan will call itself in a loop until it is stopped).
+  # Start the local directory. If we have an instance to connect to, ensure the required subdirectories are present, do an initial batching process and set a watcher on new files. Do the first uploadScan.
 
   start: (done) ->
-    @instance = @api.currentInstance
-    mkdirp "#{@root}/#{sub}" for sub in ['pending', 'uploaded', 'upload_failed']
-    @calculateStats =>
-      @unmarkProcessing =>
-        @createBatches yes, =>
-          @uploadScan()
-          @isRunning = yes
-          @watcher = chokidar.watch @root,
-            depth: 0
-            ignoreInitial: yes
-          @watcher.on 'add', (path) =>
-            @stats.pending += 1
-            @emit 'update'
-            @createBatches yes if not @isBatching
-          done() if done
+    return done? new Error "Directory already started" if @isRunning
+    for sub in ['pending', 'uploaded', 'upload_failed']
+      mkdirp path.join(@root, sub)
+    @makeStats =>
+      @initialBatching =>
+        @watcher = chokidar.watch @root, { depth: 0, ignoreInitial: yes }
+        @watcher.on 'add', (path) =>
+          @stats.pending += 1
+          @emit 'progress'
+          @createBatches yes if not @isBatching
+
+        @isRunning = yes
+        @uploadScan()
+        done?()
 
 
 
 
-  # 3. STATS. Define a stats object. This is run after the LocalDirectory has been started and after the initial batching. When new objects are added to the directory, 'pending' will increase (pending includes both batches and strays left in the input directory awaiting critical batch mass). When items are uploaded or fail to upload pending will shrink. Also we calculate percentage complete. This returns a percentage string calculated to one decimal place.
+  # Define a stats object. This is run when the directory is started. The stats don't distinguish between root and batched items, they are all just listed as 'pending', this is therefore independent of the batching mechanism. Once the object is created here, it will be modified only when a new file arrives or is uploaded. To calculate the 'pending' value, we need to total all the files in root, all the files in complete batches and all the files in incomplete batches.
 
-  calculateStats: (done) ->
+  # Incomplete batches must actually be physically counted 🙄 but fortunately there can only ever be one of them at once: either a '.processing' which may have half completed when the app was resumed or a '_partial', which may have been created because there weren't enough files to make a full batch.
+
+  makeStats: (done) ->
     fast5 = (item) -> return item.slice(-6) is '.fast5'
-    batch = (item) -> return item.slice(0, 6) is 'batch_'
-    complete_batch = (item) -> return item.slice(-8) isnt '_partial' and item.slice(-11) isnt '.processing'
-    incomplete_batch = (item) -> return item.slice(-8) is '_partial'
-    processing_batch = (item) -> return item.slice(-11) is '.processing'
+    isBatch = (i) -> i.slice(0, 6) is 'batch_'
+    isPartial = (i)-> i.slice(-8) is '_partial' or i.slice(-11) is '.processing'
+    completeBatch = (item) -> isBatch(item) and not isPartial(item)
+    partialBatch = (item) -> isBatch(item) and isPartial(item)
 
-    fs.readdir "#{@root}/uploaded", (error, uploaded) =>
-      fs.readdir "#{@root}/upload_failed", (error, upload_failed) =>
-        fs.readdir "#{@root}/pending", (error, batches) =>
+    @stats = {}
+    fs.readdir path.join(@root, 'uploaded'), (error, uploaded) =>
+      @stats.uploaded = uploaded.filter(fast5).length
+      fs.readdir path.join(@root, 'upload_failed'), (error, upload_failed) =>
+        @stats.upload_failed = upload_failed.filter(fast5).length
+        fs.readdir path.join(@root, 'pending'), (error, batches) =>
+          @stats.pending = batches.filter(completeBatch).length * @batchSize
+          for batch in batches.filter(partialBatch)
+            location = path.join(@root, 'pending', batch)
+            @stats.pending += fs.readdirSync(location).filter(fast5).length
           fs.readdir "#{@root}", (error, stray_pending) =>
-            incomplete_batches = batches.filter(incomplete_batch)
-            processing_batches = batches.filter(processing_batch)
-            if incomplete_batches.length
-              incom_path = "#{@root}/pending/#{incomplete_batches[0]}"
-              incomplete = fs.readdirSync(incom_path).filter(fast5)
-            if processing_batches.length
-              proces_path = "#{@root}/pending/#{processing_batches[0]}"
-              processing = fs.readdirSync(proces_path).filter(fast5)
+            @stats.pending += stray_pending.filter(fast5).length
 
-            total_complete = batches.filter(complete_batch).length * @batchSize
-            total_incom = if incomplete then incomplete.length else 0
-            total_proc = if processing then processing.length else 0
-            total_stray = stray_pending.filter(fast5).length
-            @stats =
-              pending: total_complete + total_incom + total_proc + total_stray
-              uploaded: uploaded.filter(fast5).length
-              upload_failed: upload_failed.filter(fast5).length
             @calculatePercentage()
             @emit 'progress'
-            done() if done
+            done?()
 
   calculatePercentage: ->
-    total = @stats.pending + @stats.uploaded
-    @stats.percentage = Math.floor((@stats.uploaded / total) * 1000) / 10
+    @stats.total = @stats.pending + @stats.uploaded + @stats.upload_failed
+    @stats.percentage = Math.floor((@stats.uploaded / @stats.total) * 1000) / 10
 
 
 
 
-  # 4. BATCHER. This is the batcher, it get called when the application starts and when new files arrive. It's job is to search for files in the input directory and group them into batches in the input/pending directory. enforceBatchSize allows us to create batches even if they do not meet the specified batch size. This is great if there are not enough files for a full batch but there are still outstanding items in the input folder (this, however, will only get called by the uploader if it has nothing else to upload, there can therefore only ever be one partial batch at a time). If we are enforcing the batch size, remove the last batch in the array if it isn't populated enough. The async operations use setImmidate to stop the stack from building up and throwing an overflow.
+  # The Batcher. Maintaining large lists of files in memory is not ideal, breaking them into subdirectories means that progress can be stored in the file system itself rather than in memory. After the initial expensive batching job is complete, the highest quantity of items that will ever be read into an array by readdir is equal to the total number of batches, which (if batchSize is set to 100) will be two orders of magnitude smaller than reading the files directly from the /input directory.
+
+  # The batcher gets called when the application starts and when new files arrive. Its job is to search for files in the '/input' directory and group them into batches in the '/input/pending' directory. enforceBatchSize allows us to create batches even if they do not meet the specified batch size. This is great if there are not enough files for a full batch but there are still outstanding items in the input folder.
+
+  initialBatching: (done) ->
+    # @unmarkProcessing =>
+    @createBatches yes, done
 
   createBatches: (enforceBatchSize, done) ->
-    return if @isBatching
     @isBatching = yes
     fs.readdir @root, (error, files) =>
       files = files.filter (item) -> return item.slice(-6) is '.fast5'
@@ -124,35 +113,36 @@ class LocalDirectory extends EventEmitter
       batches.pop() if enforceBatchSize and last_batch?.length < @batchSize
       if not batches.length
         @isBatching = no
-        return (done() if done)
+        return done?()
 
       moveFile = (file, next) =>
         mv file.source, file.destination, { mkdirp: yes }, (error) =>
           async.setImmediate next
 
       createBatch = (batch, next) =>
-        destination = "#{@root}/pending/batch_#{Date.now()}"
+        destination = path.join(@root, 'pending', "batch_#{Date.now()}")
         destination += '_partial' if not enforceBatchSize
         batch = batch.map (file) => return file =
-          source: "#{@root}/#{file}"
-          destination: "#{destination}/#{file}"
+          source: path.join(@root, file)
+          destination: path.join(destination, file)
         async.eachSeries batch, moveFile, (error) ->
           async.setImmediate next
 
       async.eachSeries batches, createBatch, (error) =>
-        console.log "Created #{batches.length} batches"
         @isBatching = no
-        done() if done
+        done?()
 
 
 
 
-  # 5. UPLOAD SCANNER. Generally speaking this gets hit after every batch has been uploaded or every 5 seconds if bored and waiting for files. Once uploadScan is called it will continue to call itself in a loop when it either fails to find something or finishes uploading something. Calling nextUploadScan will queue up another scan (this can happen immediately using the delay parameter). Calling killUploadScan will terminate the next scan. If no batches are found, exit. But first we'll request that we create a batch from leftover unbatched files in the input root (this is done by passing 'false' to createBatches). This new 'partial' batch will be picked up by the next uploadScan. If we are running and we found a batch, append .processing to the subdirectory name and start the upload. Once complete, timeout or error, call the uplaader again.
+  # The Uploader. Looking for a batch to upload. Generally speaking this gets hit after a batch has been uploaded or every 5 seconds if there's nothing to upload and it's bored waiting for files. Once uploadScan is called it will continue to call itself in a loop. The loop is triggered on a timer, which is created when we either fail to find something or finish uploading something. Calling nextUploadScan will queue up another scan (this can happen immediately using the delay parameter). Calling killUploadScan will terminate the next scan.
 
-  nextUploadScan: (delay) ->
+  # If no batches are found, request that we attempt to create a batch from leftover unbatched files in the input root. This new 'partial' batch will be picked up by the next uploadScan. If we found a batch to upload, append .processing to the subdirectory name and start the upload.
+
+  nextUploadScan: (supressDelay) ->
     return if @scannerKilled
     clearTimeout @nextScanTimer
-    return @uploadScan() if not delay
+    return setTimeout ( => @uploadScan() ), 1 if supressDelay
     @nextScanTimer = setTimeout ( => @uploadScan() ), 5000
 
   killUploadScan: ->
@@ -161,92 +151,86 @@ class LocalDirectory extends EventEmitter
 
   uploadScan: ->
     @scannerKilled = no
-    fs.readdir "#{@root}/pending", (error, batches) =>
+    fs.readdir path.join(@root, 'pending'), (error, batches) =>
       batches = batches?.filter (item) -> return item.slice(0, 6) is 'batch_'
-        .filter (item) -> return item.slice(-11) isnt '.processing'
 
       if not batches?.length
         return fs.readdir @root, (error, files) =>
           files = files.filter (item) -> return item.slice(-6) is '.fast5'
-          if files.length
-            console.log "No batches found. Try to create a partial batch."
-            @createBatches no
-          @nextUploadScan yes
+          @createBatches no if files.length
+          @nextUploadScan()
 
-      source = "#{@root}/pending/#{batches[0]}"
-      mv source, "#{source}.processing", { mkdirp: yes }, (error) =>
-        @upload batches[0]
-
-
+      source = path.join(@root, 'pending', batches[0])
+      destination = source
+      destination += '.processing' if destination.slice(-11) isnt '.processing'
+      mv source, destination, { mkdirp: yes }, (error) =>
+        @upload destination
 
 
-  # 6. UPLOADER. We found a batch that's ready for upload, let's upload it. Start by getting a token from the metrichor API for this upload. Each item in the batch will get passed into uploadFile. Here we physically move the file into s3 using .putObject(). When an upload is complete, move the files from pending into either uploaded or upload_failed (depending on success flag). When a batch is complete, first delete the batch subdirectory and then call for the next batch to be uploaded.
+
+
+  # We found a batch that's ready for upload, let's upload it. Start by getting a token from the metrichor API for this upload. Each item in the batch will get passed into uploadFile. Here we physically move the file into s3 using .putObject(). When an upload is complete, move the files from pending into either uploaded or upload_failed (depending on success flag). When a batch is complete, first delete the batch subdirectory and then call for the next batch to be uploaded.
 
   upload: (batch) ->
     @api.token (error, token) =>
       return if not @isRunning
-      batchPath = "#{@root}/pending/#{batch}.processing"
-      token = JSON.parse token
-      token.region = 'eu-west-1'
-      s3 = new AWS.S3 token
-      files = fs.readdirSync batchPath
 
       uploadFile = (file, next) =>
-        filePath = path.join batchPath, file
-        keyPath = [@instance.outputqueue, @instance.id_user, @instance.id_workflow_instance, @instance.inputqueue, file]
         return if not @isRunning
-        options =
-          Bucket: @instance.bucket
-          Key: keyPath.join '/'
-          Body: fs.readFileSync filePath
-        s3.putObject options, =>
-          @uploadComplete yes, batch, file
+        try
+          options =
+            Bucket: @api.currentInstance.bucket
+            Key: path.join @api.getS3Path(), file
+            Body: fs.readFileSync path.join batch, file
+          (new AWS.S3(token)).putObject options, =>
+            @uploadComplete yes, batch, file
+            async.setImmediate next
+        catch
+          @uploadComplete no, batch, file
           async.setImmediate next
 
-      async.eachSeries files, uploadFile, (error) =>
+
+      async.eachSeries fs.readdirSync(batch), uploadFile, (error) =>
         console.log new Error error if error
         @batchComplete batch
 
   uploadComplete: (success, batch, file) ->
     return if not @isRunning
-    source = "#{@root}/pending/#{batch}.processing"
     subdirectory = if success then 'uploaded' else 'upload_failed'
-    destination = "#{@root}/#{subdirectory}"
-    mv "#{source}/#{file}", "#{destination}/#{file}", (error) =>
+    destination = path.join(@root, subdirectory)
+    mv path.join(batch, file), path.join(destination, file), (error) =>
       @stats.pending -= 1
       @stats[subdirectory] += 1
       @calculatePercentage()
       @emit 'progress'
-      console.log "Upload complete. Waiting for new files" if not @stats.pending
 
   batchComplete: (batch) ->
-    source = "#{@root}/pending/#{batch}.processing"
-    try
-      fs.rmdir source if fs.existsSync source
-    @nextUploadScan()
+    try fs.rmdir batch if fs.existsSync batch
+    @nextUploadScan yes
 
 
 
 
-  # 7. RUN CONTROL. When the localDirectory is paused we kill the filewatcher so that the batcher doesn't run and also disable the uploader loop. We can kill @stats here because they will get rebuilt upon resume. When we stop the directory we just call pause as usual but we also kill the instance so it can't be restarted again.
+  # When the localDirectory is paused we kill the filewatcher so that the batcher doesn't run and also disable the uploader loop. We can kill @stats here because they will get rebuilt upon resume (maybe new files appeared while we were paused).
+
+  # When we stop the directory we just call pause as usual but we also kill the instance so it can't be restarted again.
 
   pause: (done) ->
+    @isRunning = no
     @killUploadScan()
     @watcher.unwatch(@root).close() if @watcher
-    @isRunning = no
     @stats = no
-    @unmarkProcessing done
+    done?()
 
   resume: (done) ->
-    return done new Error 'No App Instance running' if not @instance
-    @start @instance, (error) =>
+    @start (error) =>
       @isRunning = yes
-      done() if done
+      done?()
 
   stop: (done) ->
     @pause (error) =>
-      @instance = no
-      done() if done
+      @api.instance = no
+      done?()
 
 
 

@@ -1,92 +1,90 @@
 
-# A file.
-
-Pool = require('generic-pool').Pool
 EventEmitter = require('events').EventEmitter
-# s3 = require 's3'
-# sqs = require 'sqs-consumer'
+
+
+
+
+# RemoteDirectory. This is tasked with keeping an eye on the SQS Queue and physically downloading any files which are ready to be downloaded.
 
 class RemoteDirectory extends EventEmitter
   constructor: (@options, @api) ->
-    @stats =
-      success: 0
-      fail: 0
-      failure: {}
-      queueLength: 0
-      totalSize: 0
-
-    @downloadPool = new Pool
-      name: 'download'
-      create: (done) =>
-        @MetrichorRequest.workflow_instance id, config, (error, instance) =>
-          return stop_everything() if instance.state is 'stopped'
-          remoteFile = new remoteFile()
-          remoteFile.fromSQS (found_one) =>
-            done no, remoteFile if found_one
-      max: 10
-      log: yes
-      destroy: (file) -> file.release()
 
 
 
 
-  # The Downloader. Every second it will check for an open download slot. If it finds one it will look for an sqs message, if one exists it will start to download the remote file.
+  # Start
 
   start: (done) ->
     @instance = @api.currentInstance
-    return done()
-    downloadFile = ->
-      if @downloadPool.availableObjectsCount
-        @downloadPool.aquire (error, remoteFile) =>
-          remoteFile.download (error) =>
-            @localDirectory.fileDownloaded remoteFile, (error) =>
-              @downloadPool.release remoteFile
-
-    @downloader = setInterval downloadFile, 1000
+    return done? new Error "Instance already running" if @isRunning
+    @makeStats =>
+      @isRunning = yes
+      @downloadScan()
+      done?()
 
 
 
 
-  stop: (done) ->
-    clearInterval @downloader
-    @downloadPool.drain ->
-      @downloadPool.destroyAllNow()
+  # Stats
 
-
-
-  pause: (done) ->
-
-  resume: (done) ->
+  makeStats: (done) ->
+    @stats = {}
+    done()
 
 
 
 
+  # Download Scanner
 
-  # Check SQS. Need to respect downloadMode
+  nextDownloadScan: (delay) ->
+    return if @scannerKilled
+    clearTimeout @nextScanTimer
+    return setTimeout ( => @downloadScan() ), 1 if not delay
+    @nextScanTimer = setTimeout ( => @downloadScan() ), 5000
 
-  fromSQS: (done) ->
-    done found = yes
+  killDownloadScan: ->
+    @scannerKilled = yes
+    clearTimeout @nextScanTimer
+
+  downloadScan: ->
+    @scannerKilled = no
+    do stuff = =>
+      @nextDownloadScan yes
 
 
 
 
-  #  let's download it to the specified downloaded directory
+  #  Found a file to Download
 
   download: (done) ->
 
 
 
 
-  # make sure the notification is removed from SQS
+  # Download is complete.
 
-  downloaded: (done) ->
-
-
+  downloadComplete: (done) ->
 
 
-  # Make sure all resources are freed, , and the AWS session is killed.
 
-  release: (done) ->
+
+  # State control
+
+  pause: (done) ->
+    @isRunning = no
+    @killDownloadScan()
+    @stats = no
+    done?()
+
+  resume: (done) ->
+    @start (error) =>
+      @isRunning = yes
+      done?()
+
+  stop: (done) ->
+    @pause (error) =>
+      @api.instance = no
+      done?()
 
 
 
