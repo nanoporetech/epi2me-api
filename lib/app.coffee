@@ -60,8 +60,10 @@ class MetrichorAPI extends EventEmitter
   stop: (done) ->
     @localDirectory.stop (error) =>
       @remoteDirectory.stop (error) =>
+        current_instance = @api.currentInstance.id
         @api.stopCurrentInstance (error, response) =>
-          @emit 'status', "Stopped Running Instance"
+          return done? error if error
+          @emit 'status', "Stopped Instance #{current_instance}"
           done? no
 
   resetLocalDirectory: (done) ->
@@ -77,16 +79,16 @@ class MetrichorAPI extends EventEmitter
 
   pause: (done) ->
     return done? new Error 'No App Instance Running' if not @api.currentInstance
-    @localDirectory.pause (error) =>
-      @remoteDirectory.pause (error) =>
-        @emit 'status', "App Instance Paused"
+    @localDirectory.stop (error) =>
+      @remoteDirectory.stop (error) =>
+        @emit 'status', "Instance #{@api.currentInstance.id} Paused"
         done? no
 
   resume: (done) ->
     return done? new Error 'No App Instance Found' if not @api.currentInstance
-    @localDirectory.resume (error) =>
-      @remoteDirectory.resume (error) =>
-        @emit 'status', "App Instance Resumed"
+    @localDirectory.start (error) =>
+      @remoteDirectory.start (error) =>
+        @emit 'status', "Instance #{@api.currentInstance.id} Resumed"
         done? no
 
 

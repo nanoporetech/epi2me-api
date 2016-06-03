@@ -57,6 +57,7 @@ class RemoteDirectory extends EventEmitter
   #  Found a file to Download
 
   download: (done) ->
+    done?()
 
 
 
@@ -64,6 +65,7 @@ class RemoteDirectory extends EventEmitter
   # Download is complete.
 
   downloadComplete: (done) ->
+    done?()
 
 
 

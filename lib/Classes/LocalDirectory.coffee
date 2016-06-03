@@ -101,7 +101,6 @@ class LocalDirectory extends EventEmitter
   # The batcher gets called when the application starts and when new files arrive. Its job is to search for files in the '/input' directory and group them into batches in the '/input/pending' directory. enforceBatchSize allows us to create batches even if they do not meet the specified batch size. This is great if there are not enough files for a full batch but there are still outstanding items in the input folder.
 
   initialBatching: (done) ->
-    # @unmarkProcessing =>
     @createBatches yes, done
 
   createBatches: (enforceBatchSize, done) ->
@@ -215,22 +214,12 @@ class LocalDirectory extends EventEmitter
 
   # When we stop the directory we just call pause as usual but we also kill the instance so it can't be restarted again.
 
-  pause: (done) ->
+  stop: (done) ->
     @isRunning = no
     @killUploadScan()
     @watcher.unwatch(@root).close() if @watcher
     @stats = no
     done?()
-
-  resume: (done) ->
-    @start (error) =>
-      @isRunning = yes
-      done?()
-
-  stop: (done) ->
-    @pause (error) =>
-      @api.instance = no
-      done?()
 
 
 

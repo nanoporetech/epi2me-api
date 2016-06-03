@@ -77,9 +77,10 @@ class MetrichorAPI
       done? error, @currentInstance
 
   stopCurrentInstance: (done) ->
-    return done? new Error "No App Instance running" if not @currentInstance.id
-    @resetInstance()
-    @put "workflow_instance/stop/#{@currentInstance.id}", no, done
+    return done? new Error "No App Instance running" if not @currentInstance
+    @put "workflow_instance/stop/#{@currentInstance.id}", {}, (error) =>
+      @resetInstance()
+      done? error
 
 
 
@@ -112,7 +113,7 @@ class MetrichorAPI
       done? error, json.workflow_instances
 
   stopInstance: (id, done) ->
-    @put "workflow_instance/stop/#{id}", no, done
+    @put "workflow_instance/stop/#{id}", {}, done
 
 
 
@@ -128,7 +129,7 @@ class MetrichorAPI
         agent_version: @options.agent_version or ''
       .end (response) => @parseResponse response, done
 
-  postOrPut: (verb, resource, form = {}, done) ->
+  postOrPut: (verb, resource, form, done) ->
     form.json = JSON.stringify form.json if form.json
     form.apikey = @options.apikey
     form.agent_version = @options.agent_version or ''
