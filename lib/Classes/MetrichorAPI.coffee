@@ -47,7 +47,7 @@ class MetrichorAPI
   SQSQueue: (type) ->
     return QueueName: @currentInstance?["#{type}queue"]
 
-  SQSMessage: (QueueUrl) ->
+  SQSMessage: (QueueUrl, file) ->
     message =
       bucket: @currentInstance.bucket
       outputQueue: @currentInstance.outputqueue
@@ -56,6 +56,7 @@ class MetrichorAPI
       apikey: @options.apikey
       id_workflow_instance: @currentInstance.id
       utc: new Date().toISOString()
+      path: @getS3Path file
     if @currentInstance.chain
       message.components = @currentInstance.chain.components
       message.targetComponentId = @currentInstance.chain.targetComponentId

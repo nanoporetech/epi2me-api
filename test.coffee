@@ -4,7 +4,7 @@ app = require('express')().listen 3000
 metrichor = new MetrichorAPI
   apikey: "534373b27eaf4b2e448c1d4c930701f1631d115a"
   inputFolder: "/Users/dvinyard/Documents/Dev/api/input"
-  outputFolder: "/Users/dvinyard/Documents/Dev/api/output"
+  outputFolder: "/Users/dvinyard/Documents/Dev/api/input/downloads"
   url: "https://dev.metrichor.com"
   agent_version: '2.50.0'
   # manualSync: yes

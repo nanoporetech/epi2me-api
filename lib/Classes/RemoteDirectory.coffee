@@ -1,6 +1,9 @@
 
 EventEmitter = require('events').EventEmitter
 AWS = require 'aws-sdk'
+fs = require 'fs.extra'
+path = require 'path'
+async = require 'async'
 
 
 
@@ -41,7 +44,7 @@ class RemoteDirectory extends EventEmitter
         done()
 
   calculatePercentage: ->
-    total = @stats.pending + @stats.downloaded
+    total = @stats.pending + @stats.processing + @stats.downloading + @stats.downloaded
     return @stats.percentage = 0 if not total
     @stats.percentage = Math.floor((@stats.downloaded / total) * 1000) / 10
 
@@ -86,21 +89,24 @@ class RemoteDirectory extends EventEmitter
         if count.pending isnt @stats.pending
           @stats.pending = count.pending
           statsUpdated = yes
-        @emit('progress', @stats) if statsUpdated
+        if statsUpdated
+          @calculatePercentage()
+          @emit('progress', @stats)
         aws.sqs.getQueueUrl @api.SQSQueue('output'), (error, queue) =>
           receiveOptions =
             QueueUrl: queue.QueueUrl
             VisibilityTimeout: 600
-            MaxNumberOfMessages: 1
+            MaxNumberOfMessages: 10
             WaitTimeSeconds: 20
           aws.sqs.receiveMessage receiveOptions, (error, messages) =>
-            for message in messages
+            return @nextSQSScan yes if not messages?.Messages?.length
+
+            processMessage = (message, next) =>
               @download message, =>
                 @downloadComplete message, =>
-                  console.log 'downloaded and deleted'
-          @calculatePercentage()
-          @emit @stats
-        @nextSQSScan yes
+                  next()
+            async.each messages.Messages, processMessage, (error) =>
+              @nextSQSScan no
 
 
 
@@ -110,6 +116,7 @@ class RemoteDirectory extends EventEmitter
   download: (message, done) ->
     @stats.pending -= 1
     @stats.downloading += 1
+    @calculatePercentage()
     @emit 'progress', @stats
     messageBody = JSON.parse message.Body
     file = messageBody.path.match(/[\w\W]*\/([\w\W]*?)$/)[1] or ''
@@ -118,7 +125,7 @@ class RemoteDirectory extends EventEmitter
     streamOptions =
       Bucket: messageBody.bucket
       Key: messageBody.path
-    stream = s3.getObject(streamOptions).createReadStream().pipe remoteFile
+    stream = @api.s3.getObject(streamOptions).createReadStream().pipe remoteFile
     stream.on 'finish', done
 
 
@@ -133,9 +140,10 @@ class RemoteDirectory extends EventEmitter
         deleteOptions =
           QueueUrl: queue.QueueUrl
           ReceiptHandle: message.ReceiptHandle
-        sqs.deleteMessage deleteOptions, (error) ->
+        aws.sqs.deleteMessage deleteOptions, (error) =>
           @stats.downloading -= 1
           @stats.downloaded += 1
+          @calculatePercentage()
           @emit 'progress', @stats
           done? error if error
           done? no

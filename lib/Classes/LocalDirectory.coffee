@@ -178,9 +178,9 @@ class LocalDirectory extends EventEmitter
         return if not @isRunning
         aws.s3.putObject @api.S3Options(batch, file), =>
           aws.sqs.getQueueUrl @api.SQSQueue('input'), (error, queue) =>
-            message = @api.SQSMessage(queue.QueueUrl)
-            message.path = @api.getS3Path file
+            message = @api.SQSMessage(queue.QueueUrl, file)
             aws.sqs.sendMessage message, (error) =>
+              console.log error if error
               @uploadComplete yes, batch, file, ->
                 async.setImmediate next
       async.eachSeries fs.readdirSync(batch), uploadFile, (error) =>
