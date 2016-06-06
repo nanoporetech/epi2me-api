@@ -1,5 +1,8 @@
 
 unirest = require 'unirest'
+AWS = require 'aws-sdk'
+path = require 'path'
+fs = require 'fs'
 
 
 
@@ -27,8 +30,40 @@ class MetrichorAPI
     @currentToken = no
     @currentInstance = no
 
-  getS3Path: ->
-    return [@currentInstance.outputqueue, @currentInstance.id_user, @currentInstance.id_workflow_instance, @currentInstance.inputqueue].join '/'
+
+
+
+  # AWS Config, generate some messages to send to S3 and AWS.
+
+  getS3Path: (file) ->
+    return [@currentInstance.outputqueue, @currentInstance.id_user, @currentInstance.id_workflow_instance, @currentInstance.inputqueue, file].join '/'
+
+  S3Options: (batch, file) ->
+    return S3Options =
+      Bucket: @currentInstance.bucket
+      Key: @getS3Path(file)
+      Body: fs.readFileSync path.join(batch, file)
+
+  SQSQueue: (type) ->
+    return QueueName: @currentInstance?["#{type}queue"]
+
+  SQSMessage: (QueueUrl) ->
+    message =
+      bucket: @currentInstance.bucket
+      outputQueue: @currentInstance.outputqueue
+      remote_addr: @currentInstance.remote_addr
+      user_defined: @currentInstance.user_defined
+      apikey: @options.apikey
+      id_workflow_instance: @currentInstance.id
+      utc: new Date().toISOString()
+    if @currentInstance.chain
+      message.components = @currentInstance.chain.components
+      message.targetComponentId = @currentInstance.chain.targetComponentId
+    if @options.agent_address
+      message.agent_address = @options.agent_address
+    return SQSSendOptions =
+      QueueUrl: QueueUrl
+      MessageBody: JSON.stringify message
 
 
 
@@ -41,7 +76,11 @@ class MetrichorAPI
       minutesUntilExpiry = Math.floor(expires / 1000 / 60)
       @currentToken = no if minutesUntilExpiry < 10
 
-    return done? no, @currentToken if @currentToken
+    if @currentToken
+      return done? no,
+        token: @currentToken
+        s3: @s3
+        sqs: @sqs
 
     options =
       id_workflow_instance: @currentInstance.id
@@ -50,7 +89,13 @@ class MetrichorAPI
       return done? new Error 'No Token Generated' if not token
       token.region = @options.region
       @currentToken = token
-      done? error, token
+      @s3 = new AWS.S3 token
+      @sqs = new AWS.SQS token
+
+      done? error,
+        token: token
+        s3: @s3
+        sqs: @sqs
 
 
 

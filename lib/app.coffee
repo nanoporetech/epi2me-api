@@ -17,8 +17,8 @@ class MetrichorAPI extends EventEmitter
     @localDirectory = new LocalDirectory options.inputFolder, @api
     @remoteDirectory = new RemoteDirectory options, @api
 
-    @localDirectory.on 'progress', => @emit 'progress', @stats()
-    @remoteDirectory.on 'progress', => @emit 'progress', @stats()
+    @localDirectory.on 'progress', => @stats()
+    @remoteDirectory.on 'progress', => @stats()
 
 
 
@@ -26,10 +26,11 @@ class MetrichorAPI extends EventEmitter
   # Collate stats from our class instances. If some stats are requested (either by an event emitter or directly by someone using this module) we collate them together here.
 
   stats: ->
-    return stats =
+    return if not (@localDirectory.stats and @remoteDirectory.stats)
+    @emit 'progress', stats =
       instance: @api.currentInstance.id
-      upload: @localDirectory.stats or {}
-      download: @remoteDirectory.stats or {}
+      upload: @localDirectory.stats
+      download: @remoteDirectory.stats
 
 
 
@@ -38,6 +39,7 @@ class MetrichorAPI extends EventEmitter
 
   create: (config, done) ->
     @api.createInstance config, (error, instance) =>
+      return done? new Error error if error
       @emit 'status', "Created Instance #{@api.currentInstance.id}"
       @join @api.currentInstance.id, done
 

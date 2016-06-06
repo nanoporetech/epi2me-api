@@ -43,7 +43,7 @@
 ## 1. Getting Started
 ##
 
-To get up and running, instantiate a new metrichor-api object and pass in some initial config options as shown below. Once created, this new metrichor object will be ready to connect to an App Instance or make an API call. This code sample shows the minimum amount of information required to get started. **<
+To get up and running, instantiate a new metrichor-api object and pass in some initial config options as shown below. Once created, this new metrichor object will be ready to connect to an App Instance or make an API call. This code sample shows the minimum amount of config required to get started. **<
 
           var MetrichorAPI = require('MetrichorAPI');
           var options = {
@@ -157,7 +157,7 @@ If the App Instance has never existed or did exist but has since been stopped (s
 
   * ***instance_id***
     _62750_
-    This is the App Instance which is already running on the metrichor platform. A list of these can be viewed on the metrichor.com Dashboard.
+    This is the App Instance which is already running on the metrichor platform. A list of these can be viewed on the metrichor.com Dashboard or by using the API call listed later in this document.
 
 
 
@@ -171,7 +171,7 @@ If the App Instance has never existed or did exist but has since been stopped (s
 ## 4. Stopping an App Instance
 ##
 
-We can stop an instance using the **metrichor.stop()** method. You must be connected to an App Instance before it can be stopped and therefore if no App Instance is currently connected this will return an error. If an instance is running remotely which you wish to stop, use the Join method described in the section above before running this command. **<
+We can stop an instance using the **metrichor.stop()** method. You must be connected to an App Instance before it can be stopped and therefore if no App Instance is currently connected this will return an error. If an instance is running remotely which you wish to stop, use the Join method described in the section above before running this command or use the 'Quick Stop' api command. **<
 
           metrichor.stop(function(error){
             if (!error) {
@@ -215,7 +215,7 @@ Once an App Instance has either been created or joined, we have the ability to e
             }
           })
 
->** Either function will return an error if there is no App Instance currently running. Keep in mind that there is no concept of pause within the api. For the moment, this simply stops the uploading and downloading of files.
+>** Either function will return an error if there is no App Instance currently running. Keep in mind that there is no concept of pause within the api itself. For the moment, this simply stops the uploading and downloading of files.
 
 
 
@@ -393,7 +393,7 @@ And also the API Requests:
 ## 9. Under the Hood (Dev Notes)
 ##
 
-The fundemental application logic is broken into a main file and three class files. The main file will create a single instance of each of the three classes (api, remoteDirectory, and localDirectory) and these three class instances will live for the lifetime of the application and will handle all of the logic. The project is structured as below: ***/
+The fundamental application logic is broken into a main file and three class files. The main file will create a single instance of each of the three classes (api, remoteDirectory, and localDirectory) and these three class instances will live for the lifetime of the application and will handle all of the logic. The project is structured as below: ***/
 
           - /lib
             - app.js
@@ -439,7 +439,7 @@ The fundemental application logic is broken into a main file and three class fil
 
 ### Literate Code
 
-For more information about how the code logic works check out the files themselves, I've attempted to adhere to the philosophies of [Literate Programming](https://en.wikipedia.org/wiki/Literate_programming) and so much of the application logic is described above each function.
+For more information about how the code logic works check out the files themselves, I've attempted to adhere to a [Literate Programming](https://en.wikipedia.org/wiki/Literate_programming) style and so much of the application logic is described in the comments above each function.
 
 
 

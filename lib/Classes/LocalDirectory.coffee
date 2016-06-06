@@ -34,7 +34,7 @@ class LocalDirectory extends EventEmitter
       rootWalker.on 'end', =>
         pendingWalker = fs.walk path.join(@root, 'pending')
         pendingWalker.on "directory", (directory, stat, next) =>
-          fs.rmdir path.join(directory, stat.name), next
+          try fs.rmdir path.join(directory, stat.name), next
         pendingWalker.on 'end', => done? no
 
 
@@ -61,9 +61,9 @@ class LocalDirectory extends EventEmitter
 
 
 
-  # Define a stats object. This is run when the directory is started. The stats don't distinguish between root and batched items, they are all just listed as 'pending', this is therefore independent of the batching mechanism. Once the object is created here, it will be modified only when a new file arrives or is uploaded. To calculate the 'pending' value, we need to total all the files in root, all the files in complete batches and all the files in incomplete batches.
+  # Define a stats object. This is run when the directory is started. The stats don't distinguish between root and batched items, they are all just listed as 'pending', these stats are therefore independent of the batching mechanism. Once the stats object is created here, it will be modified only when a new file arrives or is uploaded. To calculate the 'pending' value, we need to total all the files in root, all the files in complete batches and all the files in incomplete batches.
 
-  # Incomplete batches must actually be physically counted 🙄 but fortunately there can only ever be one of them at once: either a '.processing' which may have half completed when the app was resumed or a '_partial', which may have been created because there weren't enough files to make a full batch.
+  # Incomplete batches must actually be physically counted 🙄.
 
   makeStats: (done) ->
     fast5 = (item) -> return item.slice(-6) is '.fast5'
@@ -73,12 +73,12 @@ class LocalDirectory extends EventEmitter
     partialBatch = (item) -> isBatch(item) and isPartial(item)
 
     @stats = {}
-    fs.readdir path.join(@root, 'uploaded'), (error, uploaded) =>
-      @stats.uploaded = uploaded.filter(fast5).length
-      fs.readdir path.join(@root, 'upload_failed'), (error, upload_failed) =>
-        @stats.upload_failed = upload_failed.filter(fast5).length
-        fs.readdir path.join(@root, 'pending'), (error, batches) =>
-          @stats.pending = batches.filter(completeBatch).length * @batchSize
+    fs.readdir path.join(@root, 'pending'), (error, batches) =>
+      @stats.pending = batches.filter(completeBatch).length * @batchSize
+      fs.readdir path.join(@root, 'uploaded'), (error, uploaded) =>
+        @stats.uploaded = uploaded.filter(fast5).length
+        fs.readdir path.join(@root, 'upload_failed'), (error, upload_failed) =>
+          @stats.upload_failed = upload_failed.filter(fast5).length
           for batch in batches.filter(partialBatch)
             location = path.join(@root, 'pending', batch)
             @stats.pending += fs.readdirSync(location).filter(fast5).length
@@ -90,8 +90,8 @@ class LocalDirectory extends EventEmitter
             done?()
 
   calculatePercentage: ->
-    @stats.total = @stats.pending + @stats.uploaded + @stats.upload_failed
-    @stats.percentage = Math.floor((@stats.uploaded / @stats.total) * 1000) / 10
+    total = @stats.pending + @stats.uploaded + @stats.upload_failed
+    @stats.percentage = Math.floor((@stats.uploaded / total) * 1000) / 10
 
 
 
@@ -168,43 +168,38 @@ class LocalDirectory extends EventEmitter
 
 
 
-  # We found a batch that's ready for upload, let's upload it. Start by getting a token from the metrichor API for this upload. Each item in the batch will get passed into uploadFile. Here we physically move the file into s3 using .putObject(). When an upload is complete, move the files from pending into either uploaded or upload_failed (depending on success flag). When a batch is complete, first delete the batch subdirectory and then call for the next batch to be uploaded.
+  # We found a batch that's ready for upload, let's upload it. Start by getting a token from the metrichor API for this upload. Each item in the batch will get passed into uploadFile. Here we physically move the file into s3 using .putObject(). When an upload is complete, add a message to the SQS queue, move the files from pending into either uploaded or upload_failed (depending on success flag). When a batch is complete, first delete the batch subdirectory and then call for the next batch to be uploaded.
 
   upload: (batch) ->
-    @api.token (error, token) =>
+    @api.token (error, aws) =>
       return if not @isRunning
 
       uploadFile = (file, next) =>
         return if not @isRunning
-        try
-          options =
-            Bucket: @api.currentInstance.bucket
-            Key: path.join @api.getS3Path(), file
-            Body: fs.readFileSync path.join batch, file
-          (new AWS.S3(token)).putObject options, =>
-            @uploadComplete yes, batch, file
-            async.setImmediate next
-        catch
-          @uploadComplete no, batch, file
-          async.setImmediate next
-
-
+        aws.s3.putObject @api.S3Options(batch, file), =>
+          aws.sqs.getQueueUrl @api.SQSQueue('input'), (error, queue) =>
+            message = @api.SQSMessage(queue.QueueUrl)
+            message.path = @api.getS3Path file
+            aws.sqs.sendMessage message, (error) =>
+              @uploadComplete yes, batch, file, ->
+                async.setImmediate next
       async.eachSeries fs.readdirSync(batch), uploadFile, (error) =>
         console.log new Error error if error
         @batchComplete batch
 
-  uploadComplete: (success, batch, file) ->
+  uploadComplete: (success, batch, file, done) ->
     return if not @isRunning
     subdirectory = if success then 'uploaded' else 'upload_failed'
-    destination = path.join(@root, subdirectory)
+    destination = path.join @root, subdirectory
     mv path.join(batch, file), path.join(destination, file), (error) =>
       @stats.pending -= 1
       @stats[subdirectory] += 1
       @calculatePercentage()
       @emit 'progress'
+      done?()
 
   batchComplete: (batch) ->
-    try fs.rmdir batch if fs.existsSync batch
+    fs.rmdir batch if fs.existsSync batch
     @nextUploadScan yes
 
 

@@ -1,10 +1,11 @@
 
 EventEmitter = require('events').EventEmitter
+AWS = require 'aws-sdk'
 
 
 
 
-# RemoteDirectory. This is tasked with keeping an eye on the SQS Queue and physically downloading any files which are ready to be downloaded.
+# RemoteDirectory. This is tasked with keeping an eye on the SQS Queue, physically downloading any files which are ready to be downloaded, and then removing files from the SQS queue once they have been downloaded.
 
 class RemoteDirectory extends EventEmitter
   constructor: (@options, @api) ->
@@ -12,81 +13,143 @@ class RemoteDirectory extends EventEmitter
 
 
 
-  # Start
+  # Start. We create the stats object, start the SQS watch loop and then bail. Very simple, all we're really doing is watching that queue.
 
   start: (done) ->
     @instance = @api.currentInstance
     return done? new Error "Instance already running" if @isRunning
     @makeStats =>
       @isRunning = yes
-      @downloadScan()
+      @SQSScan()
       done?()
 
 
 
 
-  # Stats
+  # The Stats object, with percentage. The 'processing' value is the number of items (In Flight or Visible) from the upload queue, the 'pending' is the number of items in the download queue. The SQSCount function is defined seperately so we can call it when we first compile the stats object and also for each scan.
 
   makeStats: (done) ->
-    @stats = {}
-    done()
+    @api.token (error, aws) =>
+      @getSQSCount aws, (error, count) =>
+        @stats =
+          processing: count.processing
+          pending: count.pending
+          downloading: 0
+          downloaded: 0
+        @calculatePercentage()
+        @emit 'progress', @stats
+        done()
+
+  calculatePercentage: ->
+    total = @stats.pending + @stats.downloaded
+    return @stats.percentage = 0 if not total
+    @stats.percentage = Math.floor((@stats.downloaded / total) * 1000) / 10
+
+  getSQSCount: (aws, done) ->
+    aws.sqs.getQueueUrl @api.SQSQueue('input'), (error, queue) =>
+      queueOptions = { QueueUrl: queue.QueueUrl, AttributeNames: ['All'] }
+      aws.sqs.getQueueAttributes queueOptions, (error, input) =>
+        uploaded = input.Attributes.ApproximateNumberOfMessages
+        flight = input.Attributes.ApproximateNumberOfMessagesNotVisible
+        processing = parseInt uploaded + parseInt flight
+        aws.sqs.getQueueUrl @api.SQSQueue('output'), (error, queue) =>
+          queueOptions = { QueueUrl: queue.QueueUrl, AttributeNames: ['All'] }
+          aws.sqs.getQueueAttributes queueOptions, (error, output) =>
+            pending = parseInt output.Attributes.ApproximateNumberOfMessages
+            done? no, count =
+              processing: processing
+              pending: pending
 
 
 
 
-  # Download Scanner
+  # The Download scanner. This will poll SQS and look for new messages, if it finds any it will send them to be downloaded. We implement the loop on a timeout so it's possible to terminate it if the app is stopped.
 
-  nextDownloadScan: (delay) ->
+  nextSQSScan: (delay) ->
     return if @scannerKilled
     clearTimeout @nextScanTimer
-    return setTimeout ( => @downloadScan() ), 1 if not delay
-    @nextScanTimer = setTimeout ( => @downloadScan() ), 5000
+    return setTimeout ( => @SQSScan() ), 1 if not delay
+    @nextScanTimer = setTimeout ( => @SQSScan() ), 5000
 
-  killDownloadScan: ->
+  killSQSScan: ->
     @scannerKilled = yes
     clearTimeout @nextScanTimer
 
-  downloadScan: ->
+  SQSScan: ->
     @scannerKilled = no
-    do stuff = =>
-      @nextDownloadScan yes
+    @api.token (error, aws) =>
+      return if not @isRunning
+      @getSQSCount aws, (error, count) =>
+        if count.processing isnt @stats.processing
+          @stats.processing = count.processing
+          statsUpdated = yes
+        if count.pending isnt @stats.pending
+          @stats.pending = count.pending
+          statsUpdated = yes
+        @emit('progress', @stats) if statsUpdated
+        aws.sqs.getQueueUrl @api.SQSQueue('output'), (error, queue) =>
+          receiveOptions =
+            QueueUrl: queue.QueueUrl
+            VisibilityTimeout: 600
+            MaxNumberOfMessages: 1
+            WaitTimeSeconds: 20
+          aws.sqs.receiveMessage receiveOptions, (error, messages) =>
+            for message in messages
+              @download message, =>
+                @downloadComplete message, =>
+                  console.log 'downloaded and deleted'
+          @calculatePercentage()
+          @emit @stats
+        @nextSQSScan yes
 
 
 
 
-  #  Found a file to Download
+  #  Found a message with a file to Download. Get the file location from the message, define the output.
 
-  download: (done) ->
-    done?()
+  download: (message, done) ->
+    @stats.pending -= 1
+    @stats.downloading += 1
+    @emit 'progress', @stats
+    messageBody = JSON.parse message.Body
+    file = messageBody.path.match(/[\w\W]*\/([\w\W]*?)$/)[1] or ''
+    folder = @options.outputFolder
+    remoteFile = fs.createWriteStream path.join folder, file
+    streamOptions =
+      Bucket: messageBody.bucket
+      Key: messageBody.path
+    stream = s3.getObject(streamOptions).createReadStream().pipe remoteFile
+    stream.on 'finish', done
 
 
 
 
-  # Download is complete.
+  # Download is complete. Delete message from SQS.
 
-  downloadComplete: (done) ->
-    done?()
+  downloadComplete: (message, done) ->
+    @api.token (error, aws) =>
+      messageBody = JSON.parse message.Body
+      aws.sqs.getQueueUrl @api.SQSQueue('output'), (error, queue) =>
+        deleteOptions =
+          QueueUrl: queue.QueueUrl
+          ReceiptHandle: message.ReceiptHandle
+        sqs.deleteMessage deleteOptions, (error) ->
+          @stats.downloading -= 1
+          @stats.downloaded += 1
+          @emit 'progress', @stats
+          done? error if error
+          done? no
 
 
 
 
-  # State control
-
-  pause: (done) ->
-    @isRunning = no
-    @killDownloadScan()
-    @stats = no
-    done?()
-
-  resume: (done) ->
-    @start (error) =>
-      @isRunning = yes
-      done?()
+  # If the remoteDirectory is stopped, that just means we kill the SQS scanner and turn off the isRunning flag. We can kill the stats because they will automatically be rebuilt when the directory is started again.
 
   stop: (done) ->
-    @pause (error) =>
-      @api.instance = no
-      done?()
+    @isRunning = no
+    @killSQSScan()
+    @stats = no
+    done?()
 
 
 
