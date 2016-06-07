@@ -1,24 +1,29 @@
 
 EventEmitter = require('events').EventEmitter
-API = require './Classes/MetrichorAPI'
+MetrichorAPI = require './Classes/MetrichorAPI'
 LocalDirectory = require './Classes/LocalDirectory'
-RemoteDirectory = require './Classes/RemoteDirectory'
+AWSDirectory = require './Classes/AWSDirectory'
 
 
 
 
-# MetrichorAPI. This main script just does basic routing. Most of the application logic happens in the class files. So, we Import and create a single instance of each of our three classes, these classes will last the lifetime of the application. The api gets created first and passed into the two directory classes which means they can share the instance and token persistance stuff that the API stores and manages. We also bind progress listeners onto the two directory classes so they can send us status updates.
+# MetrichorAPI. This main script just does basic routing. Most of the application logic happens in the class files. So, we Import and create a single instance of each of our three classes, these classes will last the lifetime of the application. We bind events for the two files so they can upload and download files to each other. We also bind progress listeners onto the two directory classes so they can send us status updates.
 
-class MetrichorAPI extends EventEmitter
-  constructor: (options) ->
-    @manualSync = options.manualSync
+class MetrichorSync extends EventEmitter
+  constructor: (@options) ->
+    @api = new MetrichorAPI @options
+    @localDirectory = new LocalDirectory @options
 
-    @api = new API options
-    @localDirectory = new LocalDirectory options.inputFolder, @api
-    @remoteDirectory = new RemoteDirectory options, @api
+    @awsDirectory = new AWSDirectory @api
 
+    @localDirectory.on 'uploadFile', (file, done) =>
+      @awsDirectory.uploadFile file, done
+
+    @awsDirectory.on 'download', (stream, filename, done) =>
+      @localDirectory.saveFile stream, filename, done
+
+    @awsDirectory.on 'progress', => @stats()
     @localDirectory.on 'progress', => @stats()
-    @remoteDirectory.on 'progress', => @stats()
 
 
 
@@ -26,11 +31,15 @@ class MetrichorAPI extends EventEmitter
   # Collate stats from our class instances. If some stats are requested (either by an event emitter or directly by someone using this module) we collate them together here.
 
   stats: ->
-    return if not (@localDirectory.stats and @remoteDirectory.stats)
+    return if not (@localDirectory.stats and @awsDirectory.stats)
+    @localDirectory.calculatePercentage()
+    @awsDirectory.calculatePercentage()
+    complete = @awsDirectory.stats.percentage+@localDirectory.stats.percentage/2
     @emit 'progress', stats =
-      instance: @api.currentInstance.id
+      instance: @api.loadedInstance
       upload: @localDirectory.stats
-      download: @remoteDirectory.stats
+      download: @awsDirectory.stats
+      percentage: complete
 
 
 
@@ -38,34 +47,35 @@ class MetrichorAPI extends EventEmitter
   # Create a new App Instance or join an existing one. The api will remember the new instance after it's been created or joined. We can then start the two directories and we're ready to go. If {manualSync: true} was passed into the initial options, we will not start the two directories, we will instead wait for a 'resume' command to be issued.
 
   create: (config, done) ->
-    @api.createInstance config, (error, instance) =>
+    @api.createNewInstance config, (error, instanceID) =>
       return done? new Error error if error
-      @emit 'status', "Created Instance #{@api.currentInstance.id}"
-      @join @api.currentInstance.id, done
+      @emit 'status', "Created Instance #{instanceID}"
+      @join instanceID, done
 
-  join: (instance_id, done) ->
-    @api.loadInstance instance_id, (error) =>
+  join: (instanceID, done) ->
+    @api.loadInstance instanceID, (error, instance) =>
       return done? error if error
-      @emit 'status', "Joined Instance #{@api.currentInstance.id}"
-      return done? no if @manualSync
-      @localDirectory.start (error) =>
+      @emit 'status', "Joined Instance #{@api.loadedInstance}"
+      return done? no if @options.manualSync
+      @awsDirectory.start instance, (error) =>
         return done? error if error
-        @remoteDirectory.start (error) =>
+        @localDirectory.start (error) =>
           return done? error if error
           done? no
 
 
 
 
-  # Stop the current instance. When a stop command is issued, first stop the two directories and then stop the running App Instance when requested. Reset is a command which restores the localDirectory back to its original state.
+  # Stop the current instance. When a stop command is issued, first stop the two directories and then stop the running App Instance when requested. resetLocalDirectory is a command which restores the localDirectory back to its original state before it was batched.
 
   stop: (done) ->
     @localDirectory.stop (error) =>
-      @remoteDirectory.stop (error) =>
-        current_instance = @api.currentInstance.id
-        @api.stopCurrentInstance (error, response) =>
+      @awsDirectory.stop (error) =>
+        loadedInstance = @api.loadedInstance
+        @awsDirectory.instance = no
+        @api.stopLoadedInstance (error, response) =>
           return done? error if error
-          @emit 'status', "Stopped Instance #{current_instance}"
+          @emit 'status', "Stopped Instance #{loadedInstance}"
           done? no
 
   resetLocalDirectory: (done) ->
@@ -77,20 +87,20 @@ class MetrichorAPI extends EventEmitter
 
 
 
-  # Pause and Resume the current instance. These functions just call their counterparts on both the Local and Remote directories. They stop uploading, downloading and batching without killing the instance.
+  # Pause and Resume the current instance. These functions just stop and resume the Local and Remote directories. They stop uploading, downloading and batching without killing the instance.
 
   pause: (done) ->
-    return done? new Error 'No App Instance Running' if not @api.currentInstance
+    return done? new Error 'No App Instance Running' if not @api.loadedInstance
     @localDirectory.stop (error) =>
-      @remoteDirectory.stop (error) =>
-        @emit 'status', "Instance #{@api.currentInstance.id} Paused"
+      @awsDirectory.stop (error) =>
+        @emit 'status', "Instance #{@api.loadedInstance} Paused"
         done? no
 
   resume: (done) ->
-    return done? new Error 'No App Instance Found' if not @api.currentInstance
+    return done? new Error 'No App Instance Found' if not @api.loadedInstance
     @localDirectory.start (error) =>
-      @remoteDirectory.start (error) =>
-        @emit 'status', "Instance #{@api.currentInstance.id} Resumed"
+      @awsDirectory.start @awsDirectory.instance, (error) =>
+        @emit 'status', "Instance #{@api.loadedInstance} Resumed"
         done? no
 
 
@@ -107,4 +117,4 @@ class MetrichorAPI extends EventEmitter
   workflow: (id, done) -> @api.getApp id, done
 
 module.exports.version = '2.50.0'
-module.exports = MetrichorAPI
+module.exports = MetrichorSync

@@ -10,7 +10,7 @@ metrichor = new MetrichorAPI
   # manualSync: yes
 
 metrichor.on 'progress', (stats) ->
-  console.log stats
+  console.log stats#.complete
 
 metrichor.on 'status', (status) ->
   console.log status
@@ -57,6 +57,9 @@ process.stdin.resume().setEncoding('utf8').on 'data', (text) ->
   if command is 'resume'
     return metrichor.resume (error) =>
       console.log error if error
+
+  if command is 'stats'
+    return metrichor.stats()
 
   if command is 'join'
     return metrichor.join 62757, (error) =>
