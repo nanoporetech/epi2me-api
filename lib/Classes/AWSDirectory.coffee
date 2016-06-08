@@ -2,6 +2,7 @@
 EventEmitter = require('events').EventEmitter
 AWS = require 'aws-sdk'
 path = require 'path'
+diff = require('deep-diff').diff
 async = require 'async'
 
 
@@ -15,8 +16,12 @@ class RemoteDirectory extends EventEmitter
 
     @sqsReceiveConfig =
       VisibilityTimeout: 600
-      MaxNumberOfMessages: 1
+      MaxNumberOfMessages: 10
       WaitTimeSeconds: 20
+
+    @stats =
+      uploading: 0
+      downloading: 0
 
 
 
@@ -25,10 +30,13 @@ class RemoteDirectory extends EventEmitter
 
   start: (@instance, done) ->
     return done? new Error "Instance already running" if @isRunning
-    @makeStats =>
-      @isRunning = yes
-      @scan()
-      done?()
+    @token (error, aws) =>
+      return done error if error
+      @getSQSCount aws, (error) =>
+        return done? error if error
+        @isRunning = yes
+        @scan()
+        done?()
 
 
 
@@ -47,55 +55,41 @@ class RemoteDirectory extends EventEmitter
       id_workflow_instance: @api.loadedInstance
       region: @instance.region
     @api.post "token", options, (error, token) =>
+      return done? error if error
       return done? new Error 'No Token Generated' if not token
       token.region = @instance.region
       @currentToken =
         token: token
         s3: new AWS.S3 token
         sqs: new AWS.SQS token
-      done? error, @currentToken
+      done? no, @currentToken
 
 
 
 
-  # The Stats object, with percentage. The 'processing' value is the number of items (In Flight or Visible) from the upload queue, the 'pending' is the number of items in the download queue. The SQSCount function is defined seperately so we can call it when we first compile the stats object and also for each scan.
-
-  makeStats: (done) ->
-    @token (error, aws) =>
-      @getSQSCount aws, (error, count) =>
-        return done error if error
-        @stats =
-          processing: count.processing
-          pending: count.pending
-          downloading: 0
-          downloaded: 0
-        @emit 'progress'
-        done()
-
-  calculatePercentage: ->
-    total = @stats.pending + @stats.processing + @stats.downloading + @stats.downloaded
-    @stats.pending = Math.max 0, @stats.pending
-    return @stats.percentage = 0 if not total
-    @stats.percentage = Math.floor((@stats.downloaded / total) * 1000) / 10
+  # The SQSCount gives us SQS totals on both the input and output queues
 
   getSQSCount: (aws, done) ->
-    aws.sqs.getQueueUrl @instance.queues?.input, (error, queue) =>
-      return done error if error
-      queueOptions = { QueueUrl: queue.QueueUrl, AttributeNames: ['All'] }
-      aws.sqs.getQueueAttributes queueOptions, (error, input) =>
+    count = {}
+    getCountForQueue = (queue, done) =>
+      aws.sqs.getQueueUrl @instance.queues?[queue], (error, queue) =>
         return done error if error
-        uploaded = input.Attributes.ApproximateNumberOfMessages
-        flight = input.Attributes.ApproximateNumberOfMessagesNotVisible
-        processing = parseInt(uploaded) + parseInt(flight)
-        aws.sqs.getQueueUrl @instance.queues?.output, (error, queue) =>
+        queueOptions = {QueueUrl: queue.QueueUrl, AttributeNames: ['ApproximateNumberOfMessages','ApproximateNumberOfMessagesNotVisible']}
+        aws.sqs.getQueueAttributes queueOptions, (error, attr) =>
+          attr = attr.Attributes
           return done error if error
-          queueOptions = { QueueUrl: queue.QueueUrl, AttributeNames: ['All'] }
-          aws.sqs.getQueueAttributes queueOptions, (error, output) =>
-            return done error if error
-            pending = parseInt output.Attributes.ApproximateNumberOfMessages
-            done? no, count =
-              processing: processing
-              pending: pending
+          return done no, count =
+            visible: parseInt attr.ApproximateNumberOfMessages
+            flight: parseInt attr.ApproximateNumberOfMessagesNotVisible
+    getCountForQueue 'input', (error, input) =>
+      getCountForQueue 'output', (error, output) =>
+        sqsCount =
+          input: input
+          output: output
+        if diff @stats.sqs, sqsCount
+          @stats.sqs = sqsCount
+          @emit 'progress'
+        done? no
 
 
 
@@ -103,6 +97,8 @@ class RemoteDirectory extends EventEmitter
   # Here we physically move the file into s3 using .putObject(). When an upload is complete, add a message to the SQS queue, move the files from pending into either uploaded or upload_failed (depending on success flag). When a batch is complete, first delete the batch subdirectory and then call for the next batch to be uploaded.
 
   uploadFile: (file, done) ->
+    @stats.uploading += 1
+    @emit 'progress'
     @token (error, aws) =>
       return done? error if error
       S3Options =
@@ -112,12 +108,13 @@ class RemoteDirectory extends EventEmitter
       aws.s3.putObject S3Options, (error) =>
         return done? error if error
         aws.sqs.getQueueUrl @instance?.queues?.input, (error, queue) =>
+          return done? new Error "No Queue URL" if error
           return done? error if error
           message =
             bucket: @instance.bucket
             outputQueue: @instance.outputqueue
             remote_addr: @instance.remote_addr
-            user_defined: @instance.user_defined
+            user_defined: @instance.user_defined or null
             apikey: @instance.apikey
             id_workflow_instance: @instance.id
             utc: new Date().toISOString()
@@ -129,8 +126,10 @@ class RemoteDirectory extends EventEmitter
             QueueUrl: queue.QueueUrl
             MessageBody: JSON.stringify message
           aws.sqs.sendMessage SQSSendOptions, (error) =>
-            console.log error if error
-            file.complete yes, =>
+            return done? error if error
+            file.uploadComplete yes, =>
+              @stats.uploading -= 1
+              @emit 'progress'
               done()
 
 
@@ -151,19 +150,15 @@ class RemoteDirectory extends EventEmitter
   scan: ->
     @scannerKilled = no
     @token (error, aws) =>
+      return done? error if error
       return if not @isRunning
-      @getSQSCount aws, (error, count) =>
-        if count.processing isnt @stats.processing
-          @stats.processing = count.processing
-          statsUpdated = yes
-        if count.pending isnt @stats.pending
-          @stats.pending = count.pending
-          statsUpdated = yes
-        @emit 'progress' if statsUpdated
-        aws.sqs.getQueueUrl @instance.queues.output, (error, queue) =>
+      @getSQSCount aws, (error) =>
+        return @nextScan yes if error
+        aws.sqs.getQueueUrl @instance.queues?.output, (error, queue) =>
+          return @nextScan yes if error
           @sqsReceiveConfig.QueueUrl = queue.QueueUrl
           aws.sqs.receiveMessage @sqsReceiveConfig, (error, messages) =>
-            return @nextScan yes if not messages?.Messages?.length
+            return @nextScan yes if error or not messages?.Messages?.length
 
             downloadFile = (message, next) =>
               messageBody = JSON.parse message.Body
@@ -172,11 +167,9 @@ class RemoteDirectory extends EventEmitter
                 Bucket: messageBody.bucket
                 Key: messageBody.path
               stream = aws.s3.getObject(streamOptions).createReadStream()
-              @stats.pending -= 1
               @stats.downloading += 1
-              console.log 'a'
               @emit 'progress'
-              @emit 'download', stream, filename, =>
+              @emit 'saveDownloadedFile', stream, filename, =>
                 @downloadComplete message, next
 
             async.each messages.Messages, downloadFile, (error) =>
@@ -188,16 +181,17 @@ class RemoteDirectory extends EventEmitter
   # Download is complete. Delete message from SQS.
 
   downloadComplete: (message, done) ->
-    console.log 'downloadComplete'
-    @stats.downloading -= 1
-    @stats.downloaded += 1
     @token (error, aws) =>
+      return done? error if error
       messageBody = JSON.parse message.Body
-      aws.sqs.getQueueUrl @instance.queues.output, (error, queue) =>
+      aws.sqs.getQueueUrl @instance.queues?.output, (error, queue) =>
+        return done? error if error
         deleteOptions =
           QueueUrl: queue.QueueUrl
           ReceiptHandle: message.ReceiptHandle
         aws.sqs.deleteMessage deleteOptions, (error) =>
+          return done? error if error
+          @stats.downloading -= 1
           @emit 'progress'
           done? error if error
           done? no
@@ -210,7 +204,9 @@ class RemoteDirectory extends EventEmitter
   stop: (done) ->
     @isRunning = no
     @killScan()
-    @stats = no
+    @stats =
+      uploading: 0
+      downloading: 0
     done?()
 
 

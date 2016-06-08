@@ -38,14 +38,10 @@ class MetrichorAPI
       done? error, instance
 
   stopLoadedInstance: (done) ->
-    return done? new Error "No App Instance running" if not @instance
+    return done? new Error "No App Instance running" if not @loadedInstance
     @stopInstance @loadedInstance, (error) =>
       @loadedInstance = no
       done? error
-
-
-
-
 
 
 
@@ -63,7 +59,7 @@ class MetrichorAPI
     @get "workflow/config/#{appID}", (error, json) ->
       if error?.message is 'Response is not an object'
         return done new Error 'No config found for that instance'
-      done error, json
+      done? error, json
 
   listApps: (done) ->
     @get 'workflow', (error, json) ->

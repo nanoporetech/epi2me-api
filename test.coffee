@@ -10,28 +10,10 @@ metrichor = new MetrichorAPI
   # manualSync: yes
 
 metrichor.on 'progress', (stats) ->
-  console.log stats#.complete
+  console.log JSON.stringify(stats, null, 2)#.percentage
 
 metrichor.on 'status', (status) ->
   console.log status
-
-# metrichor.api.getAppConfig 627, (error, json) ->
-#   console.log error, json
-
-# metrichor.join 62755, (error) =>
-#   console.log error if error
-#   metrichor.api.token (error, aws) ->
-#     input_request = metrichor.api.SQSQueue('input')
-#     aws.sqs.getQueueUrl input_request, (error, input) =>
-#       console.log 'input: ', input_request.QueueName, error?.message or input.QueueUrl
-#
-#       output_request = metrichor.api.SQSQueue('output')
-#       aws.sqs.getQueueUrl output_request, (error, output) =>
-#         console.log 'output: ', output_request.QueueName, error?.message or output.QueueUrl
-#
-# metrichor.api.listApps (error, apps) ->
-#   console.log apps.map (app) -> app.queues
-
 
 process.stdin.resume().setEncoding('utf8').on 'data', (text) ->
   command = text.replace '\n', ''
@@ -62,7 +44,7 @@ process.stdin.resume().setEncoding('utf8').on 'data', (text) ->
     return metrichor.stats()
 
   if command is 'join'
-    return metrichor.join 62757, (error) =>
+    return metrichor.join 62759, (error) =>
       console.log error if error
 
   if command_param.length

@@ -29,8 +29,9 @@ class LocalDirectory extends EventEmitter
   start: (done) ->
     return done? new Error "Directory already started" if @isRunning
     mkdirp value for key, value of @subdirectories
-    @initialStats =>
-      @convertToBatches yes, (done) =>
+    @initialStats (error) =>
+      return done? error if error
+      @convertToBatches yes, (error) =>
         @watcher = chokidar.watch @options.inputFolder,
           depth: 0
           ignoreInitial: yes
@@ -42,12 +43,11 @@ class LocalDirectory extends EventEmitter
         @batchLoopKilled = no
         @getNextBatch yes
         done?()
-      done?()
 
 
 
 
-  # Get Starting Stats. This is run when the directory is started. The stats don't distinguish between root and batched items, they are all just listed as 'pending', these stats are therefore independent of the batching mechanism. Once the stats object is created here, it will be modified only when a new file arrives or is uploaded. To calculate the 'pending' value, we need to total all the files in root, all the files in complete batches and all the files in incomplete batches. Incomplete batches must actually be physically counted 🙄.
+  # Get Starting Stats. This is a count of the files in each directory. This is run when the directory is started. The stats don't distinguish between root and batched items, they are all just listed as 'pending', these stats are therefore independent of the batching mechanism. Once the stats object is created here, it will be modified only when a new file arrives or is uploaded. To calculate the 'pending' value, we need to total all the files in root, all the files in complete batches and all the files in incomplete batches. Incomplete batches must actually be physically counted 🙄.
 
   initialStats: (done) ->
     fast5 = (item) -> return item.slice(-6) is '.fast5'
@@ -55,26 +55,29 @@ class LocalDirectory extends EventEmitter
     isPartial = (i)-> i.slice(-8) is '_partial' or i.slice(-11) is '.processing'
     completeBatch = (item) -> isBatch(item) and not isPartial(item)
     partialBatch = (item) -> isBatch(item) and isPartial(item)
+
     @stats = {}
     fs.readdir @subdirectories.pending, (error, batches) =>
+      return done? error if error
       @stats.pending = batches.filter(completeBatch).length * @batchSize
       fs.readdir @subdirectories.uploaded, (error, uploaded) =>
-        @stats.uploading = 0
+        return done? error if error
         @stats.uploaded = uploaded.filter(fast5).length
         fs.readdir @subdirectories.upload_failed, (error, upload_failed) =>
+          return done? error if error
           @stats.upload_failed = upload_failed.filter(fast5).length
           for batch in batches.filter(partialBatch)
             location = path.join @subdirectories.pending, batch
             @stats.pending += fs.readdirSync(location).filter(fast5).length
           fs.readdir @options.inputFolder, (error, stray_pending) =>
+            return done? error if error
             @stats.pending += stray_pending.filter(fast5).length
-            @emit 'progress'
-            done?()
+            fs.readdir @options.outputFolder, (error, downloaded) =>
+              @stats.downloaded = downloaded.filter(fast5).length
 
-  calculatePercentage: ->
-    total = @stats.pending + @stats.uploaded + @stats.upload_failed + @stats.uploading
-    @stats.total = total
-    @stats.percentage = Math.floor((@stats.uploaded / total) * 1000) / 10
+              @stats.total = @stats.pending + @stats.uploaded + @stats.upload_failed
+              @emit 'progress'
+              done? no
 
 
 
@@ -84,16 +87,19 @@ class LocalDirectory extends EventEmitter
   convertToBatches: (enforceBatchSize, done) ->
     @isBatching = yes
     fs.readdir @options.inputFolder, (error, files) =>
+      return done? error if error
       files = files.filter (item) -> return item.slice(-6) is '.fast5'
       batches = (files.splice(0, @batchSize) while files.length)
       last_batch = batches[batches.length - 1]
       batches.pop() if enforceBatchSize and last_batch?.length < @batchSize
       if not batches.length
         @isBatching = no
-        return done?()
+        return done? no
+
       createBatch = (batch, next) =>
         moveFile = (file, next) =>
           mv file.source, file.destination, { mkdirp: yes }, (error) =>
+            return done? error if error
             async.setImmediate next
         destination = path.join(@subdirectories.pending, "batch_#{Date.now()}")
         destination += '_partial' if not enforceBatchSize
@@ -101,61 +107,68 @@ class LocalDirectory extends EventEmitter
           source: path.join(@options.inputFolder, file)
           destination: path.join(destination, file)
         async.eachSeries batch, moveFile, (error) ->
+          return done? error if error
           async.setImmediate next
+
       async.eachSeries batches, createBatch, (error) =>
+        return done? error if error
         @isBatching = no
-        done?()
+        done? no
 
 
 
 
-  # Find a Batch to Upload. If we need a batch of local files to upload we'll check here. When the directory first starts we check, and then subsequently, after a batch has been uploaded, we check. If there are no batches we'll just keep checking intermittently. If no batches are found in the /pending directory, request that we attempt to create a batch from leftover unbatched files in the input root. This new 'partial' batch will be picked up by the next uploadScan. If we found a batch to upload, append .processing to the subdirectory name and send it away to be uploaded. Once an upload is complete, the completion handler will move the file to the uploaded directory. Once a batch is complete, delete the batch folder and request a new batch.
+  # Find a Batch to Upload. If we need a batch of local files to upload we'll check here. When the directory first starts we check, and then subsequently, after a batch has been uploaded, we check. If there are no batches we'll just keep checking intermittently. If no batches are found in the /pending directory, request that we attempt to create a batch from leftover unbatched files in the input root. This new 'partial' batch will be picked up by the next findBatch. If we found a batch to upload, append .processing to the subdirectory name and send it away to be uploaded. Once an upload is complete, the completion handler will move the file to the uploaded directory. Once a batch is complete, delete the batch folder and request a new batch.
 
   getNextBatch: (supressDelay) ->
+    return if @batchLoopKilled
+    delay = if supressDelay then 1 else 5000
+    clearTimeout @batchLoop
     findBatch = =>
       @batchLoopKilled = no
       fs.readdir @subdirectories.pending, (error, batches) =>
+        if error
+          console.log error
+          return @getNextBatch yes
         batches = batches?.filter (item) -> return item.slice(0, 6) is 'batch_'
         if not batches?.length
           return fs.readdir @options.inputFolder, (error, files) =>
             files = files.filter (item) -> return item.slice(-6) is '.fast5'
             @convertToBatches no if files.length
             @getNextBatch()
+
         source = path.join(@subdirectories.pending, batches[0])
         batch = source
         batch += '.processing' if batch.slice(-11) isnt '.processing'
         mv source, batch, { mkdirp: yes }, (error) =>
-          @requestUploadBatch batch
-    return if @batchLoopKilled
-    clearTimeout @batchLoop
-    @batchLoop = setTimeout findBatch, if supressDelay then 1 else 5000
+          if error
+            console.log error
+            return @getNextBatch yes
+          @requestBatchUpload batch, (error) =>
+            console.log error if error
+            fs.rmdir batch if fs.existsSync batch
+            @getNextBatch yes
+    @batchLoop = setTimeout findBatch, delay
 
   killGetBatch: ->
     @batchLoopKilled = yes
     clearTimeout @batchLoop
 
-  requestUploadBatch: (batch) ->
+  requestBatchUpload: (batch, done) ->
     return if not @isRunning
-    files = fs.readdirSync(batch).map (file) =>
-      return file =
-        name: file
-        data: fs.readFileSync path.join(batch, file)
-        complete: (success, done) =>
-          subdirectory = if success then 'uploaded' else 'upload_failed'
-          destination = path.join @options.inputFolder, subdirectory, file.name
-          mv path.join(batch, file.name), destination, (error) =>
-            @stats.uploading -= 1
-            @stats[subdirectory] += 1
-            @emit 'progress'
-            done?()
+    files = fs.readdirSync(batch).map (file) => return file =
+      name: file
+      data: fs.readFileSync path.join(batch, file)
+      uploadComplete: (success, done) =>
+        subdirectory = if success then 'uploaded' else 'upload_failed'
+        destination = path.join @options.inputFolder, subdirectory, file.name
+        mv path.join(batch, file.name), destination, (error) =>
+          @stats[subdirectory] += 1
+          @emit 'progress'
+          done?()
     request = (file, next) =>
-      @stats.pending -= 1
-      @stats.uploading += 1
       @emit 'uploadFile', file, next
-    async.eachSeries files, request, (error) =>
-      console.log new Error error if error
-      fs.rmdir batch if fs.existsSync batch
-      @getNextBatch yes
+    async.eachSeries files, request, done
 
 
 
@@ -164,10 +177,11 @@ class LocalDirectory extends EventEmitter
 
   saveFile: (stream, filename, done) =>
     localFile = fs.createWriteStream path.join @options.outputFolder, filename
+    preExisting = fs.existsSync localFile
     stream.pipe localFile
-    console.log 'saveFile'
     stream.on 'finish', =>
-      console.log 'finish'
+      @stats.downloaded += 1 if not preExisting
+      @emit 'progress'
       return done?()
 
 

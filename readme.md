@@ -43,13 +43,13 @@
 ## 1. Getting Started
 ##
 
-To get up and running, instantiate a new metrichor-api object and pass in some initial config options as shown below. Once created, this new metrichor object will be ready to connect to an App Instance or make an API call. This code sample shows the minimum amount of config required to get started. **<
+To get up and running, instantiate a new MetrichorAPI object and pass in some initial config options as shown below. Once created, this new metrichor object will be ready to connect to an App Instance or make an API call. This code sample shows the minimum amount of config required to get started. **<
 
           var MetrichorAPI = require('MetrichorAPI');
           var options = {
             apikey: "g34373b17ea3b2e44sc1d4s934701ff63t1d1a5a",
-            inputFolder: "input/",
-            outputFolder: "output/"
+            inputFolder: "C:/input",
+            outputFolder: "C:/output"
           }
 
           var metrichor = new MetrichorAPI(options);
@@ -140,7 +140,7 @@ The callback will get triggered with either an error object or the ID of the App
 ## 3. Joining an Existing App Instance
 ##
 
-If an instance is already running, we can attach ourselves to it using **metrichor.join()**. Once joined, it will begin uploading files from the ***options.inputFolder*** and downloading to the ***options.outputFolder*** locations which were specified when the metrichor object was created.
+If an instance is already running, we can attach ourselves to it using **metrichor.join(id)**. Once joined, it will begin uploading files from the ***options.inputFolder*** and downloading to the ***options.outputFolder*** locations which were specified when the metrichor object was created.
 
 If the App Instance has never existed or did exist but has since been stopped (stopped App Instances can never be restarted) we will log the error to the callback. **<
 
@@ -244,18 +244,17 @@ We can either call the stats function directly. (This will return no value if no
 >** A sample stats object looks like this:
 
     ***{
-          instance: 62750
-          upload: {
-            pending: 4,
-            uploaded: 6,
-            upload_failed: 0,
-            percentage: 60
-          },
+      "instance": "62759",
+      "progress": {
+        "files": 10,
+        "uploaded": 4,
+        "downloaded": 2
+      },
 
-          download: {
-            success: 0,
-            fail: 0,
-          }
+      "transfer": {
+        "uploading": 1,
+        "processing": 2,
+        "downloading": 1
     }***
 
 
@@ -402,7 +401,7 @@ The fundamental application logic is broken into a main file and three class fil
                 - MetrichorAPI.js
                 - RemoteDirectory.js
 
-/*** Ultimately, the methods in app.js simply call methods from its three class instances in turn. Here's a short exerpt from the app file which demonstrates the logic of the metrichor.stop() function in its entirety. **<
+/*** Ultimately, the methods in app.js simply call methods from its three class instances in turn. Here's a short excerpt from the app file which demonstrates the logic of the metrichor.stop() function in its entirety. **<
 
           function stop(done) {
             localDirectory.stop(function() {
@@ -417,6 +416,8 @@ The fundamental application logic is broken into a main file and three class fil
 
 >** First we stop the localDirectory, which prevents all batching and uploads, we then stop the remoteDirectory which prevents all downloads. Finally we send a stop command to the api, which will actually terminate the running instance. All of app.js' functions are composed in this way.
 
+The Local and AWS Directories try to separate concerns as much as possible. LocalDirectory does not have access to aws-sdk and AWSDirectory does not have access to .fs.
+
 
 ### Code Files
 
@@ -430,11 +431,11 @@ The fundamental application logic is broken into a main file and three class fil
 
 * # MetrichorAPI.js
   *"Making and parsing requests to metrichor.com. AWS Token persistance."*
-  This wraps the http Metrichor API methods and takes care of instance and token persistance. Basically, if we are connected to an instance then MetrichorAPI's 'currentIntance' will be set, this is a truth canonical to the application. We can also request a token from it and the token will be returned alive and well. The MetrichorAPI instance is shared between all other instances in the applicatoin so can be accessed anywhere by using ***this.api***.
+  This wraps the http Metrichor API methods and takes care of instance persistance. Basically, if we are connected to an instance then MetrichorAPI's 'currentInstance' will be set, this is a truth canonical to the application.
 
 * # RemoteDirectory.js
   *"Watching for downloads, downloading files."*
-  This is tasked with keeping an eye on the SQS Queue and physically downloading any files which are ready to be downloaded.
+  This is tasked with keeping an eye on the SQS Queue and physically downloading any files which are ready to be downloaded. This uses the MetrichorAPI.js module to generate AWS tokens.
 
 
 ### Literate Code

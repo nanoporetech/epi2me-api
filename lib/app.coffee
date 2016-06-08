@@ -7,48 +7,57 @@ AWSDirectory = require './Classes/AWSDirectory'
 
 
 
-# MetrichorAPI. This main script just does basic routing. Most of the application logic happens in the class files. So, we Import and create a single instance of each of our three classes, these classes will last the lifetime of the application. We bind events for the two files so they can upload and download files to each other. We also bind progress listeners onto the two directory classes so they can send us status updates.
+# MetrichorAPI. This main script just does basic routing. Most of the application logic happens in the class files. So, we Import and create a single instance of each of our three classes, these classes will last the lifetime of the application.
 
 class MetrichorSync extends EventEmitter
   constructor: (@options) ->
     @api = new MetrichorAPI @options
     @localDirectory = new LocalDirectory @options
-
     @awsDirectory = new AWSDirectory @api
+    @watchEvents()
 
-    @localDirectory.on 'uploadFile', (file, done) =>
-      @awsDirectory.uploadFile file, done
 
-    @awsDirectory.on 'download', (stream, filename, done) =>
-      @localDirectory.saveFile stream, filename, done
 
+
+  # Watch and emit events. Here we echo the progress from each of the two directories and also bind events so that the two directories can communicate for file transfers.
+
+  watchEvents: ->
     @awsDirectory.on 'progress', => @stats()
     @localDirectory.on 'progress', => @stats()
 
+    @localDirectory.on 'uploadFile', (file, done) =>
+      @awsDirectory.uploadFile file, done
+    @awsDirectory.on 'saveDownloadedFile', (stream, filename, done) =>
+      @localDirectory.saveFile stream, filename, done
 
 
 
-  # Collate stats from our class instances. If some stats are requested (either by an event emitter or directly by someone using this module) we collate them together here.
+
+  # Collate the stats from the local and AWS directories.
 
   stats: ->
-    return if not (@localDirectory.stats and @awsDirectory.stats)
-    @localDirectory.calculatePercentage()
-    @awsDirectory.calculatePercentage()
-    complete = @awsDirectory.stats.percentage+@localDirectory.stats.percentage/2
+    return if not (@localDirectory.stats and @awsDirectory.stats?.sqs)
+    local = @localDirectory.stats
+    aws = @awsDirectory.stats
     @emit 'progress', stats =
       instance: @api.loadedInstance
-      upload: @localDirectory.stats
-      download: @awsDirectory.stats
-      percentage: complete
+      progress:
+        files: local.total
+        uploaded: local.downloaded + aws.sqs.output.visible
+        downloaded: local.downloaded
+      transfer:
+        uploading: aws.uploading + aws.sqs.input.visible
+        processing: aws.sqs.input.flight
+        downloading: aws.downloading
 
 
 
 
-  # Create a new App Instance or join an existing one. The api will remember the new instance after it's been created or joined. We can then start the two directories and we're ready to go. If {manualSync: true} was passed into the initial options, we will not start the two directories, we will instead wait for a 'resume' command to be issued.
+  # Create a new App Instance or join an existing one. The api will remember the new instance after it's been created or joined. We can then start the two directories and we're ready to go. If {manualSync: true} was passed into the initial options, we will not start the two directories, we will instead wait for a 'resume' command to be issued before starting the directories.
 
   create: (config, done) ->
     @api.createNewInstance config, (error, instanceID) =>
-      return done? new Error error if error
+      return done? error if error
       @emit 'status', "Created Instance #{instanceID}"
       @join instanceID, done
 
@@ -56,12 +65,9 @@ class MetrichorSync extends EventEmitter
     @api.loadInstance instanceID, (error, instance) =>
       return done? error if error
       @emit 'status', "Joined Instance #{@api.loadedInstance}"
-      return done? no if @options.manualSync
-      @awsDirectory.start instance, (error) =>
-        return done? error if error
-        @localDirectory.start (error) =>
-          return done? error if error
-          done? no
+      return done? no, instanceID if @options.manualSync
+      @awsDirectory.instance = instance
+      @resume done
 
 
 
@@ -70,7 +76,9 @@ class MetrichorSync extends EventEmitter
 
   stop: (done) ->
     @localDirectory.stop (error) =>
+      return done? error if error
       @awsDirectory.stop (error) =>
+        return done? error if error
         loadedInstance = @api.loadedInstance
         @awsDirectory.instance = no
         @api.stopLoadedInstance (error, response) =>
@@ -92,16 +100,20 @@ class MetrichorSync extends EventEmitter
   pause: (done) ->
     return done? new Error 'No App Instance Running' if not @api.loadedInstance
     @localDirectory.stop (error) =>
+      return done? error if error
       @awsDirectory.stop (error) =>
+        return done? error if error
         @emit 'status', "Instance #{@api.loadedInstance} Paused"
         done? no
 
   resume: (done) ->
     return done? new Error 'No App Instance Found' if not @api.loadedInstance
     @localDirectory.start (error) =>
+      return done? error if error
       @awsDirectory.start @awsDirectory.instance, (error) =>
-        @emit 'status', "Instance #{@api.loadedInstance} Resumed"
-        done? no
+        return done? error if error
+        @emit 'status', "Instance #{@api.loadedInstance} Syncing"
+        done? no, @api.loadedInstance
 
 
 
