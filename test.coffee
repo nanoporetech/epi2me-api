@@ -3,17 +3,18 @@ MetrichorAPI = require('./lib/app.coffee')
 app = require('express')().listen 3000
 metrichor = new MetrichorAPI
   apikey: "534373b27eaf4b2e448c1d4c930701f1631d115a"
-  inputFolder: "/Users/dvinyard/Documents/Dev/api/input"
-  outputFolder: "/Users/dvinyard/Documents/Dev/api/input/downloads"
+  inputFolder: "/Users/dvinyard/Documents/Dev/shared/input_medium"
+  outputFolder: "/Users/dvinyard/Documents/Dev/shared/input_medium/downloads"
   url: "https://dev.metrichor.com"
   agent_version: '2.50.0'
   # manualSync: yes
 
 metrichor.on 'progress', (stats) ->
-  console.log JSON.stringify(stats, null, 2)#.percentage
+  console.log "\n\n\n\n"+JSON.stringify(stats, null, 2)#.percentage
+  # console.log "Downloading: " + stats.transfer.downloading
 
 metrichor.on 'status', (status) ->
-  console.log status
+  # console.log status
 
 process.stdin.resume().setEncoding('utf8').on 'data', (text) ->
   command = text.replace '\n', ''
@@ -44,7 +45,7 @@ process.stdin.resume().setEncoding('utf8').on 'data', (text) ->
     return metrichor.stats()
 
   if command is 'join'
-    return metrichor.join 62759, (error) =>
+    return metrichor.join 62763, (error) =>
       console.log error if error
 
   if command_param.length

@@ -12,7 +12,7 @@ class MetrichorAPI
     @options.user_agent = @options.user_agent or 'Metrichor API'
     @options.downloadMode = @options.downloadMode or 'data+telemetry'
     @options.region = @options.region or 'eu-west-1'
-
+    @options.agent_address = @options.agent_address or {geo: lat: 52, lng: 0}
 
 
 
@@ -31,9 +31,17 @@ class MetrichorAPI
       instance.id = instance.id_workflow_instance
       instance.path = [instance.outputqueue, instance.id_user, instance.id_workflow_instance, instance.inputqueue].join '/'
       instance.apikey = @options.apikey
-      instance.queues =
-        input: QueueName: instance.inputqueue
-        output: QueueName: instance.outputqueue
+      instance.messageTemplate =
+        bucket: instance.bucket
+        outputQueue: instance.outputqueue
+        remote_addr: instance.remote_addr
+        user_defined: instance.user_defined or null
+        apikey: instance.apikey
+        id_workflow_instance: instance.id
+        agent_address: @options.agent_address
+      if instance.chain
+        instance.messageTemplate.components = instance.chain.components
+        instance.messageTemplate.targetComponentId = instance.chain.targetComponentId
       @loadedInstance = instance.id
       done? error, instance
 

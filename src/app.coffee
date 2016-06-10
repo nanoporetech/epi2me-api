@@ -1,54 +1,55 @@
 
 EventEmitter = require('events').EventEmitter
 MetrichorAPI = require './Classes/MetrichorAPI'
-LocalDirectory = require './Classes/LocalDirectory'
-AWSDirectory = require './Classes/AWSDirectory'
+SSD = require './Classes/SSD'
+AWS = require './Classes/AWS'
 
 
 
 
-# MetrichorAPI. This main script just does basic routing. Most of the application logic happens in the class files. So, we Import and create a single instance of each of our three classes, these classes will last the lifetime of the application.
+# MetrichorAPI. This main script just does basic routing. Most of the application logic happens in the class files. So, we Import and create a single instance of each of our three classes, these classes will last the lifetime of the application. We also watch for events.
 
 class MetrichorSync extends EventEmitter
   constructor: (@options) ->
     @api = new MetrichorAPI @options
-    @localDirectory = new LocalDirectory @options
-    @awsDirectory = new AWSDirectory @api
-    @watchEvents()
+    @ssd = new SSD @options
+    @aws = new AWS @api, @ssd
+    @aws.on 'progress', @stats
+    @ssd.on 'progress', @stats
+    @aws.on 'status', (status) => @emit 'status', "AWS: #{status}"
+    @ssd.on 'status', (status) => @emit 'status', "SSD: #{status}"
 
 
 
 
-  # Watch and emit events. Here we echo the progress from each of the two directories and also bind events so that the two directories can communicate for file transfers.
+  # Collate the stats from the local and AWS directories. The 'complete' property is calculated from all of the other states. There's a bit of fuzzing in here to stabilise the ApproximateNumberOfMessages returned from SQS.
 
-  watchEvents: ->
-    @awsDirectory.on 'progress', => @stats()
-    @localDirectory.on 'progress', => @stats()
-
-    @localDirectory.on 'uploadFile', (file, done) =>
-      @awsDirectory.uploadFile file, done
-    @awsDirectory.on 'saveDownloadedFile', (stream, filename, done) =>
-      @localDirectory.saveFile stream, filename, done
-
-
-
-
-  # Collate the stats from the local and AWS directories.
-
-  stats: ->
-    return if not (@localDirectory.stats and @awsDirectory.stats?.sqs)
-    local = @localDirectory.stats
-    aws = @awsDirectory.stats
-    @emit 'progress', stats =
+  stats: =>
+    return if not (@ssd.stats and @aws.stats?.sqs)
+    local = @ssd.stats
+    aws = @aws.stats
+    uploading = aws.uploading
+    processed = local.downloaded + aws.sqs.output.visible + aws.sqs.output.flight
+    if @latestStats
+      processed = Math.max processed, @latestStats.progress.processed
+    complete = Math.min(1, (local.downloaded+local.uploaded+processed+((aws.downloading+uploading)/4))/(local.total*3))
+    if @latestStats
+      last_complete = @latestStats?.complete or 0
+      complete = Math.max(last_complete, complete)
+    processed = Math.min processed, local.total
+    @emit 'progress', @latestStats =
       instance: @api.loadedInstance
       progress:
         files: local.total
-        uploaded: local.downloaded + aws.sqs.output.visible
+        uploaded: local.uploaded
+        processed: processed
         downloaded: local.downloaded
       transfer:
-        uploading: aws.uploading + aws.sqs.input.visible
-        processing: aws.sqs.input.flight
+        uploading: uploading
+        processing: aws.sqs.input?.flight + aws.sqs.input?.visible
         downloading: aws.downloading
+        failed: local.upload_failed + aws.failed
+      complete: parseFloat complete.toFixed(3)
 
 
 
@@ -66,7 +67,7 @@ class MetrichorSync extends EventEmitter
       return done? error if error
       @emit 'status', "Joined Instance #{@api.loadedInstance}"
       return done? no, instanceID if @options.manualSync
-      @awsDirectory.instance = instance
+      @aws.instance = instance
       @resume done
 
 
@@ -75,19 +76,19 @@ class MetrichorSync extends EventEmitter
   # Stop the current instance. When a stop command is issued, first stop the two directories and then stop the running App Instance when requested. resetLocalDirectory is a command which restores the localDirectory back to its original state before it was batched.
 
   stop: (done) ->
-    @localDirectory.stop (error) =>
+    @ssd.stop (error) =>
       return done? error if error
-      @awsDirectory.stop (error) =>
+      @aws.stop (error) =>
         return done? error if error
         loadedInstance = @api.loadedInstance
-        @awsDirectory.instance = no
+        @aws.instance = no
         @api.stopLoadedInstance (error, response) =>
           return done? error if error
           @emit 'status', "Stopped Instance #{loadedInstance}"
           done? no
 
   resetLocalDirectory: (done) ->
-    @localDirectory.reset (error) =>
+    @ssd.reset (error) =>
       return done? error if error
       @emit 'status', "Local Directory Reset"
       done?()
@@ -99,20 +100,26 @@ class MetrichorSync extends EventEmitter
 
   pause: (done) ->
     return done? new Error 'No App Instance Running' if not @api.loadedInstance
-    @localDirectory.stop (error) =>
+    @ssd.stop (error) =>
       return done? error if error
-      @awsDirectory.stop (error) =>
+      @aws.stop (error) =>
         return done? error if error
         @emit 'status', "Instance #{@api.loadedInstance} Paused"
         done? no
 
   resume: (done) ->
     return done? new Error 'No App Instance Found' if not @api.loadedInstance
-    @localDirectory.start (error) =>
-      return done? error if error
-      @awsDirectory.start @awsDirectory.instance, (error) =>
-        return done? error if error
+    @ssd.start (error) =>
+      if error
+        @ssd.stop()
+        return done? error
+      @aws.start @aws.instance, (error) =>
+        if error
+          @ssd.stop()
+          @aws.stop()
+          return done? error
         @emit 'status', "Instance #{@api.loadedInstance} Syncing"
+        @stats()
         done? no, @api.loadedInstance
 
 

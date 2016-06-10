@@ -215,7 +215,7 @@ Once an App Instance has either been created or joined, we have the ability to e
             }
           })
 
->** Either function will return an error if there is no App Instance currently running. Keep in mind that there is no concept of pause within the api itself. For the moment, this simply stops the uploading and downloading of files.
+>** Either function will return an error if there is no App Instance currently running. Keep in mind that there is no concept of pause within the api itself. For the moment, this simply stops the transfer of files.
 
 
 
@@ -248,6 +248,7 @@ We can either call the stats function directly. (This will return no value if no
       "progress": {
         "files": 10,
         "uploaded": 4,
+        "processing": 2
         "downloaded": 2
       },
 
@@ -255,6 +256,7 @@ We can either call the stats function directly. (This will return no value if no
         "uploading": 1,
         "processing": 2,
         "downloading": 1
+        "failed": 0
     }***
 
 
@@ -392,20 +394,20 @@ And also the API Requests:
 ## 9. Under the Hood (Dev Notes)
 ##
 
-The fundamental application logic is broken into a main file and three class files. The main file will create a single instance of each of the three classes (api, remoteDirectory, and localDirectory) and these three class instances will live for the lifetime of the application and will handle all of the logic. The project is structured as below: ***/
+The fundamental application logic is broken into a main file and three class files. The main file will create a single instance of each of the three classes (api, SSD, and AWS) and these three class instances will live for the lifetime of the application and will handle all of the logic. The project is structured as below: ***/
 
           - /lib
             - app.js
               - /Classes
-                - LocalDirectory.js
+                - SSD.js
                 - MetrichorAPI.js
-                - RemoteDirectory.js
+                - AWS.js
 
 /*** Ultimately, the methods in app.js simply call methods from its three class instances in turn. Here's a short excerpt from the app file which demonstrates the logic of the metrichor.stop() function in its entirety. **<
 
           function stop(done) {
-            localDirectory.stop(function() {
-              remoteDirectory.stop(function() {
+            SSD.stop(function() {
+              AWS.stop(function() {
                 api.stopCurrentInstance(function() {
                   console.log("Stopped Running Instance");
                   done()
@@ -414,9 +416,9 @@ The fundamental application logic is broken into a main file and three class fil
             }
           }
 
->** First we stop the localDirectory, which prevents all batching and uploads, we then stop the remoteDirectory which prevents all downloads. Finally we send a stop command to the api, which will actually terminate the running instance. All of app.js' functions are composed in this way.
+>** First we stop the SSD, which prevents the file batching, we then stop the AWS which prevents all file transfers. Finally we send a stop command to the api, which will actually terminate the running instance. All of app.js' functions are composed in this way.
 
-The Local and AWS Directories try to separate concerns as much as possible. LocalDirectory does not have access to aws-sdk and AWSDirectory does not have access to .fs.
+The SSD and AWS Directories try to separate concerns as much as possible. SSD does not have access to aws-sdk and AWS does not have access to .fs.
 
 
 ### Code Files
@@ -425,7 +427,7 @@ The Local and AWS Directories try to separate concerns as much as possible. Loca
   *"Basic application logic and routing."*
   This is the entry point of the application which specifies the functions outlined in this document and routes these commands as described. It also collates the stats from the two directory files. Singleton instances of api, remoteDirectory, and localDirectory are retained by this file.
 
-* # LocalDirectory.js
+* # SSD.js
   *"Batching, selecting, uploading, and moving files."*
   This represents the root directory of the filesystem where the .fast5 files are placed from the device. This is tasked with batching up the files in this directory (lots of files!), uploading the batches, and moving files around between various subdirectories once uploaded.
 
@@ -433,7 +435,7 @@ The Local and AWS Directories try to separate concerns as much as possible. Loca
   *"Making and parsing requests to metrichor.com. AWS Token persistance."*
   This wraps the http Metrichor API methods and takes care of instance persistance. Basically, if we are connected to an instance then MetrichorAPI's 'currentInstance' will be set, this is a truth canonical to the application.
 
-* # RemoteDirectory.js
+* # AWS.js
   *"Watching for downloads, downloading files."*
   This is tasked with keeping an eye on the SQS Queue and physically downloading any files which are ready to be downloaded. This uses the MetrichorAPI.js module to generate AWS tokens.
 

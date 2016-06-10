@@ -1,0 +1,207 @@
+
+# Imports and filters.
+
+fs = require 'fs.extra'
+mv = require 'mv'
+mkdirp = require 'mkdirp'
+path = require 'path'
+chokidar = require 'chokidar'
+async = require 'async'
+EventEmitter = require('events').EventEmitter
+WatchJS = require "watchjs"
+
+fast5 = (item) -> return item.slice(-6) is '.fast5'
+isBatch = (item) -> item.slice(0, 6) is 'batch_'
+isProcessing = (item) -> item.slice(-11) is '.processing'
+isPartial = (item)-> item.slice(-8) is '_partial' or isProcessing(item)
+completeBatch = (item) -> isBatch(item) and not isPartial(item)
+partialBatch = (item) -> isBatch(item) and isPartial(item)
+
+
+
+
+# SSD. This represents the root directory of the filesystem where the .fast5 files are placed from the device. This is tasked with batching up the files in this directory (lots of files!), serving batches when requested, and moving files around between various subdirectories. The batch size determines the amount we break up the files for upload. We also extend ourselves as an EventEmitter so we can emit progress updates. Starting the SSD builds the stats object and initialises the batching mechanism.
+
+class SSD extends EventEmitter
+  constructor: (@options) ->
+    @batchSize = 100
+    @isRunning = no
+    @sub =
+      pending: path.join @options.inputFolder, 'pending'
+      uploaded: path.join @options.inputFolder, 'uploaded'
+      upload_failed: path.join @options.inputFolder, 'upload_failed'
+
+  start: (done) ->
+    debugger
+    return done? new Error "Directory already started" if @isRunning
+    mkdirp value for key, value of @sub
+    @initialStats (error) =>
+      return done? error if error
+      @convertToBatches yes, (error) =>
+        @watcher = chokidar.watch @options.inputFolder,
+          depth: 0
+          ignoreInitial: yes
+        @watcher.on 'add', (path) =>
+          @stats.pending += 1
+          return if @isBatching
+          @isBatching = yes
+          @convertToBatches yes, (error) =>
+            @isBatching = no
+        @isRunning = yes
+        done?()
+
+
+
+
+  # Get Starting Stats. This is a count of the files in each directory. This is run when the directory is started. The stats don't distinguish between root and batched items, they are all just listed as 'pending', these stats are therefore independent of the batching mechanism. Once the stats object is created here, it will be modified only when a new file arrives or is uploaded. To calculate the 'pending' value, we need to total all the files in root, all the files in complete batches and all the files in incomplete batches. Incomplete batches must actually be physically counted 🙄. Whenever the stats object changes it will emit a progress event.
+
+  initialStats: (done) ->
+    @stats = {}
+    fs.readdir @sub.pending, (error, pending) =>
+      fs.readdir @sub.uploaded, (error, uploaded) =>
+        fs.readdir @sub.upload_failed, (error, upload_failed) =>
+          fs.readdir @options.inputFolder, (error, inputFolder) =>
+            fs.readdir @options.outputFolder, (error, outputFolder) =>
+              batched = pending.filter(completeBatch).length * @batchSize
+              @stats =
+                pending: batched + inputFolder.filter(fast5).length
+                uploaded: uploaded.filter(fast5).length
+                upload_failed: upload_failed.filter(fast5).length
+                downloaded: outputFolder.filter(fast5).length
+              for partial in pending.filter(partialBatch)
+                location = path.join @sub.pending, partial
+                @stats.pending += fs.readdirSync(location).filter(fast5).length
+              total = @stats.pending + @stats.uploaded + @stats.upload_failed
+              @stats.total = total
+              WatchJS.watch @stats, => @emit 'progress'
+              done? no
+
+
+
+
+  # Batch up the Input Directory. Maintaining large lists of files in memory is not ideal, breaking them into subdirectories means that progress can be stored in the file system itself rather than in memory. The batcher gets called when the application starts and when new files arrive. Its job is to search for files in the '/input' directory and group them into batches in the '/input/pending' directory. enforceBatchSize allows us to create batches even if they do not meet the specified batch size and there are not enough files for a full batch.
+
+  convertToBatches: (enforceBatchSize, done) ->
+    fs.readdir @options.inputFolder, (error, files) =>
+      return done? error if error
+      files = files.filter(fast5)
+      batches = (files.splice(0, @batchSize) while files.length)
+      last_batch = batches[batches.length - 1]
+      batches.pop() if enforceBatchSize and last_batch?.length < @batchSize
+      return done? no if not batches.length
+
+      createBatch = (batch, next) =>
+        moveFile = (file, next) =>
+          mv file.source, file.destination, { mkdirp: yes }, (error) =>
+            return done? error if error
+            async.setImmediate next
+        destination = path.join(@sub.pending, "batch_#{Date.now()}")
+        destination += '_partial' if not enforceBatchSize
+        batch = batch.map (file) => return file =
+          source: path.join(@options.inputFolder, file)
+          destination: path.join(destination, file)
+        async.eachSeries batch, moveFile, (error) ->
+          return done? error if error
+          async.setImmediate next
+      async.eachSeries batches, createBatch, done
+
+
+
+
+  # Find a Batch to Upload. If we need a batch of local files to upload we'll request one here and it will be served if it can be found. The AWS file maintains a loop that will call this function if it finds an upload slot and wants to fill it. If no batches can be found we attempt to create a partial batch from items remaining in the inputFolder root.
+
+  getBatch: (done) ->
+    fs.readdir @sub.pending, (error, batches) =>
+      return done error if error
+      batches = batches?.filter(isBatch)
+      if not batches?.length
+        return fs.readdir @options.inputFolder, (error, files) =>
+          @convertToBatches no if files.filter(fast5).length
+          done()
+      @markAsProcessing path.join(@sub.pending, batches[0]), (error, batch) =>
+        files = fs.readdirSync(batch).map (file) => return file =
+          name: file
+          source: path.join(batch, file)
+        if not files.length
+          @emit 'status', "Batch was empty, kill it and get another"
+          return @removeEmptyBatch batch, => @getBatch done
+        done no, response =
+          source: batch
+          files: files
+
+  getFile: (source, done) ->
+    done no, fs.readFileSync source
+
+
+
+
+  # File and Directory operations. We can either mark a batch as being processed, move a file into the uploaded/upload_failed directory, or move a downloaded file stream into the downloaded directory.
+
+  markAsProcessing: (source, done) ->
+    return done no, source if isProcessing source
+    mv source, "#{source}.processing", { mkdirp: yes }, (error) =>
+      return done error if error
+      done no, "#{source}.processing"
+
+  moveUploadedFile: (file, success, done) =>
+    sub = if success then 'uploaded' else 'upload_failed'
+    destination = path.join @options.inputFolder, sub, file.name
+    mv file.source, destination, (error) =>
+      return done error if error
+      @stats[sub] += 1
+      @emit 'status', "File uploaded"
+      done()
+
+  saveDownloadedFile: (stream, filename, done) =>
+    localFile = fs.createWriteStream path.join @options.outputFolder, filename
+    preExisting = fs.existsSync localFile
+    stream.on 'error', =>
+      @emit 'status', "Download Failed " + filename
+      return done new Error "Download failed" + filename
+    stream.on 'finish', =>
+      if not preExisting
+        @stats.downloaded = Math.min (@stats.downloaded + 1), @stats.total
+      done?()
+    stream.pipe(localFile)
+
+  removeEmptyBatch: (batch, done) =>
+    fs.rmdir batch if fs.existsSync batch
+    done()
+
+
+
+
+  # Stop Directory. When the localDirectory is stopped we kill the filewatcher so that the batcher doesn't run and also disable the uploader loop. We can kill @stats here because they will get rebuilt upon resume (maybe new files appeared while we were paused).
+
+  stop: (done) ->
+    @isRunning = no
+    @watcher.unwatch(@options.inputFolder).close() if @watcher
+    WatchJS.unwatch @stats if @stats
+    @stats = no
+    done?()
+
+
+
+
+  # Reset Directory. And get ready to start. Get all files from all subdirectories back into root if they are not already and remove all of the empty batch_ directories.
+
+  reset: (done) ->
+    if @isRunning
+      return done? new Error "Cannot reset while instance is running"
+    @stop =>
+      rootWalker = fs.walk @options.inputFolder
+      rootWalker.on "file", (directory, stat, next) =>
+        full = path.join @options.inputFolder, stat.name
+        mv path.join(directory, stat.name), full, next
+      rootWalker.on 'end', =>
+        pendingWalker = fs.walk path.join(@options.inputFolder, 'pending')
+        pendingWalker.on "directory", (directory, stat, next) =>
+          try fs.rmdir path.join(directory, stat.name), next
+        pendingWalker.on 'end', => done? no
+
+
+
+
+# Export the module
+
+module.exports = SSD
