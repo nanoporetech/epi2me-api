@@ -14,7 +14,7 @@ class MetrichorSync extends EventEmitter
     return new Error 'No Options' if not @options
     @api = new MetrichorAPI @options
     @ssd = new SSD @options
-    @aws = new AWS @api, @ssd
+    @aws = new AWS @options, @api, @ssd
     @aws.on 'progress', @stats
     @ssd.on 'progress', @stats
     @aws.on 'status', (status) => @emit 'status', "AWS: #{status}"

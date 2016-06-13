@@ -12,7 +12,7 @@ WatchJS = require "watchjs"
 # AWS. This is tasked with keeping an eye on the SQS Queue and physically downloading any files which are ready to be downloaded then removing files from the SQS queue once they have been downloaded. It is also responsible for requesting batches for upload and then uploading them. The two scans are set as onCompletion loops (nextDownloadScan and nextUploadScan).
 
 class AWS extends EventEmitter
-  constructor: (@api, @ssd) ->
+  constructor: (@options, @api, @ssd) ->
     @sqsReceiveConfig =
       VisibilityTimeout: 600
       MaxNumberOfMessages: 10
@@ -183,11 +183,16 @@ class AWS extends EventEmitter
     @token (error, aws) =>
       return done error if error
       messageBody = JSON.parse sqsMessage.Body
+      console.log messageBody
       filename = messageBody.path.match(/[\w\W]*\/([\w\W]*?)$/)[1]
       streamOptions = { Bucket: messageBody.bucket, Key: messageBody.path }
-      stream = aws.s3.getObject(streamOptions).createReadStream()
       @ssd.appendToTelemetry messageBody.telemetry if messageBody.telemetry
-      @ssd.saveDownloadedFile stream, filename, (error) =>
+      folder = messageBody.telemetry.hints.folder
+      mode = @options.downloadMode
+      return @skipFile done if mode is 'telemetry'
+      return @skipFile done if mode is 'success+telemetry' and folder is 'fail'
+      stream = aws.s3.getObject(streamOptions).createReadStream()
+      @ssd.saveDownloadedFile stream, path.join(folder, filename), (error) =>
         if error
           @stats.failed += 1
           @stats.downloading -= 1
@@ -199,6 +204,11 @@ class AWS extends EventEmitter
           @stats.downloading -= 1
           return done? error if error
           done?()
+
+  skipFile: (done) ->
+    @stats.downloading -= 1
+    @ssd.stats.downloaded += 1
+    return done()
 
 
 

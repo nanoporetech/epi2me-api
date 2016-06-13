@@ -3,7 +3,7 @@
 2 info using npm@3.9.3
 3 info using node@v6.2.1
 4 verbose stack Error: Failed to parse json
-4 verbose stack Trailing comma in object at 33:3
+4 verbose stack Trailing comma in object at 23:3
 4 verbose stack   },
 4 verbose stack   ^
 4 verbose stack     at parseError (/usr/local/lib/node_modules/npm/node_modules/read-package-json/read-json.js:390:11)
@@ -20,7 +20,7 @@
 10 error file /Users/dvinyard/Documents/Dev/api/package.json
 11 error code EJSONPARSE
 12 error Failed to parse json
-12 error Trailing comma in object at 33:3
+12 error Trailing comma in object at 23:3
 12 error   },
 12 error   ^
 13 error File: /Users/dvinyard/Documents/Dev/api/package.json

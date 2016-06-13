@@ -19,7 +19,7 @@
     "unirest": "0.5.0",
     "watchjs": "0.0.0",
     "request": "2.62.0",
-    "proxy-agent": "1.1.0",
+    "proxy-agent": "1.1.0"
   },
   "devDependencies": {
     "gulp": "^3.9.1",
