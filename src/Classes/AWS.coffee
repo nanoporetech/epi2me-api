@@ -176,17 +176,17 @@ class AWS extends EventEmitter
 
 
 
-  # Download a file. Having recieved an SQS message we download the linked file and then delete the SQS message. We introduce a delay because we find that hitting AWS with 10 download requests at the same time will occasionally cause some problems.
+  # Download a file. Having recieved an SQS message we download the linked file and then delete the SQS message.
 
   downloadFile: (sqsMessage, done) =>
     @stats.downloading += 1
-    # downloadWithDelay = (delay) =>
     @token (error, aws) =>
       return done error if error
       messageBody = JSON.parse sqsMessage.Body
       filename = messageBody.path.match(/[\w\W]*\/([\w\W]*?)$/)[1]
       streamOptions = { Bucket: messageBody.bucket, Key: messageBody.path }
       stream = aws.s3.getObject(streamOptions).createReadStream()
+      @ssd.appendToTelemetry messageBody.telemetry if messageBody.telemetry
       @ssd.saveDownloadedFile stream, filename, (error) =>
         if error
           @stats.failed += 1
@@ -199,8 +199,6 @@ class AWS extends EventEmitter
           @stats.downloading -= 1
           return done? error if error
           done?()
-    # console.log @stats.downloading * 1000
-    # setTimeout downloadWithDelay, @stats.downloading * 1000
 
 
 

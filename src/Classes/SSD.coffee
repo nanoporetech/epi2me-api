@@ -9,11 +9,12 @@ chokidar = require 'chokidar'
 async = require 'async'
 EventEmitter = require('events').EventEmitter
 WatchJS = require "watchjs"
+os = require 'os'
 
 fast5 = (item) -> return item.slice(-6) is '.fast5'
 isBatch = (item) -> item.slice(0, 6) is 'batch_'
 isProcessing = (item) -> item.slice(-11) is '.processing'
-isPartial = (item)-> item.slice(-8) is '_partial' or isProcessing(item)
+isPartial = (item) -> item.slice(-8) is '_partial' or isProcessing(item)
 completeBatch = (item) -> isBatch(item) and not isPartial(item)
 partialBatch = (item) -> isBatch(item) and isPartial(item)
 
@@ -163,11 +164,25 @@ class SSD extends EventEmitter
       if not preExisting
         @stats.downloaded = Math.min (@stats.downloaded + 1), @stats.total
       done?()
-    stream.pipe(localFile)
+    stream.pipe localFile
 
   removeEmptyBatch: (batch, done) =>
     fs.rmdir batch if fs.existsSync batch
     done()
+
+
+
+
+  # Telemetry stuff
+
+  createTelemetry: (instanceID, done) =>
+    telePath = path.join @options.outputFolder, "telemetry-#{instanceID}.log"
+    @telemetry = fs.createWriteStream telePath, { flags: "a" }
+    @emit 'status', "Logging telemetry to #{path}"
+    done no
+
+  appendToTelemetry: (data) ->
+    @telemetry.write JSON.stringify(data) + os.EOL
 
 
 

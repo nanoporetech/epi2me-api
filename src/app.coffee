@@ -11,6 +11,7 @@ AWS = require './Classes/AWS'
 
 class MetrichorSync extends EventEmitter
   constructor: (@options) ->
+    return new Error 'No Options' if not @options
     @api = new MetrichorAPI @options
     @ssd = new SSD @options
     @aws = new AWS @api, @ssd
@@ -22,10 +23,9 @@ class MetrichorSync extends EventEmitter
 
 
 
-  # Collate the stats from the local and AWS directories. The 'complete' property is calculated from all of the other states. There's a bit of fuzzing in here to stabilise the ApproximateNumberOfMessages returned from SQS.
+  # Collate the stats from the local and AWS directories. The 'complete' property is calculated from all of the other states. There's a bit of fuzzing in here to stabilise the ApproximateNumberOfMessages returned from SQS. The progress and transfer properties give a good summary of the sync state. The upload and download properties are a subset required for the agent.
 
   stats: (key) =>
-    # return if not (@ssd.stats and @aws.stats?.sqs)
     local = @ssd.stats
     aws = @aws.stats
     uploading = aws.uploading
@@ -124,24 +124,23 @@ class MetrichorSync extends EventEmitter
   resume: (done) ->
     return done? new Error 'No App Instance Found' if not @api.loadedInstance
     @ssd.start (error) =>
-      if error
-        @ssd.stop()
-        return done? error
-      @aws.start @aws.instance, (error) =>
+      @ssd.createTelemetry @api.loadedInstance, (error, done) =>
         if error
           @ssd.stop()
-          @aws.stop()
           return done? error
-        @emit 'status', "Instance #{@api.loadedInstance} Syncing"
-        @stats()
-        done? no, id_workflow_instance: @api.loadedInstance
+        @aws.start @aws.instance, (error) =>
+          if error
+            @ssd.stop()
+            @aws.stop()
+            return done? error
+          @emit 'status', "Instance #{@api.loadedInstance} Syncing"
+          @stats()
+          done? no, id_workflow_instance: @api.loadedInstance
 
 
 
 
   # Redefine some legacy method names, add a few coninience methods expected by agent, export the project.
-
-  # Methods expected by agent.
 
   url: -> @options.url
   apikey: -> @options.apikey
