@@ -1,28 +1,29 @@
 
-MetrichorAPI = require('./src/app.coffee')
+MetrichorAPI = require('./lib/app.coffee')
 app = require('express')().listen 3000
 metrichor = new MetrichorAPI
-  apikey: "534373b27eaf4b2e448c1d4c930701f1631d115a"
-  inputFolder: "/Users/dvinyard/Documents/Dev/shared/input_small"
-  outputFolder: "/Users/dvinyard/Documents/Dev/shared/input_small/downloads"
+  apikey: "c7ad1da24f90cfc779d12efb9fef5b4f5ee6bc05"
+  inputFolder: "/Users/ahurst/ONT/smallRun/WIMP"
+  outputFolder: "/Users/ahurst/ONT/smallRun/output"
   url: "https://dev.metrichor.com"
   agent_version: '2.50.0'
-  # manualSync: yes
 
 metrichor.on 'progress', (stats) ->
-  console.log "\n\n\n\n"+JSON.stringify(stats, null, 2)#.percentage
-  # console.log "Downloading: " + stats.transfer.downloading
+  # console.log stats.upload
 
 metrichor.on 'status', (status) ->
   console.log status
+
+# metrichor.api.getAppConfig 627, (error, json) ->
+#   console.log error, json
+
 
 process.stdin.resume().setEncoding('utf8').on 'data', (text) ->
   command = text.replace '\n', ''
   command_param = command.split ' '
 
-
   if command is 'create'
-    return metrichor.create { app: 454 }, (error) =>
+    return metrichor.create { app: 627 }, (error) =>
       console.log error if error
 
   if command is 'reset'
@@ -41,11 +42,8 @@ process.stdin.resume().setEncoding('utf8').on 'data', (text) ->
     return metrichor.resume (error) =>
       console.log error if error
 
-  if command is 'stats'
-    return metrichor.stats()
-
   if command is 'join'
-    return metrichor.join 62768, (error) =>
+    return metrichor.join 62750, (error) =>
       console.log error if error
 
   if command_param.length

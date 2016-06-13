@@ -55,6 +55,8 @@ To get up and running, instantiate a new MetrichorAPI object and pass in some in
           var metrichor = new MetrichorAPI(options);
 >**
 
+npm install -g coffee-script
+npm install -g nodemon
 
 ### Required Config
 

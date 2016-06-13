@@ -21,3 +21,6 @@ just_cover: deps
 	node node_modules/istanbul/lib/cli cover node_modules/mocha/bin/_mocha -- --recursive --reporter xunit-file test
 
 cover: just_cover
+
+build:
+	node node_modules/gulp-cli/bin/gulp.js
