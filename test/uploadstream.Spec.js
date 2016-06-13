@@ -168,8 +168,8 @@ describe('._moveUploadedFile method', function () {
         client._moveUploadedFile(fileName, function (errorMsg) {
             assert.equal(typeof errorMsg, "string", "pass error message to successCb: " + errorMsg);
             //assert(file.uploaded, "flag file as uploaded");
-            fs.stat(tmpfileOut, function fsStatCallback(err) {
-                // assert(err && err.code === 'ENOENT', 'clean up target file. should not exist');
+            fs.stat(tmpfileOut, function fsStatCallback(err, stat) {
+                // assert(err && err.code === 'ENOENT', 'clean up target file. should not exist ' + err || stat);
                 done();
             });
         });
