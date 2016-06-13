@@ -245,6 +245,7 @@ We can either call the stats function directly. (This will return no value if no
 
     ***{
       "instance": "62759",
+
       "progress": {
         "files": 10,
         "uploaded": 4,
@@ -257,6 +258,22 @@ We can either call the stats function directly. (This will return no value if no
         "processing": 2,
         "downloading": 1
         "failed": 0
+
+      "upload": {
+        "success": 6,
+        "failure": {},
+        "queueLength": 0,
+        "totalSize": 6,
+        "total": 979
+      },
+
+      "download": {
+        "success": 6,
+        "fail": 0,
+        "failure": {},
+        "queueLength": 0,
+        "totalSize": 6
+      }
     }***
 
 

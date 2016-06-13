@@ -1,17 +1,23 @@
 {
   "name": "metrichor-api",
   "version": "2.40.1",
-  "repository": "https://git.oxfordnanolabs.local/metrichor/api.git",
   "description": "API for communicating with the Metrichor website(s)",
-  "private": true,
+  "repository": "https://git.oxfordnanolabs.local/metrichor/api.git",
   "main": "lib/app.js",
   "dependencies": {
-    "aws-sdk": "2.2.4",
-    "graceful-fs": "4.1.2",
-    "mkdirp": "0.5.1",
-    "proxy-agent": "1.1.0",
-    "queue-async": "git+https://github.com/rmp/queue.git",
-    "request": "2.62.0"
+    "async": "^1.5.2",
+    "aws-sdk": "^2.2.4",
+    "chokidar": "^1.5.1",
+    "mkdirp": "^0.5.1",
+    "mv": "^2.1.1",
+    "deep-diff": "^0.3.4",
+    "generic-pool": "^2.4.2",
+    "express": "^4.13.4",
+    "path": "^0.12.7",
+    "fs.extra": "^1.3.2",
+    "s3": "^4.4.0",
+    "unirest": "^0.5.0",
+    "watchjs": "^0.0.0"
   },
   "devDependencies": {
     "istanbul": "0.3.2",
@@ -23,7 +29,12 @@
     "xunit-file": "*"
   },
   "scripts": {
-    "start": "nodemon test.coffee",
-    "postinstall": "perl -M\"File::Copy move\" -e \"move(q[node_modules/proxy-agent/node_modules/pac-proxy-agent], q[node_modules/pac-proxy-agent]); move(q[node_modules/proxy-agent/node_modules/socks-proxy-agent], q[node_modules/socks-proxy-agent]); move(q[node_modules/proxy-agent/node_modules/https-proxy-agent], q[node_modules/https-proxy-agent]); move(q[node_modules/proxy-agent/node_modules/http-proxy-agent], q[node_modules/http-proxy-agent]); move(q[node_modules/pac-proxy-agent/node_modules/pac-resolver/node_modules/regenerator/node_modules/defs], q[node_modules/defs]); move(q[node_modules/pac-proxy-agent/node_modules/pac-resolver/node_modules/regenerator/node_modules/commoner], q[node_modules/commoner]); move(q[node_modules/pac-proxy-agent/node_modules/pac-resolver], q[node_modules/pac-resolver]);\""
-  }
+    "start": "nodemon test.coffee"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@git.oxfordnanolabs.local:metrichor/api.git"
+  },
+  "author": "",
+  "license": "ISC"
 }

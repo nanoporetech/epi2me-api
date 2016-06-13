@@ -24,8 +24,8 @@ class MetrichorSync extends EventEmitter
 
   # Collate the stats from the local and AWS directories. The 'complete' property is calculated from all of the other states. There's a bit of fuzzing in here to stabilise the ApproximateNumberOfMessages returned from SQS.
 
-  stats: =>
-    return if not (@ssd.stats and @aws.stats?.sqs)
+  stats: (key) =>
+    # return if not (@ssd.stats and @aws.stats?.sqs)
     local = @ssd.stats
     aws = @aws.stats
     uploading = aws.uploading
@@ -50,6 +50,22 @@ class MetrichorSync extends EventEmitter
         downloading: aws.downloading
         failed: local.upload_failed + aws.failed
       complete: parseFloat complete.toFixed(3)
+      upload:
+        success: processed
+        failure: {} #unused currently
+        queueLength: 0
+        totalSize: processed
+        total: @ssd.stats?.total #including failed
+      download:
+        success: @ssd.stats?.downloaded
+        fail: 0
+        failure: {}
+        queueLength: 0
+        totalSize: @ssd.stats?.downloaded
+
+    console.log @latestStats
+    return @latestStats[key] if key
+    return @latestStats
 
 
 
@@ -76,16 +92,14 @@ class MetrichorSync extends EventEmitter
   # Stop the current instance. When a stop command is issued, first stop the two directories and then stop the running App Instance when requested. resetLocalDirectory is a command which restores the localDirectory back to its original state before it was batched.
 
   stop: (done) ->
-    @ssd.stop (error) =>
-      return done? error if error
-      @aws.stop (error) =>
+    @pause =>
+      loadedInstance = @api.loadedInstance
+      @aws.instance = no
+      @latestStats = {}
+      @api.stopLoadedInstance (error, response) =>
         return done? error if error
-        loadedInstance = @api.loadedInstance
-        @aws.instance = no
-        @api.stopLoadedInstance (error, response) =>
-          return done? error if error
-          @emit 'status', "Stopped Instance #{loadedInstance}"
-          done? no
+        @emit 'status', "Stopped Instance #{loadedInstance}"
+        done? no
 
   resetLocalDirectory: (done) ->
     @ssd.reset (error) =>
@@ -120,13 +134,18 @@ class MetrichorSync extends EventEmitter
           return done? error
         @emit 'status', "Instance #{@api.loadedInstance} Syncing"
         @stats()
-        done? no, @api.loadedInstance
+        done? no, id_workflow_instance: @api.loadedInstance
 
 
 
 
-  # Redefine some legacy method names and Export the project.
+  # Redefine some legacy method names, add a few coninience methods expected by agent, export the project.
 
+  # Methods expected by agent.
+
+  url: -> @options.url
+  apikey: -> @options.apikey
+  attr: (key, value) -> @options[key] = (value or @options[key])
   autoStart: (config, done) -> @create config, done
   autoJoin: (id, done) -> @join id, done
   stop_everything: (done) -> @stop done

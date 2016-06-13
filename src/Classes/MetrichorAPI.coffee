@@ -59,25 +59,26 @@ class MetrichorAPI
   user: (done) ->
     @get 'user', done
 
-  getApp: (id, done) ->
+  getApp: (id, done) =>
     @listApps (error, apps) ->
       done? error, apps.filter((app) -> app.id_workflow is id)[0]
 
-  getAppConfig: (appID, done) ->
+  getAppConfig: (appID, done) =>
     @get "workflow/config/#{appID}", (error, json) ->
       if error?.message is 'Response is not an object'
         return done new Error 'No config found for that instance'
       done? error, json
 
-  listApps: (done) ->
+  listApps: (done) =>
     @get 'workflow', (error, json) ->
-      done? error, json.workflows
+      console.log error, json
+      done? error, json?.workflows
 
   getInstance: (instanceID, done) ->
     @get "workflow_instance/#{instanceID}", (error, json) =>
       done? error, json
 
-  listInstances: (done) ->
+  listInstances: (done) =>
     @get 'workflow_instance', (error, json) ->
       done? error, json.workflow_instances
 

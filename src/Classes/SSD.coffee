@@ -32,7 +32,6 @@ class SSD extends EventEmitter
       upload_failed: path.join @options.inputFolder, 'upload_failed'
 
   start: (done) ->
-    debugger
     return done? new Error "Directory already started" if @isRunning
     mkdirp value for key, value of @sub
     @initialStats (error) =>
@@ -130,7 +129,9 @@ class SSD extends EventEmitter
           files: files
 
   getFile: (source, done) ->
-    done no, fs.readFileSync source
+    fs.readFile source, (error, data) ->
+      return done error if error
+      done no, data
 
 
 
