@@ -178,17 +178,31 @@ class SSD extends EventEmitter
     fs.rmdir batch if fs.existsSync batch
     done()
 
+
+
+
+  # Some directory stats. We can determine whether there is sufficient free space to get anything done and we can also ensure that the input and output directories have the correct permissions.
+
   freeSpace: (done) =>
+    minimumFree = 100
     return done no, yes if @options.downloadMode is 'telemetry'
     disk.check pathRoot(@options.outputFolder), (error, info) ->
       return done error if error
       megabytes_free = Math.floor (info.available / 1024 / 1000)
-      done no, megabytes_free >= 100
+      return done new Error 'No disk space' if megabytes_free <= minimumFree
+      done()
+
+  checkPermissions: (done) =>
+    fs.access @inputFolder, fs.R_OK, (error) ->
+      return done error if error
+      fs.access @outputFolder, fs.W_OK, (error) ->
+        return done error if error
+        done()
 
 
 
 
-  # Telemetry stuff
+  # Telemetry. Here we start a writeStream to a telemetry file. If we are resuming an instance, the telemetry file will already exist, we just link to it. If this is a new instance the file will be created. We can also append a line to this file.
 
   createTelemetry: (instanceID, done) =>
     telePath = path.join @options.outputFolder, "telemetry-#{instanceID}.log"
