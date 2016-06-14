@@ -9,7 +9,7 @@ metrichor = new MetrichorAPI
   outputFolder: "/Users/dvinyard/Documents/Dev/shared/input_small/downloads"
   url: "https://dev.metrichor.com"
   agent_version: '2.50.0'
-  downloadMode: 'telemetry'
+  downloadMode: 'data+telemetry'
   # manualSync: yes
 
 
@@ -54,7 +54,7 @@ process.stdin.resume().setEncoding('utf8').on 'data', (text) ->
       console.log available
 
   if command is 'join'
-    return metrichor.join 62770, (error) =>
+    return metrichor.join 62771, (error) =>
       console.log error if error
 
   if command_param.length

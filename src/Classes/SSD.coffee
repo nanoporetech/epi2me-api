@@ -50,8 +50,17 @@ class SSD extends EventEmitter
           @isBatching = yes
           @convertToBatches yes, (error) =>
             @isBatching = no
-        @isRunning = yes
-        done?()
+        @createTelemetry (error) =>
+          return done? error if error
+          @isRunning = yes
+          done?()
+          console.log 'simulating disk full in 30'
+          setTimeout ( =>
+              @freeSpace = (done) -> return done new Error 'disk full'
+          ), 15000
+          # setTimeout ( =>
+          #     @freeSpace = (done) -> return done no
+          # ), 21000
 
 
 
@@ -165,6 +174,7 @@ class SSD extends EventEmitter
     else if telemetry?.json?.exit_status
       successful = telemetry.json.exit_status.match /workflow[ ]successful/i
       folder = path.join folder, if successful then 'pass' else 'fail'
+    fs.mkdirSync destination if not fs.existsSync destination
     localFile = fs.createWriteStream path.join destination, filename
     preExisting = fs.existsSync localFile
     stream.on 'error', =>
@@ -206,7 +216,8 @@ class SSD extends EventEmitter
 
   # Telemetry. Here we start a writeStream to a telemetry file. If we are resuming an instance, the telemetry file will already exist, we just link to it. If this is a new instance the file will be created. We can also append a line to this file.
 
-  createTelemetry: (instanceID, done) =>
+  createTelemetry: (done) =>
+    instanceID = @api.loadedInstance
     telePath = path.join @options.outputFolder, "telemetry-#{instanceID}.log"
     @telemetry = fs.createWriteStream telePath, { flags: "a" }
     @emit 'status', "Logging telemetry to #{path}"
@@ -220,8 +231,7 @@ class SSD extends EventEmitter
     telePath = path.join @options.outputFolder, teleFile
     return done 0 if not fs.existsSync telePath
     countLinesInFile telePath, (error, lines) =>
-      return done 0 if error
-      done lines
+      done if error then 0 else lines
 
 
 
@@ -232,7 +242,7 @@ class SSD extends EventEmitter
     @isRunning = no
     @watcher.unwatch(@options.inputFolder).close() if @watcher
     WatchJS.unwatch @stats if @stats
-    @stats = no
+    # @stats = no
     done?()
 
 

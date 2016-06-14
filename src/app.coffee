@@ -19,40 +19,20 @@ class MetrichorSync extends EventEmitter
     @ssd.on 'progress', @stats
     @aws.on 'status', (status) => @emit 'status', "AWS: #{status}"
     @ssd.on 'status', (status) => @emit 'status', "SSD: #{status}"
+    @aws.on 'fatal', (error) =>
+      @onFatal(error, no) if @onFatal
+      @pause()
 
 
 
 
-  # Collate the stats from the local and AWS directories. The 'complete' property is calculated from all of the other states. There's a bit of fuzzing in here to stabilise the ApproximateNumberOfMessages returned from SQS. The progress and transfer properties give a good summary of the sync state. The upload and download properties are a subset required for the agent.
+  # Collate the stats from the local and AWS directories into upload and download properties which are structured to be compatable with the existing agent.
 
   stats: (key) =>
-    # local = @ssd.stats or {}
-    # aws = @aws.stats or {}
-    # uploading = aws.uploading
-    # console.log "\n\n\n\n#{JSON.stringify @ssd.stats, null, 2}"
-    # console.log @ssd.stats, @aws.stats
     if @ssd.stats and @aws.stats?.sqs
       processed = @ssd.stats.downloaded + @aws.stats.sqs.output.visible + @aws.stats.sqs.output.flight
-    # if @latestStats
-    #   processed = Math.max processed, @latestStats.progress.processed
-    # complete = Math.min(1, (local.downloaded+local.uploaded+processed+((aws.downloading+uploading)/4))/(local.total*3))
-    # if @latestStats
-    #   last_complete = @latestStats?.complete or 0
-    #   complete = Math.max(last_complete, complete)
-    # processed = Math.min processed, local.total
     @emit 'progress', @latestStats =
       instance: @api.loadedInstance
-      # progress:
-      #   files: local.total
-      #   uploaded: local.uploaded
-      #   processed: processed
-      #   downloaded: local.downloaded
-      # transfer:
-      #   uploading: uploading
-      #   processing: aws.sqs.input?.flight + aws.sqs.input?.visible
-      #   downloading: aws.downloading
-      #   failed: local.upload_failed + aws.failed
-      # complete: parseFloat complete.toFixed(3)
       upload:
         success: @ssd.stats?.uploaded or 0
         failure: {} #unused currently
@@ -66,6 +46,7 @@ class MetrichorSync extends EventEmitter
         queueLength: 0
         totalSize: @ssd.stats?.downloaded
 
+    # console.log "\n\n\n\n#{JSON.stringify @latestStats, null, 2}"
     return @latestStats[key] if key
     return @latestStats
 
@@ -114,6 +95,8 @@ class MetrichorSync extends EventEmitter
 
   # Pause and Resume the current instance. These functions just stop and resume the Local and Remote directories. They stop uploading, downloading and batching without killing the instance.
 
+  # On Fatal passes a message back to the error handler for the start or resume commands, this should make it show up the agent with the current implementation.
+
   pause: (done) ->
     return done? new Error 'No App Instance Running' if not @api.loadedInstance
     @ssd.stop (error) =>
@@ -124,27 +107,19 @@ class MetrichorSync extends EventEmitter
         done? no
 
   resume: (done) ->
+    @onFatal = (error) => done error, no
     return done? new Error 'No App Instance Found' if not @api.loadedInstance
     @ssd.freeSpace (error) =>
       return done? error if error
       @ssd.checkPermissions (error) =>
         return done? error if error
         @ssd.start (error) =>
-          if error
-            @ssd.stop()
-            return done? error
-          @ssd.createTelemetry @api.loadedInstance, (error) =>
-            if error
-              @ssd.stop()
-              return done? error
-            @aws.start @aws.instance, (error) =>
-              if error
-                @ssd.stop()
-                @aws.stop()
-                return done? error
-              @emit 'status', "Instance #{@api.loadedInstance} Syncing"
-              @stats()
-              done? no, id_workflow_instance: @api.loadedInstance
+          return (@pause => done? error) if error
+          @aws.start (error) =>
+            return (@pause => done? error) if error
+            @emit 'status', "Instance #{@api.loadedInstance} Syncing"
+            @stats()
+            done? no, id_workflow_instance: @api.loadedInstance
 
 
 

@@ -11,6 +11,8 @@ WatchJS = require "watchjs"
 
 # AWS. This is tasked with keeping an eye on the SQS Queue and physically downloading any files which are ready to be downloaded then removing files from the SQS queue once they have been downloaded. It is also responsible for requesting batches for upload and then uploading them. The two scans are set as onCompletion loops (nextDownloadScan and nextUploadScan).
 
+# The @instance is set from the main app.js file.
+
 class AWS extends EventEmitter
   constructor: (@options, @api, @ssd) ->
     @sqsReceiveConfig =
@@ -20,7 +22,7 @@ class AWS extends EventEmitter
 
   status: (message) -> @emit 'status', message
 
-  start: (@instance, done) ->
+  start: (done) ->
     return done? new Error "Instance already running" if @isRunning
     @stats =
       uploading: 0
@@ -35,14 +37,10 @@ class AWS extends EventEmitter
             input: input.QueueUrl
             output: output.QueueUrl
           WatchJS.watch @stats, => @emit 'progress'
-          return done error if error
-          @getSQSCount (error) =>
-            @SQSmonitor = setInterval @getSQSCount, 5000
-            return done? error if error
-            @isRunning = yes
-            @nextDownloadScan 1
-            @nextUploadScan 1
-            done?()
+          @isRunning = yes
+          @nextDownloadScan 1
+          @nextUploadScan 1
+          done?()
 
 
 
@@ -73,29 +71,6 @@ class AWS extends EventEmitter
 
 
 
-  # The SQSCount gives us SQS totals on both the input and output queues. This count gets appended to the stats object.
-
-  getSQSCount: (done) =>
-    count = {}
-    getCountForQueue = (queue, done) =>
-      @token (error, aws) =>
-        return done error if error
-        options = { QueueUrl: @instance.url.input, AttributeNames: ['All'] }
-        aws.sqs.getQueueAttributes options, (error, attr) =>
-          attr = attr.Attributes
-          return done error if error
-          return done no, count =
-            visible: parseInt attr.ApproximateNumberOfMessages
-            flight: parseInt attr.ApproximateNumberOfMessagesNotVisible
-    getCountForQueue 'input', (error, input) =>
-      getCountForQueue 'output', (error, output) =>
-        sqsCount = { input: input, output: output }
-        @stats.sqs = sqsCount if diff @stats.sqs, sqsCount
-        done? no
-
-
-
-
   # Here are our scanners, they are going to check the SQS queue and the local file directory every so often and look for things to upload and download.
 
   uploadScan: =>
@@ -110,7 +85,7 @@ class AWS extends EventEmitter
 
   downloadScan: (delay) =>
     @ssd.freeSpace (error, space) =>
-      return @terminate error if error
+      return @fatal 'Disk Full. Delete some files and try again.' if error
       @token (error, aws) =>
         return @downloadScanFailed error if error
         @sqsReceiveConfig.QueueUrl = @instance.url.output
@@ -145,10 +120,10 @@ class AWS extends EventEmitter
     @status "Upload Scan Failed because #{error}"
     return @nextUploadScan 10000
 
-  terminate: (error) =>
+  fatal: (error) =>
+    console.log 'fatal', error
+    @emit 'fatal', error
     @status "Application terminated because #{error}"
-    @ssd.stop (error) =>
-      @stop()
 
 
 
@@ -157,6 +132,7 @@ class AWS extends EventEmitter
 
   uploadFile: (file, done) =>
     @status 'Upload file'
+    return if not @isRunning
     @token (error, aws) =>
       return done? error if error
       @stats.uploading += 1
@@ -166,6 +142,7 @@ class AWS extends EventEmitter
           Key: [@instance.outputqueue, @instance.id_user, @instance.id_workflow_instance, @instance.inputqueue, file.name].join '/'
           Body: data
         aws.s3.putObject S3Object, (error) =>
+          return if not @isRunning
           return done? error if error
           message = @instance.messageTemplate
           message.utc = new Date().toISOString()
@@ -186,6 +163,7 @@ class AWS extends EventEmitter
   # Download a file. Having recieved an SQS message we download the linked file and then delete the SQS message.
 
   downloadFile: (sqsMessage, done) =>
+    return if not @isRunning
     @stats.downloading += 1
     @token (error, aws) =>
       return done error if error
@@ -224,10 +202,8 @@ class AWS extends EventEmitter
   stop: (done) ->
     @isRunning = no
     WatchJS.unwatch @stats if @stats
-    @stats = no
     clearTimeout @uploadTimer
     clearTimeout @downloadTimer
-    clearTimeout @SQSmonitor
     done?()
 
 
