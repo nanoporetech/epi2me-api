@@ -110,7 +110,7 @@ class AWS extends EventEmitter
 
   downloadScan: (delay) =>
     @ssd.freeSpace (error, space) =>
-      return @terminate new Error 'Insufficient disk space' if not space
+      return @terminate error if error
       @token (error, aws) =>
         return @downloadScanFailed error if error
         @sqsReceiveConfig.QueueUrl = @instance.url.output

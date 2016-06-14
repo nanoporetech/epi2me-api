@@ -54,7 +54,7 @@ process.stdin.resume().setEncoding('utf8').on 'data', (text) ->
       console.log available
 
   if command is 'join'
-    return metrichor.join 62768, (error) =>
+    return metrichor.join 62770, (error) =>
       console.log error if error
 
   if command_param.length

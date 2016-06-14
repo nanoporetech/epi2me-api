@@ -12,6 +12,7 @@ WatchJS = require "watchjs"
 os = require 'os'
 disk = require 'diskusage'
 pathRoot = require 'path-root'
+countLinesInFile = require('count-lines-in-file')
 
 fast5 = (item) -> return item.slice(-6) is '.fast5'
 isBatch = (item) -> item.slice(0, 6) is 'batch_'
@@ -26,7 +27,7 @@ partialBatch = (item) -> isBatch(item) and isPartial(item)
 # SSD. This represents the root directory of the filesystem where the .fast5 files are placed from the device. This is tasked with batching up the files in this directory (lots of files!), serving batches when requested, and moving files around between various subdirectories. The batch size determines the amount we break up the files for upload. We also extend ourselves as an EventEmitter so we can emit progress updates. Starting the SSD builds the stats object and initialises the batching mechanism.
 
 class SSD extends EventEmitter
-  constructor: (@options) ->
+  constructor: (@options, @api) ->
     @batchSize = 100
     @isRunning = no
     @sub =
@@ -64,19 +65,20 @@ class SSD extends EventEmitter
         fs.readdir @sub.upload_failed, (error, upload_failed) =>
           fs.readdir @options.inputFolder, (error, inputFolder) =>
             fs.readdir @options.outputFolder, (error, outputFolder) =>
-              batched = pending.filter(completeBatch).length * @batchSize
-              @stats =
-                pending: batched + inputFolder.filter(fast5).length
-                uploaded: uploaded.filter(fast5).length
-                upload_failed: upload_failed.filter(fast5).length
-                downloaded: outputFolder.filter(fast5).length
-              for partial in pending.filter(partialBatch)
-                location = path.join @sub.pending, partial
-                @stats.pending += fs.readdirSync(location).filter(fast5).length
-              total = @stats.pending + @stats.uploaded + @stats.upload_failed
-              @stats.total = total
-              WatchJS.watch @stats, => @emit 'progress'
-              done? no
+              @countTelemetry (lines) =>
+                batched = pending.filter(completeBatch).length * @batchSize
+                @stats =
+                  pending: batched + inputFolder.filter(fast5).length
+                  uploaded: uploaded.filter(fast5).length
+                  upload_failed: upload_failed.filter(fast5).length
+                  downloaded: lines#outputFolder.filter(fast5).length
+                for partial in pending.filter(partialBatch)
+                  source = path.join @sub.pending, partial
+                  @stats.pending += fs.readdirSync(source).filter(fast5).length
+                total = @stats.pending + @stats.uploaded + @stats.upload_failed
+                @stats.total = total
+                WatchJS.watch @stats, => @emit 'progress'
+                done? no
 
 
 
@@ -193,9 +195,9 @@ class SSD extends EventEmitter
       done()
 
   checkPermissions: (done) =>
-    fs.access @inputFolder, fs.R_OK, (error) ->
+    fs.access @options.inputFolder, fs.R_OK, (error) =>
       return done error if error
-      fs.access @outputFolder, fs.W_OK, (error) ->
+      fs.access @options.outputFolder, fs.W_OK, (error) ->
         return done error if error
         done()
 
@@ -212,6 +214,14 @@ class SSD extends EventEmitter
 
   appendToTelemetry: (data) ->
     @telemetry.write JSON.stringify(data) + os.EOL
+
+  countTelemetry: (done) ->
+    teleFile = "telemetry-#{@api.loadedInstance}.log"
+    telePath = path.join @options.outputFolder, teleFile
+    return done 0 if not fs.existsSync telePath
+    countLinesInFile telePath, (error, lines) =>
+      return done 0 if error
+      done lines
 
 
 

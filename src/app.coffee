@@ -13,7 +13,7 @@ class MetrichorSync extends EventEmitter
   constructor: (@options) ->
     return new Error 'No Options' if not @options
     @api = new MetrichorAPI @options
-    @ssd = new SSD @options
+    @ssd = new SSD @options, @api
     @aws = new AWS @options, @api, @ssd
     @aws.on 'progress', @stats
     @ssd.on 'progress', @stats
@@ -26,36 +26,39 @@ class MetrichorSync extends EventEmitter
   # Collate the stats from the local and AWS directories. The 'complete' property is calculated from all of the other states. There's a bit of fuzzing in here to stabilise the ApproximateNumberOfMessages returned from SQS. The progress and transfer properties give a good summary of the sync state. The upload and download properties are a subset required for the agent.
 
   stats: (key) =>
-    local = @ssd.stats
-    aws = @aws.stats
-    uploading = aws.uploading
-    processed = local.downloaded + aws.sqs.output.visible + aws.sqs.output.flight
-    if @latestStats
-      processed = Math.max processed, @latestStats.progress.processed
-    complete = Math.min(1, (local.downloaded+local.uploaded+processed+((aws.downloading+uploading)/4))/(local.total*3))
-    if @latestStats
-      last_complete = @latestStats?.complete or 0
-      complete = Math.max(last_complete, complete)
-    processed = Math.min processed, local.total
+    # local = @ssd.stats or {}
+    # aws = @aws.stats or {}
+    # uploading = aws.uploading
+    # console.log "\n\n\n\n#{JSON.stringify @ssd.stats, null, 2}"
+    # console.log @ssd.stats, @aws.stats
+    if @ssd.stats and @aws.stats?.sqs
+      processed = @ssd.stats.downloaded + @aws.stats.sqs.output.visible + @aws.stats.sqs.output.flight
+    # if @latestStats
+    #   processed = Math.max processed, @latestStats.progress.processed
+    # complete = Math.min(1, (local.downloaded+local.uploaded+processed+((aws.downloading+uploading)/4))/(local.total*3))
+    # if @latestStats
+    #   last_complete = @latestStats?.complete or 0
+    #   complete = Math.max(last_complete, complete)
+    # processed = Math.min processed, local.total
     @emit 'progress', @latestStats =
       instance: @api.loadedInstance
-      progress:
-        files: local.total
-        uploaded: local.uploaded
-        processed: processed
-        downloaded: local.downloaded
-      transfer:
-        uploading: uploading
-        processing: aws.sqs.input?.flight + aws.sqs.input?.visible
-        downloading: aws.downloading
-        failed: local.upload_failed + aws.failed
-      complete: parseFloat complete.toFixed(3)
+      # progress:
+      #   files: local.total
+      #   uploaded: local.uploaded
+      #   processed: processed
+      #   downloaded: local.downloaded
+      # transfer:
+      #   uploading: uploading
+      #   processing: aws.sqs.input?.flight + aws.sqs.input?.visible
+      #   downloading: aws.downloading
+      #   failed: local.upload_failed + aws.failed
+      # complete: parseFloat complete.toFixed(3)
       upload:
-        success: processed
+        success: @ssd.stats?.uploaded or 0
         failure: {} #unused currently
         queueLength: 0
-        totalSize: processed
-        total: @ssd.stats?.total #including failed
+        totalSize: @ssd.stats?.uploaded or 0
+        total: @ssd.stats?.total or 0 #including failed
       download:
         success: @ssd.stats?.downloaded
         fail: 0
@@ -63,7 +66,6 @@ class MetrichorSync extends EventEmitter
         queueLength: 0
         totalSize: @ssd.stats?.downloaded
 
-    console.log @latestStats
     return @latestStats[key] if key
     return @latestStats
 
@@ -128,7 +130,10 @@ class MetrichorSync extends EventEmitter
       @ssd.checkPermissions (error) =>
         return done? error if error
         @ssd.start (error) =>
-          @ssd.createTelemetry @api.loadedInstance, (error, done) =>
+          if error
+            @ssd.stop()
+            return done? error
+          @ssd.createTelemetry @api.loadedInstance, (error) =>
             if error
               @ssd.stop()
               return done? error
