@@ -5,3 +5,5 @@ coverage/
 .idea
 test/.DS_store
 input/
+@options.apikey
+@options.url

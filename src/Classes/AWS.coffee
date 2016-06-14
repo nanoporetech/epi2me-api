@@ -182,17 +182,16 @@ class AWS extends EventEmitter
     @stats.downloading += 1
     @token (error, aws) =>
       return done error if error
-      messageBody = JSON.parse sqsMessage.Body
-      console.log messageBody
-      filename = messageBody.path.match(/[\w\W]*\/([\w\W]*?)$/)[1]
-      streamOptions = { Bucket: messageBody.bucket, Key: messageBody.path }
-      @ssd.appendToTelemetry messageBody.telemetry if messageBody.telemetry
-      folder = messageBody.telemetry.hints.folder
+      body = JSON.parse sqsMessage.Body
+      filename = body.path.match(/[\w\W]*\/([\w\W]*?)$/)[1]
+      streamOptions = { Bucket: body.bucket, Key: body.path }
+      @ssd.appendToTelemetry body.telemetry if body.telemetry
+      folder = body.telemetry.hints?.folder
       mode = @options.downloadMode
       return @skipFile done if mode is 'telemetry'
       return @skipFile done if mode is 'success+telemetry' and folder is 'fail'
       stream = aws.s3.getObject(streamOptions).createReadStream()
-      @ssd.saveDownloadedFile stream, path.join(folder, filename), (error) =>
+      @ssd.saveDownloadedFile stream, filename, body.telemetry, (error) =>
         if error
           @stats.failed += 1
           @stats.downloading -= 1
@@ -208,7 +207,7 @@ class AWS extends EventEmitter
   skipFile: (done) ->
     @stats.downloading -= 1
     @ssd.stats.downloaded += 1
-    return done()
+    done()
 
 
 

@@ -154,8 +154,19 @@ class SSD extends EventEmitter
       @emit 'status', "File uploaded"
       done()
 
-  saveDownloadedFile: (stream, filename, done) =>
-    localFile = fs.createWriteStream path.join @options.outputFolder, filename
+  saveDownloadedFile: (stream, filename, telemetry, done) =>
+    if telemetry.hints
+      folder = telemetry.hints.folder or ''
+      if @options.filterByChannel is 'on' and telemetry.hints.channel_id
+        folder = path.join folder, telemetry.hints.channel_id
+    else
+      if telemetry.json?.exit_status
+        if telemetry.json.exit_status.match /workflow[ ]successful/i
+          folder = path.join folder, "pass"
+        else
+          folder = path.join folder, "fail"
+    destination = path.join @options.outputFolder, folder, filename
+    localFile = fs.createWriteStream destination
     preExisting = fs.existsSync localFile
     stream.on 'error', =>
       @emit 'status', "Download Failed " + filename

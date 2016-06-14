@@ -95,6 +95,10 @@ npm install -g nodemon
     _false_
     Optional. This will default to _false_. When an App Instance is either created or joined, should we begin uploading and downloading files automatically (as per default) or should we wait to be issued a manual **metrichor.resume()** command?
 
+    * ***options.filterByChannel***
+      _"on"_
+      Optional. This will default to _off_. Should we split the downloaded files by the channel they were read from.
+
 
 
 
