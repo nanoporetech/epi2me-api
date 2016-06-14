@@ -155,18 +155,13 @@ class SSD extends EventEmitter
       done()
 
   saveDownloadedFile: (stream, filename, telemetry, done) =>
-    if telemetry.hints
-      folder = telemetry.hints.folder or ''
-      if @options.filterByChannel is 'on' and telemetry.hints.channel_id
-        folder = path.join folder, telemetry.hints.channel_id
-    else
-      if telemetry.json?.exit_status
-        if telemetry.json.exit_status.match /workflow[ ]successful/i
-          folder = path.join folder, "pass"
-        else
-          folder = path.join folder, "fail"
-    destination = path.join @options.outputFolder, folder, filename
-    localFile = fs.createWriteStream destination
+    destination = @options.outputFolder
+    if telemetry?.hints?.folder
+      destination = path.join destination, telemetry.hints.folder
+    else if telemetry?.json?.exit_status
+      successful = telemetry.json.exit_status.match /workflow[ ]successful/i
+      folder = path.join folder, if successful then 'pass' else 'fail'
+    localFile = fs.createWriteStream path.join destination, filename
     preExisting = fs.existsSync localFile
     stream.on 'error', =>
       @emit 'status', "Download Failed " + filename

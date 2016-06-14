@@ -89,15 +89,17 @@ npm install -g nodemon
 
   * ***options.agent_version***
     _"2.50.0"_
-    Optional(ish). If the agent version is outdated it may refuse access, the latest and expected agent versions can be found in the agent documentation. If you are getting an 'agent outdated' error, this property should be included to allow access. Although the app should otherwise generally function without setting this option, some api requests will fail unless it is included.
+    Optional(ish). If the agent version is outdated it may refuse access, the latest and expected agent versions can be found in the agent documentation. If you are getting an 'agent outdated' error, this property should be included to allow access. Although the app should otherwise generally function correctly without setting this option, some api requests may fail unless it is included.
 
   * ***options.manualSync***
     _false_
     Optional. This will default to _false_. When an App Instance is either created or joined, should we begin uploading and downloading files automatically (as per default) or should we wait to be issued a manual **metrichor.resume()** command?
 
-    * ***options.filterByChannel***
-      _"on"_
-      Optional. This will default to _off_. Should we split the downloaded files by the channel they were read from.
+  options.filter === 'on'
+
+  * ***options.filter***
+    _"on"_
+    Optional. This will default to _on_. Should we split the downloaded files into directories ?
 
 
 
