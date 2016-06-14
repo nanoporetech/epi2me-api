@@ -1,8 +1,10 @@
+fs = require 'fs'
 
 MetrichorAPI = require('./src/app.coffee')
 app = require('express')().listen 3000
+apikey = fs.readFileSync './@options.apikey', 'utf8'
 metrichor = new MetrichorAPI
-  apikey: "534373b27eaf4b2e448c1d4c930701f1631d115a"
+  apikey: apikey.trim()
   inputFolder: "/Users/dvinyard/Documents/Dev/shared/input_small"
   outputFolder: "/Users/dvinyard/Documents/Dev/shared/input_small/downloads"
   url: "https://dev.metrichor.com"
@@ -11,8 +13,7 @@ metrichor = new MetrichorAPI
   # manualSync: yes
 
 metrichor.on 'progress', (stats) ->
-  console.log "\n\n\n\n"+JSON.stringify(stats, null, 2)#.percentage
-  # console.log "Downloading: " + stats.transfer.downloading
+  console.log "\n\n\n\n#{JSON.stringify stats, null, 2}"
 
 metrichor.on 'status', (status) ->
   console.log status
