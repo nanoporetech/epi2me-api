@@ -123,19 +123,22 @@ class MetrichorSync extends EventEmitter
 
   resume: (done) ->
     return done? new Error 'No App Instance Found' if not @api.loadedInstance
-    @ssd.start (error) =>
-      @ssd.createTelemetry @api.loadedInstance, (error, done) =>
-        if error
-          @ssd.stop()
-          return done? error
-        @aws.start @aws.instance, (error) =>
+    @ssd.freeSpace (error, space) =>
+      return done? error if error
+      return done? new Error 'Insufficient disk space' if not space
+      @ssd.start (error) =>
+        @ssd.createTelemetry @api.loadedInstance, (error, done) =>
           if error
             @ssd.stop()
-            @aws.stop()
             return done? error
-          @emit 'status', "Instance #{@api.loadedInstance} Syncing"
-          @stats()
-          done? no, id_workflow_instance: @api.loadedInstance
+          @aws.start @aws.instance, (error) =>
+            if error
+              @ssd.stop()
+              @aws.stop()
+              return done? error
+            @emit 'status', "Instance #{@api.loadedInstance} Syncing"
+            @stats()
+            done? no, id_workflow_instance: @api.loadedInstance
 
 
 

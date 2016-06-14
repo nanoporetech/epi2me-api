@@ -12,6 +12,10 @@ metrichor = new MetrichorAPI
   downloadMode: 'telemetry'
   # manualSync: yes
 
+
+
+
+
 metrichor.on 'progress', (stats) ->
   console.log "\n\n\n\n#{JSON.stringify stats, null, 2}"
 
@@ -21,7 +25,6 @@ metrichor.on 'status', (status) ->
 process.stdin.resume().setEncoding('utf8').on 'data', (text) ->
   command = text.replace '\n', ''
   command_param = command.split ' '
-
 
   if command is 'create'
     return metrichor.create { app: 454 }, (error) =>
@@ -45,6 +48,10 @@ process.stdin.resume().setEncoding('utf8').on 'data', (text) ->
 
   if command is 'stats'
     return metrichor.stats()
+
+  if command is 'free'
+    return metrichor.ssd.freeSpace (error, available) =>
+      console.log available
 
   if command is 'join'
     return metrichor.join 62768, (error) =>

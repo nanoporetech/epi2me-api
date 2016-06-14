@@ -109,18 +109,20 @@ class AWS extends EventEmitter
           @nextUploadScan()
 
   downloadScan: (delay) =>
-    @token (error, aws) =>
-      return @downloadScanFailed error if error
-      @sqsReceiveConfig.QueueUrl = @instance.url.output
-      aws.sqs.receiveMessage @sqsReceiveConfig, (error, messages) =>
+    @ssd.freeSpace (error, space) =>
+      return @terminate new Error 'Insufficient disk space' if not space
+      @token (error, aws) =>
         return @downloadScanFailed error if error
-        if not messages?.Messages?.length
-          @status "No SQS Messages found"
-          return @nextDownloadScan()
-        @status "#{messages?.Messages?.length} SQS Messages found"
-        async.eachLimit messages.Messages, 1, @downloadFile, (error) =>
+        @sqsReceiveConfig.QueueUrl = @instance.url.output
+        aws.sqs.receiveMessage @sqsReceiveConfig, (error, messages) =>
           return @downloadScanFailed error if error
-          @nextDownloadScan()
+          if not messages?.Messages?.length
+            @status "No SQS Messages found"
+            return @nextDownloadScan()
+          @status "#{messages?.Messages?.length} SQS Messages found"
+          async.eachLimit messages.Messages, 1, @downloadFile, (error) =>
+            return @downloadScanFailed error if error
+            @nextDownloadScan()
 
 
 
@@ -142,6 +144,11 @@ class AWS extends EventEmitter
   uploadScanFailed: (error) ->
     @status "Upload Scan Failed because #{error}"
     return @nextUploadScan 10000
+
+  terminate: (error) =>
+    @status "Application terminated because #{error}"
+    @ssd.stop (error) =>
+      @stop()
 
 
 

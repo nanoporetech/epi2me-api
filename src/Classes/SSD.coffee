@@ -10,6 +10,8 @@ async = require 'async'
 EventEmitter = require('events').EventEmitter
 WatchJS = require "watchjs"
 os = require 'os'
+disk = require 'diskusage'
+pathRoot = require 'path-root'
 
 fast5 = (item) -> return item.slice(-6) is '.fast5'
 isBatch = (item) -> item.slice(0, 6) is 'batch_'
@@ -175,6 +177,13 @@ class SSD extends EventEmitter
   removeEmptyBatch: (batch, done) =>
     fs.rmdir batch if fs.existsSync batch
     done()
+
+  freeSpace: (done) =>
+    return done no, yes if @options.downloadMode is 'telemetry'
+    disk.check pathRoot(@options.outputFolder), (error, info) ->
+      return done error if error
+      megabytes_free = Math.floor (info.available / 1024 / 1000)
+      done no, megabytes_free >= 100
 
 
 
