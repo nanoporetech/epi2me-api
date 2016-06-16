@@ -254,19 +254,6 @@ We can either call the stats function directly. (This will return no value if no
     ***{
       "instance": "62759",
 
-      "progress": {
-        "files": 10,
-        "uploaded": 4,
-        "processing": 2
-        "downloaded": 2
-      },
-
-      "transfer": {
-        "uploading": 1,
-        "processing": 2,
-        "downloading": 1
-        "failed": 0
-
       "upload": {
         "success": 6,
         "failure": {},
@@ -454,15 +441,15 @@ The SSD and AWS Directories try to separate concerns as much as possible. SSD do
 
 * # SSD.js
   *"Batching, selecting, uploading, and moving files."*
-  This represents the root directory of the filesystem where the .fast5 files are placed from the device. This is tasked with batching up the files in this directory (lots of files!), uploading the batches, and moving files around between various subdirectories once uploaded.
+  This represents the root directory of the filesystem where the .fast5 files are placed from the device. This is tasked with batching up the files in this directory (lots of files!), serving batches for upload, and moving files around between various subdirectories.
 
 * # MetrichorAPI.js
   *"Making and parsing requests to metrichor.com. AWS Token persistance."*
-  This wraps the http Metrichor API methods and takes care of instance persistance. Basically, if we are connected to an instance then MetrichorAPI's 'currentInstance' will be set, this is a truth canonical to the application.
+  This wraps the http Metrichor API methods and takes care of instance persistance.
 
 * # AWS.js
   *"Watching for downloads, downloading files."*
-  This is tasked with keeping an eye on the SQS Queue and physically downloading any files which are ready to be downloaded. This uses the MetrichorAPI.js module to generate AWS tokens.
+  This is tasked with keeping an eye on the SQS Queue and physically transferring any files which are ready to be up or downloaded. This also serves and maintains AWS tokens.
 
 
 ### Literate Code

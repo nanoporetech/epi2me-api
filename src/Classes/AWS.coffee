@@ -37,10 +37,11 @@ class AWS extends EventEmitter
             input: input.QueueUrl
             output: output.QueueUrl
           WatchJS.watch @stats, => @emit 'progress'
-          @isRunning = yes
-          @nextDownloadScan 1
-          @nextUploadScan 1
-          done?()
+          @ssd.createTelemetry @api.loadedInstance, =>
+            @isRunning = yes
+            @nextDownloadScan 1
+            @nextUploadScan 1
+            done?()
 
 
 
@@ -102,7 +103,7 @@ class AWS extends EventEmitter
 
 
 
-  # Scan loop control. These ensure that we loop at a reasonable rate.
+  # Scan loop control. These ensure that we loop at a reasonable rate. We've also got a 'fatal'. If any of the loops fail in a major way we call fatal. This will pause the instance but also send a message to the agent with the text in 'error' which will show up in the status field.
 
   nextDownloadScan: (delay) =>
     return if not @isRunning
@@ -123,7 +124,7 @@ class AWS extends EventEmitter
   fatal: (error) =>
     console.log 'fatal', error
     @emit 'fatal', error
-    @status "Application terminated because #{error}"
+    @status "Instance terminated because #{error}"
 
 
 
@@ -139,7 +140,7 @@ class AWS extends EventEmitter
       @ssd.getFile file.source, (error, data) =>
         S3Object =
           Bucket: @instance.bucket
-          Key: [@instance.outputqueue, @instance.id_user, @instance.id_workflow_instance, @instance.inputqueue, file.name].join '/'
+          Key: [@instance.keypath, file.name].join '/'
           Body: data
         aws.s3.putObject S3Object, (error) =>
           return if not @isRunning

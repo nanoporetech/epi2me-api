@@ -7,46 +7,40 @@ AWS = require './Classes/AWS'
 
 
 
-# MetrichorAPI. This main script just does basic routing. Most of the application logic happens in the class files. So, we Import and create a single instance of each of our three classes, these classes will last the lifetime of the application. We also watch for events.
+# MetrichorAPI. This main script just does basic routing. Most of the application logic happens in the class files. So, we Import and create a single instance of each of our three classes, these classes will last the lifetime of the application. We also watch for events here. Fatal, fatal will stop the instance, reset the local directory and send a message to the agent.
 
 class MetrichorSync extends EventEmitter
   constructor: (@options) ->
     return new Error 'No Options' if not @options
     @api = new MetrichorAPI @options
-    @ssd = new SSD @options, @api
+    @ssd = new SSD @options
     @aws = new AWS @options, @api, @ssd
     @aws.on 'progress', @stats
     @ssd.on 'progress', @stats
     @aws.on 'status', (status) => @emit 'status', "AWS: #{status}"
     @ssd.on 'status', (status) => @emit 'status', "SSD: #{status}"
-    @aws.on 'fatal', (error) =>
-      @onFatal(error, no) if @onFatal
-      @pause()
+    @aws.on 'fatal', (fatalMessage) =>
+      if @onFatal
+        @pause (error) =>
+          @resetLocalDirectory (error) =>
+            @onFatal fatalMessage, no
 
 
 
 
-  # Collate the stats from the local and AWS directories into upload and download properties which are structured to be compatable with the existing agent.
+  # Collate the stats from the local and AWS directories into upload and download properties which are structured to be compatable with the existing agent. This is not the most optimal way of doing
 
   stats: (key) =>
-    if @ssd.stats and @aws.stats?.sqs
-      processed = @ssd.stats.downloaded + @aws.stats.sqs.output.visible + @aws.stats.sqs.output.flight
     @emit 'progress', @latestStats =
       instance: @api.loadedInstance
       upload:
         success: @ssd.stats?.uploaded or 0
-        failure: {} #unused currently
-        queueLength: 0
         totalSize: @ssd.stats?.uploaded or 0
-        total: @ssd.stats?.total or 0 #including failed
+        total: @ssd.stats?.total or 0
       download:
         success: @ssd.stats?.downloaded
-        fail: 0
-        failure: {}
-        queueLength: 0
         totalSize: @ssd.stats?.downloaded
 
-    # console.log "\n\n\n\n#{JSON.stringify @latestStats, null, 2}"
     return @latestStats[key] if key
     return @latestStats
 
@@ -95,7 +89,7 @@ class MetrichorSync extends EventEmitter
 
   # Pause and Resume the current instance. These functions just stop and resume the Local and Remote directories. They stop uploading, downloading and batching without killing the instance.
 
-  # On Fatal passes a message back to the error handler for the start or resume commands, this should make it show up the agent with the current implementation.
+  # We need to talk about onFatal. onFatal hangs onto the completion handler for resume. At any point we can pass an error in and the agent will display it as if there was an error connecting. This is not a good pattern and should be scrapped as soon as the agent can be re-written to accomodate runtime errors.
 
   pause: (done) ->
     return done? new Error 'No App Instance Running' if not @api.loadedInstance

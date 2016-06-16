@@ -26,6 +26,7 @@
     "watchjs": "0.0.0"
   },
   "devDependencies": {
+    "coffee-script": "^1.10.0",
     "gulp": "^3.9.1",
     "gulp-batch": "^1.0.5",
     "gulp-cli": "^1.2.1",
@@ -42,7 +43,8 @@
     "xunit-file": "*"
   },
   "scripts": {
-    "start": "nodemon test.coffee"
+    "start": "nodemon test.coffee",
+    "test": "mocha --compilers coffee:coffee-script/register"
   },
   "author": "",
   "license": "ISC"

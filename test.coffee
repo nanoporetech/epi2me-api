@@ -10,11 +10,6 @@ metrichor = new MetrichorAPI
   url: "https://dev.metrichor.com"
   agent_version: '2.50.0'
   downloadMode: 'data+telemetry'
-  # manualSync: yes
-
-
-
-
 
 metrichor.on 'progress', (stats) ->
   console.log "\n\n\n\n#{JSON.stringify stats, null, 2}"

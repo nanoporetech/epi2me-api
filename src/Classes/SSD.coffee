@@ -12,7 +12,7 @@ WatchJS = require "watchjs"
 os = require 'os'
 disk = require 'diskusage'
 pathRoot = require 'path-root'
-countLinesInFile = require('count-lines-in-file')
+countLinesInFile = require 'count-lines-in-file'
 
 fast5 = (item) -> return item.slice(-6) is '.fast5'
 isBatch = (item) -> item.slice(0, 6) is 'batch_'
@@ -27,7 +27,7 @@ partialBatch = (item) -> isBatch(item) and isPartial(item)
 # SSD. This represents the root directory of the filesystem where the .fast5 files are placed from the device. This is tasked with batching up the files in this directory (lots of files!), serving batches when requested, and moving files around between various subdirectories. The batch size determines the amount we break up the files for upload. We also extend ourselves as an EventEmitter so we can emit progress updates. Starting the SSD builds the stats object and initialises the batching mechanism.
 
 class SSD extends EventEmitter
-  constructor: (@options, @api) ->
+  constructor: (@options) ->
     @batchSize = 100
     @isRunning = no
     @sub =
@@ -37,7 +37,7 @@ class SSD extends EventEmitter
 
   start: (done) ->
     return done? new Error "Directory already started" if @isRunning
-    mkdirp value for key, value of @sub
+    @createSubdirectories()
     @initialStats (error) =>
       return done? error if error
       @convertToBatches yes, (error) =>
@@ -50,17 +50,12 @@ class SSD extends EventEmitter
           @isBatching = yes
           @convertToBatches yes, (error) =>
             @isBatching = no
-        @createTelemetry (error) =>
-          return done? error if error
-          @isRunning = yes
-          done?()
-          console.log 'simulating disk full in 30'
-          setTimeout ( =>
-              @freeSpace = (done) -> return done new Error 'disk full'
-          ), 15000
-          # setTimeout ( =>
-          #     @freeSpace = (done) -> return done no
-          # ), 21000
+        return done? error if error
+        @isRunning = yes
+        done?()
+
+  createSubdirectories: ->
+    mkdirp value for key, value of @sub
 
 
 
@@ -80,7 +75,7 @@ class SSD extends EventEmitter
                   pending: batched + inputFolder.filter(fast5).length
                   uploaded: uploaded.filter(fast5).length
                   upload_failed: upload_failed.filter(fast5).length
-                  downloaded: lines#outputFolder.filter(fast5).length
+                  downloaded: lines
                 for partial in pending.filter(partialBatch)
                   source = path.join @sub.pending, partial
                   @stats.pending += fs.readdirSync(source).filter(fast5).length
@@ -216,10 +211,9 @@ class SSD extends EventEmitter
 
   # Telemetry. Here we start a writeStream to a telemetry file. If we are resuming an instance, the telemetry file will already exist, we just link to it. If this is a new instance the file will be created. We can also append a line to this file.
 
-  createTelemetry: (done) =>
-    instanceID = @api.loadedInstance
-    telePath = path.join @options.outputFolder, "telemetry-#{instanceID}.log"
-    @telemetry = fs.createWriteStream telePath, { flags: "a" }
+  createTelemetry: (instanceID, done) =>
+    @telePath = path.join @options.outputFolder, "telemetry-#{instanceID}.log"
+    @telemetry = fs.createWriteStream @telePath, { flags: "a" }
     @emit 'status', "Logging telemetry to #{path}"
     done no
 
@@ -227,10 +221,8 @@ class SSD extends EventEmitter
     @telemetry.write JSON.stringify(data) + os.EOL
 
   countTelemetry: (done) ->
-    teleFile = "telemetry-#{@api.loadedInstance}.log"
-    telePath = path.join @options.outputFolder, teleFile
-    return done 0 if not fs.existsSync telePath
-    countLinesInFile telePath, (error, lines) =>
+    return done 0 if not fs.existsSync @telePath
+    countLinesInFile @telePath, (error, lines) =>
       done if error then 0 else lines
 
 
@@ -242,7 +234,6 @@ class SSD extends EventEmitter
     @isRunning = no
     @watcher.unwatch(@options.inputFolder).close() if @watcher
     WatchJS.unwatch @stats if @stats
-    # @stats = no
     done?()
 
 

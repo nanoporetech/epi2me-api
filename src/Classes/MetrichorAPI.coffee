@@ -16,6 +16,7 @@ class MetrichorAPI
 
 
 
+
   # Instance Methods. Here we can either load or unload an instance. The instance returned from loadInstance will be passed to AWSDirectory. We have to reatain the ID in @loadedInstance so that we can kill it when needed.
 
   createNewInstance: (config, done) ->
@@ -29,7 +30,7 @@ class MetrichorAPI
       return done? new Error "App Instance not found" if not instance
       return done? new Error "Didn't start" if instance.state is 'stopped'
       instance.id = instance.id_workflow_instance
-      instance.path = [instance.outputqueue, instance.id_user, instance.id_workflow_instance, instance.inputqueue].join '/'
+      instance.keypath = [instance.outputqueue, instance.id_user, instance.id_workflow_instance, instance.inputqueue].join '/'
       instance.apikey = @options.apikey
       instance.messageTemplate =
         bucket: instance.bucket
