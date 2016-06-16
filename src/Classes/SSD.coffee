@@ -37,7 +37,7 @@ class SSD extends EventEmitter
 
   start: (done) ->
     return done? new Error "Directory already started" if @isRunning
-    @createSubdirectories()
+    mkdirp value for key, value of @sub
     @initialStats (error) =>
       return done? error if error
       @convertToBatches yes, (error) =>
@@ -54,9 +54,6 @@ class SSD extends EventEmitter
         @isRunning = yes
         done?()
 
-  createSubdirectories: ->
-    mkdirp value for key, value of @sub
-
 
 
 
@@ -65,24 +62,27 @@ class SSD extends EventEmitter
   initialStats: (done) ->
     @stats = {}
     fs.readdir @sub.pending, (error, pending) =>
+      return done error if error
       fs.readdir @sub.uploaded, (error, uploaded) =>
+        return done error if error
         fs.readdir @sub.upload_failed, (error, upload_failed) =>
+          return done error if error
           fs.readdir @options.inputFolder, (error, inputFolder) =>
-            fs.readdir @options.outputFolder, (error, outputFolder) =>
-              @countTelemetry (lines) =>
-                batched = pending.filter(completeBatch).length * @batchSize
-                @stats =
-                  pending: batched + inputFolder.filter(fast5).length
-                  uploaded: uploaded.filter(fast5).length
-                  upload_failed: upload_failed.filter(fast5).length
-                  downloaded: lines
-                for partial in pending.filter(partialBatch)
-                  source = path.join @sub.pending, partial
-                  @stats.pending += fs.readdirSync(source).filter(fast5).length
-                total = @stats.pending + @stats.uploaded + @stats.upload_failed
-                @stats.total = total
-                WatchJS.watch @stats, => @emit 'progress'
-                done? no
+            return done error if error
+            @countTelemetry (lines) =>
+              batched = pending.filter(completeBatch).length * @batchSize
+              @stats =
+                pending: batched + inputFolder.filter(fast5).length
+                uploaded: uploaded.filter(fast5).length
+                upload_failed: upload_failed.filter(fast5).length
+                downloaded: lines
+              for partial in pending.filter(partialBatch)
+                source = path.join @sub.pending, partial
+                @stats.pending += fs.readdirSync(source).filter(fast5).length
+              total = @stats.pending + @stats.uploaded + @stats.upload_failed
+              @stats.total = total
+              WatchJS.watch @stats, => @emit 'progress'
+              done?()
 
 
 

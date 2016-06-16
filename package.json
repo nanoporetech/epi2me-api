@@ -44,7 +44,7 @@
   },
   "scripts": {
     "start": "nodemon test.coffee",
-    "test": "mocha --compilers coffee:coffee-script/register"
+    "test": "mocha --compilers coffee:coffee-script/register -t 10000"
   },
   "author": "",
   "license": "ISC"

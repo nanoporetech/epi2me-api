@@ -107,13 +107,15 @@ class MetrichorSync extends EventEmitter
       return done? error if error
       @ssd.checkPermissions (error) =>
         return done? error if error
-        @ssd.start (error) =>
-          return (@pause => done? error) if error
-          @aws.start (error) =>
+        @ssd.createTelemetry @api.loadedInstance, (error) =>
+          return done? error if error
+          @ssd.start (error) =>
             return (@pause => done? error) if error
-            @emit 'status', "Instance #{@api.loadedInstance} Syncing"
-            @stats()
-            done? no, id_workflow_instance: @api.loadedInstance
+            @aws.start (error) =>
+              return (@pause => done? error) if error
+              @emit 'status', "Instance #{@api.loadedInstance} Syncing"
+              @stats()
+              done? no, id_workflow_instance: @api.loadedInstance
 
 
 

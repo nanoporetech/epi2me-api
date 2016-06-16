@@ -37,11 +37,10 @@ class AWS extends EventEmitter
             input: input.QueueUrl
             output: output.QueueUrl
           WatchJS.watch @stats, => @emit 'progress'
-          @ssd.createTelemetry @api.loadedInstance, =>
-            @isRunning = yes
-            @nextDownloadScan 1
-            @nextUploadScan 1
-            done?()
+          @isRunning = yes
+          @nextDownloadScan 1
+          @nextUploadScan 1
+          done?()
 
 
 
