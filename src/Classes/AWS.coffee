@@ -76,7 +76,6 @@ class AWS extends EventEmitter
   uploadScan: =>
     @ssd.getBatch (error, batch) =>
       return @uploadScanFailed() if error
-      return @nextUploadScan() if not batch?.files.length
       async.eachLimit batch.files, 10, @uploadFile, (error) =>
         return @uploadScanFailed() if error
         @ssd.removeEmptyBatch batch.source, (error) =>

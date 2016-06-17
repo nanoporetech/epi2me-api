@@ -1,3 +1,4 @@
+
 os = require 'os'
 fs = require 'fs'
 assert = require('chai').assert
@@ -8,6 +9,7 @@ async = require 'async'
 SSD = require '../src/Classes/SSD.coffee'
 
 guid = -> Math.random().toString(36).substring(7)
+fast5 = (item) -> return item.slice(-6) is '.fast5'
 
 
 
@@ -15,31 +17,31 @@ guid = -> Math.random().toString(36).substring(7)
 # Some functions for creating and removing files.
 
 root = "#{os.homedir()}/metrichorAPI_TestRoot"
-test_files = 123
+test_files = Math.floor (Math.random() * 1000)
 
 createTestRoot = (done) ->
-  mkdirp root
-  mkdirp "#{root}/inputFolder"
-  mkdirp "#{root}/outputFolder"
-  filenames = []
-  filenames.push "#{guid()}.fast5" for file in [1..test_files]
-  createFile = (filename, next) ->
-    fs.writeFile "#{root}/inputFolder/#{filename}", 'x', (error) ->
-      return createFile filename, next if error
-      next()
-  async.eachSeries filenames, createFile, done
+  mkdirp root, (err) ->
+    mkdirp "#{root}/inputFolder", (err)  ->
+      mkdirp "#{root}/outputFolder", (err)  ->
+        createFile = (filename, next) ->
+          fs.writeFile "#{root}/inputFolder/#{guid()}.fast5", 'x', (error) ->
+            next()
+        async.eachSeries (new Array(test_files)), createFile, =>
+          done()
+
+deleteFolder = (path) ->
+  return if not fs.existsSync path
+  fs.readdirSync(path).forEach (file, index) ->
+    curPath = "#{path}/#{file}"
+    return fs.unlinkSync curPath if not fs.lstatSync(curPath).isDirectory()
+    deleteFolder curPath
+  fs.rmdirSync path
 
 destroyTestRoot = (done) ->
-  do deleteFolderRecursive = (path = root) ->
-    return if not fs.existsSync path
-    fs.readdirSync(path).forEach (file, index) ->
-      curPath = "#{path}/#{file}"
-      return fs.unlinkSync curPath if not fs.lstatSync(curPath).isDirectory()
-      deleteFolderRecursive curPath
-    fs.rmdirSync path
-  do checkComplete = ->
-    return done() if not fs.existsSync root
-    checkComplete()
+  deleteFolder root
+  done()
+
+
 
 instance = ->
   return new SSD
@@ -51,9 +53,10 @@ instance = ->
 
 # Before we start any test, create an artificial root directory where we can define input and output folders. Populate the input folder with files.
 
-describe 'SSD', ->
+describe "SSD (with #{test_files} files)", ->
+  before destroyTestRoot
 
-  describe 'constructor', ->
+  describe 'constructor()', ->
     ssd = instance()
 
     it 'instantiated correctly', ->
@@ -65,51 +68,9 @@ describe 'SSD', ->
 
 
 
-  # Run start as an integration test. Ensure that the new file functionality works.
-
-  describe 'start', ->
-    before createTestRoot
-    after destroyTestRoot
-    ssd = instance()
-
-    it 'started without error', (done) ->
-      ssd.start (error) ->
-        assert.isUndefined error
-        assert.isTrue ssd.isRunning
-        done()
-
-    it 'built subdirectories', ->
-      assert.isTrue fs.existsSync "#{root}/inputFolder/pending"
-      assert.isTrue fs.existsSync "#{root}/inputFolder/uploaded"
-      assert.isTrue fs.existsSync "#{root}/inputFolder/upload_failed"
-
-    it 'built stats', ->
-      assert.isObject ssd.stats
-
-    it 'created batches', ->
-      rootContents = fs.readdirSync "#{root}/inputFolder"
-      pendingContents = fs.readdirSync "#{root}/inputFolder/pending"
-      assert.equal pendingContents.length, Math.floor test_files/ssd.batchSize
-      assert.equal rootContents.length - 3, test_files%ssd.batchSize
-
-    it 'handles new files', (done) ->
-      newBatchIn = ssd.batchSize - (test_files%ssd.batchSize)
-      for file in [1..newBatchIn]
-        fs.writeFileSync "#{root}/inputFolder/#{guid()}.fast5", 'x'
-      setTimeout (->
-        pendingContents = fs.readdirSync "#{root}/inputFolder/pending"
-        assert.equal ssd.stats.pending, test_files + newBatchIn
-        expectedBatches = (Math.floor test_files/ssd.batchSize) + 1
-        assert.equal pendingContents.length, expectedBatches
-        done()
-      ), 200
-
-
-
-
   # We tested the stats instantiator in the start test, but here we'll run it again with some data moved around a little.
 
-  describe 'initialStats', ->
+  describe 'initialStats()', ->
     before createTestRoot
     after destroyTestRoot
     ssd = instance()
@@ -120,14 +81,19 @@ describe 'SSD', ->
       downloaded: 0
       total: test_files
 
+    # console.log test_stats, 1
+
+
     it 'runs without error', (done) ->
-      mkdirp value for key, value of ssd.sub
-      ssd.initialStats (error) =>
-        assert.isUndefined error
-        done()
+      mkdirp ssd.sub.pending, (err)  ->
+        mkdirp ssd.sub.uploaded, (err)  ->
+          mkdirp ssd.sub.upload_failed, (err)  ->
+            ssd.initialStats (error) =>
+              assert.isUndefined error
+              done()
 
     it 'counted a clean directory', (done) ->
-      assert.deepEqual ssd.stats, test_stats
+      assert.deepEqual test_stats, ssd.stats
       done()
 
     it 'ignored non fast5', (done) ->
@@ -151,15 +117,16 @@ describe 'SSD', ->
 
   # Some batching tests.
 
-  describe 'convertToBatches', ->
+  describe 'convertToBatches()', ->
     before createTestRoot
     after destroyTestRoot
     ssd = instance()
 
-    it 'started unbatched', ->
-      mkdirp value for key, value of ssd.sub
-      fs.readdir "#{root}/inputFolder/pending", (error, pendingContents) ->
-        assert.equal pendingContents.length, 0
+    it 'started unbatched', (done) ->
+      ssd.createSubdirectories ->
+        fs.readdir "#{root}/inputFolder/pending", (error, pendings) ->
+          assert.equal pendings.length, 0
+          done()
 
     it 'batched whilst enforcing size', (done) ->
       ssd.convertToBatches yes, ->
@@ -171,8 +138,272 @@ describe 'SSD', ->
 
     it 'batched without enforcing size', (done) ->
       ssd.convertToBatches no, ->
-        rootContents = fs.readdirSync "#{root}/inputFolder"
-        pendingContents = fs.readdirSync "#{root}/inputFolder/pending"
-        assert.equal pendingContents.length, Math.ceil test_files/ssd.batchSize
-        assert.equal rootContents.length - 3, 0
+        fs.readdir "#{root}/inputFolder", (error, roots) ->
+          fs.readdir "#{root}/inputFolder/pending", (error, pendings) ->
+            assert.equal pendings.length, Math.ceil test_files/ssd.batchSize
+            assert.equal roots.length - 3, 0
+            done()
+
+
+
+
+  # Getting a batch, tests.
+
+  describe 'getBatch()', ->
+    before createTestRoot
+    after destroyTestRoot
+    ssd = instance()
+
+    it 'served an available batch from pending', (done) ->
+      ssd.convertToBatches yes, ->
+        ssd.getBatch (error, batch) ->
+          if test_files > ssd.batchSize
+            assert.isDefined batch
+            assert.isFalse error
+          done()
+
+    it 'marked as processing', ->
+      ssd.getBatch (error, batch) ->
+        isProcessing = (item) -> item.slice(-11) is '.processing'
+        assert.isTrue isProcessing batch.source
         done()
+
+    it 'created and served a batch from root', (done) ->
+      deleteFolder "#{root}/inputFolder/pending"
+      mkdirp "#{root}/inputFolder/pending", (err) ->
+        fs.writeFile "#{root}/inputFolder/#{guid()}.fast5", 'x', ->
+          ssd.getBatch (error, batch) ->
+            assert.isDefined batch
+            assert.isFalse error
+            done()
+
+    it 'responded with No batches', (done) ->
+      deleteFolder "#{root}/inputFolder"
+      mkdirp "#{root}/inputFolder", (error) ->
+        mkdirp "#{root}/inputFolder/pending", (error) ->
+          ssd.getBatch (error, batch) ->
+            assert.equal error.message, 'No batches'
+            done()
+
+
+
+
+  # Move uploaded
+
+  describe 'moveUploadedFile()', ->
+    before createTestRoot
+    after destroyTestRoot
+    ssd = instance()
+    it 'moved succesful upload', (done) ->
+      ssd.createSubdirectories ->
+        fs.readdir "#{root}/inputFolder", (error, files) ->
+          ssd.stats = {}
+          file =
+            name: files.filter(fast5)[0]
+            source: "#{root}/inputFolder/#{files.filter(fast5)[0]}"
+          ssd.moveUploadedFile file, yes, =>
+            fs.readdir "#{root}/inputFolder/uploaded", (error, uploaded) ->
+              assert.isNull error
+              assert.equal uploaded.length, 1
+              fs.readdir "#{root}/inputFolder", (error, input) ->
+                assert.isNull error
+                assert.equal input.length - 3, test_files - 1
+                done()
+
+    it 'moved failed upload', (done) ->
+      ssd.stats = {}
+      ssd.createSubdirectories ->
+        fs.readdir "#{root}/inputFolder", (error, files) ->
+          file =
+            name: files.filter(fast5)[0]
+            source: "#{root}/inputFolder/#{files.filter(fast5)[0]}"
+          ssd.moveUploadedFile file, no, =>
+            fs.readdir "#{root}/inputFolder/upload_failed", (error, failed) ->
+              assert.equal failed.length, 1
+              fs.readdir "#{root}/inputFolder", (error, input) ->
+                assert.equal input.length - 3, test_files - 2
+                done()
+
+
+
+
+  # Save a file to a location specified in a telemetry object.
+
+  describe 'saveDownloadedFile()', ->
+    before createTestRoot
+    after destroyTestRoot
+    ssd = instance()
+
+    it 'saved passing file', (done) ->
+      ssd.stats = {}
+      ssd.createSubdirectories ->
+        mock_s3_item = "#{root}/#{guid()}.fast5"
+        fs.writeFile mock_s3_item, 'x', ->
+          stream = fs.createReadStream mock_s3_item
+          dest = 'saveDownloadedFile_test.fast5'
+          telemetry = hints: folder: 'pass'
+          ssd.saveDownloadedFile stream, dest, telemetry, (error) ->
+            assert.isUndefined error
+            assert.isTrue fs.existsSync "#{root}/outputFolder/pass/#{dest}"
+            done()
+
+    it 'saved failing file', (done) ->
+      ssd.stats = {}
+      ssd.createSubdirectories ->
+        mock_s3_item = "#{root}/#{guid()}.fast5"
+        fs.writeFile mock_s3_item, 'x', ->
+          stream = fs.createReadStream mock_s3_item
+          dest = 'saveDownloadedFile_test.fast5'
+          telemetry = hints: folder: 'fail'
+          ssd.saveDownloadedFile stream, dest, telemetry, (error) ->
+            assert.isUndefined error
+            assert.isTrue fs.existsSync "#{root}/outputFolder/fail/#{dest}"
+            done()
+
+
+
+
+  # Ensure there is free space on the machine
+
+  describe 'freeSpace()', (done) ->
+    ssd = instance()
+    disk = require('diskusage')
+
+    it 'identified free space', (done) ->
+      ssd.freeSpace (error) ->
+        assert.isUndefined error
+        done()
+
+    it 'throws error if no free space', (done) ->
+      stub = sinon.stub disk, 'check', (path, done) ->
+        done no, available: 1
+      ssd.freeSpace (error) ->
+        assert.equal error.message, 'No disk space'
+        disk.check.restore()
+        done()
+
+    it 'ignored telemetry only', (done) ->
+      spy = sinon.spy disk, 'check'
+      ssd.freeSpace (error) ->
+        assert.equal spy.callCount, 1
+        ssd.options.downloadMode = 'telemetry'
+        ssd.freeSpace (error) ->
+          assert.equal spy.callCount, 1
+          delete ssd.options.downloadMode
+          done()
+
+
+
+
+  # telemetry
+
+  describe 'Telemetry', (done) ->
+    before createTestRoot
+    after destroyTestRoot
+    ssd = instance()
+
+    it 'created a telemetry stream', (done) ->
+
+    it 'appended telemetry', (done) ->
+
+    it 'counted telemetry', (done) ->
+
+
+
+
+  # stop
+
+  describe 'stop()', (done) ->
+    before createTestRoot
+    after destroyTestRoot
+    ssd = instance()
+
+    it 'stopped correctly', ->
+
+    it 'stopped watching for files', ->
+
+
+
+
+  # reset
+
+  describe 'reset()', (done) ->
+    before createTestRoot
+    after destroyTestRoot
+    ssd = instance()
+
+    it 'threw an error while running', (done) ->
+
+    it 'stopped correctly', (done) ->
+
+    it 'correctly restored the database', (done) ->
+
+
+
+
+  # Check permissions
+
+  describe 'Misc', (done) ->
+    before createTestRoot
+    after destroyTestRoot
+
+    ssd = instance()
+    disk = require('diskusage')
+    it 'checkPermissions()', (done) ->
+      ssd.checkPermissions (error) ->
+        assert.isUndefined error
+        done()
+
+    it 'markAsProcessing()', (done) ->
+      source = "#{root}/inputFolder/pending/markAsProcessing_test"
+      mkdirp source, (err) ->
+        ssd.markAsProcessing source, (error, destination) ->
+          assert.isFalse error
+          assert.equal destination, "#{source}.processing"
+          done()
+
+
+
+
+  # Run start as an integration test. Ensure that the new file functionality works. This goes last because the file-watcher doesn't always get stopped cleanly and we dont want it polluting later tests.
+
+  describe 'start()', ->
+    ssd = instance()
+    before createTestRoot
+    after -> ssd.stop -> destroyTestRoot ->
+
+    it 'started without error', (done) ->
+      ssd.start (error) ->
+        assert.isUndefined error
+        assert.isTrue ssd.isRunning
+        done()
+
+    it 'built subdirectories', ->
+      assert.isTrue fs.existsSync "#{root}/inputFolder/pending"
+      assert.isTrue fs.existsSync "#{root}/inputFolder/uploaded"
+      assert.isTrue fs.existsSync "#{root}/inputFolder/upload_failed"
+
+    it 'built stats', ->
+      assert.isObject ssd.stats
+
+    it 'created batches', (done) ->
+      fs.readdir "#{root}/inputFolder", (error, rootContents) ->
+        fs.readdir "#{root}/inputFolder/pending", (error, pendingContents) ->
+          assert.equal pendingContents.length, Math.floor test_files/ssd.batchSize
+          assert.equal rootContents.length - 3, test_files%ssd.batchSize
+          done()
+
+    it 'handles new files', (done) ->
+      createFile = (filename, next) ->
+        fs.writeFile "#{root}/inputFolder/#{guid()}.fast5", 'x', (error) ->
+          console.log error if error
+          next()
+      newBatchIn = ssd.batchSize - (test_files%ssd.batchSize)
+      async.eachSeries (new Array(newBatchIn)), createFile, =>
+        setTimeout (-> # Wait for batcher
+          fs.readdir "#{root}/inputFolder/pending", (error, pendings) ->
+            assert.equal ssd.stats.pending, test_files + newBatchIn
+            expectedBatches = (Math.floor test_files/ssd.batchSize) + 1
+            assert.equal pendings.length, expectedBatches
+            done()
+        ), 100

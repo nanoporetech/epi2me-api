@@ -37,22 +37,36 @@ class SSD extends EventEmitter
 
   start: (done) ->
     return done? new Error "Directory already started" if @isRunning
-    mkdirp value for key, value of @sub
-    @initialStats (error) =>
+    @createSubdirectories (error) =>
       return done? error if error
-      @convertToBatches yes, (error) =>
-        @watcher = chokidar.watch @options.inputFolder,
-          depth: 0
-          ignoreInitial: yes
-        @watcher.on 'add', (path) =>
-          @stats.pending += 1
-          return if @isBatching
-          @isBatching = yes
-          @convertToBatches yes, (error) =>
-            @isBatching = no
+      @initialStats (error) =>
         return done? error if error
-        @isRunning = yes
-        done?()
+        @convertToBatches yes, (error) =>
+          return done? error if error
+          @createFileWatcher()
+          @isRunning = yes
+          done?()
+
+  createSubdirectories: (done) ->
+    mkdirp @sub.pending, (error) =>
+      return done? error if error
+      mkdirp @sub.uploaded, (error) =>
+        return done? error if error
+        mkdirp @sub.upload_failed, (error) =>
+          return done? error if error
+          done()
+
+  createFileWatcher: ->
+    @watcher = chokidar.watch @options.inputFolder,
+      depth: 0
+      ignoreInitial: yes
+    @watcher.on 'add', (path) =>
+      return if not fast5(path)
+      @stats.pending += 1
+      return if @isBatching
+      @isBatching = yes
+      @convertToBatches yes, (error) =>
+        @isBatching = no
 
 
 
@@ -96,7 +110,7 @@ class SSD extends EventEmitter
       batches = (files.splice(0, @batchSize) while files.length)
       last_batch = batches[batches.length - 1]
       batches.pop() if enforceBatchSize and last_batch?.length < @batchSize
-      return done? no if not batches.length
+      return done?() if not batches.length
 
       createBatch = (batch, next) =>
         moveFile = (file, next) =>
@@ -124,8 +138,9 @@ class SSD extends EventEmitter
       batches = batches?.filter(isBatch)
       if not batches?.length
         return fs.readdir @options.inputFolder, (error, files) =>
-          @convertToBatches no if files.filter(fast5).length
-          done()
+          return done new Error 'No batches' if not files.filter(fast5).length
+          @convertToBatches no, =>
+            @getBatch done
       @markAsProcessing path.join(@sub.pending, batches[0]), (error, batch) =>
         files = fs.readdirSync(batch).map (file) => return file =
           name: file
@@ -175,7 +190,7 @@ class SSD extends EventEmitter
     stream.on 'error', =>
       @emit 'status', "Download Failed " + filename
       return done new Error "Download failed" + filename
-    stream.on 'finish', =>
+    stream.on 'close', =>
       if not preExisting
         @stats.downloaded = Math.min (@stats.downloaded + 1), @stats.total
       done?()
@@ -192,7 +207,7 @@ class SSD extends EventEmitter
 
   freeSpace: (done) =>
     minimumFree = 100
-    return done no, yes if @options.downloadMode is 'telemetry'
+    return done() if @options.downloadMode is 'telemetry'
     disk.check pathRoot(@options.outputFolder), (error, info) ->
       return done error if error
       megabytes_free = Math.floor (info.available / 1024 / 1000)
