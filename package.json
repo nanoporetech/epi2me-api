@@ -43,8 +43,8 @@
     "xunit-file": "*"
   },
   "scripts": {
-    "start": "nodemon test.coffee",
-    "test": "mocha --compilers coffee:coffee-script/register -t 10000"
+    "start": "nodemon server.coffee",
+    "test": "mocha --compilers coffee:coffee-script/register -t 5000"
   },
   "author": "",
   "license": "ISC"

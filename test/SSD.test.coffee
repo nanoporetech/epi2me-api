@@ -14,7 +14,7 @@ fast5 = (item) -> return item.slice(-6) is '.fast5'
 
 
 
-# Some functions for creating and removing files.
+# Define the root directory and determine the number of test files. Some functions for creating and removing files/directories. Before we start any test, create an artificial root directory where we can define input and output folders Also an instance method to give us a new standard instance.
 
 root = "#{os.homedir()}/metrichorAPI_TestRoot"
 test_files = Math.floor (Math.random() * 1000)
@@ -40,8 +40,6 @@ deleteFolder = (path) ->
 destroyTestRoot = (done) ->
   deleteFolder root
   done()
-
-
 
 instance = ->
   return new SSD
@@ -108,6 +106,7 @@ describe "SSD (with #{test_files} files)", ->
         assert.isUndefined error
         assert.isFalse ssd.isRunning
         done()
+
 
 
 
@@ -338,7 +337,7 @@ describe "SSD (with #{test_files} files)", ->
 
 
 
-  # telemetry
+  # Telemetry methods, ensure the telemetry file is being created, written to and read from successfully.
 
   describe 'Telemetry', (done) ->
     before createTestRoot
@@ -369,7 +368,7 @@ describe "SSD (with #{test_files} files)", ->
 
 
 
-  # reset
+  # Reset the local directory.
 
   describe 'reset()', (done) ->
     before createTestRoot
@@ -398,7 +397,7 @@ describe "SSD (with #{test_files} files)", ->
 
 
 
-  # Check permissions
+  # Any small helper functions. Permissions, mark as processing.
 
   describe 'Misc', (done) ->
     before createTestRoot

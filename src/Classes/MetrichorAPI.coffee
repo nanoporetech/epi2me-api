@@ -21,7 +21,7 @@ class MetrichorAPI
 
   createNewInstance: (config, done) ->
     config.workflow = config.app if config.app
-    @post 'workflow_instance', { json: config }, (error, instance) =>
+    @post 'workflow_instance', { json: config }, (error, instance) ->
       return done? new Error "Didn't start" if instance.state is 'stopped'
       done? error, instance.id_workflow_instance
 
@@ -30,7 +30,12 @@ class MetrichorAPI
       return done? new Error "App Instance not found" if not instance
       return done? new Error "Didn't start" if instance.state is 'stopped'
       instance.id = instance.id_workflow_instance
-      instance.keypath = [instance.outputqueue, instance.id_user, instance.id_workflow_instance, instance.inputqueue].join '/'
+      instance.keypath = [
+        instance.outputqueue,
+        instance.id_user,
+        instance.id_workflow_instance,
+        instance.inputqueue
+      ].join '/'
       instance.apikey = @options.apikey
       instance.messageTemplate =
         bucket: instance.bucket
@@ -42,7 +47,8 @@ class MetrichorAPI
         agent_address: @options.agent_address
       if instance.chain
         instance.messageTemplate.components = instance.chain.components
-        instance.messageTemplate.targetComponentId = instance.chain.targetComponentId
+        componentID = instance.chain.targetComponentId
+        instance.messageTemplate.targetComponentId = componentID
       @loadedInstance = instance.id
       done? error, instance
 
@@ -67,16 +73,15 @@ class MetrichorAPI
   getAppConfig: (appID, done) =>
     @get "workflow/config/#{appID}", (error, json) ->
       if error?.message is 'Response is not an object'
-        return done new Error 'No config found for that instance'
+        return done new Error 'No config found'
       done? error, json
 
   listApps: (done) =>
     @get 'workflow', (error, json) ->
-      console.log error, json
       done? error, json?.workflows
 
   getInstance: (instanceID, done) ->
-    @get "workflow_instance/#{instanceID}", (error, json) =>
+    @get "workflow_instance/#{instanceID}", (error, json) ->
       done? error, json
 
   listInstances: (done) =>

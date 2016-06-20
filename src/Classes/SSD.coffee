@@ -52,7 +52,7 @@ class SSD extends EventEmitter
       return done? error if error
       mkdirp @sub.uploaded, (error) =>
         return done? error if error
-        mkdirp @sub.upload_failed, (error) =>
+        mkdirp @sub.upload_failed, (error) ->
           return done? error if error
           done()
 
@@ -116,7 +116,7 @@ class SSD extends EventEmitter
         return done() if not @isRunning
         moveFile = (file, next) =>
           return done() if not @isRunning
-          mv file.source, file.destination, { mkdirp: yes }, (error) =>
+          mv file.source, file.destination, { mkdirp: yes }, (error) ->
             return done? error if error
             async.setImmediate next
         destination = path.join(@sub.pending, "batch_#{Date.now()}")
@@ -146,7 +146,7 @@ class SSD extends EventEmitter
       @markAsProcessing path.join(@sub.pending, batches[0]), (error, batch) =>
         fs.readdir batch, (error, files) =>
           return done error if error
-          files = files.map (file) => return file =
+          files = files.map (file) -> return file =
             name: file
             source: path.join(batch, file)
           if not files.length
@@ -168,7 +168,7 @@ class SSD extends EventEmitter
 
   markAsProcessing: (source, done) ->
     return done no, source if isProcessing source
-    mv source, "#{source}.processing", { mkdirp: yes }, (error) =>
+    mv source, "#{source}.processing", { mkdirp: yes }, (error) ->
       return done error if error
       done no, "#{source}.processing"
 
@@ -200,7 +200,7 @@ class SSD extends EventEmitter
       done?()
     stream.pipe localFile
 
-  removeEmptyBatch: (batch, done) =>
+  removeEmptyBatch: (batch, done) ->
     fs.rmdir batch if fs.existsSync batch
     done()
 
@@ -243,7 +243,7 @@ class SSD extends EventEmitter
 
   countTelemetry: (done) ->
     return done 0 if not fs.existsSync @telePath
-    countLinesInFile @telePath, (error, lines) =>
+    countLinesInFile @telePath, (error, lines) ->
       done if error then 0 else lines
 
 
@@ -276,9 +276,9 @@ class SSD extends EventEmitter
         mv path.join(directory, stat.name), full, next
       rootWalker.on 'end', =>
         pendingWalker = fs.walk path.join(@options.inputFolder, 'pending')
-        pendingWalker.on "directory", (directory, stat, next) =>
+        pendingWalker.on "directory", (directory, stat, next) ->
           try fs.rmdir path.join(directory, stat.name), next
-        pendingWalker.on 'end', => done? no
+        pendingWalker.on 'end', -> done? no
 
 
 
