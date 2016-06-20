@@ -41,10 +41,10 @@ class SSD extends EventEmitter
       return done? error if error
       @initialStats (error) =>
         return done? error if error
+        @isRunning = yes
         @convertToBatches yes, (error) =>
           return done? error if error
           @createFileWatcher()
-          @isRunning = yes
           done?()
 
   createSubdirectories: (done) ->
@@ -113,7 +113,9 @@ class SSD extends EventEmitter
       return done?() if not batches.length
 
       createBatch = (batch, next) =>
+        return done() if not @isRunning
         moveFile = (file, next) =>
+          return done() if not @isRunning
           mv file.source, file.destination, { mkdirp: yes }, (error) =>
             return done? error if error
             async.setImmediate next
@@ -142,15 +144,17 @@ class SSD extends EventEmitter
           @convertToBatches no, =>
             @getBatch done
       @markAsProcessing path.join(@sub.pending, batches[0]), (error, batch) =>
-        files = fs.readdirSync(batch).map (file) => return file =
-          name: file
-          source: path.join(batch, file)
-        if not files.length
-          @emit 'status', "Batch was empty, kill it and get another"
-          return @removeEmptyBatch batch, => @getBatch done
-        done no, response =
-          source: batch
-          files: files
+        fs.readdir batch, (error, files) =>
+          return done error if error
+          files = files.map (file) => return file =
+            name: file
+            source: path.join(batch, file)
+          if not files.length
+            @emit 'status', "Batch was empty, kill it and get another"
+            return @removeEmptyBatch batch, => @getBatch done
+          done no, response =
+            source: batch
+            files: files
 
   getFile: (source, done) ->
     fs.readFile source, (error, data) ->
@@ -232,8 +236,10 @@ class SSD extends EventEmitter
     @emit 'status', "Logging telemetry to #{path}"
     done no
 
-  appendToTelemetry: (data) ->
-    @telemetry.write JSON.stringify(data) + os.EOL
+  appendToTelemetry: (data, done) ->
+    return done() if not data
+    @telemetry.write (JSON.stringify(data) + os.EOL), ->
+      done()
 
   countTelemetry: (done) ->
     return done 0 if not fs.existsSync @telePath
@@ -246,10 +252,14 @@ class SSD extends EventEmitter
   # Stop Directory. When the localDirectory is stopped we kill the filewatcher so that the batcher doesn't run and also disable the uploader loop. We can kill @stats here because they will get rebuilt upon resume (maybe new files appeared while we were paused).
 
   stop: (done) ->
-    @isRunning = no
-    @watcher.unwatch(@options.inputFolder).close() if @watcher
-    WatchJS.unwatch @stats if @stats
-    done?()
+    batchingDone = =>
+      @isRunning = no
+      @watcher.unwatch(@options.inputFolder).close() if @watcher
+      WatchJS.unwatch @stats if @stats
+      done?()
+    return batchingDone() if not @isBatching
+    setTimeout (=> @stop done), 100
+
 
 
 

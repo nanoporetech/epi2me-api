@@ -169,24 +169,24 @@ class AWS extends EventEmitter
       body = JSON.parse sqsMessage.Body
       filename = body.path.match(/[\w\W]*\/([\w\W]*?)$/)[1]
       streamOptions = { Bucket: body.bucket, Key: body.path }
-      @ssd.appendToTelemetry body.telemetry if body.telemetry
-      folder = body.telemetry.hints?.folder
-      mode = @options.downloadMode
-      return @skipFile done if mode is 'telemetry'
-      return @skipFile done if mode is 'success+telemetry' and folder is 'fail'
-      stream = aws.s3.getObject(streamOptions).createReadStream()
-      @ssd.saveDownloadedFile stream, filename, body.telemetry, (error) =>
-        if error
-          @stats.failed += 1
-          @stats.downloading -= 1
-          return done? error
-        deleteOptions =
-          QueueUrl: @instance.url.output
-          ReceiptHandle: sqsMessage.ReceiptHandle
-        aws.sqs.deleteMessage deleteOptions, (error) =>
-          @stats.downloading -= 1
-          return done? error if error
-          done?()
+      @ssd.appendToTelemetry body.telemetry =>
+        folder = body.telemetry.hints?.folder
+        mode = @options.downloadMode
+        return @skipFile done if mode is 'telemetry'
+        return @skipFile done if mode is 'success+telemetry' and folder is 'fail'
+        stream = aws.s3.getObject(streamOptions).createReadStream()
+        @ssd.saveDownloadedFile stream, filename, body.telemetry, (error) =>
+          if error
+            @stats.failed += 1
+            @stats.downloading -= 1
+            return done? error
+          deleteOptions =
+            QueueUrl: @instance.url.output
+            ReceiptHandle: sqsMessage.ReceiptHandle
+          aws.sqs.deleteMessage deleteOptions, (error) =>
+            @stats.downloading -= 1
+            return done? error if error
+            done?()
 
   skipFile: (done) ->
     @stats.downloading -= 1
