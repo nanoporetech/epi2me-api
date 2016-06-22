@@ -4,13 +4,13 @@ unirest = require 'unirest'
 
 
 
-# MetrichorAPI. This wraps the http Metrichor API methods and allow us to create and kill instances.
+# MetrichorAPI. This wraps the http Metrichor API methods and allow us to create and kill instances. If an instance is running it will be loaded into @instance.
 
 class MetrichorAPI
   constructor: (@options) ->
+    @instance = no
     @options.url = @options.url or 'https://metrichor.com'
     @options.user_agent = @options.user_agent or 'Metrichor API'
-    @options.downloadMode = @options.downloadMode or 'data+telemetry'
     @options.region = @options.region or 'eu-west-1'
     @options.agent_address = @options.agent_address or {geo: lat: 52, lng: 0}
 
@@ -20,13 +20,18 @@ class MetrichorAPI
   # Instance Methods. Here we can either load or unload an instance. The instance returned from loadInstance will be passed to AWSDirectory. We have to reatain the ID in @loadedInstance so that we can kill it when needed.
 
   createNewInstance: (config, done) ->
-    config.workflow = config.app if config.app
+    if config.app
+      config.workflow = config.app
+      # delete config.app
     @post 'workflow_instance', { json: config }, (error, instance) ->
+      return done? error if error
+      return done? new Error "No Instance" if not instance
       return done? new Error "Didn't start" if instance.state is 'stopped'
       done? error, instance.id_workflow_instance
 
   loadInstance: (instanceID, done) ->
     @get "workflow_instance/#{instanceID}", (error, instance) =>
+      return done? error if error
       return done? new Error "App Instance not found" if not instance
       return done? new Error "Didn't start" if instance.state is 'stopped'
       instance.id = instance.id_workflow_instance
@@ -49,14 +54,26 @@ class MetrichorAPI
         instance.messageTemplate.components = instance.chain.components
         componentID = instance.chain.targetComponentId
         instance.messageTemplate.targetComponentId = componentID
-      @loadedInstance = instance.id
+      @instance = instance
       done? error, instance
 
   stopLoadedInstance: (done) ->
-    return done? new Error "No App Instance running" if not @loadedInstance
-    @stopInstance @loadedInstance, (error) =>
-      @loadedInstance = no
+    return done? new Error "No App Instance running" if not @instance
+    @stopInstance @instance.id, (error) =>
+      @instance = no
       done? error
+
+
+
+
+  # Token generation. Ask the MetrichorAPI for a token. We need an instance (above) before we can generate a token.
+
+  getToken: (options, done) ->
+    @post "token", options, (error, token) =>
+      return done? new Error 'No Token Generated' if not token
+      return done? error if error
+      token.region = @instance.region
+      done no, token
 
 
 

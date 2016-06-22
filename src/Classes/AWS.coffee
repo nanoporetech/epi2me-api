@@ -9,12 +9,11 @@ WatchJS = require "watchjs"
 
 
 
-# AWS. This is tasked with keeping an eye on the SQS Queue and physically downloading any files which are ready to be downloaded then removing files from the SQS queue once they have been downloaded. It is also responsible for requesting batches for upload and then uploading them. The two scans are set as onCompletion loops (nextDownloadScan and nextUploadScan).
-
-# The @instance is set from the main app.js file.
+# AWS. This is tasked with keeping an eye on the SQS Queue and physically downloading any files which are ready to be downloaded then removing files from the SQS queue once they have been downloaded. It is also responsible for requesting batches for upload and then uploading them. The two scans are set as onCompletion loops.
 
 class AWS extends EventEmitter
   constructor: (@options, @api, @ssd) ->
+    @options.downloadMode = @options.downloadMode or 'data+telemetry'
     @sqsReceiveConfig =
       VisibilityTimeout: 600
       MaxNumberOfMessages: 10
@@ -23,111 +22,81 @@ class AWS extends EventEmitter
   status: (message) -> @emit 'status', message
 
   start: (done) ->
+    return done? new Error 'No local SSD' if not @ssd
+    return done? new Error 'No MetrichorAPI access' if not @api
+    return done? new Error 'No Instance' if not @api.instance
     return done? new Error "Instance already running" if @isRunning
-    @stats =
-      uploading: 0
-      downloading: 0
-      failed: 0
-    @token (error, aws) =>
-      aws.sqs.getQueueUrl QueueName: @instance.inputqueue, (error, input) =>
-        return done error if error
-        aws.sqs.getQueueUrl QueueName: @instance.outputqueue, (error, output) =>
-          return done error if error
-          @instance.url =
-            input: input.QueueUrl
-            output: output.QueueUrl
-          WatchJS.watch @stats, => @emit 'progress'
-          @isRunning = yes
-          @nextDownloadScan 1
-          @nextUploadScan 1
-          done?()
+    @stats = uploading: 0, downloading: 0, failed: 0
+    WatchJS.watch @stats, => @emit 'progress'
+    @isRunning = yes
+    @nextScan 'download', 1
+    @nextScan 'upload', 1
+    done?()
 
 
 
 
-  # Token. If we need a token we'll ask for it here, if one already exists just give it to us (we therefore retain @currentToken), otherwise generate a new one and give us that instead.
+  # Token. If we need a token we'll ask for it here, if one already exists just give it to us (we therefore retain @currentToken), otherwise generate a new one and give us that instead. We get the queue URLs from amazon here and set them as part of the instance (assuming the url's could be refreshed at the same rate as tokens).
 
   token: (done) ->
     if @currentToken
-      expires = new Date(@currentToken.token.expiration) - new Date()
+      expires = new Date(@currentToken.expiration) - new Date()
       minutesUntilExpiry = Math.floor(expires / 1000 / 60)
       @currentToken = no if minutesUntilExpiry < 10
     return done? no, @currentToken if @currentToken
+
     options =
-      id_workflow_instance: @api.loadedInstance
-      region: @instance.region
+      id_workflow_instance: @api.instance.id
+      region: @api.instance.region
     @status "Attempt to create new token"
-    @api.post "token", options, (error, token) =>
+    @api.getToken options, (error, token) =>
       return done? error if error
-      return done? new Error 'No Token Generated' if not token
       @status "Created new token"
-      token.region = @instance.region
       @currentToken =
-        token: token
         s3: new AWS_SDK.S3 token
         sqs: new AWS_SDK.SQS token
-      done? no, @currentToken
+        expiration: token.expiration
 
-
-
-
-  # Here are our scanners, they are going to check the SQS queue and the local file directory every so often and look for things to upload and download.
-
-  uploadScan: =>
-    @ssd.getBatch (error, batch) =>
-      return @uploadScanFailed() if error
-      async.eachLimit batch.files, 10, @uploadFile, (error) =>
-        return @uploadScanFailed() if error
-        @ssd.removeEmptyBatch batch.source, (error) =>
-          @status "Batch Uploaded"
-          @nextUploadScan()
-
-  downloadScan: (delay) =>
-    @ssd.freeSpace (error, space) =>
-      return @fatal 'Disk Full. Delete some files and try again.' if error
-      @token (error, aws) =>
-        return @downloadScanFailed error if error
-        @sqsReceiveConfig.QueueUrl = @instance.url.output
-        aws.sqs.receiveMessage @sqsReceiveConfig, (error, messages) =>
-          return @downloadScanFailed error if error
-          if not messages?.Messages?.length
-            @status "No SQS Messages found"
-            return @nextDownloadScan()
-          @status "#{messages?.Messages?.length} SQS Messages found"
-          async.eachLimit messages.Messages, 1, @downloadFile, (error) =>
-            return @downloadScanFailed error if error
-            @nextDownloadScan()
+      input = @api.instance.inputqueue
+      output = @api.instance.inputqueue
+      @currentToken.sqs.getQueueUrl QueueName: input, (error, input) =>
+        return done error if error
+        @currentToken.sqs.getQueueUrl QueueName: output, (error, output) =>
+          return done error if error
+          @api.instance.url = input: input.QueueUrl, output: output.QueueUrl
+          done? no, @currentToken
 
 
 
 
   # Scan loop control. These ensure that we loop at a reasonable rate. We've also got a 'fatal'. If any of the loops fail in a major way we call fatal. This will pause the instance but also send a message to the agent with the text in 'error' which will show up in the status field.
 
-  nextDownloadScan: (delay) =>
+  nextScan: (upOrDown, delay) =>
     return if not @isRunning
-    @downloadTimer = setTimeout @downloadScan, (delay or 5000)
+    @["#{upOrDown}Timer"] = setTimeout @["#{upOrDown}Scan"], (delay or 5000)
 
-  downloadScanFailed: (error) ->
-    @status "Download Scan Failed because #{error}"
-    return @nextDownloadScan 10000
-
-  nextUploadScan: (delay) =>
-    return if not @isRunning
-    @uploadTimer = setTimeout @uploadScan, (delay or 5000)
-
-  uploadScanFailed: (error) ->
-    @status "Upload Scan Failed because #{error}"
-    return @nextUploadScan 10000
+  scanFailed: (upOrDown, error) ->
+    @status "#{upOrDown} Scan Failed because #{error}"
+    return @nextScan upOrDown, 10000
 
   fatal: (error) =>
-    console.log 'fatal', error
     @emit 'fatal', error
     @status "Instance terminated because #{error}"
 
 
 
 
-  # Upload a file. A file is an object with a 'filename', 'data', and 'source'. This will upload the file to S3 and append a message to SQS. Once it is complete we will ask the SSD to move it to the required directory.
+  # Upload a file. First our scanner, these scanners check the SQS queue and the local file directory every so often and look for things to upload and download (upload in this case). A file is an object with a 'filename', 'data', and 'source'. This will upload the file to S3 and append a message to SQS. Once it is complete we will ask the SSD to move it to the required directory.
+
+  uploadScan: =>
+    @ssd.getBatch (error, batch) =>
+      return @scanFailed 'upload', error if error
+      async.eachLimit batch.files, 10, @uploadFile, (error) =>
+        return @scanFailed 'upload', error if error
+        @ssd.removeEmptyBatch batch.source, (error) =>
+          return @scanFailed 'upload', error if error
+          @status "Batch Uploaded"
+          @nextScan 'upload'
 
   uploadFile: (file, done) =>
     @status 'Upload file'
@@ -137,17 +106,17 @@ class AWS extends EventEmitter
       @stats.uploading += 1
       @ssd.getFile file.source, (error, data) =>
         S3Object =
-          Bucket: @instance.bucket
-          Key: [@instance.keypath, file.name].join '/'
+          Bucket: @api.instance.bucket
+          Key: [@api.instance.keypath, file.name].join '/'
           Body: data
         aws.s3.putObject S3Object, (error) =>
           return if not @isRunning
           return done? error if error
-          message = @instance.messageTemplate
+          message = @api.instance.messageTemplate
           message.utc = new Date().toISOString()
-          message.path = [@instance.path, file.name].join '/'
+          message.path = [@api.instance.path, file.name].join '/'
           SQSSendOptions =
-            QueueUrl: @instance.url.input
+            QueueUrl: @api.instance.url.input
             MessageBody: JSON.stringify message
           aws.sqs.sendMessage SQSSendOptions, (error) =>
             success = !error?
@@ -161,6 +130,22 @@ class AWS extends EventEmitter
 
   # Download a file. Having recieved an SQS message we download the linked file and then delete the SQS message.
 
+  downloadScan: (delay) =>
+    @ssd.freeSpace (error, space) =>
+      return @fatal 'Disk Full. Delete some files and try again.' if error
+      @token (error, aws) =>
+        return @scanFailed 'download', error if error
+        @sqsReceiveConfig.QueueUrl = @api.instance.url.output
+        aws.sqs.receiveMessage @sqsReceiveConfig, (error, messages) =>
+          return @scanFailed 'download', error if error
+          if not messages?.Messages?.length
+            @status "No SQS Messages found"
+            return @nextScan 'download'
+          @status "#{messages?.Messages?.length} SQS Messages found"
+          async.eachLimit messages.Messages, 1, @downloadFile, (error) =>
+            return @scanFailed 'download', error if error
+            @nextScan 'download'
+
   downloadFile: (sqsMessage, done) =>
     return if not @isRunning
     @stats.downloading += 1
@@ -170,10 +155,10 @@ class AWS extends EventEmitter
       filename = body.path.match(/[\w\W]*\/([\w\W]*?)$/)[1]
       streamOptions = { Bucket: body.bucket, Key: body.path }
       @ssd.appendToTelemetry body.telemetry =>
-        folder = body.telemetry.hints?.folder
+        failed = body.telemetry.hints?.folder is 'fail'
         mode = @options.downloadMode
         return @skipFile done if mode is 'telemetry'
-        return @skipFile done if mode is 'success+telemetry' and folder is 'fail'
+        return @skipFile done if mode is 'success+telemetry' and failed
         stream = aws.s3.getObject(streamOptions).createReadStream()
         @ssd.saveDownloadedFile stream, filename, body.telemetry, (error) =>
           if error
@@ -181,7 +166,7 @@ class AWS extends EventEmitter
             @stats.downloading -= 1
             return done? error
           deleteOptions =
-            QueueUrl: @instance.url.output
+            QueueUrl: @api.instance.url.output
             ReceiptHandle: sqsMessage.ReceiptHandle
           aws.sqs.deleteMessage deleteOptions, (error) =>
             @stats.downloading -= 1

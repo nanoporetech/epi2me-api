@@ -5,7 +5,6 @@ assert = require('chai').assert
 sinon = require 'sinon'
 mkdirp = require 'mkdirp'
 async = require 'async'
-
 SSD = require '../src/Classes/SSD.coffee'
 
 guid = -> Math.random().toString(36).substring(7)
@@ -26,7 +25,7 @@ createTestRoot = (done) ->
         createFile = (filename, next) ->
           fs.writeFile "#{root}/inputFolder/#{guid()}.fast5", 'x', (error) ->
             next()
-        async.eachSeries (new Array(test_files)), createFile, =>
+        async.eachSeries (new Array(test_files)), createFile, ->
           done()
 
 deleteFolder = (path) ->
@@ -92,7 +91,7 @@ describe "SSD (with #{test_files} files)", ->
           console.log error if error
           next()
       newBatchIn = ssd.batchSize - (test_files%ssd.batchSize)
-      async.eachSeries (new Array(newBatchIn)), createFile, =>
+      async.eachSeries (new Array(newBatchIn)), createFile, ->
         setTimeout (-> # Wait for batcher
           fs.readdir "#{root}/inputFolder/pending", (error, pendings) ->
             assert.equal ssd.stats.pending, test_files + newBatchIn
@@ -102,7 +101,7 @@ describe "SSD (with #{test_files} files)", ->
         ), 100
 
     it 'stopped without error', (done) ->
-      ssd.stop (error) =>
+      ssd.stop (error) ->
         assert.isUndefined error
         assert.isFalse ssd.isRunning
         done()
@@ -127,7 +126,7 @@ describe "SSD (with #{test_files} files)", ->
       mkdirp ssd.sub.pending, (err)  ->
         mkdirp ssd.sub.uploaded, (err)  ->
           mkdirp ssd.sub.upload_failed, (err)  ->
-            ssd.initialStats (error) =>
+            ssd.initialStats (error) ->
               assert.isUndefined error
               done()
 
@@ -243,7 +242,7 @@ describe "SSD (with #{test_files} files)", ->
           file =
             name: files.filter(fast5)[0]
             source: "#{root}/inputFolder/#{files.filter(fast5)[0]}"
-          ssd.moveUploadedFile file, yes, =>
+          ssd.moveUploadedFile file, yes, ->
             fs.readdir "#{root}/inputFolder/uploaded", (error, uploaded) ->
               assert.isNull error
               assert.equal uploaded.length, 1
@@ -259,7 +258,7 @@ describe "SSD (with #{test_files} files)", ->
           file =
             name: files.filter(fast5)[0]
             source: "#{root}/inputFolder/#{files.filter(fast5)[0]}"
-          ssd.moveUploadedFile file, no, =>
+          ssd.moveUploadedFile file, no, ->
             fs.readdir "#{root}/inputFolder/upload_failed", (error, failed) ->
               assert.equal failed.length, 1
               fs.readdir "#{root}/inputFolder", (error, input) ->

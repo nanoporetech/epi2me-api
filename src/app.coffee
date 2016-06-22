@@ -32,7 +32,7 @@ class MetrichorSync extends EventEmitter
 
   stats: (key) =>
     @emit 'progress', @latestStats =
-      instance: @api.loadedInstance
+      instance: @api.instance.id
       upload:
         success: @ssd.stats?.uploaded or 0
         totalSize: @ssd.stats?.uploaded or 0
@@ -58,9 +58,8 @@ class MetrichorSync extends EventEmitter
   join: (instanceID, done) ->
     @api.loadInstance instanceID, (error, instance) =>
       return done? error if error
-      @emit 'status', "Joined Instance #{@api.loadedInstance}"
+      @emit 'status', "Joined Instance #{@api.instance.id}"
       return done? no, instanceID if @options.manualSync
-      @aws.instance = instance
       @resume done
 
 
@@ -70,8 +69,7 @@ class MetrichorSync extends EventEmitter
 
   stop: (done) ->
     @pause =>
-      loadedInstance = @api.loadedInstance
-      @aws.instance = no
+      loadedInstance = @api.instance.id
       @latestStats = {}
       @api.stopLoadedInstance (error, response) =>
         return done? error if error
@@ -89,33 +87,33 @@ class MetrichorSync extends EventEmitter
 
   # Pause and Resume the current instance. These functions just stop and resume the Local and Remote directories. They stop uploading, downloading and batching without killing the instance.
 
-  # We need to talk about onFatal. onFatal hangs onto the completion handler for resume. At any point we can pass an error in and the agent will display it as if there was an error connecting. This is not a good pattern and should be scrapped as soon as the agent can be re-written to accomodate runtime errors.
+  # We need to talk about onFatal. onFatal hangs onto the completion handler for resume. At any point we can pass an error in and the agent will display it as if there was an error connecting. This is not a good pattern and should be scrapped as soon as the agent can be re-written to accomodate runtime errors more elegantly.
 
   pause: (done) ->
-    return done? new Error 'No App Instance Running' if not @api.loadedInstance
+    return done? new Error 'No App Instance Running' if not @api.instance.id
     @ssd.stop (error) =>
       return done? error if error
       @aws.stop (error) =>
         return done? error if error
-        @emit 'status', "Instance #{@api.loadedInstance} Paused"
+        @emit 'status', "Instance #{@api.instance.id} Paused"
         done? no
 
   resume: (done) ->
-    @onFatal = (error) => done error, no
-    return done? new Error 'No App Instance Found' if not @api.loadedInstance
+    @onFatal = (error) -> done error, no
+    return done? new Error 'No App Instance Found' if not @api.instance.id
     @ssd.freeSpace (error) =>
       return done? error if error
       @ssd.checkPermissions (error) =>
         return done? error if error
-        @ssd.createTelemetry @api.loadedInstance, (error) =>
+        @ssd.createTelemetry @api.instance.id, (error) =>
           return done? error if error
           @ssd.start (error) =>
-            return (@pause => done? error) if error
+            return (@pause -> done? error) if error
             @aws.start (error) =>
-              return (@pause => done? error) if error
-              @emit 'status', "Instance #{@api.loadedInstance} Syncing"
+              return (@pause -> done? error) if error
+              @emit 'status', "Instance #{@api.instance.id} Syncing"
               @stats()
-              done? no, id_workflow_instance: @api.loadedInstance
+              done? no, id_workflow_instance: @api.instance.id
 
 
 

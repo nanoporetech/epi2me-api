@@ -8,9 +8,12 @@ apikey = fs.readFileSync('./@options.apikey', 'utf8').trim()
 
 root = "#{os.homedir()}/metrichorAPI_TestRoot"
 
+
+
+
+# Create a new instance here. The agent_version is required for the getApp() endpoint to respond in the affermative.
+
 options =
-  inputFolder: "#{root}/inputFolder"
-  outputFolder: "#{root}/outputFolder"
   apikey: apikey
   url: "https://dev.metrichor.com"
   agent_version: "2.41"
@@ -20,13 +23,11 @@ config = { app: 454 }
 instanceID = no
 
 
+
+
+# Run an integration test to check that an instance is created successfully. This will create a new workflow instance which we will then kill.
+
 describe "MetrichorAPI", ->
-
-
-
-
-  # Run an integration test to check that an instance is created successfully. This will create a new workflow instance which we will then kill.
-
   describe 'Integration', ->
     it 'instantiated correctly', ->
       assert.equal api.options.user_agent, 'Metrichor API'
@@ -45,7 +46,7 @@ describe "MetrichorAPI", ->
           assert.isTrue instanceID in instances
           done()
 
-    it 'loads the new instance', (done) ->
+    it 'loaded the new instance', (done) ->
       api.loadInstance instanceID, (error, instance) ->
         assert.isDefined instance
         assert.isFalse error
@@ -116,5 +117,5 @@ describe "MetrichorAPI", ->
   describe 'Stop Instance', (done) ->
     it 'stops the instance', (done) ->
       api.stopLoadedInstance (error) ->
-        assert.isFalse api.loadedInstance
+        assert.isFalse api.instance
         done()
