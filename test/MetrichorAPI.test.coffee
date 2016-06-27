@@ -13,9 +13,10 @@ root = "#{os.homedir()}/metrichorAPI_TestRoot"
 
 # Create a new instance here. The agent_version is required for the getApp() endpoint to respond in the affermative.
 
+url = "https://dev.metrichor.com"
 options =
   apikey: apikey
-  url: "https://dev.metrichor.com"
+  url: url
   agent_version: "2.41"
 
 api = new API options
@@ -29,6 +30,12 @@ instanceID = no
 
 describe "MetrichorAPI", ->
   describe 'Integration', ->
+
+    it 'can connect to URL', (done) ->
+      require('dns').resolve url, (error) ->
+        assert.isNull error
+        done()
+
     it 'instantiated correctly', ->
       assert.equal api.options.user_agent, 'Metrichor API'
       assert.equal api.options.apikey, options.apikey

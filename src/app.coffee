@@ -1,13 +1,10 @@
 
+# MetrichorAPI. This main script just does basic routing. Most of the application logic happens in the class files. So, we Import and create a single instance of each of our three classes, these classes will last the lifetime of the application. We also watch for events here. Fatal, fatal will stop the instance, reset the local directory and send a message to the agent.
+
 EventEmitter = require('events').EventEmitter
 MetrichorAPI = require './Classes/MetrichorAPI'
 SSD = require './Classes/SSD'
 AWS = require './Classes/AWS'
-
-
-
-
-# MetrichorAPI. This main script just does basic routing. Most of the application logic happens in the class files. So, we Import and create a single instance of each of our three classes, these classes will last the lifetime of the application. We also watch for events here. Fatal, fatal will stop the instance, reset the local directory and send a message to the agent.
 
 class MetrichorSync extends EventEmitter
   constructor: (@options) ->
@@ -28,7 +25,7 @@ class MetrichorSync extends EventEmitter
 
 
 
-  # Collate the stats from the local and AWS directories into upload and download properties which are structured to be compatable with the existing agent. This is not the most optimal way of doing
+  # Collate the stats from the local and AWS directories into upload and download properties which are structured to be compatable with the existing agent. This is not the most optimal way of doing things.
 
   stats: (key) =>
     @emit 'progress', @latestStats =
@@ -40,6 +37,9 @@ class MetrichorSync extends EventEmitter
       download:
         success: @ssd.stats?.downloaded
         totalSize: @ssd.stats?.downloaded
+      all:
+        ssd: @ssd.stats
+        aws: @aws.stats
 
     return @latestStats[key] if key
     return @latestStats

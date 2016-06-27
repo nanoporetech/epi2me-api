@@ -194,15 +194,18 @@ class SSD extends EventEmitter
     stream.on 'error', =>
       @emit 'status', "Download Failed " + filename
       return done new Error "Download failed" + filename
-    stream.on 'close', =>
+    # stream.on 'finish', =>
+    stream.on 'end', =>
       if not preExisting
         @stats.downloaded = Math.min (@stats.downloaded + 1), @stats.total
       done?()
     stream.pipe localFile
 
   removeEmptyBatch: (batch, done) ->
-    fs.rmdir batch if fs.existsSync batch
-    done()
+    if fs.existsSync batch
+      fs.rmdir batch
+      return done?()
+    return done? new Error 'Batch not found'
 
 
 
@@ -232,11 +235,13 @@ class SSD extends EventEmitter
 
   createTelemetry: (instanceID, done) =>
     @telePath = path.join @options.outputFolder, "telemetry-#{instanceID}.log"
+    console.log @telePath
     @telemetry = fs.createWriteStream @telePath, { flags: "a" }
     @emit 'status', "Logging telemetry to #{path}"
     done no
 
   appendToTelemetry: (data, done) ->
+    console.log 'append', data
     return done() if not data
     @telemetry.write (JSON.stringify(data) + os.EOL), ->
       done()
@@ -244,6 +249,7 @@ class SSD extends EventEmitter
   countTelemetry: (done) ->
     return done 0 if not fs.existsSync @telePath
     countLinesInFile @telePath, (error, lines) ->
+      console.log error, lines
       done if error then 0 else lines
 
 

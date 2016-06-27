@@ -70,8 +70,8 @@ class MetrichorAPI
 
   getToken: (options, done) ->
     @post "token", options, (error, token) =>
-      return done? new Error 'No Token Generated' if not token
       return done? error if error
+      return done? new Error 'No Token Generated' if not token
       token.region = @instance.region
       done no, token
 

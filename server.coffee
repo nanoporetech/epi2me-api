@@ -5,11 +5,18 @@ app = require('express')().listen 3000
 apikey = fs.readFileSync './@options.apikey', 'utf8'
 metrichor = new MetrichorAPI
   apikey: apikey.trim()
-  inputFolder: "/Users/dvinyard/Documents/Dev/shared/input_small"
-  outputFolder: "/Users/dvinyard/Documents/Dev/shared/input_small/downloads"
+  inputFolder: "/Users/dvinyard/Dev/data/sample_new"
+  outputFolder: "/Users/dvinyard/Dev/data/sample_new/downloads"
   url: "https://dev.metrichor.com"
   agent_version: '2.50.0'
   downloadMode: 'data+telemetry'
+
+
+
+latest_instance = 63259
+
+
+
 
 metrichor.on 'progress', (stats) ->
   console.log "\n\n\n\n#{JSON.stringify stats, null, 2}"
@@ -49,7 +56,7 @@ process.stdin.resume().setEncoding('utf8').on 'data', (text) ->
       console.log available
 
   if command is 'join'
-    return metrichor.join 62771, (error) =>
+    return metrichor.join latest_instance, (error) =>
       console.log error if error
 
   if command_param.length

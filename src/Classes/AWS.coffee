@@ -1,15 +1,12 @@
 
+# AWS. This is tasked with keeping an eye on the SQS Queue and physically downloading any files which are ready to be downloaded then removing files from the SQS queue once they have been downloaded. It is also responsible for requesting batches for upload and then uploading them. The two scans are set as onCompletion loops.
+
 EventEmitter = require('events').EventEmitter
 AWS_SDK = require 'aws-sdk'
 path = require 'path'
 diff = require('deep-diff').diff
 async = require 'async'
 WatchJS = require "watchjs"
-
-
-
-
-# AWS. This is tasked with keeping an eye on the SQS Queue and physically downloading any files which are ready to be downloaded then removing files from the SQS queue once they have been downloaded. It is also responsible for requesting batches for upload and then uploading them. The two scans are set as onCompletion loops.
 
 class AWS extends EventEmitter
   constructor: (@options, @api, @ssd) ->
@@ -29,9 +26,12 @@ class AWS extends EventEmitter
     @stats = uploading: 0, downloading: 0, failed: 0
     WatchJS.watch @stats, => @emit 'progress'
     @isRunning = yes
-    @nextScan 'download', 1
-    @nextScan 'upload', 1
-    done?()
+    @token (error) =>
+      return done? new Error 'No token generated' if error
+      @generateQueues =>
+        @nextScan 'download', 1
+        @nextScan 'upload', 1
+        done?()
 
 
 
@@ -50,21 +50,25 @@ class AWS extends EventEmitter
       region: @api.instance.region
     @status "Attempt to create new token"
     @api.getToken options, (error, token) =>
-      return done? error if error
+      if error
+        @status "Couldn't crete token because #{error}"
+        return done? error
       @status "Created new token"
       @currentToken =
         s3: new AWS_SDK.S3 token
         sqs: new AWS_SDK.SQS token
         expiration: token.expiration
+      @generateQueues done
 
-      input = @api.instance.inputqueue
-      output = @api.instance.inputqueue
-      @currentToken.sqs.getQueueUrl QueueName: input, (error, input) =>
+  generateQueues: (done) ->
+    input = @api.instance.inputqueue
+    output = @api.instance.inputqueue
+    @currentToken.sqs.getQueueUrl QueueName: input, (error, input) =>
+      return done error if error
+      @currentToken.sqs.getQueueUrl QueueName: output, (error, output) =>
         return done error if error
-        @currentToken.sqs.getQueueUrl QueueName: output, (error, output) =>
-          return done error if error
-          @api.instance.url = input: input.QueueUrl, output: output.QueueUrl
-          done? no, @currentToken
+        @api.instance.url = input: input.QueueUrl, output: output.QueueUrl
+        done? no, @currentToken
 
 
 
@@ -76,7 +80,8 @@ class AWS extends EventEmitter
     @["#{upOrDown}Timer"] = setTimeout @["#{upOrDown}Scan"], (delay or 5000)
 
   scanFailed: (upOrDown, error) ->
-    @status "#{upOrDown} Scan Failed because #{error}"
+    if error.message isnt 'No batches'
+      @status "#{upOrDown} Scan Failed because #{error}"
     return @nextScan upOrDown, 10000
 
   fatal: (error) =>
@@ -89,6 +94,7 @@ class AWS extends EventEmitter
   # Upload a file. First our scanner, these scanners check the SQS queue and the local file directory every so often and look for things to upload and download (upload in this case). A file is an object with a 'filename', 'data', and 'source'. This will upload the file to S3 and append a message to SQS. Once it is complete we will ask the SSD to move it to the required directory.
 
   uploadScan: =>
+    @status "Upload Scan"
     @ssd.getBatch (error, batch) =>
       return @scanFailed 'upload', error if error
       async.eachLimit batch.files, 10, @uploadFile, (error) =>
@@ -99,12 +105,13 @@ class AWS extends EventEmitter
           @nextScan 'upload'
 
   uploadFile: (file, done) =>
-    @status 'Upload file'
     return if not @isRunning
+    @status 'Upload file'
     @token (error, aws) =>
       return done? error if error
       @stats.uploading += 1
       @ssd.getFile file.source, (error, data) =>
+        return done? error if error
         S3Object =
           Bucket: @api.instance.bucket
           Key: [@api.instance.keypath, file.name].join '/'
@@ -115,10 +122,11 @@ class AWS extends EventEmitter
           message = @api.instance.messageTemplate
           message.utc = new Date().toISOString()
           message.path = [@api.instance.path, file.name].join '/'
-          SQSSendOptions =
+          SQSObject =
             QueueUrl: @api.instance.url.input
             MessageBody: JSON.stringify message
-          aws.sqs.sendMessage SQSSendOptions, (error) =>
+          console.log 'up', SQSObject
+          aws.sqs.sendMessage SQSObject, (error) =>
             success = !error?
             @ssd.moveUploadedFile file, success, (error) =>
               @stats.uploading -= 1
@@ -130,53 +138,60 @@ class AWS extends EventEmitter
 
   # Download a file. Having recieved an SQS message we download the linked file and then delete the SQS message.
 
-  downloadScan: (delay) =>
+  downloadScan: =>
+    @status "Download Scan"
     @ssd.freeSpace (error, space) =>
+      console.log error if error
       return @fatal 'Disk Full. Delete some files and try again.' if error
       @token (error, aws) =>
         return @scanFailed 'download', error if error
-        @sqsReceiveConfig.QueueUrl = @api.instance.url.output
+        @sqsReceiveConfig.QueueUrl = @api.instance.url?.output
         aws.sqs.receiveMessage @sqsReceiveConfig, (error, messages) =>
           return @scanFailed 'download', error if error
-          if not messages?.Messages?.length
-            @status "No SQS Messages found"
-            return @nextScan 'download'
-          @status "#{messages?.Messages?.length} SQS Messages found"
-          async.eachLimit messages.Messages, 1, @downloadFile, (error) =>
-            return @scanFailed 'download', error if error
-            @nextScan 'download'
+          @gotFileList messages
 
-  downloadFile: (sqsMessage, done) =>
+  gotFileList: (messages) =>
+    if not messages?.Messages?.length
+      @status "No SQS Messages found"
+      return @nextScan 'download'
+    @status "#{messages?.Messages?.length} SQS Messages found"
+    async.eachLimit messages.Messages, 1, @downloadFile, (error) =>
+      return @scanFailed 'download', error if error
+      @nextScan 'download'
+
+  downloadFile: (sqsMessage, next) =>
+    console.log 'down', sqsMessage
     return if not @isRunning
+    return next? new Error 'No SQS message' if not sqsMessage
     @stats.downloading += 1
     @token (error, aws) =>
-      return done error if error
+      return next error if error
       body = JSON.parse sqsMessage.Body
       filename = body.path.match(/[\w\W]*\/([\w\W]*?)$/)[1]
       streamOptions = { Bucket: body.bucket, Key: body.path }
-      @ssd.appendToTelemetry body.telemetry =>
-        failed = body.telemetry.hints?.folder is 'fail'
+      @ssd.appendToTelemetry body.telemetry or body.id_workflow_instance, =>
+        failed = body.telemetry?.hints?.folder is 'fail'
         mode = @options.downloadMode
-        return @skipFile done if mode is 'telemetry'
-        return @skipFile done if mode is 'success+telemetry' and failed
+        return @skipFile next if mode is 'telemetry'
+        return @skipFile next if mode is 'success+telemetry' and failed
         stream = aws.s3.getObject(streamOptions).createReadStream()
         @ssd.saveDownloadedFile stream, filename, body.telemetry, (error) =>
           if error
             @stats.failed += 1
             @stats.downloading -= 1
-            return done? error
+            return next? error
           deleteOptions =
-            QueueUrl: @api.instance.url.output
+            QueueUrl: @api.instance.url?.output
             ReceiptHandle: sqsMessage.ReceiptHandle
           aws.sqs.deleteMessage deleteOptions, (error) =>
             @stats.downloading -= 1
-            return done? error if error
-            done?()
+            return next? error if error
+            next?()
 
-  skipFile: (done) ->
+  skipFile: (next) ->
     @stats.downloading -= 1
     @ssd.stats.downloaded += 1
-    done()
+    next()
 
 
 

@@ -11,10 +11,12 @@
     "async": "1.5.2",
     "aws-sdk": "2.2.4",
     "chokidar": "1.5.1",
+    "count-lines-in-file": "*",
     "deep-diff": "0.3.4",
+    "diskusage": "*",
     "express": "4.13.4",
     "fs.extra": "1.3.2",
-    "generic-pool": "2.4.2",
+    "fs-extra": "*",
     "mkdirp": "0.5.1",
     "mv": "2.1.1",
     "path": "0.12.7",
@@ -27,24 +29,13 @@
   },
   "devDependencies": {
     "coffee-script": "^1.10.0",
-    "gulp": "^3.9.1",
-    "gulp-batch": "^1.0.5",
-    "gulp-cli": "^1.2.1",
-    "gulp-coffee": "^2.3.2",
-    "gulp-mocha": "^2.2.0",
-    "gulp-util": "^3.0.7",
-    "gulp-watch": "^4.3.6",
-    "istanbul": "0.3.2",
-    "jslint": "0.3.3",
     "mocha": "2.2.5",
-    "proxyquire": "1.5.0",
-    "sinon": "^1.15.4",
-    "tmp": "0.0.27",
-    "xunit-file": "*"
+    "chai": "*",
+    "sinon": "^1.15.4"
   },
   "scripts": {
     "start": "nodemon server.coffee",
-    "test": "mocha test/AWS.test.coffee --compilers coffee:coffee-script/register -t 10000"
+    "test": "mocha test/AWS.test.coffee --compilers coffee:coffee-script/register -t 120000"
   },
   "author": "",
   "license": "ISC"
