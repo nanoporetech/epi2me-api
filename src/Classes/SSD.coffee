@@ -63,6 +63,7 @@ class SSD extends EventEmitter
     @watcher.on 'add', (path) =>
       return if not fast5(path)
       @stats.pending += 1
+      # console.log @stats.pending
       return if @isBatching
       @isBatching = yes
       @convertToBatches yes, (error) =>
@@ -235,13 +236,12 @@ class SSD extends EventEmitter
 
   createTelemetry: (instanceID, done) =>
     @telePath = path.join @options.outputFolder, "telemetry-#{instanceID}.log"
-    console.log @telePath
+    # console.log @telePath
     @telemetry = fs.createWriteStream @telePath, { flags: "a" }
     @emit 'status', "Logging telemetry to #{path}"
     done no
 
   appendToTelemetry: (data, done) ->
-    console.log 'append', data
     return done() if not data
     @telemetry.write (JSON.stringify(data) + os.EOL), ->
       done()
@@ -249,7 +249,6 @@ class SSD extends EventEmitter
   countTelemetry: (done) ->
     return done 0 if not fs.existsSync @telePath
     countLinesInFile @telePath, (error, lines) ->
-      console.log error, lines
       done if error then 0 else lines
 
 

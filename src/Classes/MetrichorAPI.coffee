@@ -35,10 +35,13 @@ class MetrichorAPI
       return done? new Error "App Instance not found" if not instance
       return done? new Error "Didn't start" if instance.state is 'stopped'
       instance.id = instance.id_workflow_instance
-      instance.keypath = [
+      instance.bucketFolder = [
         instance.outputqueue,
         instance.id_user,
         instance.id_workflow_instance,
+      ].join '/'
+      instance.keypath = [
+        instance.bucketFolder
         instance.inputqueue
       ].join '/'
       instance.apikey = @options.apikey
@@ -120,6 +123,7 @@ class MetrichorAPI
       .query
         apikey: @options.apikey
         agent_version: @options.agent_version or ''
+        region: @options.region
       .end (response) => @parseResponse response, done
 
   postOrPut: (verb, resource, form, done) ->

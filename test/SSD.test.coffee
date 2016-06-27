@@ -87,18 +87,21 @@ describe "SSD (with #{test_files} files)", ->
 
     it 'handles new files', (done) ->
       createFile = (filename, next) ->
+        # console.log '+'
         fs.writeFile "#{root}/inputFolder/#{guid()}.fast5", 'x', (error) ->
           console.log error if error
-          next()
+          setTimeout (->next()), 15
       newBatchIn = ssd.batchSize - (test_files%ssd.batchSize)
+      # console.log 'start ', ssd.stats.pending, newBatchIn
       async.eachSeries (new Array(newBatchIn)), createFile, ->
+        # ssd.convertToBatches yes, (error) ->
         setTimeout (-> # Wait for batcher
           fs.readdir "#{root}/inputFolder/pending", (error, pendings) ->
             assert.equal ssd.stats.pending, test_files + newBatchIn
             expectedBatches = (Math.floor test_files/ssd.batchSize) + 1
             assert.equal pendings.length, expectedBatches
             done()
-        ), 100
+        ), 500
 
     it 'stopped without error', (done) ->
       ssd.stop (error) ->
@@ -200,7 +203,7 @@ describe "SSD (with #{test_files} files)", ->
           if test_files > ssd.batchSize
             assert.isDefined batch
             assert.isFalse error
-          done()
+          setTimeout (-> done()), 500
 
     it 'marked as processing', (done) ->
       ssd.getBatch (error, batch) ->
@@ -382,11 +385,13 @@ describe "SSD (with #{test_files} files)", ->
           done()
 
     it 'did not throw error when stopped', (done) ->
-      ssd.stop (error) ->
-        assert.isUndefined error
-        ssd.reset (error) ->
-          assert.isFalse error
-          done()
+      setTimeout ->
+        ssd.stop (error) ->
+          assert.isUndefined error
+          ssd.reset (error) ->
+            assert.isFalse error
+            done()
+      , 200
 
     it 'correctly restored the database', (done) ->
       fs.readdir "#{root}/inputFolder/pending", (error, pendings) ->

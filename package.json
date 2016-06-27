@@ -35,7 +35,7 @@
   },
   "scripts": {
     "start": "nodemon server.coffee",
-    "test": "mocha test/AWS.test.coffee --compilers coffee:coffee-script/register -t 120000"
+    "test": "mocha --compilers coffee:coffee-script/register -t 30000"
   },
   "author": "",
   "license": "ISC"

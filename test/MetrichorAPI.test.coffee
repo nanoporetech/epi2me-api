@@ -18,6 +18,7 @@ options =
   apikey: apikey
   url: url
   agent_version: "2.41"
+  
 
 api = new API options
 config = { app: 454 }
@@ -31,8 +32,8 @@ instanceID = no
 describe "MetrichorAPI", ->
   describe 'Integration', ->
 
-    it 'can connect to URL', (done) ->
-      require('dns').resolve url, (error) ->
+    it 'found network connection', (done) ->
+      require('dns').resolve 'metrichor.com', (error) ->
         assert.isNull error
         done()
 
@@ -49,14 +50,13 @@ describe "MetrichorAPI", ->
           instances = instances
             .filter (instance) -> return instance.state is 'started'
             .map (instance) -> return instance.id_workflow_instance
-          assert.isTrue instances.length is 1
           assert.isTrue instanceID in instances
           done()
 
     it 'loaded the new instance', (done) ->
       api.loadInstance instanceID, (error, instance) ->
-        assert.isDefined instance
         assert.isFalse error
+        assert.isDefined instance
         done()
 
 

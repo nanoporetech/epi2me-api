@@ -5,21 +5,22 @@ app = require('express')().listen 3000
 apikey = fs.readFileSync './@options.apikey', 'utf8'
 metrichor = new MetrichorAPI
   apikey: apikey.trim()
-  inputFolder: "/Users/dvinyard/Dev/data/sample_new"
-  outputFolder: "/Users/dvinyard/Dev/data/sample_new/downloads"
+  inputFolder: "/Users/dvinyard/Dev/data/sample_small"
+  outputFolder: "/Users/dvinyard/Dev/data/sample_small/downloads"
   url: "https://dev.metrichor.com"
   agent_version: '2.50.0'
   downloadMode: 'data+telemetry'
 
 
 
-latest_instance = 63259
+latest_instance = 63262
 
 
 
 
 metrichor.on 'progress', (stats) ->
-  console.log "\n\n\n\n#{JSON.stringify stats, null, 2}"
+  # console.log "\n\n\n\n#{JSON.stringify stats, null, 2}"
+  console.log 'Downloaded', stats.download.success
 
 metrichor.on 'status', (status) ->
   console.log status

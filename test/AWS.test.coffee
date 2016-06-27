@@ -55,7 +55,8 @@ getSQSCount = (xput, done) =>
   count = {}
   getCountForQueue = (queue, done) =>
     aws.token (error, aws_objects) =>
-      return done error if error
+      assert.isFalse error
+      assert.isDefined api.instance.url
       options = { QueueUrl: api.instance.url.input, AttributeNames: ['All'] }
       aws_objects.sqs.getQueueAttributes options, (error, attr) =>
         attr = attr.Attributes
@@ -245,7 +246,7 @@ describe "AWS", ->
           else
             setTimeout (->checkSQS()), 100
 
-    it 'removed from SQS by worker', (done) ->
+    it 'picked up by worker', (done) ->
       do checkSQS = ->
         getSQSCount 'input', (error, count) ->
           assert.isUndefined error
@@ -256,6 +257,9 @@ describe "AWS", ->
           else
             setTimeout (->checkSQS()), 100
 
+    # it 'processed by worker', (done) ->
+    #   setTimeout (-> done()), 8000
+
 
 
 
@@ -264,21 +268,19 @@ describe "AWS", ->
   describe 'Download', ->
     output_length = 0
 
-    it 'found the file we uploaded', (done) ->
+    it 'worker complete', (done) ->
       sinon.stub aws, "scanFailed", (type, error) ->
       sinon.stub aws, "nextScan", (type, error) ->
       sinon.stub aws, "gotFileList", (messages) ->
-        console.log 'messages', messages
         if messages?.Messages?.length
           assert.isDefined messages
           assert.isDefined messages.Messages
-          uploadedMessage = messages.Messages[0]
-          body = JSON.parse uploadedMessage.Body
-          console.log body
-          assert.equal body.id_workflow_instance, instanceID
-          assert.isDefined uploadedMessage
-          restoreStubs()
-          done()
+          for message in messages.Messages
+            uploadedMessage = message
+            body = JSON.parse message.Body
+            assert.equal test_name, body.telemetry.json.filename
+            restoreStubs()
+            return setTimeout (-> done()), 1000
         else
           aws.downloadScan()
       restoreStubs = ->
@@ -287,15 +289,13 @@ describe "AWS", ->
         aws.nextScan.restore()
       aws.downloadScan()
 
-    it 'downloaded that file', (done) ->
+    it 'downloaded file', (done) ->
       sinon.stub ssd, "appendToTelemetry", (telemetry, next) -> next()
       sinon.stub ssd, "saveDownloadedFile", (stream, filename, tele, next) ->
         assert.isDefined stream
         assert.isDefined filename
         next()
       sinon.stub aws, "skipFile", (next) ->
-      # aws.nextScan.restore()
-      # sinon.stub aws, "nextScan", (type, error) ->
       getSQSCount 'output', (error, count) ->
         output_length = count.flight + count.visible
         aws.downloadFile uploadedMessage, (error) ->
@@ -306,21 +306,20 @@ describe "AWS", ->
         ssd.appendToTelemetry.restore()
         ssd.saveDownloadedFile.restore()
         aws.skipFile.restore()
-        # aws.nextScan.restore()
 
-    it 'removed file from SQS', (done) ->
-      # setTimeout (->done()), 8000
+    it 'removed file from output queue', (done) ->
       do checkSQS = ->
         getSQSCount 'output', (error, count) ->
           if error
             assert.isUndefined error
             return console.log error
           new_output_length = count.flight + count.visible
-          if output_length is (new_output_length - 1)
-            assert.equal output_length, new_output_length - 1
+          # console.log output_length, new_output_length
+          if (output_length) is new_output_length
+            assert.equal (output_length), new_output_length
             done()
           else
-            setTimeout (-> checkSQS()), 100
+            setTimeout (-> checkSQS()), 500
 
 
 
@@ -338,4 +337,6 @@ describe "AWS", ->
       api.stopLoadedInstance (error) ->
         assert.isFalse error
         assert.isFalse api.instance
-        done()
+        ssd.stop (error) ->
+          assert.isUndefined error
+          done()

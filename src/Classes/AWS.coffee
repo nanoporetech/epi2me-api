@@ -62,7 +62,7 @@ class AWS extends EventEmitter
 
   generateQueues: (done) ->
     input = @api.instance.inputqueue
-    output = @api.instance.inputqueue
+    output = @api.instance.outputqueue
     @currentToken.sqs.getQueueUrl QueueName: input, (error, input) =>
       return done error if error
       @currentToken.sqs.getQueueUrl QueueName: output, (error, output) =>
@@ -121,11 +121,10 @@ class AWS extends EventEmitter
           return done? error if error
           message = @api.instance.messageTemplate
           message.utc = new Date().toISOString()
-          message.path = [@api.instance.path, file.name].join '/'
+          message.path = [@api.instance.keypath, file.name].join '/'
           SQSObject =
             QueueUrl: @api.instance.url.input
             MessageBody: JSON.stringify message
-          console.log 'up', SQSObject
           aws.sqs.sendMessage SQSObject, (error) =>
             success = !error?
             @ssd.moveUploadedFile file, success, (error) =>
@@ -145,7 +144,8 @@ class AWS extends EventEmitter
       return @fatal 'Disk Full. Delete some files and try again.' if error
       @token (error, aws) =>
         return @scanFailed 'download', error if error
-        @sqsReceiveConfig.QueueUrl = @api.instance.url?.output
+        @sqsReceiveConfig.QueueUrl = @api.instance.url.output
+        # console.log @sqsReceiveConfig
         aws.sqs.receiveMessage @sqsReceiveConfig, (error, messages) =>
           return @scanFailed 'download', error if error
           @gotFileList messages
@@ -160,16 +160,16 @@ class AWS extends EventEmitter
       @nextScan 'download'
 
   downloadFile: (sqsMessage, next) =>
-    console.log 'down', sqsMessage
     return if not @isRunning
     return next? new Error 'No SQS message' if not sqsMessage
     @stats.downloading += 1
     @token (error, aws) =>
       return next error if error
       body = JSON.parse sqsMessage.Body
+      return next? new Error 'No telemetry' if not body.telemetry
       filename = body.path.match(/[\w\W]*\/([\w\W]*?)$/)[1]
       streamOptions = { Bucket: body.bucket, Key: body.path }
-      @ssd.appendToTelemetry body.telemetry or body.id_workflow_instance, =>
+      @ssd.appendToTelemetry body.telemetry, =>
         failed = body.telemetry?.hints?.folder is 'fail'
         mode = @options.downloadMode
         return @skipFile next if mode is 'telemetry'
