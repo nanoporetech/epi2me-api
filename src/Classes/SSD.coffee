@@ -183,7 +183,13 @@ class SSD extends EventEmitter
       done()
 
   saveDownloadedFile: (stream, filename, telemetry, done) =>
-    timeout = setTimeout (-> done new Error "Download failed"), 30000
+    saveFailed = =>
+      return if failed
+      failed = yes
+      @emit 'status', "Download Failed " + filename
+      return done new Error "Download failed"
+    failed = no
+    timeout = setTimeout saveFailed, 30000
     destination = @options.outputFolder
     if telemetry?.hints?.folder
       destination = path.join destination, telemetry.hints.folder
@@ -192,16 +198,16 @@ class SSD extends EventEmitter
       folder = path.join folder, if successful then 'pass' else 'fail'
     fs.mkdirSync destination if not fs.existsSync destination
     localFile = fs.createWriteStream path.join destination, filename
-    preExisting = fs.existsSync localFile
     stream.on 'error', =>
-      @emit 'status', "Download Failed " + filename
-      return done new Error "Download failed" + filename
+      return if failed
+      saveFailed()
     stream.on 'data', =>
+      return if failed
       clearTimeout timeout
-      timeout = setTimeout (-> done new Error "Download failed"), 30000
-    stream.on 'end', =>
-      if not preExisting
-        @stats.downloaded = Math.min (@stats.downloaded + 1), @stats.total
+      timeout = setTimeout saveFailed, 30000
+    stream.on 'finish', =>
+      return if failed
+      @stats.downloaded += 1
       clearTimeout timeout
       done?()
     stream.pipe localFile

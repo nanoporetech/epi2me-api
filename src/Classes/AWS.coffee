@@ -142,7 +142,6 @@ class AWS extends EventEmitter
   downloadScan: =>
     @status "Download Scan"
     @ssd.freeSpace (error, space) =>
-      console.log error if error
       return @fatal 'Disk Full. Delete some files and try again.' if error
       @token (error, aws) =>
         return @scanFailed 'download', error if error
