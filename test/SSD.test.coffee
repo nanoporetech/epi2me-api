@@ -311,7 +311,7 @@ describe "SSD (with #{test_files} files)", ->
 
   describe 'freeSpace()', (done) ->
     ssd = instance()
-    disk = require('diskusage')
+    disk = require('diskspace')
 
     it 'identified free space', (done) ->
       ssd.freeSpace (error) ->
@@ -319,11 +319,10 @@ describe "SSD (with #{test_files} files)", ->
         done()
 
     it 'throws error if no free space', (done) ->
-      stub = sinon.stub disk, 'check', (path, done) ->
-        done no, available: 1
+      stub = sinon.stub disk, 'check', (path, done) ->  done no, 1, 1
       ssd.freeSpace (error) ->
-        assert.equal error.message, 'No disk space'
         disk.check.restore()
+        assert.equal error.message, 'No disk space'
         done()
 
     it 'ignored telemetry only', (done) ->

@@ -6,6 +6,7 @@ AWS_SDK = require 'aws-sdk'
 path = require 'path'
 diff = require('deep-diff').diff
 async = require 'async'
+Bottleneck = require 'bottleneck'
 WatchJS = require "watchjs"
 
 class AWS extends EventEmitter
@@ -15,6 +16,7 @@ class AWS extends EventEmitter
       VisibilityTimeout: 600
       MaxNumberOfMessages: 10
       WaitTimeSeconds: 20
+    @limiter = new Bottleneck 10, 2000
 
   status: (message) -> @emit 'status', message
 
@@ -145,7 +147,6 @@ class AWS extends EventEmitter
       @token (error, aws) =>
         return @scanFailed 'download', error if error
         @sqsReceiveConfig.QueueUrl = @api.instance.url.output
-        # console.log @sqsReceiveConfig
         aws.sqs.receiveMessage @sqsReceiveConfig, (error, messages) =>
           return @scanFailed 'download', error if error
           @gotFileList messages
@@ -155,9 +156,12 @@ class AWS extends EventEmitter
       @status "No SQS Messages found"
       return @nextScan 'download'
     @status "#{messages?.Messages?.length} SQS Messages found"
-    async.eachLimit messages.Messages, 1, @downloadFile, (error) =>
+    async.eachLimit messages.Messages, 10, @queueDownload, (error) =>
       return @scanFailed 'download', error if error
       @nextScan 'download'
+
+  queueDownload: (sqsMessage, next) =>
+    @limiter.submit @downloadFile, sqsMessage, next
 
   downloadFile: (sqsMessage, next) =>
     return if not @isRunning
@@ -168,14 +172,15 @@ class AWS extends EventEmitter
       body = JSON.parse sqsMessage.Body
       return next? new Error 'No telemetry' if not body.telemetry
       filename = body.path.match(/[\w\W]*\/([\w\W]*?)$/)[1]
+      telemetry = body.telemetry
       streamOptions = { Bucket: body.bucket, Key: body.path }
-      @ssd.appendToTelemetry body.telemetry, =>
+      @ssd.appendToTelemetry telemetry, =>
         failed = body.telemetry?.hints?.folder is 'fail'
         mode = @options.downloadMode
         return @skipFile next if mode is 'telemetry'
         return @skipFile next if mode is 'success+telemetry' and failed
         stream = aws.s3.getObject(streamOptions).createReadStream()
-        @ssd.saveDownloadedFile stream, filename, body.telemetry, (error) =>
+        @ssd.saveDownloadedFile stream, filename, telemetry, (error) =>
           if error
             @stats.failed += 1
             @stats.downloading -= 1

@@ -10,7 +10,7 @@ async = require 'async'
 EventEmitter = require('events').EventEmitter
 WatchJS = require "watchjs"
 os = require 'os'
-disk = require 'diskusage'
+disk = require 'diskspace'
 pathRoot = require 'path-root'
 countLinesInFile = require 'count-lines-in-file'
 
@@ -216,9 +216,9 @@ class SSD extends EventEmitter
   freeSpace: (done) =>
     minimumFree = 100
     return done() if @options.downloadMode is 'telemetry'
-    disk.check pathRoot(@options.outputFolder), (error, info) ->
+    disk.check pathRoot(@options.outputFolder),(error, total, free, status) ->
       return done error if error
-      megabytes_free = Math.floor (info.available / 1024 / 1000)
+      megabytes_free = Math.floor (free / 1024 / 1000)
       return done new Error 'No disk space' if megabytes_free <= minimumFree
       done()
 
