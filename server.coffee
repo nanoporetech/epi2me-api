@@ -19,11 +19,12 @@ latest_instance = 63262
 
 
 metrichor.on 'progress', (stats) ->
-  console.log "\n\n\n\n#{JSON.stringify stats, null, 2}"
+  # console.log "\n\n\n\n#{JSON.stringify stats, null, 2}"
   # console.log 'Downloaded', stats.download.success
+  console.log "Downloading #{stats.all.aws.downloading} (#{stats.download.success}/#{stats.upload.total})"
 
 metrichor.on 'status', (status) ->
-  # console.log status
+  console.log status
 
 process.stdin.resume().setEncoding('utf8').on 'data', (text) ->
   command = text.replace '\n', ''

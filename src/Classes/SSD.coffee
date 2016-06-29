@@ -183,6 +183,7 @@ class SSD extends EventEmitter
       done()
 
   saveDownloadedFile: (stream, filename, telemetry, done) =>
+    timeout = setTimeout (-> done new Error "Download failed"), 30000
     destination = @options.outputFolder
     if telemetry?.hints?.folder
       destination = path.join destination, telemetry.hints.folder
@@ -195,10 +196,13 @@ class SSD extends EventEmitter
     stream.on 'error', =>
       @emit 'status', "Download Failed " + filename
       return done new Error "Download failed" + filename
-    # stream.on 'finish', =>
+    stream.on 'data', =>
+      clearTimeout timeout
+      timeout = setTimeout (-> done new Error "Download failed"), 30000
     stream.on 'end', =>
       if not preExisting
         @stats.downloaded = Math.min (@stats.downloaded + 1), @stats.total
+      clearTimeout timeout
       done?()
     stream.pipe localFile
 

@@ -156,46 +156,47 @@ class AWS extends EventEmitter
       @status "No SQS Messages found"
       return @nextScan 'download'
     @status "#{messages?.Messages?.length} SQS Messages found"
-    async.eachLimit messages.Messages, 10, @queueDownload, (error) =>
+    queueDownload = (msg, next) => @limiter.submit @downloadFile, msg, next
+    @stats.downloading = messages.Messages.length
+    async.eachLimit messages.Messages, 5, queueDownload, (error) =>
       return @scanFailed 'download', error if error
       @nextScan 'download'
 
-  queueDownload: (sqsMessage, next) =>
-    @limiter.submit @downloadFile, sqsMessage, next
 
   downloadFile: (sqsMessage, next) =>
     return if not @isRunning
-    return next? new Error 'No SQS message' if not sqsMessage
-    @stats.downloading += 1
+    return next new Error 'No SQS message' if not sqsMessage
     @token (error, aws) =>
-      return next error if error
+      return @downloadFailed error, next if error
       body = JSON.parse sqsMessage.Body
-      return next? new Error 'No telemetry' if not body.telemetry
-      filename = body.path.match(/[\w\W]*\/([\w\W]*?)$/)[1]
       telemetry = body.telemetry
+      return @downloadFailed (new Error 'No telemetry'), next if not telemetry
+      filename = body.path.match(/[\w\W]*\/([\w\W]*?)$/)[1]
       streamOptions = { Bucket: body.bucket, Key: body.path }
       @ssd.appendToTelemetry telemetry, =>
         failed = body.telemetry?.hints?.folder is 'fail'
         mode = @options.downloadMode
-        return @skipFile next if mode is 'telemetry'
-        return @skipFile next if mode is 'success+telemetry' and failed
+        if (mode is 'telemetry') or (mode is 'success+telemetry' and failed)
+          return @skipFile next
         stream = aws.s3.getObject(streamOptions).createReadStream()
         @ssd.saveDownloadedFile stream, filename, telemetry, (error) =>
-          if error
-            @stats.failed += 1
-            @stats.downloading -= 1
-            return next? error
+          return @downloadFailed error, next if error
           deleteOptions =
             QueueUrl: @api.instance.url?.output
             ReceiptHandle: sqsMessage.ReceiptHandle
           aws.sqs.deleteMessage deleteOptions, (error) =>
             @stats.downloading -= 1
             return next? error if error
-            next?()
+            next()
 
   skipFile: (next) ->
     @stats.downloading -= 1
     @ssd.stats.downloaded += 1
+    next()
+
+  downloadFailed: (error, next) ->
+    @stats.downloading -= 1
+    @stats.failed += 1
     next()
 
 
