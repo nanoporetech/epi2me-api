@@ -79,7 +79,7 @@ class AWS extends EventEmitter
 
   nextScan: (upOrDown, delay) =>
     return if not @isRunning
-    @["#{upOrDown}Timer"] = setTimeout @["#{upOrDown}Scan"], (delay or 5000)
+    @["#{upOrDown}Timer"] = setTimeout @["#{upOrDown}Scan"], (delay or 10000)
 
   scanFailed: (upOrDown, error) ->
     if error.message isnt 'No batches'
@@ -96,7 +96,6 @@ class AWS extends EventEmitter
   # Upload a file. First our scanner, these scanners check the SQS queue and the local file directory every so often and look for things to upload and download (upload in this case). A file is an object with a 'filename', 'data', and 'source'. This will upload the file to S3 and append a message to SQS. Once it is complete we will ask the SSD to move it to the required directory.
 
   uploadScan: =>
-    @status "Upload Scan"
     @ssd.getBatch (error, batch) =>
       return @scanFailed 'upload', error if error
       async.eachLimit batch.files, 10, @uploadFile, (error) =>
@@ -140,7 +139,6 @@ class AWS extends EventEmitter
   # Download a file. Having recieved an SQS message we download the linked file and then delete the SQS message.
 
   downloadScan: =>
-    @status "Download Scan"
     @ssd.freeSpace (error, space) =>
       return @fatal 'Disk Full. Delete some files and try again.' if error
       @token (error, aws) =>
@@ -152,7 +150,7 @@ class AWS extends EventEmitter
 
   gotFileList: (messages) =>
     if not messages?.Messages?.length
-      @status "No SQS Messages found"
+      @status "No files to download"
       return @nextScan 'download'
     @status "#{messages?.Messages?.length} SQS Messages found"
     queueDownload = (msg, next) => @limiter.submit @downloadFile, msg, next

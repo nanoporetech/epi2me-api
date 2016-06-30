@@ -141,7 +141,9 @@ class SSD extends EventEmitter
       batches = batches?.filter(isBatch)
       if not batches?.length
         return fs.readdir @options.inputFolder, (error, files) =>
-          return done new Error 'No batches' if not files.filter(fast5).length
+          if not files.filter(fast5).length
+            @emit 'status', "No files to upload"
+            return done new Error 'No batches'
           @convertToBatches no, =>
             @getBatch done
       @markAsProcessing path.join(@sub.pending, batches[0]), (error, batch) =>
@@ -205,10 +207,11 @@ class SSD extends EventEmitter
       return if failed
       clearTimeout timeout
       timeout = setTimeout saveFailed, 30000
-    stream.on 'finish', =>
+    stream.on 'end', =>
       return if failed
       @stats.downloaded += 1
       clearTimeout timeout
+      failed = yes
       done?()
     stream.pipe localFile
 
