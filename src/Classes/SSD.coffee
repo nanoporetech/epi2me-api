@@ -12,7 +12,7 @@ WatchJS = require "watchjs"
 os = require 'os'
 disk = require 'diskspace'
 pathRoot = require 'path-root'
-countLinesInFile = require 'count-lines-in-file'
+split = require('split')
 
 fast5 = (item) -> return item.slice(-6) is '.fast5'
 isBatch = (item) -> item.slice(0, 6) is 'batch_'
@@ -297,6 +297,24 @@ class SSD extends EventEmitter
         pendingWalker.on "directory", (directory, stat, next) ->
           try fs.rmdir path.join(directory, stat.name), next
         pendingWalker.on 'end', -> done? no
+
+
+
+
+  # Count lines in file
+
+  countLinesInFile = (filePath, done) =>
+    lineCount = 0
+    readError = no
+    fs.createReadStream(filePath)
+      .pipe split()
+      .on 'data', (line) => lineCount++
+      .on 'end', =>
+        return if readError
+        done null, lineCount - 1
+      .on 'error', (error) =>
+        readError = yes
+        done error
 
 
 
