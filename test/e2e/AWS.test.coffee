@@ -1,14 +1,15 @@
 
 os = require 'os'
 fs = require('fs-extra')
+path = require('path')
 dns = require 'dns'
 mkdirp = require 'mkdirp'
 assert = require('chai').assert
 sinon = require 'sinon'
-AWS = require '../src/Classes/AWS.coffee'
-SSD = require '../src/Classes/SSD.coffee'
-API = require '../src/Classes/MetrichorAPI.coffee'
-apikey = fs.readFileSync('./@options.apikey', 'utf8').trim()
+AWS = require path.join '..', '..', 'src', 'Classes', 'AWS.coffee'
+SSD = require path.join '..', '..', 'src', 'Classes', 'SSD.coffee'
+API = require path.join '..', '..', 'src', 'Classes', 'MetrichorAPI.coffee'
+apikey = process.env.API_KEY or fs.readFileSync(path.join('..', '..', '@options.apikey'), 'utf8').trim()
 guid = -> Math.random().toString(36).substring(7)
 
 

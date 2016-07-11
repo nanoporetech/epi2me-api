@@ -3,8 +3,9 @@ os = require 'os'
 fs = require 'fs'
 assert = require('chai').assert
 sinon = require 'sinon'
-API = require '../src/Classes/MetrichorAPI.coffee'
-apikey = fs.readFileSync('./@options.apikey', 'utf8').trim()
+API = require '../../src/Classes/MetrichorAPI.coffee'
+apikey = process.env.API_KEY or fs.readFileSync(path.join('..', '..', '@options.apikey'), 'utf8').trim()
+
 
 root = "#{os.homedir()}/metrichorAPI_TestRoot"
 

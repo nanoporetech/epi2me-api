@@ -5,7 +5,7 @@ assert = require('chai').assert
 sinon = require 'sinon'
 mkdirp = require 'mkdirp'
 async = require 'async'
-SSD = require '../src/Classes/SSD.coffee'
+SSD = require '../../src/Classes/SSD.coffee'
 
 guid = -> Math.random().toString(36).substring(7)
 fast5 = (item) -> return item.slice(-6) is '.fast5'
@@ -16,7 +16,7 @@ fast5 = (item) -> return item.slice(-6) is '.fast5'
 # Define the root directory and determine the number of test files. Some functions for creating and removing files/directories. Before we start any test, create an artificial root directory where we can define input and output folders Also an instance method to give us a new standard instance.
 
 root = "#{os.homedir()}/metrichorAPI_TestRoot"
-test_files = Math.floor (Math.random() * 1000)
+test_files = Math.floor (Math.random() * 1000) + 100
 
 createTestRoot = (done) ->
   mkdirp root, (err) ->
@@ -407,7 +407,7 @@ describe "SSD (with #{test_files} files)", ->
     after destroyTestRoot
 
     ssd = instance()
-    disk = require('diskusage')
+
     it 'checkPermissions()', (done) ->
       ssd.checkPermissions (error) ->
         assert.isUndefined error
