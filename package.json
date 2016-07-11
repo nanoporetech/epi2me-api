@@ -1,29 +1,42 @@
 {
   "name": "metrichor-api",
-  "version": "2.40.17",
-  "repository": "https://git.oxfordnanolabs.local/metrichor/api.git",
+  "version": "2.41.1",
   "description": "API for communicating with the Metrichor website(s)",
-  "private": true,
-  "main": "lib/metrichor.js",
+  "repository": {
+    "type": "git",
+    "url": "git@git.oxfordnanolabs.local:metrichor/api.git"
+  },
+  "main": "lib/app.js",
   "dependencies": {
-    "aws-sdk": "2.3.14",
-    "graceful-fs": "4.1.4",
+    "async": "1.5.2",
+    "aws-sdk": "2.2.4",
+    "bottleneck": "1.12.0",
+    "chokidar": "1.5.1",
+    "deep-diff": "0.3.4",
+    "diskspace": "1.0.3",
+    "express": "4.13.4",
+    "fs.extra": "1.3.2",
     "mkdirp": "0.5.1",
+    "mv": "2.1.1",
+    "path": "0.12.7",
+    "path-root": "^0.1.1",
     "proxy-agent": "1.1.0",
-    "queue-async": "git+https://github.com/rmp/queue.git",
     "request": "2.62.0",
-    "underscore": "1.8.3"
+    "split": "^1.0.0",
+    "unirest": "0.5.0",
+    "watchjs": "0.0.0"
   },
   "devDependencies": {
-    "istanbul": "0.3.2",
-    "jslint": "0.3.3",
+    "chai": "*",
+    "coffee-script": "^1.10.0",
     "mocha": "2.2.5",
-    "proxyquire": "1.5.0",
     "sinon": "^1.15.4",
-    "tmp": "0.0.27",
-    "xunit-file": "*"
+    "xunit-file": "^1.0.0"
   },
   "scripts": {
-    "postinstall": "perl -M\"File::Copy move\" -e \"move(q[node_modules/proxy-agent/node_modules/pac-proxy-agent], q[node_modules/pac-proxy-agent]); move(q[node_modules/proxy-agent/node_modules/socks-proxy-agent], q[node_modules/socks-proxy-agent]); move(q[node_modules/proxy-agent/node_modules/https-proxy-agent], q[node_modules/https-proxy-agent]); move(q[node_modules/proxy-agent/node_modules/http-proxy-agent], q[node_modules/http-proxy-agent]); move(q[node_modules/pac-proxy-agent/node_modules/pac-resolver/node_modules/regenerator/node_modules/defs], q[node_modules/defs]); move(q[node_modules/pac-proxy-agent/node_modules/pac-resolver/node_modules/regenerator/node_modules/commoner], q[node_modules/commoner]); move(q[node_modules/pac-proxy-agent/node_modules/pac-resolver], q[node_modules/pac-resolver]);\""
-  }
+    "start": "nodemon server.coffee",
+    "test": "node_modules/mocha/bin/mocha test/**/* --compilers coffee:coffee-script/register -t 30000"
+  },
+  "author": "",
+  "license": "ISC"
 }

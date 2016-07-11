@@ -1,6 +1,7 @@
 node_modules/
-xunit.xml
 coverage/
 .DS_store
 .idea
-test/.DS_store
+*/.DS_store
+@options.apikey
+xunit.xml
