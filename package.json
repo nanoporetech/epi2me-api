@@ -22,6 +22,7 @@
     "path-root": "^0.1.1",
     "proxy-agent": "1.1.0",
     "request": "2.62.0",
+    "split": "^1.0.0",
     "unirest": "0.5.0",
     "watchjs": "0.0.0"
   },

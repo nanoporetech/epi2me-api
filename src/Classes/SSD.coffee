@@ -261,7 +261,7 @@ class SSD extends EventEmitter
 
   countTelemetry: (done) ->
     return done 0 if not fs.existsSync @telePath
-    countLinesInFile @telePath, (error, lines) ->
+    @countLinesInFile @telePath, (error, lines) ->
       done if error then 0 else lines
 
 
@@ -303,7 +303,7 @@ class SSD extends EventEmitter
 
   # Count lines in file
 
-  countLinesInFile = (filePath, done) =>
+  countLinesInFile: (filePath, done) =>
     lineCount = 0
     readError = no
     fs.createReadStream(filePath)
