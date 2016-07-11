@@ -8,4 +8,4 @@ deps:
 	npm install
 
 test: deps
-	node_modules/mocha/bin/mocha test/unit/**/* --compilers coffee:coffee-script/register -t 30000 --reporter xunit-file
+	XUNIT_FILE=xunit.xml node_modules/mocha/bin/mocha test/unit/**/* --compilers coffee:coffee-script/register -t 30000 --reporter xunit-file
