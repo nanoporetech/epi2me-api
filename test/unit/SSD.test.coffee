@@ -2,10 +2,11 @@
 os = require 'os'
 fs = require 'fs'
 assert = require('chai').assert
+path = require 'path'
 sinon = require 'sinon'
 mkdirp = require 'mkdirp'
 async = require 'async'
-SSD = require '../../src/Classes/SSD.coffee'
+SSD = require path.join '..', '..', 'src', 'Classes', 'SSD.coffee'
 
 guid = -> Math.random().toString(36).substring(7)
 fast5 = (item) -> return item.slice(-6) is '.fast5'

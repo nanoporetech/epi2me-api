@@ -1,7 +1,7 @@
 
 os = require 'os'
-fs = require('fs-extra')
-path = require('path')
+fs = require 'fs-extra'
+path = require 'path'
 dns = require 'dns'
 mkdirp = require 'mkdirp'
 assert = require('chai').assert
@@ -217,10 +217,11 @@ describe "AWS", ->
         assert.isUndefined error
         initial_count = count.flight + count.visible
         test_file = { source: "#{root}/#{test_name}", name: test_name }
-        fs.copySync "#{__dirname}/#{test_name}", test_file.source
-        aws.uploadFile test_file, (error) ->
-          assert.isUndefined error
-          done()
+        fs.copy "#{__dirname}/#{test_name}", test_file.source, (err) ->
+          assert.isUndefined err
+          aws.uploadFile test_file, (error) ->
+            assert.isUndefined error
+            done()
 
     it 'added to S3', (done) ->
       bucket = api.instance.bucket
