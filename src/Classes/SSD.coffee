@@ -30,8 +30,6 @@ class SSD extends EventEmitter
   constructor: (@options) ->
     @batchSize = 100
     @isRunning = no
-    if not @options.outputFolder
-      @options.outputFolder = path.join @options.inputFolder, 'downloads'
     @sub =
       pending: path.join @options.inputFolder, 'pending'
       uploaded: path.join @options.inputFolder, 'uploaded'
@@ -68,6 +66,7 @@ class SSD extends EventEmitter
     @watcher.on 'add', (path) =>
       return if not fast5(path)
       @stats.pending += 1
+      @stats.total += 1
       # console.log @stats.pending
       return if @isBatching
       @isBatching = yes
@@ -186,7 +185,6 @@ class SSD extends EventEmitter
     mv file.source, destination, (error) =>
       return done error if error
       @stats[sub] += 1
-      @emit 'status', "File uploaded"
       done()
 
   saveDownloadedFile: (stream, filename, telemetry, done) =>
@@ -256,7 +254,7 @@ class SSD extends EventEmitter
     @telePath = path.join @sub.downloads, "telemetry-#{instanceID}.log"
     # console.log @telePath
     @telemetry = fs.createWriteStream @telePath, { flags: "a" }
-    @emit 'status', "Logging telemetry to #{path}"
+    @emit 'status', "Logging telemetry to #{@telePath}"
     done no
 
   appendToTelemetry: (data, done) ->

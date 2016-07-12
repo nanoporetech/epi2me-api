@@ -6,21 +6,42 @@ MetrichorAPI = require './Classes/MetrichorAPI'
 SSD = require './Classes/SSD'
 AWS = require './Classes/AWS'
 
+path = require 'path'
+fs = require 'fs'
+os = require 'os'
+
 class MetrichorSync extends EventEmitter
   constructor: (@options) ->
     return new Error 'No Options' if not @options
+    if not @options.outputFolder
+      @options.outputFolder = path.join @options.inputFolder, 'downloads'
     @api = new MetrichorAPI @options
     @ssd = new SSD @options
     @aws = new AWS @options, @api, @ssd
     @aws.on 'progress', @stats
     @ssd.on 'progress', @stats
-    @aws.on 'status', (status) => @emit 'status', "AWS: #{status}"
-    @ssd.on 'status', (status) => @emit 'status', "SSD: #{status}"
+    @aws.on 'status', (message) => @status "AWS: #{message}"
+    @ssd.on 'status', (message) => @status "SSD: #{message}"
     @aws.on 'fatal', (fatalMessage) =>
       if @onFatal
         @pause (error) =>
           @resetLocalDirectory (error) =>
             @onFatal fatalMessage, no
+
+
+
+
+  # Handle a status message
+
+  status: (message) =>
+    @emit 'status', message
+    id = @api.instance.id
+    return if not id
+    if not @logStream
+      log = path.join @options.outputFolder, "agent-#{id}.log"
+      return if not fs.existsSync log
+      @logStream = fs.createWriteStream log, {flags: "a"}
+    @logStream.write "[#{new Date().toISOString()}] #{message} #{os.EOL}"
 
 
 
@@ -103,17 +124,19 @@ class MetrichorSync extends EventEmitter
     return done? new Error 'No App Instance Found' if not @api.instance.id
     @ssd.freeSpace (error) =>
       return done? error if error
-      @ssd.checkPermissions (error) =>
+      @ssd.createSubdirectories (error) =>
         return done? error if error
-        @ssd.createTelemetry @api.instance.id, (error) =>
+        @ssd.checkPermissions (error) =>
           return done? error if error
-          @ssd.start (error) =>
-            return (@pause -> done? error) if error
-            @aws.start (error) =>
+          @ssd.createTelemetry @api.instance.id, (error) =>
+            return done? error if error
+            @ssd.start (error) =>
               return (@pause -> done? error) if error
-              @emit 'status', "Instance #{@api.instance.id} Syncing"
-              @stats()
-              done? no, id_workflow_instance: @api.instance.id
+              @aws.start (error) =>
+                return (@pause -> done? error) if error
+                @emit 'status', "Instance #{@api.instance.id} Syncing"
+                @stats()
+                done? no, id_workflow_instance: @api.instance.id
 
 
 

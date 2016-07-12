@@ -30,10 +30,9 @@ class AWS extends EventEmitter
     @isRunning = yes
     @token (error) =>
       return done? new Error 'No token generated' if error
-      @generateQueues =>
-        @nextScan 'download', 1
-        @nextScan 'upload', 1
-        done?()
+      @nextScan 'download', 1
+      @nextScan 'upload', 1
+      done?()
 
 
 
@@ -53,33 +52,33 @@ class AWS extends EventEmitter
     @status "Attempt to create new token"
     @api.getToken options, (error, token) =>
       if error
-        @status "Couldn't crete token because #{error}"
+        @status "Couldn't create token because #{error}"
         return done? error
       @status "Created new token"
-      @currentToken =
-        s3: new AWS_SDK.S3 token
-        sqs: new AWS_SDK.SQS token
-        expiration: token.expiration
-      @generateQueues done
-
-  generateQueues: (done) ->
-    input = @api.instance.inputqueue
-    output = @api.instance.outputqueue
-    @currentToken.sqs.getQueueUrl QueueName: input, (error, input) =>
-      return done error if error
-      @currentToken.sqs.getQueueUrl QueueName: output, (error, output) =>
+      input = @api.instance.inputqueue
+      output = @api.instance.outputqueue
+      s3 = new AWS_SDK.S3 token
+      sqs = new AWS_SDK.SQS token
+      sqs.getQueueUrl QueueName: input, (error, input) =>
         return done error if error
-        @api.instance.url = input: input.QueueUrl, output: output.QueueUrl
-        done? no, @currentToken
+        sqs.getQueueUrl QueueName: output, (error, output) =>
+          return done error if error
+          @api.instance.url =
+            input: input.QueueUrl
+            output: output.QueueUrl
+          done? no, @currentToken =
+            s3: s3
+            sqs: sqs
+            expiration: token.expiration
 
 
 
 
   # Scan loop control. These ensure that we loop at a reasonable rate. We've also got a 'fatal'. If any of the loops fail in a major way we call fatal. This will pause the instance but also send a message to the agent with the text in 'error' which will show up in the status field.
 
-  nextScan: (upOrDown, delay) =>
+  nextScan: (upOrDown, delay = 10000) =>
     return if not @isRunning
-    @["#{upOrDown}Timer"] = setTimeout @["#{upOrDown}Scan"], (delay or 10000)
+    @["#{upOrDown}Timer"] = setTimeout @["#{upOrDown}Scan"], delay
 
   scanFailed: (upOrDown, error) ->
     if error.message isnt 'No batches'
@@ -103,11 +102,10 @@ class AWS extends EventEmitter
         @ssd.removeEmptyBatch batch.source, (error) =>
           return @scanFailed 'upload', error if error
           @status "Batch Uploaded"
-          @nextScan 'upload'
+          @nextScan 'upload', 1
 
   uploadFile: (file, done) =>
     return if not @isRunning
-    @status 'Upload file'
     @token (error, aws) =>
       return done? error if error
       @stats.uploading += 1
