@@ -3,5 +3,5 @@ coverage/
 .DS_store
 .idea
 */.DS_store
-@options.apikey
+apikey
 xunit.xml

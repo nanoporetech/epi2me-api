@@ -5,8 +5,7 @@ assert = require('chai').assert
 sinon = require 'sinon'
 path = require 'path'
 API = require path.join '..', '..', 'src', 'Classes', 'MetrichorAPI.coffee'
-apikey = process.env.API_KEY or fs.readFileSync(path.join('..', '..', '@options.apikey'), 'utf8').trim()
-
+apikey = process.env.API_KEY
 
 root = "#{os.homedir()}/metrichorAPI_TestRoot"
 
@@ -20,7 +19,7 @@ options =
   apikey: apikey
   url: url
   agent_version: "2.41"
-  
+
 
 api = new API options
 config = { app: 454 }

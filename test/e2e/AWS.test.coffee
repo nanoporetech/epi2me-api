@@ -9,7 +9,7 @@ sinon = require 'sinon'
 AWS = require path.join '..', '..', 'src', 'Classes', 'AWS.coffee'
 SSD = require path.join '..', '..', 'src', 'Classes', 'SSD.coffee'
 API = require path.join '..', '..', 'src', 'Classes', 'MetrichorAPI.coffee'
-apikey = process.env.API_KEY or fs.readFileSync(path.join('..', '..', '@options.apikey'), 'utf8').trim()
+apikey = process.env.API_KEY
 guid = -> Math.random().toString(36).substring(7)
 
 
@@ -217,9 +217,11 @@ describe "AWS", ->
         assert.isUndefined error
         initial_count = count.flight + count.visible
         test_file = { source: "#{root}/#{test_name}", name: test_name }
-        fs.copy "#{__dirname}/#{test_name}", test_file.source, (err) ->
-          assert.isUndefined err
+        fs.copy "#{__dirname}/../#{test_name}", test_file.source, (err) ->
+          assert.isNull err
+          aws.isRunning = yes
           aws.uploadFile test_file, (error) ->
+            aws.isRunning = no
             assert.isUndefined error
             done()
 
@@ -300,7 +302,9 @@ describe "AWS", ->
       sinon.stub aws, "skipFile", (next) ->
       getSQSCount 'output', (error, count) ->
         output_length = count.flight + count.visible
+        aws.isRunning = yes
         aws.downloadFile uploadedMessage, (error) ->
+          aws.isRunning = no
           restoreObjects()
           assert.isUndefined error
           done()

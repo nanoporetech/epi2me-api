@@ -30,10 +30,13 @@ class SSD extends EventEmitter
   constructor: (@options) ->
     @batchSize = 100
     @isRunning = no
+    if not @options.outputFolder
+      @options.outputFolder = path.join @options.inputFolder, 'downloads'
     @sub =
       pending: path.join @options.inputFolder, 'pending'
       uploaded: path.join @options.inputFolder, 'uploaded'
       upload_failed: path.join @options.inputFolder, 'upload_failed'
+      downloads: @options.outputFolder
 
   start: (done) ->
     return done? new Error "Directory already started" if @isRunning
@@ -52,9 +55,11 @@ class SSD extends EventEmitter
       return done? error if error
       mkdirp @sub.uploaded, (error) =>
         return done? error if error
-        mkdirp @sub.upload_failed, (error) ->
+        mkdirp @sub.upload_failed, (error) =>
           return done? error if error
-          done()
+          mkdirp @sub.downloads, (error) =>
+            return done? error if error
+            done()
 
   createFileWatcher: ->
     @watcher = chokidar.watch @options.inputFolder,
@@ -192,7 +197,7 @@ class SSD extends EventEmitter
       return done new Error "Download failed"
     failed = no
     timeout = setTimeout saveFailed, 30000
-    destination = @options.outputFolder
+    destination = @sub.downloads
     if telemetry?.hints?.folder
       destination = path.join destination, telemetry.hints.folder
     else if telemetry?.json?.exit_status
@@ -229,7 +234,7 @@ class SSD extends EventEmitter
   freeSpace: (done) =>
     minimumFree = 100
     return done() if @options.downloadMode is 'telemetry'
-    disk.check pathRoot(@options.outputFolder),(error, total, free, status) ->
+    disk.check pathRoot(@sub.downloads), (error, total, free, status) ->
       return done error if error
       megabytes_free = Math.floor (free / 1024 / 1000)
       return done new Error 'No disk space' if megabytes_free <= minimumFree
@@ -238,7 +243,7 @@ class SSD extends EventEmitter
   checkPermissions: (done) =>
     fs.access @options.inputFolder, fs.R_OK, (error) =>
       return done error if error
-      fs.access @options.outputFolder, fs.W_OK, (error) ->
+      fs.access @sub.downloads, fs.W_OK, (error) ->
         return done error if error
         done()
 
@@ -248,7 +253,7 @@ class SSD extends EventEmitter
   # Telemetry. Here we start a writeStream to a telemetry file. If we are resuming an instance, the telemetry file will already exist, we just link to it. If this is a new instance the file will be created. We can also append a line to this file.
 
   createTelemetry: (instanceID, done) =>
-    @telePath = path.join @options.outputFolder, "telemetry-#{instanceID}.log"
+    @telePath = path.join @sub.downloads, "telemetry-#{instanceID}.log"
     # console.log @telePath
     @telemetry = fs.createWriteStream @telePath, { flags: "a" }
     @emit 'status', "Logging telemetry to #{path}"
