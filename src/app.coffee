@@ -35,6 +35,7 @@ class MetrichorSync extends EventEmitter
 
   status: (message) =>
     @emit 'status', message
+    return if not @api?.instance
     id = @api.instance.id
     return if not id
     if not @logStream
