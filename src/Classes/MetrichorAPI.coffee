@@ -122,14 +122,14 @@ class MetrichorAPI
       .headers "X-Metrichor-Client": @options.user_agent
       .query
         apikey: @options.apikey
-        agent_version: @options.agent_version or ''
+        agent_version: @options.agent_version or '2.41.1'
         region: @options.region
       .end (response) => @parseResponse response, done
 
   postOrPut: (verb, resource, form, done) ->
     form.json = JSON.stringify form.json if form.json
     form.apikey = @options.apikey
-    form.agent_version = @options.agent_version or ''
+    form.agent_version = @options.agent_version or '2.41.1'
     unirest[verb] "#{@options.url}/#{resource}.js"
       .proxy @options.proxy
       .headers "X-Metrichor-Client": @options.user_agent
