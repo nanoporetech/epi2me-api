@@ -13,10 +13,10 @@ os = require 'os'
 class MetrichorSync extends EventEmitter
   constructor: (@options) ->
     return new Error 'No Options' if not @options
-    if not @options.outputFolder
-      @options.outputFolder = path.join @options.inputFolder, 'downloads'
     @api = new MetrichorAPI @options
     return if not @options.inputFolder
+    if not @options.outputFolder
+      @options.outputFolder = path.join @options.inputFolder, 'downloads'
     @ssd = new SSD @options
     @aws = new AWS @options, @api, @ssd
     @aws.on 'progress', @stats
@@ -43,6 +43,7 @@ class MetrichorSync extends EventEmitter
       log = path.join @options.outputFolder, "agent-#{id}.log"
       return if not fs.existsSync log
       @logStream = fs.createWriteStream log, {flags: "a"}
+    @options.log.info message if @options.log?.info
     @logStream.write "[#{new Date().toISOString()}] #{message} #{os.EOL}"
 
 
@@ -55,10 +56,12 @@ class MetrichorSync extends EventEmitter
       instance: @api.instance.id
       upload:
         success: @ssd.stats?.uploaded or 0
+        queueLength: @aws.stats?.uploading
         totalSize: @ssd.stats?.uploaded or 0
         total: @ssd.stats?.total or 0
       download:
         success: @ssd.stats?.downloaded
+        queueLength: @aws.stats?.downloading
         totalSize: @ssd.stats?.downloaded
       all:
         ssd: @ssd.stats
