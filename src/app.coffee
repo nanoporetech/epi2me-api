@@ -13,7 +13,7 @@ os = require 'os'
 class MetrichorSync extends EventEmitter
   constructor: (@options) ->
     return new Error 'No Options' if not @options
-    if not @options.outputFolder
+    if not @options.outputFolder and @options.inputFolder
       @options.outputFolder = path.join @options.inputFolder, 'downloads'
     @api = new MetrichorAPI @options
     return if not @options.inputFolder
