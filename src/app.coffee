@@ -16,6 +16,7 @@ class MetrichorSync extends EventEmitter
     if not @options.outputFolder
       @options.outputFolder = path.join @options.inputFolder, 'downloads'
     @api = new MetrichorAPI @options
+    return if not @options.inputFolder
     @ssd = new SSD @options
     @aws = new AWS @options, @api, @ssd
     @aws.on 'progress', @stats
@@ -62,7 +63,6 @@ class MetrichorSync extends EventEmitter
       all:
         ssd: @ssd.stats
         aws: @aws.stats
-
     return @latestStats[key] if key
     return @latestStats
 
