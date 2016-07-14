@@ -21,8 +21,8 @@ class MetrichorSync extends EventEmitter
     @aws = new AWS @options, @api, @ssd
     @aws.on 'progress', @stats
     @ssd.on 'progress', @stats
-    @aws.on 'status', (message) => @status "AWS: #{message}"
-    @ssd.on 'status', (message) => @status "SSD: #{message}"
+    @aws.on 'status', (message) => @status message
+    @ssd.on 'status', (message) => @status message
     @aws.on 'fatal', (fatalMessage) =>
       if @onFatal
         @pause (error) =>
@@ -36,6 +36,7 @@ class MetrichorSync extends EventEmitter
 
   status: (message) =>
     @emit 'status', message
+    @options.log.info message if @options.log?.info
     return if not @api?.instance
     id = @api.instance.id
     return if not id
@@ -43,7 +44,6 @@ class MetrichorSync extends EventEmitter
       log = path.join @options.outputFolder, "agent-#{id}.log"
       return if not fs.existsSync log
       @logStream = fs.createWriteStream log, {flags: "a"}
-    @options.log.info message if @options.log?.info
     @logStream.write "[#{new Date().toISOString()}] #{message} #{os.EOL}"
 
 
