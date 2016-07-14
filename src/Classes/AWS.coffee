@@ -148,9 +148,9 @@ class AWS extends EventEmitter
 
   gotFileList: (messages) =>
     if not messages?.Messages?.length
-      @status "No files to download"
+      # @status "No files to download"
       return @nextScan 'download'
-    @status "#{messages?.Messages?.length} SQS Messages found"
+    # @status "#{messages?.Messages?.length} SQS Messages found"
     queueDownload = (msg, next) => @limiter.submit @downloadFile, msg, next
     @stats.downloading = messages.Messages.length
     async.eachLimit messages.Messages, 5, queueDownload, (error) =>

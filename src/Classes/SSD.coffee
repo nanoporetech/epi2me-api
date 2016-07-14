@@ -146,7 +146,7 @@ class SSD extends EventEmitter
       if not batches?.length
         return fs.readdir @options.inputFolder, (error, files) =>
           if not files.filter(fast5).length
-            @emit 'status', "No files to upload"
+            # @emit 'status', "No files to upload"
             return done new Error 'No batches'
           @convertToBatches no, =>
             @getBatch done

@@ -56,13 +56,13 @@ class MetrichorSync extends EventEmitter
       instance: @api.instance.id
       upload:
         success: @ssd.stats?.uploaded or 0
-        queueLength: @aws.stats?.uploading
+        queueLength: @aws.stats?.uploading or 0
         totalSize: @ssd.stats?.uploaded or 0
         total: @ssd.stats?.total or 0
       download:
-        success: @ssd.stats?.downloaded
-        queueLength: @aws.stats?.downloading
-        totalSize: @ssd.stats?.downloaded
+        success: @ssd.stats?.downloaded or 0
+        queueLength: @aws.stats?.downloading or 0
+        totalSize: @ssd.stats?.downloaded or 0
       all:
         ssd: @ssd.stats
         aws: @aws.stats
@@ -77,13 +77,13 @@ class MetrichorSync extends EventEmitter
   create: (config, done) ->
     @api.createNewInstance config, (error, instanceID) =>
       return done? error if error
-      @emit 'status', "Created Instance #{instanceID}"
+      @status "Created Instance #{instanceID}"
       @join instanceID, done
 
   join: (instanceID, done) ->
     @api.loadInstance instanceID, (error, instance) =>
       return done? error if error
-      @emit 'status', "Joined Instance #{@api.instance.id}"
+      @status "Joined Instance #{@api.instance.id}"
       return done? no, instanceID if @options.manualSync
       @resume done
 
@@ -98,13 +98,13 @@ class MetrichorSync extends EventEmitter
       @latestStats = {}
       @api.stopLoadedInstance (error, response) =>
         return done? error if error
-        @emit 'status', "Stopped Instance #{loadedInstance}"
+        @status "Stopped Instance #{loadedInstance}"
         done? no
 
   resetLocalDirectory: (done) ->
     @ssd.reset (error) =>
       return done? error if error
-      @emit 'status', "Local Directory Reset"
+      @status "Local Directory Reset"
       done?()
 
 
@@ -120,7 +120,6 @@ class MetrichorSync extends EventEmitter
       return done? error if error
       @aws.stop (error) =>
         return done? error if error
-        @emit 'status', "Instance #{@api.instance.id} Paused"
         done? no
 
   resume: (done) ->
@@ -138,7 +137,7 @@ class MetrichorSync extends EventEmitter
               return (@pause -> done? error) if error
               @aws.start (error) =>
                 return (@pause -> done? error) if error
-                @emit 'status', "Instance #{@api.instance.id} Syncing"
+                @status "Instance #{@api.instance.id} Syncing"
                 @stats()
                 done? no, id_workflow_instance: @api.instance.id
 
