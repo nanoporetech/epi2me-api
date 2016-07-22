@@ -188,24 +188,24 @@ class SSD extends EventEmitter
       done()
 
   saveDownloadedFile: (stream, filename, telemetry, done) =>
+    failed = no
     saveFailed = =>
       return if failed
       failed = yes
+      clearTimeout timeout
       @emit 'status', "Download Failed " + filename
       return done new Error "Download failed"
-    failed = no
     timeout = setTimeout saveFailed, 30000
     destination = @sub.downloads
-    if telemetry?.hints?.folder
-      destination = path.join destination, telemetry.hints.folder
-    else if telemetry?.json?.exit_status
-      successful = telemetry.json.exit_status.match /workflow[ ]successful/i
-      folder = path.join folder, if successful then 'pass' else 'fail'
+    if @options.filter isnt 'off'
+      if telemetry?.hints?.folder
+        destination = path.join destination, telemetry.hints.folder
+      else if telemetry?.json?.exit_status
+        successful = telemetry.json.exit_status.match /workflow[ ]successful/i
+        folder = path.join folder, if successful then 'pass' else 'fail'
     fs.mkdirSync destination if not fs.existsSync destination
     localFile = fs.createWriteStream path.join destination, filename
-    stream.on 'error', =>
-      return if failed
-      saveFailed()
+    stream.on 'error', => saveFailed()
     stream.on 'data', =>
       return if failed
       clearTimeout timeout

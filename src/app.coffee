@@ -37,14 +37,6 @@ class MetrichorSync extends EventEmitter
   status: (message) =>
     @emit 'status', message
     @options.log.info message if @options.log?.info
-    return if not @api?.instance
-    id = @api.instance.id
-    return if not id
-    if not @logStream
-      log = path.join @options.outputFolder, "agent-#{id}.log"
-      return if not fs.existsSync log
-      @logStream = fs.createWriteStream log, {flags: "a"}
-    @logStream.write "[#{new Date().toISOString()}] #{message} #{os.EOL}"
 
 
 
