@@ -16,7 +16,8 @@ fast5 = (item) -> return item.slice(-6) is '.fast5'
 
 # Define the root directory and determine the number of test files. Some functions for creating and removing files/directories. Before we start any test, create an artificial root directory where we can define input and output folders Also an instance method to give us a new standard instance.
 
-root = "#{os.homedir()}/metrichorAPI_TestRoot"
+homedir = process.env.HOME or process.env.USERPROFILE
+root = "#{homedir}/metrichorAPI_TestRoot"
 test_files = Math.floor (Math.random() * 1000) + 100
 
 createTestRoot = (done) ->
