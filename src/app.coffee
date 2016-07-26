@@ -49,15 +49,17 @@ class MetrichorSync extends EventEmitter
       upload:
         success: @ssd.stats?.uploaded or 0
         queueLength: @aws.stats?.uploading or 0
-        totalSize: @ssd.stats?.uploaded or 0
+        totalSize: @ssd.stats?.uploadedSize or 0
         total: @ssd.stats?.total or 0
       download:
         success: @ssd.stats?.downloaded or 0
         queueLength: @aws.stats?.downloading or 0
-        totalSize: @ssd.stats?.downloaded or 0
+        totalSize: @ssd.stats?.downloadedSize or 0
+        total: @ssd.stats?.total or 0
       all:
         ssd: @ssd.stats
         aws: @aws.stats
+    console.log @latestStats
     return @latestStats[key] if key
     return @latestStats
 

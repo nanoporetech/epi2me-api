@@ -102,7 +102,7 @@ describe "SSD (with #{test_files} files)", ->
             expectedBatches = (Math.floor test_files/ssd.batchSize) + 1
             assert.equal pendings.length, expectedBatches
             done()
-        ), 500
+        ), 1000
 
     it 'stopped without error', (done) ->
       ssd.stop (error) ->
@@ -123,6 +123,8 @@ describe "SSD (with #{test_files} files)", ->
       pending: test_files
       uploaded: 0
       upload_failed: 0
+      downloadedSize: 0
+      uploadedSize: 0
       downloaded: 0
       total: test_files
 
@@ -278,6 +280,7 @@ describe "SSD (with #{test_files} files)", ->
     before createTestRoot
     after destroyTestRoot
     ssd = instance()
+    # ssd.sub.downloads = ssd.root
 
     it 'saved passing file', (done) ->
       ssd.stats = {}
@@ -388,15 +391,21 @@ describe "SSD (with #{test_files} files)", ->
       setTimeout ->
         ssd.stop (error) ->
           assert.isUndefined error
-          ssd.reset (error) ->
-            assert.isFalse error
-            done()
+          done()
       , 200
 
-    it 'correctly restored the database', (done) ->
-      fs.readdir "#{root}/inputFolder/pending", (error, pendings) ->
-        assert.equal pendings.length, 0
-        done()
+    it 'cleaned up after itself', (done) ->
+      fs.readdir "#{root}/inputFolder", (error, input) ->
+        assert.isNull error
+        fs.readdir "#{root}/outputFolder", (error, pendings) ->
+          assert.isNull error
+          ssd.reset (error) ->
+            assert.isFalse error
+            fs.readdir "#{root}/inputFolder", (error, input) ->
+              assert.isDefined error
+              fs.readdir "#{root}/outputFolder", (error, pendings) ->
+                assert.isDefined error
+                done()
 
 
 

@@ -83,7 +83,7 @@ class AWS extends EventEmitter
   scanFailed: (upOrDown, error) ->
     if error.message isnt 'No batches'
       @status "#{upOrDown} Scan Failed because #{error}"
-    return @nextScan upOrDown, 10000
+    return @nextScan upOrDown
 
   fatal: (error) =>
     @emit 'fatal', error
@@ -147,11 +147,9 @@ class AWS extends EventEmitter
           @gotFileList messages
 
   gotFileList: (messages) =>
-    if not messages?.Messages?.length
-      # @status "No files to download"
-      return @nextScan 'download'
-    # @status "#{messages?.Messages?.length} SQS Messages found"
-    queueDownload = (msg, next) => @limiter.submit @downloadFile, msg, next
+    return @nextScan 'download' if not messages?.Messages?.length
+    @status "#{messages?.Messages?.length} SQS Messages found"
+    queueDownload =(msg, next) => @limiter.submit @downloadFile, msg, next
     @stats.downloading = messages.Messages.length
     async.eachLimit messages.Messages, 5, queueDownload, (error) =>
       return @scanFailed 'download', error if error
@@ -165,7 +163,7 @@ class AWS extends EventEmitter
       return @downloadFailed error, next if error
       body = JSON.parse sqsMessage.Body
       telemetry = body.telemetry
-      return @downloadFailed (new Error 'No telemetry'), next if not telemetry
+      return @downloadFailed (new Error 'No tele'), next if not telemetry
       filename = body.path.match(/[\w\W]*\/([\w\W]*?)$/)[1]
       streamOptions = { Bucket: body.bucket, Key: body.path }
       @ssd.appendToTelemetry telemetry, =>

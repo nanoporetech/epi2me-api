@@ -13,6 +13,7 @@ os = require 'os'
 disk = require 'diskspace'
 pathRoot = require 'path-root'
 split = require('split')
+deleteEmpty = require('delete-empty')
 
 fast5 = (item) -> return item.slice(-6) is '.fast5'
 isBatch = (item) -> item.slice(0, 6) is 'batch_'
@@ -95,6 +96,8 @@ class SSD extends EventEmitter
                 uploaded: uploaded.filter(fast5).length
                 upload_failed: upload_failed.filter(fast5).length
                 downloaded: lines
+                uploadedSize: 0
+                downloadedSize: 0
               for partial in pending.filter(partialBatch)
                 source = path.join @sub.pending, partial
                 @stats.pending += fs.readdirSync(source).filter(fast5).length
@@ -182,10 +185,13 @@ class SSD extends EventEmitter
   moveUploadedFile: (file, success, done) =>
     sub = if success then 'uploaded' else 'upload_failed'
     destination = path.join @options.inputFolder, sub, file.name
-    mv file.source, destination, (error) =>
-      return done error if error
-      @stats[sub] += 1
-      done()
+    fs.stat file.source, (error, stats) =>
+      return done if error
+      @stats.uploadedSize += stats.size if stats and stats.size
+      mv file.source, destination, (error) =>
+        return done error if error
+        @stats[sub] += 1
+        done()
 
   saveDownloadedFile: (stream, filename, telemetry, done) =>
     failed = no
@@ -204,7 +210,8 @@ class SSD extends EventEmitter
         successful = telemetry.json.exit_status.match /workflow[ ]successful/i
         folder = path.join folder, if successful then 'pass' else 'fail'
     fs.mkdirSync destination if not fs.existsSync destination
-    localFile = fs.createWriteStream path.join destination, filename
+    localPath = path.join destination, filename
+    localFile = fs.createWriteStream localPath
     stream.on 'error', => saveFailed()
     stream.on 'data', =>
       return if failed
@@ -215,7 +222,10 @@ class SSD extends EventEmitter
       @stats.downloaded += 1
       clearTimeout timeout
       failed = yes
-      done?()
+      fs.stat localPath, (error, stats) =>
+        return done if error
+        @stats.downloadedSize += stats.size if stats and stats.size
+        done?()
     stream.pipe localFile
 
   removeEmptyBatch: (batch, done) ->
@@ -277,7 +287,8 @@ class SSD extends EventEmitter
       @isRunning = no
       @watcher.unwatch(@options.inputFolder).close() if @watcher
       WatchJS.unwatch @stats if @stats
-      done?()
+      @reset ->
+        done?()
     return batchingDone() if not @isBatching
     setTimeout (=> @stop done), 100
 
@@ -290,16 +301,17 @@ class SSD extends EventEmitter
   reset: (done) ->
     if @isRunning
       return done? new Error "Cannot reset while instance is running"
-    @stop =>
-      rootWalker = fs.walk @options.inputFolder
-      rootWalker.on "file", (directory, stat, next) =>
-        full = path.join @options.inputFolder, stat.name
-        mv path.join(directory, stat.name), full, next
-      rootWalker.on 'end', =>
-        pendingWalker = fs.walk path.join(@options.inputFolder, 'pending')
-        pendingWalker.on "directory", (directory, stat, next) ->
-          try fs.rmdir path.join(directory, stat.name), next
-        pendingWalker.on 'end', -> done? no
+    rootWalker = fs.walk @options.inputFolder
+    rootWalker.on "file", (directory, stat, next) =>
+      full = path.join @options.inputFolder, stat.name
+      mv path.join(directory, stat.name), full, next
+    rootWalker.on 'end', =>
+      # pendingWalker = fs.walk path.join(@options.inputFolder, 'pending')
+      # pendingWalker.on "directory", (directory, stat, next) ->
+      #   try fs.rmdir path.join(directory, stat.name), next
+      # pendingWalker.on 'end', =>
+      deleteEmpty @options.inputFolder, {force: yes}, (err, deleted) ->
+        done? no
 
 
 
