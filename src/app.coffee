@@ -90,10 +90,11 @@ class MetrichorSync extends EventEmitter
     @pause =>
       loadedInstance = @api.instance.id
       @latestStats = {}
-      @api.stopLoadedInstance (error, response) =>
-        return done? error if error
-        @status "Stopped Instance #{loadedInstance}"
-        done? no
+      @resetLocalDirectory =>
+        @api.stopLoadedInstance (error, response) =>
+          return done? error if error
+          @status "Stopped Instance #{loadedInstance}"
+          done? no
 
   resetLocalDirectory: (done) ->
     @ssd.reset (error) =>

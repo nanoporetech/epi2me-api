@@ -93,11 +93,9 @@ describe "SSD (with #{test_files} files)", ->
         fs.writeFile "#{root}/inputFolder/#{guid()}.fast5", 'x', (error) ->
           console.log error if error
           setTimeout (->next()), 15
-      newBatchIn = ssd.batchSize - (test_files%ssd.batchSize)
-      # console.log 'start ', ssd.stats.pending, newBatchIn
+      newBatchIn = ssd.batchSize - (test_files % ssd.batchSize)
       async.eachSeries (new Array(newBatchIn)), createFile, ->
-        # ssd.convertToBatches yes, (error) ->
-        setTimeout (-> # Wait for batcher
+        setTimeout (->
           fs.readdir "#{root}/inputFolder/pending", (error, pendings) ->
             assert.equal ssd.stats.pending, test_files + newBatchIn
             expectedBatches = (Math.floor test_files/ssd.batchSize) + 1

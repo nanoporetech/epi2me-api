@@ -287,8 +287,7 @@ class SSD extends EventEmitter
       @isRunning = no
       @watcher.unwatch(@options.inputFolder).close() if @watcher
       WatchJS.unwatch @stats if @stats
-      @reset ->
-        done?()
+      @reset done
     return batchingDone() if not @isBatching
     setTimeout (=> @stop done), 100
 
@@ -301,16 +300,18 @@ class SSD extends EventEmitter
   reset: (done) ->
     if @isRunning
       return done? new Error "Cannot reset while instance is running"
-    rootWalker = fs.walk @options.inputFolder
+    rootWalker = fs.walk @sub.pending
     rootWalker.on "file", (directory, stat, next) =>
       full = path.join @options.inputFolder, stat.name
       mv path.join(directory, stat.name), full, next
     rootWalker.on 'end', =>
-      # pendingWalker = fs.walk path.join(@options.inputFolder, 'pending')
-      # pendingWalker.on "directory", (directory, stat, next) ->
-      #   try fs.rmdir path.join(directory, stat.name), next
-      # pendingWalker.on 'end', =>
-      deleteEmpty @options.inputFolder, {force: yes}, (err, deleted) ->
+      emptyWalker = fs.walk @options.inputFolder
+      emptyWalker.on "directory", (directory, stat, next) ->
+        try fs.rmdir path.join(directory, stat.name), next
+      emptyWalker.on 'end', =>
+        # console.log 'ready to delete', @options.inputFolder
+        # deleteEmpty @options.inputFolder, {force: yes}, (err, deleted) ->
+        #   console.log err, deleted
         done? no
 
 
