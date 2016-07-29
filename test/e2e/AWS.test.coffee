@@ -38,7 +38,8 @@ api = new API
   url: url
   agent_version: "2.41"
 
-root = "#{os.homedir()}/metrichorAPI_TestRoot"
+homedir = process.env.HOME or process.env.USERPROFILE
+root = "#{homedir}/metrichorAPI_TestRoot"
 test_name = 'test_1_ch1_file1_strand.fast5'
 ssd = new SSD
   inputFolder: "#{root}/inputFolder"

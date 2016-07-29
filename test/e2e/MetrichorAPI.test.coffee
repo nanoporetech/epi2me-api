@@ -7,7 +7,8 @@ path = require 'path'
 API = require path.join '..', '..', 'src', 'Classes', 'MetrichorAPI.coffee'
 apikey = process.env.API_KEY
 
-root = "#{os.homedir()}/metrichorAPI_TestRoot"
+homedir = process.env.HOME or process.env.USERPROFILE
+root = "#{homedir}/metrichorAPI_TestRoot"
 
 
 
