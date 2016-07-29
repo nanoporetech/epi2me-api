@@ -309,9 +309,6 @@ class SSD extends EventEmitter
       emptyWalker.on "directory", (directory, stat, next) ->
         try fs.rmdir path.join(directory, stat.name), next
       emptyWalker.on 'end', =>
-        # console.log 'ready to delete', @options.inputFolder
-        # deleteEmpty @options.inputFolder, {force: yes}, (err, deleted) ->
-        #   console.log err, deleted
         done? no
 
 

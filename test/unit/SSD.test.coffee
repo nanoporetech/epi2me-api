@@ -105,7 +105,7 @@ describe "SSD (with #{test_files} files)", ->
 
     it 'stopped without error', (done) ->
       ssd.stop (error) ->
-        assert.isUndefined error
+        assert.isFalse error
         assert.isFalse ssd.isRunning
         done()
 
@@ -389,7 +389,7 @@ describe "SSD (with #{test_files} files)", ->
     it 'did not throw error when stopped', (done) ->
       setTimeout ->
         ssd.stop (error) ->
-          assert.isUndefined error
+          assert.isFalse error
           done()
       , 200
 

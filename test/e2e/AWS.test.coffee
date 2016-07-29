@@ -344,5 +344,5 @@ describe "AWS", ->
         assert.isFalse error
         assert.isFalse api.instance
         ssd.stop (error) ->
-          assert.isUndefined error
+          assert.isFalse error
           done()
