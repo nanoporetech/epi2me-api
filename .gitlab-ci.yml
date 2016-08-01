@@ -3,7 +3,7 @@ image: docker-registry.oxfordnanolabs.local:5000/ont-base-ubuntu:14.04
 stages:
   - package
 
-deb:
+build:
   stage: package
   script:
     - apt-get install curl -y --force-yes
