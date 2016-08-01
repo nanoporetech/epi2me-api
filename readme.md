@@ -5,7 +5,7 @@
 #
 
 
-*Authors:* Roger Pettit, Adam Hurst, Dom Vinyard  
+*Authors:* Roger Pettett, Adam Hurst, Dom Vinyard  
 *Created:* 01/06/2016  
 *Version:* 2.50.0
 
