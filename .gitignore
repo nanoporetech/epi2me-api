@@ -4,4 +4,5 @@ coverage/
 .idea
 */.DS_store
 apikey
+npm-debug.log
 xunit.xml
