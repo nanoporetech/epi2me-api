@@ -1,0 +1,17 @@
+image: docker-registry.oxfordnanolabs.local:5000/ont-base-ubuntu:14.04
+
+stages:
+  - package
+
+deb:
+  stage: package
+  script:
+    - apt-get install curl -y --force-yes
+    - curl -sL https://deb.nodesource.com/setup_6.x > nodejs-repo
+    - chmod +x nodejs-repo
+    - ./nodejs-repo
+    - rm nodejs-repo
+    - make deps
+    - make test
+  variables:
+    PATCH: $CI_BUILD_ID
