@@ -11,6 +11,7 @@ deb:
     - chmod +x nodejs-repo
     - ./nodejs-repo
     - rm nodejs-repo
+    - apt-get install nodejs
     - make deps
     - make test
   variables:
