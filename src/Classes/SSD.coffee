@@ -29,7 +29,7 @@ partialBatch = (item) -> isBatch(item) and isPartial(item)
 
 class SSD extends EventEmitter
   constructor: (@options) ->
-    @batchSize = 100
+    @batchSize = 1000
     @isRunning = no
     @sub =
       pending: path.join @options.inputFolder, 'pending'
