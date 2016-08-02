@@ -69,7 +69,8 @@ class MetrichorSync extends EventEmitter
 
   create: (config, done) ->
     @api.createNewInstance config, (error, instanceID) =>
-      return done? error if error
+      defaultError = new Error 'Could not connect. Please try again'
+      return done? defaultError if error
       @status "Created Instance #{instanceID}"
       @join instanceID, done
 
