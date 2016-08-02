@@ -37,9 +37,9 @@ class MetrichorAPI
       return done? new Error "Didn't start" if instance.state is 'stopped'
       instance.id = instance.id_workflow_instance
       instance.bucketFolder = [
-        instance.outputqueue,
-        instance.id_user,
-        instance.id_workflow_instance,
+        instance.outputqueue
+        instance.id_user
+        instance.id_workflow_instance
       ].join '/'
       instance.keypath = [
         instance.bucketFolder
@@ -70,14 +70,19 @@ class MetrichorAPI
 
 
 
-  # Token generation. Ask the MetrichorAPI for a token. We need an instance (above) before we can generate a token.
+  # Token generation. Ask the MetrichorAPI for a token. We need an instance (above) before we can generate a token. We're going to retry this a couple of times too.
 
   getToken: (options, done) ->
-    @post "token", options, (error, token) =>
-      return done? error if error
-      return done? new Error 'No Token Generated' if not token
-      token.region = @instance.region
-      done no, token
+    tries = 0
+    do makeRequest = =>
+      tries += 1
+      @post "token", options, (error, token) =>
+        if error or not token
+          return makeRequest() if tries < 3
+          return done error
+        token.region = @instance.region
+        done no, token
+
 
 
 

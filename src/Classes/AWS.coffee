@@ -153,8 +153,8 @@ class AWS extends EventEmitter
     @stats.downloading = messages.Messages.length
     async.eachLimit messages.Messages, 5, queueDownload, (error) =>
       return @scanFailed 'download', error if error
+      @status "#{messages?.Messages?.length} Downloaded"
       @nextScan 'download', 1
-
 
   downloadFile: (sqsMessage, next) =>
     return if not @isRunning
