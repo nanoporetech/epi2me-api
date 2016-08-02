@@ -118,8 +118,8 @@ class MetrichorSync extends EventEmitter
 
   resume: (done) ->
     @onFatal = (error) ->
-      error = new Error 'Disconnected. Please try again'
-      done error, no
+      defaultError = new Error 'Disconnected. Please try again'
+      done defaultError, no
     return done? new Error 'No App Instance Found' if not @api.instance.id
     @ssd.freeSpace (error) =>
       return @onFatal error if error
