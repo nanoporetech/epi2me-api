@@ -59,7 +59,6 @@ class MetrichorSync extends EventEmitter
       all:
         ssd: @ssd.stats
         aws: @aws.stats
-    console.log @latestStats
     return @latestStats[key] if key
     return @latestStats
 
@@ -70,7 +69,8 @@ class MetrichorSync extends EventEmitter
 
   create: (config, done) ->
     @api.createNewInstance config, (error, instanceID) =>
-      return done? error if error
+      defaultError = new Error 'Could not connect. Please try again'
+      return done? defaultError if error
       @status "Created Instance #{instanceID}"
       @join instanceID, done
 
@@ -118,20 +118,24 @@ class MetrichorSync extends EventEmitter
         done? no
 
   resume: (done) ->
-    @onFatal = (error) -> done error, no
+    @onFatal = (error) ->
+      defaultError = new Error 'Disconnected. Please try again'
+      done defaultError, no
     return done? new Error 'No App Instance Found' if not @api.instance.id
     @ssd.freeSpace (error) =>
-      return done? error if error
+      return @onFatal error if error
       @ssd.createSubdirectories (error) =>
-        return done? error if error
+        return @onFatal error if error
         @ssd.checkPermissions (error) =>
-          return done? error if error
+          return @onFatal error if error
           @ssd.createTelemetry @api.instance.id, (error) =>
-            return done? error if error
+            return @onFatal error if error
             @ssd.start (error) =>
-              return (@pause -> done? error) if error
+              return @onFatal error if error
+              # return (@pause -> done? error) if error
               @aws.start (error) =>
-                return (@pause -> done? error) if error
+                return @onFatal error if error
+                # return (@pause -> done? error) if error
                 @status "Instance #{@api.instance.id} Syncing"
                 @stats()
                 done? no, id_workflow_instance: @api.instance.id

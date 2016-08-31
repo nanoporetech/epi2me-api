@@ -29,7 +29,7 @@ partialBatch = (item) -> isBatch(item) and isPartial(item)
 
 class SSD extends EventEmitter
   constructor: (@options) ->
-    @batchSize = 100
+    @batchSize = 1000
     @isRunning = no
     @sub =
       pending: path.join @options.inputFolder, 'pending'
@@ -153,7 +153,7 @@ class SSD extends EventEmitter
             return done new Error 'No batches'
           @convertToBatches no, =>
             @getBatch done
-      @markAsProcessing path.join(@sub.pending, batches[0]), (error, batch) =>
+      @markAsProcessing path.join(@sub.pending, batches[0]),(error, batch) =>
         fs.readdir batch, (error, files) =>
           return done error if error
           files = files.map (file) -> return file =
@@ -206,9 +206,6 @@ class SSD extends EventEmitter
     if @options.filter isnt 'off'
       if telemetry?.hints?.folder
         destination = path.join destination, telemetry.hints.folder
-      else if telemetry?.json?.exit_status
-        successful = telemetry.json.exit_status.match /workflow[ ]successful/i
-        folder = path.join folder, if successful then 'pass' else 'fail'
     fs.mkdirSync destination if not fs.existsSync destination
     localPath = path.join destination, filename
     localFile = fs.createWriteStream localPath
@@ -221,7 +218,6 @@ class SSD extends EventEmitter
       return if failed
       @stats.downloaded += 1
       clearTimeout timeout
-      failed = yes
       fs.stat localPath, (error, stats) =>
         return done if error
         @stats.downloadedSize += stats.size if stats and stats.size
@@ -229,8 +225,9 @@ class SSD extends EventEmitter
     stream.pipe localFile
 
   removeEmptyBatch: (batch, done) ->
+    @emit 'status', JSON.stringify(@stats)
     if fs.existsSync batch
-      fs.rmdir batch
+      try fs.rmdir batch
       return done?()
     return done? new Error 'Batch not found'
 
