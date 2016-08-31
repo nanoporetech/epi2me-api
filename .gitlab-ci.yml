@@ -4,7 +4,7 @@ stages:
   - package
   - upload
 
-deb:
+test:
   stage: package
   script:
     - apt-get install curl -y --force-yes
