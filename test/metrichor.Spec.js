@@ -194,7 +194,7 @@ describe('Array', function(){
                     assert(client.resetStats.calledOnce);
                     assert(client.start_workflow.calledOnce);
                     assert(client.log.warn.calledOnce);
-                    assert(client.log.warn.calledWith("Failed to start app: Message"));
+                    assert(client.log.warn.calledWith("Failed to start workflow: Message"));
                     assert(client.autoConfigure.notCalled);
                 });
             });
@@ -252,7 +252,7 @@ describe('Array', function(){
                     assert(client.resetStats.calledOnce);
                     assert(client.workflow_instance.calledOnce);
                     assert(client.log.warn.calledOnce);
-                    assert(client.log.warn.calledWith("Failed to join app instance: Message"));
+                    assert(client.log.warn.calledWith("Failed to join workflow instance: Message"));
                     assert(client.autoConfigure.notCalled);
                 });
             });
