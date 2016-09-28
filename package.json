@@ -6,12 +6,12 @@
   "private": true,
   "main": "lib/metrichor.js",
   "dependencies": {
-    "aws-sdk": "2.3.14",
-    "graceful-fs": "4.1.4",
+    "aws-sdk": "2.6.5",
+    "graceful-fs": "4.1.8",
     "mkdirp": "0.5.1",
     "proxy-agent": "1.1.0",
     "queue-async": "git+https://github.com/rmp/queue.git",
-    "request": "2.62.0",
+    "request": "2.75.0",
     "underscore": "1.8.3"
   },
   "devDependencies": {
