@@ -1,11 +1,10 @@
 image: docker-registry.oxfordnanolabs.local:5000/ont-base-ubuntu:14.04
 
 stages:
-  - package
-  - upload
+  - test
 
 test:
-  stage: package
+  stage: test
   script:
     - apt-get install curl -y --force-yes
     - curl -sL https://deb.nodesource.com/setup_6.x > nodejs-repo
