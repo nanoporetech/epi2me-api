@@ -18,7 +18,7 @@ integration_test:
 	node node_modules/istanbul/lib/cli cover node_modules/mocha/bin/_mocha ./test/e2e-metrichor.Spec.js
 
 test: deps
-	node node_modules/jslint/bin/jslint lib/metrichor.js
+	node node_modules/eslint/bin/eslint.js lib/metrichor.js
 	node node_modules/mocha/bin/mocha ./test/metrichor.Spec.js ./test/downloadstream.Spec.js ./test/fetchToken.Spec.js ./test/uploadstream.Spec.js --reporter xunit-file
 
 just_cover: deps

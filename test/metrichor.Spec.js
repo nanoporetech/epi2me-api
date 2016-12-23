@@ -158,7 +158,6 @@ describe('Array', function(){
 
                 sinon.stub(client.log, "warn");
                 sinon.spy(client, "autoConfigure");
-                sinon.stub(client, "resetStats");
                 sinon.spy(client,  "start_workflow");
                 return client;
             }
@@ -171,7 +170,6 @@ describe('Array', function(){
                 });
 
                 client.autoStart(111, function () {
-                    assert(client.resetStats.calledOnce);
                     assert(client.start_workflow.calledOnce);
                     assert(client.autoConfigure.calledOnce);
 
@@ -191,7 +189,6 @@ describe('Array', function(){
                     });
 
                 client.autoStart(111, function () {
-                    assert(client.resetStats.calledOnce);
                     assert(client.start_workflow.calledOnce);
                     assert(client.log.warn.calledOnce);
                     assert(client.log.warn.calledWith("Failed to start workflow: Message"));
@@ -216,7 +213,6 @@ describe('Array', function(){
 
                 sinon.stub(client.log, "warn");
                 sinon.spy(client, "autoConfigure");
-                sinon.stub(client, "resetStats");
                 sinon.spy(client,  "workflow_instance");
                 return client;
             }
@@ -229,7 +225,6 @@ describe('Array', function(){
                 });
 
                 client.autoJoin(111, function () {
-                    assert(client.resetStats.calledOnce);
                     assert(client.workflow_instance.calledOnce);
                     assert(client.autoConfigure.calledOnce);
 
@@ -249,7 +244,6 @@ describe('Array', function(){
                     });
 
                 client.autoJoin(111, function () {
-                    assert(client.resetStats.calledOnce);
                     assert(client.workflow_instance.calledOnce);
                     assert(client.log.warn.calledOnce);
                     assert(client.log.warn.calledWith("Failed to join workflow instance: Message"));

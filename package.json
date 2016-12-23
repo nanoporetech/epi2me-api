@@ -15,10 +15,9 @@
     "request": "2.75.0"
   },
   "devDependencies": {
-    "eslint": "^3.12.2",
-    "eslint-config-defaults": "^9.0.0",
+    "eslint": "3.12.2",
+    "eslint-config-defaults": "9.0.0",
     "istanbul": "0.3.2",
-    "jslint": "0.3.3",
     "mocha": "2.2.5",
     "proxyquire": "1.5.0",
     "sinon": "^1.15.4",
