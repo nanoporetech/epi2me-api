@@ -110,7 +110,7 @@ Once a file has been successfully uploaded, it will be moved to the uploadedFold
 ```
 
 ##### Step 3: Download
-Once the read has been succesfully processed in the Metrichor Workflow, a message will appear on the SQS output queue, which is monitored by the metrichor-api. The output file is downloaded to the downloads folder. These files will also be batched into sub-folders. The names of the folders is arbitrary.
+Once the read has been succesfully processed in the Metrichor Workflow, a message will appear on the SQS output queue, which is monitored by the metrichor-api. The output file is downloaded to the downloads folder. These files will also be batched into sub-folders whose names are completely arbitrary (and set by the metchor-api). Note that these names are not linked to the batch names created by MinKNOW
 ```
 ├── outputFolder
 |   ├── fail
