@@ -95,6 +95,11 @@ Note: if SQS.messageBody.telemetry.hints === true, the metrichor-api will split 
 |   ├──  ...
 |   ├──  MinKNOW batch-n
 
+├── uploadedFolder
+|   ├──  MinKNOW batch1
+|   ├──  ...
+|   ├──  MinKNOW batch-n
+
 ├── outputFolder
 |   ├── fail
 |   |   ├──  metrichor batch1
