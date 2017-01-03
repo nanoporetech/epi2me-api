@@ -1,9 +1,9 @@
 <a href="http://metrichor.com"><img src="https://metrichor.com/gfx/logo_print.png" height="74" align="right"></a>
-#
+
 # Metrichor API
 
 ### Getting Started
-```javascript
+```js
 const API = require('metrichor-api');
 let metrichor = new API({
     "url": "custom metrichor host" || "https://metrichor.com",
@@ -29,7 +29,6 @@ metrichor.stop_workflow(instance_id);
 // stop all current uploads / downloads: callback(error)
 metrichor.stop_everything();
 ```
-#
 ### Constructor options:
 
 ```
@@ -72,6 +71,41 @@ metrichor.stop_everything();
     deleteOnComplete                        // MC-212
 }
 ```
+### File management
+Dealing with the large number of read files is a considerable challenge:
+
+##### Step 1: Input:
+MinKNOW may batch the files into folders of ~1000. The metrichor-api object will scan the input-folder (including any sub-directories) for .fast5 files. Because of the potential strain the fs.readdir operation puts on the system, it's run as infrequently as possible.
+```js
+// trigger fs.readdir
+metrichor_api.loadUploadFiles()
+// once done, it pushes a list of new files into uploadWorkerPool
+```
+##### Step 2: Uploaded
+Once a file has been successfully uploaded, it will be moved to the uploadedFolder.
+
+##### Step 3: Download
+Once the read has been succesfully processed in the Metrichor Workflow, a message will appear on the SQS output queue, which is monitored by the metrichor-api. The output file is downloaded to the downloads folder. These files will also be batched into sub-folders. The names of the folders is arbitrary.
+
+##### Folder Structure
+Note: if SQS.messageBody.telemetry.hints === true, the metrichor-api will split the files into "pass" or "fail" based on exit-status
+```
+├── inputFolder
+|   ├──  MinKNOW batch1
+|   ├──  ...
+|   ├──  MinKNOW batch-n
+
+├── outputFolder
+|   ├── fail
+|   |   ├──  metrichor batch1
+|   |   ├──  ...
+|   |   ├──  metrichor batch-n
+|   └── pass
+|   |   ├──  metrichor batch1
+|   |   ├──  ...
+|   |   ├──  metrichor batch-n
+```
+
 
 ### File-backed api
 
