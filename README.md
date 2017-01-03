@@ -81,25 +81,37 @@ MinKNOW may batch the files into folders of ~1000. The metrichor-api object will
 metrichor_api.loadUploadFiles()
 // once done, it pushes a list of new files into uploadWorkerPool
 ```
-##### Step 2: Uploaded
-Once a file has been successfully uploaded, it will be moved to the uploadedFolder.
 
-##### Step 3: Download
-Once the read has been succesfully processed in the Metrichor Workflow, a message will appear on the SQS output queue, which is monitored by the metrichor-api. The output file is downloaded to the downloads folder. These files will also be batched into sub-folders. The names of the folders is arbitrary.
-
-##### Folder Structure
-Note: if SQS.messageBody.telemetry.hints === true, the metrichor-api will split the files into "pass" or "fail" based on exit-status
+Batched folder structure:
 ```
 ├── inputFolder
 |   ├──  MinKNOW batch1
+|   |   ├── *.fast5
 |   ├──  ...
 |   ├──  MinKNOW batch-n
+```
 
+Flat folder structure:
+```
+├── inputFolder
+├── *.fast5
+```
+
+The metrichor api supports both folder structures as input. If the uploadedFolder or the outputFolder are subdirectories of the input folder, they will be excluded.
+
+##### Step 2: Uploaded
+Once a file has been successfully uploaded, it will be moved to the uploadedFolder. The batched folder structure is maintained:
+```
 ├── uploadedFolder
 |   ├──  MinKNOW batch1
+|   |   ├── *.fast5
 |   ├──  ...
 |   ├──  MinKNOW batch-n
+```
 
+##### Step 3: Download
+Once the read has been succesfully processed in the Metrichor Workflow, a message will appear on the SQS output queue, which is monitored by the metrichor-api. The output file is downloaded to the downloads folder. These files will also be batched into sub-folders. The names of the folders is arbitrary.
+```
 ├── outputFolder
 |   ├── fail
 |   |   ├──  metrichor batch1
@@ -110,7 +122,7 @@ Note: if SQS.messageBody.telemetry.hints === true, the metrichor-api will split 
 |   |   ├──  ...
 |   |   ├──  metrichor batch-n
 ```
-
+Note: if SQS.messageBody.telemetry.hints === true, the metrichor-api will split the files into "pass" or "fail" based on exit-status
 
 ### File-backed api
 
