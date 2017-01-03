@@ -94,10 +94,10 @@ Batched folder structure:
 Flat folder structure:
 ```
 ├── inputFolder
-├── *.fast5
+|   ├── *.fast5
 ```
 
-The metrichor api supports both folder structures as input. If the uploadedFolder or the outputFolder are subdirectories of the input folder, they will be excluded.
+The metrichor api supports both folder structures as input. If the uploadedFolder or the outputFolder are subdirectories of the input folder, the .fast5 files they contain will be excluded.
 
 ##### Step 2: Uploaded
 Once a file has been successfully uploaded, it will be moved to the uploadedFolder. The batched folder structure is maintained:
