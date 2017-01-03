@@ -122,7 +122,25 @@ Once the read has been succesfully processed in the Metrichor Workflow, a messag
 |   |   ├──  ...
 |   |   ├──  metrichor batch-n
 ```
-Note: if SQS.messageBody.telemetry.hints === true, the metrichor-api will split the files into "pass" or "fail" based on exit-status
+
+###### Notes on Metrichor Worker Folder Hint
+The Metrichor Worker may pass a specific folder hint in each SQS message (SQS.messageBody.telemetry.hints). If this flag exists, output files will be split according to exit-status into either "pass" or "fail" folders.
+
+There's also the "telemetry.hints.folder" flag, which is used by the Barcoding workflow to split files by barcode:
+```
+├── outputFolder
+|   ├── BC01
+|   |   ├── fail
+|   |   |   ├──  metrichor batch1
+|   |   |   ├──  ...
+|   |   |   ├──  metrichor batch-n
+|   |   └── pass
+|   |   |   ├──  metrichor batch1
+|   |   |   ├──  ...
+|   |   |   ├──  metrichor batch-n
+|   ├── BC02
+|   ...
+```
 
 ### File-backed api
 
