@@ -12,6 +12,7 @@
     "mkdirp": "0.5.1",
     "proxy-agent": "1.1.0",
     "queue-async": "git+https://github.com/rmp/queue.git",
+    "recursive-readdir": "^2.1.0",
     "request": "2.75.0"
   },
   "devDependencies": {
