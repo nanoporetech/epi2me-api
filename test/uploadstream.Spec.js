@@ -56,7 +56,7 @@ describe('.uploadHandler method', function () {
         client.uploadComplete = function (objectId, item, successCb) {
             successCb();
         };
-        client.uploadHandler(tmpfile, function (error) {
+        client.uploadHandler({name: tmpfile}, function (error) {
             assert(typeof error === 'undefined', 'unexpected error message: ' + error);
             done();
         });
@@ -80,7 +80,7 @@ describe('.uploadHandler method', function () {
                 }
             };
         };
-        client.uploadHandler(tmpfile, function (msg) {
+        client.uploadHandler({name: tmpfile}, function (msg) {
             assert(msg.match(/error in upload readstream/), 'unexpected error message format: ' + msg);
             setTimeout(done, 10);
         });
@@ -92,7 +92,7 @@ describe('.uploadHandler method', function () {
             inputFolder: tmpdir.name
         });
         stub(client);
-        client.uploadHandler('bad file name', function (msg) {
+        client.uploadHandler({name: 'bad file name'}, function (msg) {
             assert(typeof msg !== 'undefined', 'failure');
             done();
         });
@@ -143,7 +143,7 @@ describe('._moveUploadedFile method', function () {
             uploadedFolder:'+uploaded'
         });
         stub(client);
-        client._moveUploadedFile(fileName, function (msg) {
+        client._moveUploadedFile({name: fileName}, function (msg) {
             fs.stat(tmpfileOut, function fsStatCallback(err, stats) {
                 if (err) {
                     console.log(err);
@@ -165,7 +165,7 @@ describe('._moveUploadedFile method', function () {
             uploadedFolder:'+uploaded'
         });
         stub(client);
-        client._moveUploadedFile(fileName, function (errorMsg) {
+        client._moveUploadedFile({name: fileName}, function (errorMsg) {
             assert.equal(typeof errorMsg, "string", "pass error message to successCb: " + errorMsg);
             //assert(file.uploaded, "flag file as uploaded");
             fs.stat(tmpfileOut, function fsStatCallback(err, stat) {
@@ -186,7 +186,7 @@ describe('._moveUploadedFile method', function () {
         });
         stub(client);
         var file = 'fileName';
-        client._moveUploadedFile(file, function (errorMsg) {
+        client._moveUploadedFile({name: file}, function (errorMsg) {
             assert(errorMsg.match(/ENOENT/), "pass error message to successCb: " + errorMsg);
             done();
         });
