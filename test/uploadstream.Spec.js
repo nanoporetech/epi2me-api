@@ -80,7 +80,7 @@ describe('.uploadHandler method', function () {
                 }
             };
         };
-        client.uploadHandler({name: tmpfile}, function (msg) {
+        client.uploadHandler({ name: tmpfile }, function (msg) {
             assert(msg.match(/error in upload readstream/), 'unexpected error message format: ' + msg);
             setTimeout(done, 10);
         });

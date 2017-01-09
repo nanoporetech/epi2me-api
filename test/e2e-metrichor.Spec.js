@@ -166,10 +166,11 @@ describe('metrichor api end-to-end test', function () {
             tmpOutputDir = tmp.dirSync({unsafeCleanup: true});
             // Generating 100 empty .fast5 files
             var fileQ = queue(1);
-            for (var i = 0; i<fileCount; i++) {
+            for (var i = 0; i < fileCount; i++) {
                 fileQ.defer(function (done) {
                     // fs.writeFile(path.join(), "DATA STRING");
-                    fs.closeSync(fs.openSync(path.join(tmpInputDir.name, i + '.fast5'), 'w'));
+                    let batch = (Math.random() < 0.5) ? 'batch' : ''
+                    fs.closeSync(fs.openSync(path.join(tmpInputDir.name, batch, i + '.fast5'), 'w'));
 
                     var fn = path.join(tmpS3Dir.name, i + '-download.fast5');
                     var message = {
