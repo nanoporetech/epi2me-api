@@ -12,11 +12,13 @@ var fs             = require('fs');
 var fsProxy        = {};
 var api_key        = "XXX";
 var workflowID     = 486;
-var TEST_TIMEOUT   = 100 * 1000;
-var fileCount      = 500;
+var TEST_TIMEOUT   = 20 * 1000;
+var fileCount      = 300;
 var fileCheckInterval      = 0.5;
 var serviceUrl     = 'https://dev.metrichor.com';
 var fileExp        = new RegExp('fast5$');
+var mkdirp = require('mkdirp');
+const readdir = require('recursive-readdir') // handle batching
 
 var uploadedFiles = [];
 
@@ -164,12 +166,14 @@ describe('metrichor api end-to-end test', function () {
             tmpInputDir = tmp.dirSync({unsafeCleanup: true});
             tmpS3Dir = tmp.dirSync({unsafeCleanup: true});
             tmpOutputDir = tmp.dirSync({unsafeCleanup: true});
-            // Generating 100 empty .fast5 files
+            // Generating 500 empty .fast5 files
             var fileQ = queue(1);
+            mkdirp.sync(path.join(tmpInputDir.name, 'batch_1'));
+            mkdirp.sync(path.join(tmpInputDir.name, 'batch_2'));
             for (var i = 0; i < fileCount; i++) {
                 fileQ.defer(function (done) {
                     // fs.writeFile(path.join(), "DATA STRING");
-                    let batch = (Math.random() < 0.5) ? 'batch' : ''
+                    let batch = (i < 100) ? '' : (i < 200) ? 'batch_1' : 'batch_2'
                     fs.closeSync(fs.openSync(path.join(tmpInputDir.name, batch, i + '.fast5'), 'w'));
 
                     var fn = path.join(tmpS3Dir.name, i + '-download.fast5');
@@ -192,9 +196,11 @@ describe('metrichor api end-to-end test', function () {
         });
 
         afterEach(function cleanup() {
-            tmpInputDir ? tmpInputDir.removeCallback() : null;
-            tmpS3Dir ? tmpS3Dir.removeCallback() : null;
-            tmpOutputDir ? tmpOutputDir.removeCallback() : null;
+            // console.log('after each')
+            // tmp.setGracefulCleanup()
+            // tmpInputDir ? tmpInputDir.removeCallback() : null;
+            // tmpS3Dir ? tmpS3Dir.removeCallback() : null;
+            // tmpOutputDir ? tmpOutputDir.removeCallback() : null;
         });
 
         function runTests(client, uploadDir, downloadDir, done) {
@@ -223,7 +229,7 @@ describe('metrichor api end-to-end test', function () {
                     });
                 })
                 .defer(function (cb) {
-                    fs.readdir(path.join(uploadDir, 'uploaded'), function (err, files) {
+                    readdir(path.join(uploadDir, 'uploaded'), function (err, files) {
                         assert(files && files.length, 'no files found in uploaded folder');
                         var filtered = files.filter(function (f) { return f.match(fileExp); });
                         assert.equal(filtered.length, fileCount, 'move all uploaded files to +uploaded');
@@ -231,7 +237,7 @@ describe('metrichor api end-to-end test', function () {
                     });
                 })
                 .defer(function (cb) {
-                    fs.readdir(path.join(downloadDir, 'fail'), function (err, files) {
+                    readdir(path.join(downloadDir, 'fail'), function (err, files) {
                         var filtered = files.filter(function (f) { return f.match(fileExp); });
                         assert.equal(filtered.length, fileCount, 'move all downloaded files to the downloadDir/fail');
                         cb();
