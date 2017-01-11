@@ -1,10 +1,10 @@
 /**
  * E2E test of the metrichor api
  */
-var underscore     = require('underscore');
+// var underscore     = require('underscore');
 var proxyquire     = require('proxyquire');
 var assert         = require("assert");
-var sinon          = require("sinon");
+// var sinon          = require("sinon");
 var path           = require("path");
 var tmp            = require('tmp');
 var queue          = require('queue-async');
