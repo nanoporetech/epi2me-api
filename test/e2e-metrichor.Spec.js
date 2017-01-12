@@ -166,10 +166,12 @@ describe('metrichor api end-to-end test', function () {
             tmpInputDir = tmp.dirSync({unsafeCleanup: true});
             tmpS3Dir = tmp.dirSync({unsafeCleanup: true});
             tmpOutputDir = tmp.dirSync({unsafeCleanup: true});
-            // Generating 500 empty .fast5 files
+            // Creating two empty batches for testing
             var fileQ = queue(1);
             mkdirp.sync(path.join(tmpInputDir.name, 'batch_1'));
             mkdirp.sync(path.join(tmpInputDir.name, 'batch_2'));
+            // Generating 300 empty .fast5 files
+            // 100 in root, 100 in batch_1, 100 in batch_2
             for (var i = 0; i < fileCount; i++) {
                 fileQ.defer(function (done) {
                     // fs.writeFile(path.join(), "DATA STRING");
@@ -196,15 +198,12 @@ describe('metrichor api end-to-end test', function () {
         });
 
         afterEach(function cleanup() {
-            // console.log('after each')
-            // tmp.setGracefulCleanup()
             // tmpInputDir ? tmpInputDir.removeCallback() : null;
             // tmpS3Dir ? tmpS3Dir.removeCallback() : null;
             // tmpOutputDir ? tmpOutputDir.removeCallback() : null;
         });
 
         function runTests(client, uploadDir, downloadDir, done) {
-
             var ustats = client.stats("upload");
             assert.equal(ustats.success, fileCount, 'upload all files. fileCount = ' + fileCount + ' ustats.success = ' + ustats.success);
             assert(!client._uploadedFiles.length, "_uploadedFiles array should be empty");
@@ -218,32 +217,30 @@ describe('metrichor api end-to-end test', function () {
             var dstats = client.stats("download");
             assert.equal(dstats.success, fileCount, 'download all files');
             queue()
-                .defer(function (cb) {
-                    fs.readdir(uploadDir, function (err, files) {
-                        if (err) {
-                            console.log(err);
-                        }
-                        var filtered = files.filter(function (f) { return f.match(fileExp); });
-                        assert.equal(filtered.length, 0, 'move all uploaded files from the upload folder');
-                        cb();
-                    });
-                })
-                .defer(function (cb) {
-                    readdir(path.join(uploadDir, 'uploaded'), function (err, files) {
-                        assert(files && files.length, 'no files found in uploaded folder');
-                        var filtered = files.filter(function (f) { return f.match(fileExp); });
-                        assert.equal(filtered.length, fileCount, 'move all uploaded files to +uploaded');
-                        cb();
-                    });
-                })
-                .defer(function (cb) {
-                    readdir(path.join(downloadDir, 'fail'), function (err, files) {
-                        var filtered = files.filter(function (f) { return f.match(fileExp); });
-                        assert.equal(filtered.length, fileCount, 'move all downloaded files to the downloadDir/fail');
-                        cb();
-                    });
-                })
-                .awaitAll(done);
+            .defer(function (cb) {
+                fs.readdir(uploadDir, function (err, files) {
+                    if (err) { console.log(err); }
+                    var filtered = files.filter(function (f) { return f.match(fileExp); });
+                    assert.equal(filtered.length, 0, 'move all uploaded files from the upload folder');
+                    cb();
+                });
+            })
+            .defer(function (cb) {
+                readdir(path.join(uploadDir, 'uploaded'), function (err, files) {
+                    assert(files && files.length, 'no files found in uploaded folder');
+                    var filtered = files.filter(function (f) { return f.match(fileExp); });
+                    assert.equal(filtered.length, fileCount, 'move all uploaded files to +uploaded');
+                    cb();
+                });
+            })
+            .defer(function (cb) {
+                readdir(path.join(downloadDir, 'fail'), function (err, files) {
+                    var filtered = files.filter(function (f) { return f.match(fileExp); });
+                    assert.equal(filtered.length, fileCount, 'move all downloaded files to the downloadDir/fail');
+                    cb();
+                });
+            })
+            .awaitAll(done);
         }
 
         it('should initiate and upload files', function (done) {
