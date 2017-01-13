@@ -11,6 +11,6 @@ test:
     - rm nodejs-repo
     - apt-get install -y --force-yes nodejs git
     - make deps
-    - make test || cat xunit.xml || echo "fail"
+    - make test || cat xunit.xml || (echo "fail"  && exit 1)
   variables:
     PATCH: $CI_BUILD_ID

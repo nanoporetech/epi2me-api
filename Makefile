@@ -19,7 +19,7 @@ integration_test:
 
 test: deps
 	node node_modules/eslint/bin/eslint.js lib/metrichor.js
-	node node_modules/mocha/bin/mocha ./test/metrichor.Spec.js ./test/downloadstream.Spec.js ./test/fetchToken.Spec.js ./test/uploadstream.Spec.js --reporter xunit-file
+	make mocha
 
 just_cover: deps
 	node node_modules/istanbul/lib/cli cover node_modules/mocha/bin/_mocha -- --recursive --reporter xunit-file test
