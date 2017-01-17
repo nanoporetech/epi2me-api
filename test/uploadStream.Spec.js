@@ -37,7 +37,6 @@ describe('.uploadHandler method', function () {
 
     afterEach(function cleanup() {
         readStream = null;
-        tmpdir ? tmpdir.removeCallback() : null;
     });
 
     it('should open readStream', function (done) {
@@ -134,7 +133,6 @@ describe('._moveUploadedFile method', function () {
         readStream = null;
         delete fsProxy.createWriteStream;
         delete fsProxy.createReadStream;
-        tmpdir ? tmpdir.removeCallback() : null;
     });
 
     it('should move file to upload folder', function (done) {
