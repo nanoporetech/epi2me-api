@@ -61,8 +61,6 @@ describe('._initiateDownloadStream method', function () {
         delete fsProxy.stat;
         delete fsProxy.unlink;
         delete fsProxy.createWriteStream;
-        tmpfile ? tmpfile.removeCallback() : null;
-        tmpdir ? tmpdir.removeCallback() : null;
     });
 
     it('should handle s3 error', function (done) {
