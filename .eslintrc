@@ -1,0 +1,7 @@
+{
+  "extends": "defaults",
+  "parser": "esprima",
+  "env": {
+    "node": true
+  }
+}
