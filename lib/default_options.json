@@ -21,5 +21,6 @@
   "filter"                 : "on",
   "filterByChannel"        : "off",
   "downloadMode"           : "data+telemetry",
-  "deleteOnComplete"       : "off"
+  "deleteOnComplete"       : "off",
+  "filetype"               : ".fast5"
 }
