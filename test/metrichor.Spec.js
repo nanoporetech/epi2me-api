@@ -30,7 +30,7 @@ describe('Array', function(){
                 client = new Metrichor();
             }, Error, 'client obtained');
 
-            assert.equal(client.url(), 'https://metrichor.com', 'default url');
+            assert.equal(client.url(), 'https://epi2me.nanoporetech.com', 'default url');
             assert.equal(client.apikey(), null, 'default apikey');
         });
 

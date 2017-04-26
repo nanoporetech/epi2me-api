@@ -6,7 +6,7 @@
 ```js
 const API = require('metrichor-api');
 let metrichor = new API({
-    "url": "custom metrichor host" || "https://metrichor.com",
+    "url": "custom metrichor host" || "https://epi2me.nanoporetech.com",
     "apikey": "<your api key>",
     "inputFolder": "<files to upload>",
     "uploadedFolder": "<where to move files after uploading>",

@@ -26,7 +26,7 @@ var api_key        = process.env.API_KEY;
 var workflowID     = 486;
 var timeout        = 50000;
 var fileCount      = 3;
-var serviceUrl     = 'https://dev.metrichor.com';
+var serviceUrl     = 'https://epi2me-dev.nanoporetech.com';
 var fileExp        = new RegExp('fast5$');
 
 var Metrichor      = proxyquire('../lib/metrichor', {
