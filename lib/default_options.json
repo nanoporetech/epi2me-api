@@ -1,5 +1,5 @@
 {
-  "url"                    : "https://metrichor.com",
+  "url"                    : "https://epi2me.nanoporetech.com",
   "user_agent"             : "Metrichor API",
   "region"                 : "eu-west-1",
   "retention"              : "on",
