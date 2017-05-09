@@ -23,6 +23,7 @@ describe('Array', function(){
             'mkdirp'      : mkdirpProxy
         });
     });
+
     describe('metrichor constructor', function () {
         it('should create a metrichor object with defaults and allow overwriting', function () {
             var client;
@@ -633,6 +634,7 @@ describe('Array', function(){
                 });
 
             requestProxy.get = function(o, cb) {
+		console.log(o);
                 uri = o.uri;
                 cb(null, null, '{"workflows":[{"description":"a workflow"}]}');
                 delete requestProxy.get;
