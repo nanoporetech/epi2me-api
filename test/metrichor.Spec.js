@@ -537,9 +537,10 @@ describe('Array', function(){
 
             it('sqs callback should handle error and log warning', function () {
                 var cb,
-                    item = 'filename.fast5';
-
-                client.sendMessage(sqsMock, 10, item, function () {});
+                    item = 'filename.fast5',
+                    objectId = 'PREFIX/'+item;
+              
+                client.sendMessage(sqsMock, objectId, item, function () {});
 
                 cb = args[1];
                 cb("Error message");
@@ -548,9 +549,10 @@ describe('Array', function(){
 
             it('sqs callback should move file to the ./uploaded folder', function () {
                 var cb,
-                    item = 'filename.fast5';
+                    item = 'filename.fast5',
+                    objectId = 'PREFIX/'+item;
 
-                client.sendMessage(sqsMock, 10, item, function () {});
+                client.sendMessage(sqsMock, objectId, item, function () {});
 
                 cb = args[1];
                 // cb();
