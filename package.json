@@ -1,8 +1,8 @@
 {
   "name": "metrichor-api",
-  "version": "2.47.3",
+  "version": "2.48.1",
   "repository": "https://git.oxfordnanolabs.local/metrichor/api.git",
-  "description": "API for communicating with the Metrichor website(s)",
+  "description": "API for communicating with the EPI2ME website(s)",
   "private": true,
   "main": "lib/metrichor.js",
   "dependencies": {

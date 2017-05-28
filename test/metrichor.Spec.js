@@ -23,6 +23,7 @@ describe('Array', function(){
             'mkdirp'      : mkdirpProxy
         });
     });
+
     describe('metrichor constructor', function () {
         it('should create a metrichor object with defaults and allow overwriting', function () {
             var client;
@@ -536,9 +537,10 @@ describe('Array', function(){
 
             it('sqs callback should handle error and log warning', function () {
                 var cb,
-                    item = 'filename.fast5';
-
-                client.sendMessage(sqsMock, 10, item, function () {});
+                    item = 'filename.fast5',
+                    objectId = 'PREFIX/'+item;
+              
+                client.sendMessage(sqsMock, objectId, item, function () {});
 
                 cb = args[1];
                 cb("Error message");
@@ -547,9 +549,10 @@ describe('Array', function(){
 
             it('sqs callback should move file to the ./uploaded folder', function () {
                 var cb,
-                    item = 'filename.fast5';
+                    item = 'filename.fast5',
+                    objectId = 'PREFIX/'+item;
 
-                client.sendMessage(sqsMock, 10, item, function () {});
+                client.sendMessage(sqsMock, objectId, item, function () {});
 
                 cb = args[1];
                 // cb();
@@ -626,14 +629,14 @@ describe('Array', function(){
         });
 
         it('should list workflows', function() {
-            var uri, err, obj,
+            var req, err, obj,
                 client = new Metrichor({
                     "url"    : "http://metrichor.local:8080",
                     "apikey" : "FooBar02"
                 });
 
             requestProxy.get = function(o, cb) {
-                uri = o.uri;
+                req = o;
                 cb(null, null, '{"workflows":[{"description":"a workflow"}]}');
                 delete requestProxy.get;
             };
@@ -645,7 +648,13 @@ describe('Array', function(){
                 });
             });
 
-            assert.equal(uri,     "http://metrichor.local:8080/workflow.js?apikey=FooBar02");
+            assert.deepEqual(req, {
+		uri: "http://metrichor.local:8080/workflow.js",
+		headers: {
+		    'X-EPI2ME-ApiKey':  'FooBar02',
+		    'X-EPI2ME-Client':  'Metrichor API',
+		    'X-EPI2ME-Version': '0'
+		}});
             assert.equal(err,     null, 'no error reported');
             assert.deepEqual(obj, [{"description":"a workflow"}], 'workflow list');
         });
@@ -658,7 +667,7 @@ describe('Array', function(){
             });
 
             requestProxy.get = function(o, cb) {
-                obj1 = o.uri;
+                obj1 = o;
                 cb(null, null, '{"workflows":[{"description":"a workflow"}]}');
                 delete requestProxy.get;
             };
@@ -671,7 +680,14 @@ describe('Array', function(){
                 delete requestProxy.get;
             });
 
-            assert.equal(obj1,     "http://metrichor.local:8080/workflow.js?apikey=FooBar02;agent_version=0.18.12345");
+            assert.deepEqual(obj1, {
+		uri: "http://metrichor.local:8080/workflow.js",
+		headers: {
+		    'X-EPI2ME-ApiKey':  'FooBar02',
+		    'X-EPI2ME-Version': '0.18.12345',
+		    'X-EPI2ME-Client':  'Metrichor API',
+		}
+	    });
             assert.equal(err,      null, 'no error reported');
             assert.deepEqual(obj2, [{"description":"a workflow"}], 'workflow list');
         });
@@ -684,7 +700,7 @@ describe('Array', function(){
 
             requestProxy.post = function(obj, cb) {
                 assert.equal(obj.uri,    "http://metrichor.local:8080/workflow/test.js");
-                assert.equal(obj.form.apikey, "FooBar02");
+                assert.equal(obj.headers['X-EPI2ME-ApiKey'], "FooBar02");
                 assert.deepEqual(JSON.parse(obj.form.json), {"description":"test workflow", "rev":"1.1"});
                 cb(null, null, '{"description":"a workflow","rev":"1.0"}');
                 delete requestProxy.post;
@@ -704,7 +720,7 @@ describe('Array', function(){
 
             requestProxy.post = function(obj, cb) {
                 assert.equal(obj.uri,    "http://metrichor.local:8080/workflow_instance.js");
-                assert.equal(obj.form.apikey, "FooBar02");
+                assert.equal(obj.headers['X-EPI2ME-ApiKey'], "FooBar02");
                 assert.equal(JSON.parse(obj.form.json).id_workflow, "test");
                 cb(null, null, '{"id_workflow_instance":"1","id_user":"1"}');
                 delete requestProxy.post;
@@ -724,7 +740,7 @@ describe('Array', function(){
 
             requestProxy.put = function(obj, cb) {
                 assert.equal(obj.uri,    "http://metrichor.local:8080/workflow_instance/stop/test.js");
-                assert.equal(obj.form.apikey, "FooBar02");
+                assert.equal(obj.headers['X-EPI2ME-ApiKey'], "FooBar02");
                 cb(null, null, '{"id_workflow_instance":"1","id_user":"1","stop_requested_date":"2013-09-03 15:17:00"}');
                 delete requestProxy.get;
             };
@@ -742,7 +758,8 @@ describe('Array', function(){
             });
 
             requestProxy.get = function(obj, cb) {
-                assert.equal(obj.uri, "http://metrichor.local:8080/workflow_instance.js?apikey=FooBar02");
+                assert.equal(obj.uri, "http://metrichor.local:8080/workflow_instance.js");
+                assert.equal(obj.headers['X-EPI2ME-ApiKey'], "FooBar02");
                 cb(null, null, '{"workflow_instances":[{"id_workflow_instance":"149","state":"running","workflow_filename":"DNA_Sequencing.js","start_requested_date":"2013-09-16 09:25:15","stop_requested_date":"2013-09-16 09:26:04","start_date":"2013-09-16 09:25:17","stop_date":"2013-09-16 09:26:11","control_url":"127.0.0.1:8001","data_url":"localhost:3006"}]}');
             };
 
@@ -759,7 +776,8 @@ describe('Array', function(){
             });
 
             requestProxy.get = function(obj, cb) {
-                assert.equal(obj.uri, "http://metrichor.local:8080/workflow_instance/149.js?apikey=FooBar02");
+                assert.equal(obj.uri, "http://metrichor.local:8080/workflow_instance/149.js");
+                assert.equal(obj.headers['X-EPI2ME-ApiKey'], "FooBar02");
                 cb(null, null, '{"id_workflow_instance":"149","state":"running","workflow_filename":"DNA_Sequencing.js","start_requested_date":"2013-09-16 09:25:15","stop_requested_date":"2013-09-16 09:26:04","start_date":"2013-09-16 09:25:17","stop_date":"2013-09-16 09:26:11","control_url":"127.0.0.1:8001","data_url":"localhost:3006"}');
                 delete requestProxy.get;
             };
@@ -776,8 +794,9 @@ describe('Array', function(){
                 "apikey" : "FooBar02"
             });
 
-            requestProxy.get = function(o, cb) {
-                obj1 = o.uri;
+            requestProxy.get = function(obj, cb) {
+                assert.equal(obj.uri, 'http://metrichor.local:8080/workflow/test.js');
+                assert.equal(obj.headers['X-EPI2ME-ApiKey'], 'FooBar02');
                 cb(null, null, '{"description":"a workflow","rev":"1.0"}');
                 delete requestProxy.get;
             };
@@ -789,7 +808,6 @@ describe('Array', function(){
                 });
             });
 
-            assert.equal(obj1,     "http://metrichor.local:8080/workflow/test.js?apikey=FooBar02");
             assert.equal(err,      null, 'no error reported');
             assert.deepEqual(obj2, {"description":"a workflow","rev":"1.0"}, 'workflow read');
         });
