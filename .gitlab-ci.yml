@@ -1,6 +1,8 @@
 image: docker-registry.oxfordnanolabs.local:5000/ont-base-ubuntu:14.04
 stages:
   - test
+  - triggers
+
 test:
   stage: test
   script:
@@ -11,6 +13,18 @@ test:
     - rm nodejs-repo
     - apt-get install -y --force-yes nodejs git
     - make deps
-    - make test || cat xunit.xml || (echo "fail"  && exit 1)
+    - make test || (cat xunit.xml ; echo "fail"  && exit 1)
   variables:
     PATCH: $CI_BUILD_ID
+
+trigger-dev:
+  stage: triggers
+  script:
+   - curl -X POST -F token=$GUI_TOKEN -F ref=dev https://git.oxfordnanolabs.local/api/v3/projects/224/trigger/builds
+   - curl -X POST -F token=$CLI_TOKEN -F ref=dev https://git.oxfordnanolabs.local/api/v3/projects/225/trigger/builds
+
+trigger-testing:
+  stage: triggers
+  script:
+   - curl -X POST -F token=$GUI_TOKEN -F ref=master https://git.oxfordnanolabs.local/api/v3/projects/224/trigger/builds
+   - curl -X POST -F token=$CLI_TOKEN -F ref=master https://git.oxfordnanolabs.local/api/v3/projects/225/trigger/builds
