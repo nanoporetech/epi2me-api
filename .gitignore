@@ -6,3 +6,4 @@ coverage/
 apikey
 npm-debug.log
 xunit.xml
+package-lock.json
