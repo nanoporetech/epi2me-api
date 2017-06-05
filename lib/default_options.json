@@ -4,7 +4,6 @@
   "region"                 : "eu-west-1",
   "retention"              : "on",
   "sessionGrace"           : 5,
-  "inputFormat"            : "fast5",
   "sortInputFiles"         : false,
   "uploadPoolSize"         : 4,
   "uploadTimeout"          : 300,
