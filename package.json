@@ -7,7 +7,7 @@
   "main": "lib/metrichor.js",
   "dependencies": {
     "aws-sdk": "2.6.5",
-    "crypto-js": "^3.1.9-1",
+    "crypto": "0.0.3",
     "graceful-fs": "4.1.8",
     "lodash": "4.17.2",
     "mkdirp": "0.5.1",
