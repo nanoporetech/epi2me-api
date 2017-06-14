@@ -1,6 +1,6 @@
 {
   "name": "metrichor-api",
-  "version": "2.48.1",
+  "version": "2.48.2",
   "repository": "https://git.oxfordnanolabs.local/metrichor/api.git",
   "description": "API for communicating with the EPI2ME website(s)",
   "private": true,
@@ -12,7 +12,7 @@
     "lodash": "4.17.2",
     "mkdirp": "0.5.1",
     "proxy-agent": "1.1.0",
-    "queue-async": "https://github.com/rmp/queue.git",
+    "queue-async": "git+https://github.com/rmp/queue.git",
     "recursive-readdir": "^2.1.0",
     "request": "2.75.0"
   },
