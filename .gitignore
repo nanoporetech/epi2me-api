@@ -7,3 +7,5 @@ apikey
 npm-debug.log
 xunit.xml
 package-lock.json
+test/tmp
+/test/tmp.js
