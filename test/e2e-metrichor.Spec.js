@@ -260,6 +260,7 @@ describe('metrichor api end-to-end test', function () {
                 downloadCheckInterval: 1,
                 initDelay: 100,
                 downloadMode: "data+telemetry",
+                filetype: '.fast5',
                 inputFolder:  tmpInputDir.name,
                 outputFolder: tmpOutputDir.name
             });
