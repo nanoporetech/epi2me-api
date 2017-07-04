@@ -88,11 +88,12 @@ describe('.uploadHandler method', function () {
 
     it('should handle bad file name - ENOENT', function (done) {
         var client = new Metrichor({
-            inputFolder: tmpdir.name
+            inputFolder: tmpdir.name,
         });
         stub(client);
         client.uploadHandler({name: 'bad file name'}, function (msg) {
             assert(typeof msg !== 'undefined', 'failure');
+            assert(client.log.error.calledOnce);
             done();
         });
     });
