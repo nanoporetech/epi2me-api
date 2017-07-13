@@ -93,7 +93,6 @@ describe('.uploadHandler method', function () {
         stub(client);
         client.uploadHandler({name: 'bad file name'}, function (msg) {
             assert(typeof msg !== 'undefined', 'failure');
-            assert(client.log.error.calledOnce);
             done();
         });
     });
