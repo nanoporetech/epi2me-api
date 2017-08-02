@@ -810,6 +810,6 @@ describe('Array', function(){
 
             assert.equal(err,      null, 'no error reported');
             assert.deepEqual(obj2, {"description":"a workflow","rev":"1.0"}, 'workflow read');
-        });
+	});
     });
 });

@@ -1,14 +1,14 @@
 /**
  * E2E test of the metrichor api
  */
-// var underscore     = require('underscore');
-var proxyquire     = require('proxyquire');
-var assert         = require("assert");
-// var sinon          = require("sinon");
-var path           = require("path");
-var tmp            = require('tmp');
-var queue          = require('queue-async');
-var fs             = require('fs');
+const proxyquire   = require('proxyquire');
+const assert       = require("assert");
+const path         = require("path");
+const tmp          = require('tmp');
+const queue        = require('queue-async');
+const fs           = require('fs');
+const mkdirp       = require('mkdirp');
+const readdir      = require('recursive-readdir') // handle batching
 var fsProxy        = {};
 var api_key        = "XXX";
 var workflowID     = 486;
@@ -17,10 +17,7 @@ var fileCount      = 300;
 var fileCheckInterval      = 0.5;
 var serviceUrl     = 'https://epi2me-dev.nanoporetech.com';
 var fileExp        = new RegExp('fast5$');
-var mkdirp = require('mkdirp');
-const readdir = require('recursive-readdir') // handle batching
-
-var uploadedFiles = [];
+var uploadedFiles  = [];
 
 var requestProxy = {
     get: function (opts, cb) {
