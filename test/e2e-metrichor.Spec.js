@@ -181,6 +181,9 @@ describe('metrichor api end-to-end test', function () {
                             telemetry: {
                                 json: {
                                     exit_status: 'S_OK'
+                                },
+                                hints: {
+                                    folder: 'pass'
                                 }
                             },
                             path: fn
@@ -231,7 +234,10 @@ describe('metrichor api end-to-end test', function () {
                 });
             })
             .defer(function (cb) {
-                readdir(path.join(downloadDir, 'fail'), function (err, files) {
+                readdir(path.join(downloadDir), function (err, files) {
+                    if (err) {
+                        console.log(err);
+                    }
                     var filtered = files.filter(function (f) { return f.match(fileExp); });
                     assert.equal(filtered.length, fileCount, 'move all downloaded files to the downloadDir/fail');
                     cb();
@@ -251,6 +257,7 @@ describe('metrichor api end-to-end test', function () {
                 downloadCheckInterval: 1,
                 initDelay: 100,
                 downloadMode: "data+telemetry",
+                filetype: '.fast5',
                 inputFolder:  tmpInputDir.name,
                 outputFolder: tmpOutputDir.name
             });

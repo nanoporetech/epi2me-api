@@ -5,8 +5,8 @@
   "retention"              : "on",
   "sessionGrace"           : 5,
   "sortInputFiles"         : false,
-  "uploadPoolSize"         : 4,
-  "uploadTimeout"          : 300,
+  "uploadPoolSize"         : 8,
+  "uploadTimeout"          : 500,
   "uploadBatchSize"        : 500,
   "fileCheckInterval"      : 15,
   "downloadCheckInterval"  : 3,
@@ -16,10 +16,10 @@
   "waitTimeSeconds"        : 20,
   "waitTokenError"         : 30,
   "downloadTimeout"        : 300,
-  "downloadPoolSize"       : 4,
+  "downloadPoolSize"       : 1,
   "filter"                 : "on",
   "filterByChannel"        : "off",
   "downloadMode"           : "data+telemetry",
   "deleteOnComplete"       : "off",
-  "filetype"               : ".fast5"
+  "filetype"               : ".fastq"
 }
