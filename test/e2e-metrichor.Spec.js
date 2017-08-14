@@ -127,11 +127,15 @@ var awsProxy = {
 // it's a singleton
 // proxyquire lib/utils once to make sure the requestProxy is used
 proxyquire('../lib/utils', {
-    'request' : requestProxy
+    'request' : requestProxy,
+    'graceful-fs' : {
+        stat: function (cb) {
+            cb(null, { size: 10 });
+        }
+    }
 });
 
 var Metrichor = proxyquire('../lib/metrichor', {
-    'graceful-fs' : fsProxy,
     'aws-sdk' : awsProxy
 });
 
@@ -151,7 +155,7 @@ describe('metrichor api end-to-end test', function () {
                 console.log(err);
             },
             info: function (msg) {
-                // console.log(msg)
+                console.log(msg)
             }
         }
     };
@@ -167,15 +171,15 @@ describe('metrichor api end-to-end test', function () {
             var fileQ = queue(1);
             mkdirp.sync(path.join(tmpInputDir.name, 'batch_1'));
             mkdirp.sync(path.join(tmpInputDir.name, 'batch_2'));
-            // Generating 300 empty .fast5 files
+            // Generating 300 empty .fastq files
             // 100 in root, 100 in batch_1, 100 in batch_2
             for (var i = 0; i < fileCount; i++) {
                 fileQ.defer(function (done) {
                     // fs.writeFile(path.join(), "DATA STRING");
                     let batch = (i < 100) ? '' : (i < 200) ? 'batch_1' : 'batch_2'
-                    fs.closeSync(fs.openSync(path.join(tmpInputDir.name, batch, i + '.fast5'), 'w'));
+                    fs.closeSync(fs.openSync(path.join(tmpInputDir.name, batch, i + '.fastq'), 'w'));
 
-                    var fn = path.join(tmpS3Dir.name, i + '-download.fast5');
+                    var fn = path.join(tmpS3Dir.name, i + '-download.fastq');
                     var message = {
                         Body: JSON.stringify({
                             telemetry: {
@@ -257,7 +261,7 @@ describe('metrichor api end-to-end test', function () {
                 downloadCheckInterval: 1,
                 initDelay: 100,
                 downloadMode: "data+telemetry",
-                filetype: '.fast5',
+                filetype: '.fastq',
                 inputFolder:  tmpInputDir.name,
                 outputFolder: tmpOutputDir.name
             });
