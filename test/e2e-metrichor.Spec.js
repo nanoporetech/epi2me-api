@@ -9,14 +9,13 @@ const queue        = require('queue-async');
 const fs           = require('fs');
 const mkdirp       = require('mkdirp');
 const readdir      = require('recursive-readdir') // handle batching
-var fsProxy        = {};
 var api_key        = "XXX";
 var workflowID     = 486;
 var TEST_TIMEOUT   = 20 * 1000;
 var fileCount      = 300;
 var fileCheckInterval      = 0.5;
 var serviceUrl     = 'https://epi2me-dev.nanoporetech.com';
-var fileExp        = new RegExp('fast5$');
+var fileExp        = new RegExp('fastq$');
 var uploadedFiles  = [];
 
 var requestProxy = {
@@ -130,7 +129,7 @@ proxyquire('../lib/utils', {
     'request' : requestProxy,
     'graceful-fs' : {
         stat: function (cb) {
-            cb(null, { size: 10 });
+            cb(null, { size: 0 });
         }
     }
 });
