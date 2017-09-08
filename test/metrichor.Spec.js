@@ -2,6 +2,7 @@ var proxyquire     = require('proxyquire');
 var assert         = require("assert");
 var sinon          = require("sinon");
 var path           = require("path");
+var _              = require("lodash");
 var tmp            = require('tmp');
 var queue          = require('queue-async');
 var fs             = require('fs');
@@ -266,53 +267,86 @@ describe('Array', function(){
             });
         });
         /*
-        describe('.loadUploadFiles method', function () {
+         describe('.loadUploadFiles method', function () {
 
-            var client,
-                conf = {
-                    inputFolder: "in",
-                    outputFolder: "out",
-                    inputFormat: '.fileExt',
-                    uploadQueueLimit: 2,
-                    uploadQueueThreshold: 1
-                };
+         var client,
+         conf = {
+         inputFolder: "in",
+         outputFolder: "out",
+         inputFormat: '.fileExt',
+         uploadQueueLimit: 2,
+         uploadQueueThreshold: 1
+         };
 
-            function stub() {
-                sinon.stub(client, 'enqueueUploadJob');
-                sinon.stub(client.log, 'warn');
-                sinon.stub(client.log, 'error');
-                sinon.stub(client.log, 'info');
-                client._fileStash = [];
-                client._uploadedFiles = [];
-            }
+         function stub() {
+         sinon.stub(client, 'enqueueUploadJob');
+         sinon.stub(client.log, 'warn');
+         sinon.stub(client.log, 'error');
+         sinon.stub(client.log, 'info');
+         client._fileStash = [];
+         client._uploadedFiles = [];
+         }
 
-            afterEach(function () {
-                delete fsProxy.readdir;
+         afterEach(function () {
+         delete fsProxy.readdir;
+         });
+
+         it('should ignore files with the wrong extension', function () {
+         fsProxy.readdir = function (dir, cb) {
+         cb(null, ['blabab/defe/fef.fileExt', 'f2.fileExt tmp', 'f2.fileExt.tmp']);
+         };
+         client = new Metrichor(conf);
+         stub();
+         client.loadUploadFiles();
+         //assert(!client._inputFiles.length);
+         //assert(client.enqueueUploadJob.calledOnce);
+         });
+
+         it('should handle readdir errors', function () {
+         fsProxy.readdir = function (dir, cb) {
+         cb("ERROR");
+         };
+         client = new Metrichor(conf);
+         stub();
+         client.loadUploadFiles();
+         assert(client.log.error.calledOnce);
+         //assert(!client._inputFiles.length);
+         });
+         });
+         */
+
+        describe('.findSuitableBatchIn method', function () {
+            var client;
+            beforeEach(function () {
+                client = new Metrichor({});
+                sinon.stub(client.log, "warn");
+                sinon.stub(client.log, "info");
             });
 
-            it('should ignore files with the wrong extension', function () {
-                fsProxy.readdir = function (dir, cb) {
-                    cb(null, ['blabab/defe/fef.fileExt', 'f2.fileExt tmp', 'f2.fileExt.tmp']);
-                };
-                client = new Metrichor(conf);
-                stub();
-                client.loadUploadFiles();
-                //assert(!client._inputFiles.length);
-                //assert(client.enqueueUploadJob.calledOnce);
+            it('should create a batch in the folder', function (done) {
+                tmp.dir({ unsafeCleanup: true }, function _tempDirCreated(err, tmpPath, cleanupCallback) {
+                    if (err) throw err;
+                    client.findSuitableBatchIn(tmpPath);
+                    fs.readdir(tmpPath, (e, ls) => {
+                        cleanupCallback();
+                        assert(e === null, 'readdir does not throw an error');
+                        assert(_.every(ls, folder => folder.match(/^batch_/)), 'all batches should be named: batch_xx');
+                        done();
+                    });
+                });
             });
 
-            it('should handle readdir errors', function () {
-                fsProxy.readdir = function (dir, cb) {
-                    cb("ERROR");
-                };
-                client = new Metrichor(conf);
-                stub();
-                client.loadUploadFiles();
-                assert(client.log.error.calledOnce);
-                //assert(!client._inputFiles.length);
+            it('should create dir if non-existent folder', function (done) {
+                tmp.dir({ unsafeCleanup: true }, function _tempDirCreated(err, tmpPath, cleanupCallback) {
+                    if (err) throw err;
+                    assert.doesNotThrow(function () {
+                        client.findSuitableBatchIn(path.join(tmpPath, 'test'));
+                        cleanupCallback();
+                        done();
+                    }, 'Error');
+                });
             });
         });
-        */
 
         describe('.receiveMessages method', function () {
             // MC-2068 - Load messages once all jobs are done
@@ -466,23 +500,23 @@ describe('Array', function(){
             });
 
             /*it('should return sqs queue', function () {
-                var sqs = {
-                    getQueueUrl: function (opts, cb) {
-                        cb("Error");
-                        assert(client.log.warn.calledOnce);
-                        cb(null, { QueueUrl: "result" });
-                        assert(client.log.warn.calledOnce);
-                        throw Error
-                    }
-                };
-                var successCb = sinon.spy();
-                var faliureCb = sinon.spy();
-                client.discoverQueue(sqs, 'queueName', successCb, faliureCb);
-                assert.equal(successCb.firstCall.args[0], "result");
-                assert.equal(faliureCb.firstCall.args[0], "getqueueurl error");
-                assert.equal(faliureCb.lastCall.args[0], "getqueueurl exception");
-                client.discoverQueue(sqs, 'queueName', successCb, faliureCb);
-            });*/
+             var sqs = {
+             getQueueUrl: function (opts, cb) {
+             cb("Error");
+             assert(client.log.warn.calledOnce);
+             cb(null, { QueueUrl: "result" });
+             assert(client.log.warn.calledOnce);
+             throw Error
+             }
+             };
+             var successCb = sinon.spy();
+             var faliureCb = sinon.spy();
+             client.discoverQueue(sqs, 'queueName', successCb, faliureCb);
+             assert.equal(successCb.firstCall.args[0], "result");
+             assert.equal(faliureCb.firstCall.args[0], "getqueueurl error");
+             assert.equal(faliureCb.lastCall.args[0], "getqueueurl exception");
+             client.discoverQueue(sqs, 'queueName', successCb, faliureCb);
+             });*/
 
             it('should handle sessionedSQS errors', function () {
                 sinon.stub(client, "sessionedSQS");
@@ -539,7 +573,7 @@ describe('Array', function(){
                 var cb,
                     item = 'filename.fast5',
                     objectId = 'PREFIX/'+item;
-              
+
                 client.sendMessage(sqsMock, objectId, item, function () {});
 
                 cb = args[1];
@@ -649,12 +683,12 @@ describe('Array', function(){
             });
 
             assert.deepEqual(req, {
-		uri: "http://metrichor.local:8080/workflow.js",
-		headers: {
-		    'X-EPI2ME-ApiKey':  'FooBar02',
-		    'X-EPI2ME-Client':  'Metrichor API',
-		    'X-EPI2ME-Version': '0'
-		}});
+                uri: "http://metrichor.local:8080/workflow.js",
+                headers: {
+                    'X-EPI2ME-ApiKey':  'FooBar02',
+                    'X-EPI2ME-Client':  'Metrichor API',
+                    'X-EPI2ME-Version': '0'
+                }});
             assert.equal(err,     null, 'no error reported');
             assert.deepEqual(obj, [{"description":"a workflow"}], 'workflow list');
         });
@@ -681,13 +715,13 @@ describe('Array', function(){
             });
 
             assert.deepEqual(obj1, {
-		uri: "http://metrichor.local:8080/workflow.js",
-		headers: {
-		    'X-EPI2ME-ApiKey':  'FooBar02',
-		    'X-EPI2ME-Version': '0.18.12345',
-		    'X-EPI2ME-Client':  'Metrichor API',
-		}
-	    });
+                uri: "http://metrichor.local:8080/workflow.js",
+                headers: {
+                    'X-EPI2ME-ApiKey':  'FooBar02',
+                    'X-EPI2ME-Version': '0.18.12345',
+                    'X-EPI2ME-Client':  'Metrichor API',
+                }
+            });
             assert.equal(err,      null, 'no error reported');
             assert.deepEqual(obj2, [{"description":"a workflow"}], 'workflow list');
         });
@@ -810,6 +844,6 @@ describe('Array', function(){
 
             assert.equal(err,      null, 'no error reported');
             assert.deepEqual(obj2, {"description":"a workflow","rev":"1.0"}, 'workflow read');
-	});
+        });
     });
 });
