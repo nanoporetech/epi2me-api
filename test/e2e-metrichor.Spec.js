@@ -154,7 +154,7 @@ describe('metrichor api end-to-end test', function () {
                 console.log(err);
             },
             info: function (msg) {
-                console.log(msg)
+                //console.log(msg)
             }
         }
     };
