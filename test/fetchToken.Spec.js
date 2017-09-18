@@ -33,6 +33,7 @@ describe('session fetchInstanceToken method', function () {
         };
         sinon.stub(client.log, "warn");
         sinon.stub(client.log, "info");
+        sinon.stub(client.log, "debug");
         return client;
     }
 

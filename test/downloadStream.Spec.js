@@ -40,6 +40,7 @@ describe('._initiateDownloadStream method', function () {
         sinon.stub(client.log, "error");
         sinon.stub(client.log, "warn");
         sinon.stub(client.log, "info");
+        sinon.stub(client.log, "debug");
         sinon.stub(client, "loadAvailableDownloadMessages");
         sinon.stub(client, "deleteMessage");
     }
