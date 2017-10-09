@@ -57,6 +57,8 @@ var requestProxy = {
     }
 };
 
+const START_TIME = Date.now();
+
 var awsProxy = {
     config: {
         update: function () {}
@@ -266,13 +268,14 @@ describe('metrichor api end-to-end test', function () {
 
                 // Exit early if all files have been uploaded
                 var test_interval = setInterval(function () {
-                    console.log("Up: ", client.stats("upload").success, '\tDown:', client.stats("download").success + "\tUploadedFiles length: " + uploadedFiles.length);
+                    console.log(((Date.now() - START_TIME) / 1000).toFixed(0) + ', ' + client.stats("upload").success + ', ' + client.stats("download").success);
+                    //console.log("Up: ", client.stats("upload").success, '\tDown:', client.stats("download").success + "\tUploadedFiles length: " + uploadedFiles.length);
                     if (client.stats("download").success === fileCount && client.stats("upload").success === fileCount) {
                         clearTimeout(test_timeout);
                         clearInterval(test_interval);
                         run();
                     }
-                }, 1000);
+                }, 5000);
             });
         });
     });
