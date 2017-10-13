@@ -11,7 +11,6 @@
   "fileCheckInterval"      : 15,
   "downloadCheckInterval"  : 3,
   "stateCheckInterval"     : 60,
-  "initDelay"              : 10000,
   "inFlightDelay"          : 600,
   "waitTimeSeconds"        : 20,
   "waitTokenError"         : 30,
