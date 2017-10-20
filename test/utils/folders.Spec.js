@@ -63,6 +63,8 @@ describe('utils folder methods: ', function () {
                 filetype: '.fastq'
             };
 
+            // stepping through the file system as this is intented to work:
+            // first load one batch, then the next, then once all files are gone, return null
             utils.loadInputFiles(opts)
                 .then((files) => {
                     assert.equal(files.length, 1, 'should find the one valid file');
@@ -73,13 +75,14 @@ describe('utils folder methods: ', function () {
                             assert.equal(files.length, 1, 'should find the one valid file');
                             fs.unlinkSync(files2[0].path);
 
-                            utils.loadInputFiles(opts)
-                                .then(files3 => {
-                                    assert.equal(files3.length, 0, 'should find the one valid file');
-                                    done();
-                                })
-                                .catch(done);
-                            done();
+                            setTimeout(function () {
+                                utils.loadInputFiles(opts)
+                                    .then(files3 => {
+                                        assert.equal(typeof files3, 'undefined', 'should find the one valid file');
+                                        done();
+                                    })
+                                    .catch(done);
+                            })
                         })
                         .catch(done);
                 })
