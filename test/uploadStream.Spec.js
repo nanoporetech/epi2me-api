@@ -28,6 +28,7 @@ describe('.uploadHandler method', function () {
         sinon.stub(client.log, "error");
         sinon.stub(client.log, "warn");
         sinon.stub(client.log, "info");
+        sinon.stub(client.log, "debug");
     }
 
     beforeEach(function () {
@@ -110,6 +111,7 @@ describe('._moveUploadedFile method', function () {
         sinon.stub(client.log, "error");
         sinon.stub(client.log, "warn");
         sinon.stub(client.log, "info");
+        sinon.stub(client.log, "debug");
     }
 
     beforeEach(function (done) {

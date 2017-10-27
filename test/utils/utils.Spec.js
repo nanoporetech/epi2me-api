@@ -2,9 +2,9 @@ var proxyquire     = require('proxyquire');
 var assert         = require("assert");
 var sinon          = require("sinon");
 var tmp            = require('tmp');
-var fs            = require('fs');
-var _            = require('lodash');
-var path        = require('path');
+var fs             = require('fs');
+var _              = require('lodash');
+var path           = require('path');
 
 describe('._responseHandler method', function () {
     var utils, container;
@@ -26,14 +26,18 @@ describe('._responseHandler method', function () {
     });
 
     it('should handle errors', function () {
-        utils._responsehandler('message', '', ''); // ensure it checks callback exists
+        assert.throws(function () {
+            utils._responsehandler('message', '', ''); // ensure it checks callback exists
+        });
         utils._responsehandler('message', '', '', container.callback);
         assert(container.callback.calledWith('message'));
         assert(container.callback.calledOnce);
     });
 
     it('should parse body and handle bad json', function () {
-        utils._responsehandler(null, '', '{\"error\": \"message\"}');
+        assert.throws(function () {
+                utils._responsehandler(null, '', '{\"error\": \"message\"}');
+        });
         utils._responsehandler(null, '', '{\"error\": \"message\"}', container.callback);
         assert(container.callback.calledWith({error: 'message'}));
         assert(container.callback.calledOnce);

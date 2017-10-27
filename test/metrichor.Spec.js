@@ -48,6 +48,7 @@ describe('Array', function(){
         it('should create a metrichor object with log functions', function () {
             var client,
                 customLogging = {
+                    debug: function () {},
                     info: function () {},
                     warn: function () {},
                     error: function () {}
