@@ -28,6 +28,7 @@ describe('.uploadHandler method', function () {
         sinon.stub(client.log, "error");
         sinon.stub(client.log, "warn");
         sinon.stub(client.log, "info");
+        sinon.stub(client.log, "debug");
     }
 
     beforeEach(function () {
@@ -110,9 +111,10 @@ describe('._moveUploadedFile method', function () {
         sinon.stub(client.log, "error");
         sinon.stub(client.log, "warn");
         sinon.stub(client.log, "info");
+        sinon.stub(client.log, "debug");
     }
 
-    beforeEach(function () {
+    beforeEach(function (done) {
         tmpdir = tmp.dirSync({unsafeCleanup: true});
         tmpfile = path.join(tmpdir.name, fileName);
         tmpfileOut = path.join(tmpdir.name, 'uploaded', fileName);
@@ -127,6 +129,7 @@ describe('._moveUploadedFile method', function () {
             writeStream = fs.createWriteStream.apply(this, arguments);
             return writeStream;
         };
+        setTimeout(done, 100);
     });
 
     afterEach(function cleanup() {
@@ -162,6 +165,7 @@ describe('._moveUploadedFile method', function () {
             inputFolder: tmpdir.name,
             uploadedFolder:'+uploaded'
         });
+
         stub(client);
         client._moveUploadedFile({name: fileName}, function (errorMsg) {
             assert.equal(typeof errorMsg, "string", "pass error message to successCb: " + errorMsg);
@@ -185,7 +189,7 @@ describe('._moveUploadedFile method', function () {
         stub(client);
         var file = 'fileName';
         client._moveUploadedFile({name: file}, function (errorMsg) {
-            assert(errorMsg.match(/ENOENT/), "pass error message to successCb: " + errorMsg);
+            assert(errorMsg.match(/ENOENT/), "pass error message to successCb: " + errorMsg, 'passes ENOENT error code');
             done();
         });
     });

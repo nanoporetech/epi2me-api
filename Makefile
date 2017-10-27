@@ -8,7 +8,7 @@ deps:
 	npm install
 
 mocha: deps
-	@NODE_ENV=test find test -type f -name \*.js -exec node node_modules/.bin/mocha {} \;
+	@NODE_ENV=test find test -type f -name \*Spec.js -exec node node_modules/.bin/mocha {} \;
 
 integration_test:
 	node node_modules/istanbul/lib/cli cover node_modules/mocha/bin/_mocha ./test/e2e-metrichor.Spec.js
