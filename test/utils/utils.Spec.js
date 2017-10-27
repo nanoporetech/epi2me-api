@@ -4,7 +4,7 @@ var sinon          = require("sinon");
 var tmp            = require('tmp');
 var fs            = require('fs');
 var _            = require('lodash');
-
+var path        = require('path');
 
 describe('._responseHandler method', function () {
     var utils, container;
@@ -46,24 +46,23 @@ describe('._responseHandler method', function () {
         it('should create a batch in the folder', function (done) {
             tmp.dir({ unsafeCleanup: true }, function _tempDirCreated(err, tmpPath, cleanupCallback) {
                 if (err) throw err;
-                utils.findSuitableBatchIn(tmpPath);
+                let batchFolder = utils.findSuitableBatchIn(tmpPath);
                 fs.readdir(tmpPath, (e, ls) => {
-                    cleanupCallback();
                     assert(e === null, 'readdir does not throw an error');
-                    assert(_.every(ls, folder => folder.match(/^batch_/)), 'all batches should be named: batch_xx');
+                    assert(_.every(ls, folderName => folderName.match(/^batch_/)), 'all batches should be named: batch_xx');
                     done();
+                    cleanupCallback();
                 });
             });
         });
 
         it('should create dir if non-existent folder', function (done) {
             tmp.dir({ unsafeCleanup: true }, function _tempDirCreated(err, tmpPath, cleanupCallback) {
-                if (err) throw err;
-                assert.doesNotThrow(function () {
-                    utils.findSuitableBatchIn(path.join(tmpPath, 'test'));
-                    cleanupCallback();
-                    done();
-                }, 'Error');
+                if (err)  throw err
+                let dir = utils.findSuitableBatchIn(path.join(tmpPath, 'test'));
+                assert(dir.match(/batch_/), dir + ' should be named: batch_xx');
+                done();
+                cleanupCallback();
             });
         });
     });
