@@ -7,7 +7,6 @@
   "sortInputFiles"         : false,
   "uploadPoolSize"         : 4,
   "uploadTimeout"          : 500,
-  "uploadBatchSize"        : 500,
   "fileCheckInterval"      : 15,
   "downloadCheckInterval"  : 3,
   "stateCheckInterval"     : 60,
