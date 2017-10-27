@@ -16,7 +16,7 @@ const readdir      = require('recursive-readdir') // handle batching
 let workflowID     = 486;
 let TEST_TIMEOUT   = 200000 * 1000;
 let SAMPLE_INTERVAL = 1000;
-let fileCount      = 30000;
+let fileCount      = 50000;
 let fileExp        = new RegExp('fastq$');
 let uploadedFiles  = [];
 let tmpInputDir, tmpS3Dir, tmpOutputDir;
@@ -54,7 +54,10 @@ const onClose = () => {
     process.removeListener('SIGINT', onClose);
     process.removeListener('SIGUSR1', onClose);
     process.removeListener('SIGUSR2', onClose);
-    process.removeListener('uncaughtException', onClose);
+    process.removeListener('uncaughtException', function (err) {
+        console.log(err);
+        onClose()
+    });
 };
 
 process.on('exit', onClose);
@@ -63,7 +66,7 @@ process.on('SIGINT', onClose);
 process.on('SIGTERM', onClose);
 process.on('SIGUSR1', onClose);
 process.on('SIGUSR2', onClose);
-process.on('uncaughtException', onClose);
+//process.on('uncaughtException', onClose);
 
 
 let requestProxy = {
@@ -161,7 +164,7 @@ const START_TIME = Date.now();
 
 // it's a singleton
 // proxyquire lib/utils once to make sure the requestProxy is used
-proxyquire('../lib/utils', {
+proxyquire('../../lib/utils', {
     'request' : requestProxy,
     'graceful-fs' : {
         stat: function (cb) {
@@ -170,7 +173,7 @@ proxyquire('../lib/utils', {
     }
 });
 
-let Metrichor = proxyquire('../lib/metrichor', {
+let Metrichor = proxyquire('../../lib/metrichor', {
     'aws-sdk' : awsProxy
 });
 
@@ -187,7 +190,7 @@ describe('metrichor api end-to-end test', function () {
                 //console.log(msg);
             },
             error: function (err) {
-                //console.log(err);
+                console.log(err);
             },
             info: function (msg) {
                 //console.log(msg)
@@ -309,7 +312,6 @@ describe('metrichor api end-to-end test', function () {
             });
 
             client.autoStart(workflowID, function (err, state) {
-
                 function run() {
                     client.stop_everything();
                     setTimeout(function () {
