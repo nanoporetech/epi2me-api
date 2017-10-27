@@ -51,6 +51,13 @@ describe('utils folder methods: ', function () {
             mkdirp.sync(outputFolder);
             mkdirp.sync(uploadedFolder);
 
+            /**
+             * Test folder structure:
+             * downloaded/downloaded.fastq  should be ignored
+             * uploaded/uploaded.fastq      should be ignored
+             * batch_1/1.fastq              should be picked up
+             * batch_2/2.fastq              should be picked up
+             */
             fs.writeFileSync(path.join(batch_1, '1.fastq'), '');
             fs.writeFileSync(path.join(batch_2, '2.fastq'), '');
             fs.writeFileSync(path.join(outputFolder, 'downloaded.fastq'), '');
@@ -68,11 +75,15 @@ describe('utils folder methods: ', function () {
             utils.loadInputFiles(opts)
                 .then((files) => {
                     assert.equal(files.length, 1, 'should find the one valid file');
+                    assert.equal(files[0].name, '1.fastq', 'should load the folders in alphabetical order');
+                    assert.equal(files[0].batch, 'batch_1', 'fileObject1 should have batch property');
                     fs.unlinkSync(files[0].path);
 
                     utils.loadInputFiles(opts)
                         .then(files2 => {
-                            assert.equal(files.length, 1, 'should find the one valid file');
+                            assert.equal(files2.length, 1, 'should find the one valid file');
+                            assert.equal(files2[0].name, '2.fastq', 'should load the folders in alphabetical order');
+                            assert.equal(files2[0].batch, 'batch_2', 'fileObject2 should have batch property');
                             fs.unlinkSync(files2[0].path);
 
                             setTimeout(function () {
@@ -86,7 +97,10 @@ describe('utils folder methods: ', function () {
                         })
                         .catch(done);
                 })
-                .catch(done);
+                .catch(e => {
+                    console.log(e);
+                    done(e);
+                });
         });
     });
 });

@@ -11,9 +11,8 @@ const mkdirp       = require('mkdirp');
 const readdir      = require('recursive-readdir') // handle batching
 var api_key        = "XXX";
 var workflowID     = 486;
-var TEST_TIMEOUT   = 20 * 1000;
-var fileCount      = 300;
-var fileCheckInterval      = 0.5;
+var TEST_TIMEOUT   = 200 * 1000;
+var fileCount      = 1000 * 1000;
 var serviceUrl     = 'https://epi2me-dev.nanoporetech.com';
 var fileExp        = new RegExp('fastq$');
 var uploadedFiles  = [];
@@ -86,19 +85,7 @@ var awsProxy = {
             }
         }
     },
-    S3: function () { // s3 object constructor
-        /*
-        // Key s3 mock: https://github.com/jubos/fake-s3
-        // fakes3 -r /mnt/fakes3_root -p 4567
-        var config = {
-            s3ForcePathStyle: true,
-            accessKeyId: 'ACCESS_KEY_ID',
-            secretAccessKey: 'SECRET_ACCESS_KEY',
-            endpoint: new AWS.Endpoint('http://localhost:' + fakeS3port) // fake-s3 server
-        };
-        return new AWS.S3(config);
-         */
-
+    S3: function () {
         return {
             deleteObject: function (cnf, cb) {
                 if (cb && cnf) {
@@ -118,8 +105,6 @@ var awsProxy = {
                 }
             }
         };
-
-
     }
 };
 
@@ -137,6 +122,32 @@ proxyquire('../lib/utils', {
 var Metrichor = proxyquire('../lib/metrichor', {
     'aws-sdk' : awsProxy
 });
+
+
+// This is to ensure that we clean up the tmp folder...
+let closed = false;
+
+const onClose = () => {
+
+    if (!closed) {
+        closed = true;
+        if (tmpInputDir) tmpInputDir.removeCallback();
+        if (tmpS3Dir) tmpS3Dir.removeCallback();
+        if (tmpOutputDir) tmpOutputDir.removeCallback();
+    };
+
+    setTimeout(function () {
+        process.exit(0);
+    }, 3000);
+
+    process.removeListener('exit', onClose);
+    process.removeListener('close', onClose);
+};
+
+process.on('exit', onClose);
+process.on('close', onClose);
+process.on('sigterm', onClose);
+
 
 describe('metrichor api end-to-end test', function () {
     this.timeout(TEST_TIMEOUT);
@@ -169,35 +180,37 @@ describe('metrichor api end-to-end test', function () {
             // Creating two empty batches for testing
             var fileQ = queue(1);
             mkdirp.sync(path.join(tmpInputDir.name, 'batch_1'));
-            mkdirp.sync(path.join(tmpInputDir.name, 'batch_2'));
             // Generating 300 empty .fastq files
             // 100 in root, 100 in batch_1, 100 in batch_2
+            let k = 0;
             for (var i = 0; i < fileCount; i++) {
                 fileQ.defer(function (done) {
-                    // fs.writeFile(path.join(), "DATA STRING");
-                    let batch = (i < 100) ? '' : (i < 200) ? 'batch_1' : 'batch_2'
-                    fs.closeSync(fs.openSync(path.join(tmpInputDir.name, batch, i + '.fastq'), 'w'));
-
-                    var fn = path.join(tmpS3Dir.name, i + '-download.fastq');
-                    var message = {
-                        Body: JSON.stringify({
-                            telemetry: {
-                                json: {
-                                    exit_status: 'S_OK'
+                    setTimeout(function () {
+                        //console.log("Created new file: ", path.join(tmpInputDir.name, 'batch_1', k++ + '.fastq'))
+                        fs.closeSync(fs.openSync(path.join(tmpInputDir.name, 'batch_1', (k++) +'.fastq'), 'w'));
+                        var fn = path.join(tmpS3Dir.name, (k++) + '-download.fastq');
+                        var message = {
+                            Body: JSON.stringify({
+                                telemetry: {
+                                    json: {
+                                        exit_status: 'S_OK'
+                                    },
+                                    hints: {
+                                        folder: 'pass'
+                                    }
                                 },
-                                hints: {
-                                    folder: 'pass'
-                                }
-                            },
-                            path: fn
-                        })
-                    };
-                    uploadedFiles.push(message);
-                    // fs.writeFile(fn, "DATA STRING");
-                    fs.closeSync(fs.openSync(fn, 'w'));
-                    done();
+                                path: fn
+                            })
+                        };
+                        uploadedFiles.push(message);
+                        fs.closeSync(fs.openSync(fn, 'w'));
+                        setTimeout(done);
+                    })
                 });
             }
+            fileQ.awaitAll(function () {
+                console.log("created " + fileCount + "files in " + tmpInputDir.name);
+            })
         });
 
         afterEach(function cleanup() {
@@ -256,7 +269,7 @@ describe('metrichor api end-to-end test', function () {
                 url: serviceUrl,
                 agent_version: '10000.0.0',
                 log: logging(),
-                fileCheckInterval: fileCheckInterval,
+                fileCheckInterval: 0.1,
                 downloadCheckInterval: 1,
                 initDelay: 100,
                 downloadMode: "data+telemetry",
@@ -279,12 +292,13 @@ describe('metrichor api end-to-end test', function () {
 
                 // Exit early if all files have been uploaded
                 var test_interval = setInterval(function () {
+                    console.log("Up: ", client.stats("upload").success, '\t\t\tDown:', client.stats("download").success);
                     if (client.stats("download").success === fileCount && client.stats("upload").success === fileCount) {
                         clearTimeout(test_timeout);
                         clearInterval(test_interval);
                         run();
                     }
-                }, 500);
+                }, 1000);
             });
         });
     });

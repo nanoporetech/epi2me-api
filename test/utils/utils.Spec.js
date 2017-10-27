@@ -1,12 +1,16 @@
 var proxyquire     = require('proxyquire');
 var assert         = require("assert");
 var sinon          = require("sinon");
+var tmp            = require('tmp');
+var fs            = require('fs');
+var _            = require('lodash');
+
 
 describe('._responseHandler method', function () {
     var utils, container;
 
     beforeEach(function () {
-        utils = proxyquire('../lib/utils', {
+        utils = proxyquire('../../lib/utils', {
             'request' : {}
         });
         container = {
@@ -36,4 +40,32 @@ describe('._responseHandler method', function () {
         utils._responsehandler(null, '', '{error: message}', container.callback); // Handles JSON error gracefully
         assert(container.callback.calledTwice);
     });
+
+    describe('.findSuitableBatchIn method', function () {
+
+        it('should create a batch in the folder', function (done) {
+            tmp.dir({ unsafeCleanup: true }, function _tempDirCreated(err, tmpPath, cleanupCallback) {
+                if (err) throw err;
+                utils.findSuitableBatchIn(tmpPath);
+                fs.readdir(tmpPath, (e, ls) => {
+                    cleanupCallback();
+                    assert(e === null, 'readdir does not throw an error');
+                    assert(_.every(ls, folder => folder.match(/^batch_/)), 'all batches should be named: batch_xx');
+                    done();
+                });
+            });
+        });
+
+        it('should create dir if non-existent folder', function (done) {
+            tmp.dir({ unsafeCleanup: true }, function _tempDirCreated(err, tmpPath, cleanupCallback) {
+                if (err) throw err;
+                assert.doesNotThrow(function () {
+                    utils.findSuitableBatchIn(path.join(tmpPath, 'test'));
+                    cleanupCallback();
+                    done();
+                }, 'Error');
+            });
+        });
+    });
 });
+

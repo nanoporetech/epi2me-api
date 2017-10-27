@@ -315,39 +315,6 @@ describe('Array', function(){
          });
          */
 
-        describe('.findSuitableBatchIn method', function () {
-            var client;
-            beforeEach(function () {
-                client = new Metrichor({});
-                sinon.stub(client.log, "warn");
-                sinon.stub(client.log, "info");
-            });
-
-            it('should create a batch in the folder', function (done) {
-                tmp.dir({ unsafeCleanup: true }, function _tempDirCreated(err, tmpPath, cleanupCallback) {
-                    if (err) throw err;
-                    client.findSuitableBatchIn(tmpPath);
-                    fs.readdir(tmpPath, (e, ls) => {
-                        cleanupCallback();
-                        assert(e === null, 'readdir does not throw an error');
-                        assert(_.every(ls, folder => folder.match(/^batch_/)), 'all batches should be named: batch_xx');
-                        done();
-                    });
-                });
-            });
-
-            it('should create dir if non-existent folder', function (done) {
-                tmp.dir({ unsafeCleanup: true }, function _tempDirCreated(err, tmpPath, cleanupCallback) {
-                    if (err) throw err;
-                    assert.doesNotThrow(function () {
-                        client.findSuitableBatchIn(path.join(tmpPath, 'test'));
-                        cleanupCallback();
-                        done();
-                    }, 'Error');
-                });
-            });
-        });
-
         describe('.receiveMessages method', function () {
             // MC-2068 - Load messages once all jobs are done
             var client;
