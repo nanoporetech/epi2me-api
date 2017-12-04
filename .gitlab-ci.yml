@@ -7,7 +7,7 @@ test:
   stage: test
   script:
     - apt-get install curl -y --force-yes
-    - curl -sL https://deb.nodesource.com/setup_6.x > nodejs-repo
+    - curl -sL https://deb.nodesource.com/setup_8.x > nodejs-repo
     - chmod +x nodejs-repo
     - ./nodejs-repo
     - rm nodejs-repo
