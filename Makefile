@@ -1,22 +1,16 @@
-MAKE     := make
-
-ifeq ($(OS),Windows_NT)
-    MAKE     = gmake
-endif
-
 deps:
 	yarn install
 
 mocha: deps
-	@NODE_ENV=test find test -type f -name \*Spec.js -exec node node_modules/.bin/mocha {} \;
+	@NODE_ENV=test node node_modules/.bin/mocha ./test
 
 integration_test:
-	node node_modules/istanbul/lib/cli cover node_modules/mocha/bin/_mocha ./test/e2e-metrichor.Spec.js
+	node node_modules/istanbul/lib/cli cover node_modules/mocha/bin/_mocha ./test/e2e
 
 test: mocha
-	node node_modules/eslint/bin/eslint.js lib/metrichor.js
+	node node_modules/.bin/eslint lib
 
 just_cover: deps
-	node node_modules/istanbul/lib/cli cover node_modules/mocha/bin/_mocha -- --recursive --reporter xunit-file test
+	node node_modules/.bin/istanbul cover node_modules/.bin/mocha -- --recursive --reporter xunit-file test
 
 cover: just_cover
