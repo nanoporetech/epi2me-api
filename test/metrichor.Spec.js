@@ -15,20 +15,20 @@ proxyquire('../lib/utils', {
 });
 var Metrichor;
 
-describe('Array', function(){
-    beforeEach(function () {
+describe('Array', () => {
+    beforeEach(() => {
         Metrichor = proxyquire('../lib/metrichor.js', {
             'aws-sdk'     : awsProxy,
-            'request'     : requestProxy,
+//            'request'     : requestProxy,
             'graceful-fs' : fsProxy,
             'mkdirp'      : mkdirpProxy
         });
     });
 
-    describe('metrichor constructor', function () {
-        it('should create a metrichor object with defaults and allow overwriting', function () {
+    describe('metrichor constructor', () => {
+        it('should create a metrichor object with defaults and allow overwriting', () => {
             var client;
-            assert.doesNotThrow(function () {
+            assert.doesNotThrow(() => {
                 client = new Metrichor();
             }, Error, 'client obtained');
 
@@ -36,8 +36,8 @@ describe('Array', function(){
             assert.equal(client.apikey(), null, 'default apikey');
         });
 
-        it('should create a metrichor object using the parsed options string', function () {
-            assert.doesNotThrow(function () {
+        it('should create a metrichor object using the parsed options string', () => {
+            assert.doesNotThrow(() => {
                 client = new Metrichor(JSON.stringify({
                     url: "test_url"
                 }));
@@ -45,23 +45,23 @@ describe('Array', function(){
             assert.equal(client.url(), 'test_url', 'custom url');
         });
 
-        it('should create a metrichor object with log functions', function () {
+        it('should create a metrichor object with log functions', () => {
             var client,
                 customLogging = {
-                    debug: function () {},
-                    info: function () {},
-                    warn: function () {},
-                    error: function () {}
+                    debug: () => {},
+                    info: () => {},
+                    warn: () => {},
+                    error: () => {}
                 };
 
             // Default
-            assert.doesNotThrow(function () {
+            assert.doesNotThrow(() => {
                 client = new Metrichor();
             }, Error, 'client obtained');
 
             // Custom logging
 
-            assert.doesNotThrow(function () {
+            assert.doesNotThrow(() => {
                 client = new Metrichor({
                     log: customLogging
                 });
@@ -70,16 +70,16 @@ describe('Array', function(){
             assert.deepEqual(client.log, customLogging, 'custom logging');
 
             // Validating custom logging
-            assert.throws(function () {
+            assert.throws(() => {
                 client = new Metrichor({
                     log: {}
                 });
             }, Error, 'expected log object to have "error", "info" and "warn" methods');
         });
 
-        it('should get and overwrite config properties', function () {
+        it('should get and overwrite config properties', () => {
             var client;
-            assert.doesNotThrow(function () {
+            assert.doesNotThrow(() => {
                 client = new Metrichor({
                     url: 'initial'
                 });
@@ -89,14 +89,14 @@ describe('Array', function(){
             assert.equal(client.attr('url'), 'initial');
             client.attr('url', 'test');
             assert.equal(client.attr('url'), 'test');
-            assert.throws(function () {
+            assert.throws(() => {
                 client.attr('not_a_key', 'value')
             }, Error, 'config object does not contain property not_a_key');
         });
 
-        it('should create a metrichor with opts', function () {
+        it('should create a metrichor with opts', () => {
             var client;
-            assert.doesNotThrow(function () {
+            assert.doesNotThrow(() => {
                 client = new Metrichor({
                     url: 'https://metrichor.local:8000',
                     apikey: 'FooBar02'
@@ -109,7 +109,7 @@ describe('Array', function(){
     });
 
     describe('metrichor api', function(){
-        describe('.autoConfigure method', function () {
+        describe('.autoConfigure method', () => {
 
             var conf = {
                 inputFolder: "in",
@@ -120,7 +120,7 @@ describe('Array', function(){
                 var client = new Metrichor(conf);
 
                 client.uploadWorkerPool = {
-                    defer: function () {}
+                    defer: () => {}
                 };
 
                 client._stats = {
@@ -146,7 +146,7 @@ describe('Array', function(){
             }
         });
 
-        describe('.autoStart method', function () {
+        describe('.autoStart method', () => {
 
             function newApi(error, instance) {
 
@@ -165,14 +165,14 @@ describe('Array', function(){
                 return client;
             }
 
-            it('should initiate a new workflow instance', function () {
+            it('should initiate a new workflow instance', () => {
                 var client = newApi(null, {
                     id_workflow_instance: 10,
                     id_user: "user",
                     outputqueue: "queue"
                 });
 
-                client.autoStart(111, function () {
+                client.autoStart(111, () => {
                     assert(client.start_workflow.calledOnce);
                     assert(client.autoConfigure.calledOnce);
 
@@ -183,7 +183,7 @@ describe('Array', function(){
                 });
             });
 
-            it('should handle start_workflow errors', function () {
+            it('should handle start_workflow errors', () => {
                 var client = newApi({
                         error: "Message"
                     },
@@ -191,7 +191,7 @@ describe('Array', function(){
                         state: "stopped"
                     });
 
-                client.autoStart(111, function () {
+                client.autoStart(111, () => {
                     assert(client.start_workflow.calledOnce);
                     assert(client.log.warn.calledOnce);
                     assert(client.log.warn.calledWith("Failed to start workflow: Message"));
@@ -200,7 +200,7 @@ describe('Array', function(){
             });
         });
 
-        describe('.autoJoin method', function () {
+        describe('.autoJoin method', () => {
 
             function newApi(error, instance) {
 
@@ -220,14 +220,14 @@ describe('Array', function(){
                 return client;
             }
 
-            it('should join an existing workflow instance', function () {
+            it('should join an existing workflow instance', () => {
                 var client = newApi(null, {
                     id_workflow_instance: 10,
                     id_user: "user",
                     outputqueue: "queue"
                 });
 
-                client.autoJoin(111, function () {
+                client.autoJoin(111, () => {
                     assert(client.workflow_instance.calledOnce);
                     assert(client.autoConfigure.calledOnce);
 
@@ -238,7 +238,7 @@ describe('Array', function(){
                 });
             });
 
-            it('should handle workflow_instance errors', function () {
+            it('should handle workflow_instance errors', () => {
                 var client = newApi({
                         error: "Message"
                     },
@@ -246,7 +246,7 @@ describe('Array', function(){
                         state: "stopped"
                     });
 
-                client.autoJoin(111, function () {
+                client.autoJoin(111, () => {
                     assert(client.workflow_instance.calledOnce);
                     assert(client.log.warn.calledOnce);
                     assert(client.log.warn.calledWith("Failed to join workflow instance: Message"));
@@ -254,13 +254,13 @@ describe('Array', function(){
                 });
             });
 
-            it('should not join an instance where state === stopped', function () {
+            it('should not join an instance where state === stopped', () => {
                 var client = newApi(
                     {
                         state: "stopped"
                     });
 
-                client.autoJoin(111, function () {
+                client.autoJoin(111, () => {
                     assert(client.workflow_instance.calledOnce);
                     assert(client.autoConfigure.notCalled);
                     //assert(client.log.warn.calledWith("workflow 111 is already stopped"));
@@ -268,7 +268,7 @@ describe('Array', function(){
             });
         });
         /*
-         describe('.loadUploadFiles method', function () {
+         describe('.loadUploadFiles method', () => {
 
          var client,
          conf = {
@@ -288,11 +288,11 @@ describe('Array', function(){
          client._uploadedFiles = [];
          }
 
-         afterEach(function () {
+         afterEach(() => {
          delete fsProxy.readdir;
          });
 
-         it('should ignore files with the wrong extension', function () {
+         it('should ignore files with the wrong extension', () => {
          fsProxy.readdir = function (dir, cb) {
          cb(null, ['blabab/defe/fef.fileExt', 'f2.fileExt tmp', 'f2.fileExt.tmp']);
          };
@@ -303,7 +303,7 @@ describe('Array', function(){
          //assert(client.enqueueUploadJob.calledOnce);
          });
 
-         it('should handle readdir errors', function () {
+         it('should handle readdir errors', () => {
          fsProxy.readdir = function (dir, cb) {
          cb("ERROR");
          };
@@ -316,11 +316,11 @@ describe('Array', function(){
          });
          */
 
-        describe('.receiveMessages method', function () {
+        describe('.receiveMessages method', () => {
             // MC-2068 - Load messages once all jobs are done
             var client;
 
-            beforeEach(function () {
+            beforeEach(() => {
                 client = new Metrichor({});
                 client.processMessage = function (msg, queueCb) {
                     setTimeout(queueCb, 1);
@@ -330,35 +330,35 @@ describe('Array', function(){
                 sinon.stub(client.log, "info");
             });
 
-            it('should handle error and log warning', function () {
+            it('should handle error and log warning', () => {
                 client.receiveMessages('Error Message');
                 assert(client.log.warn.calledOnce);
             });
 
-            it('should ignore empty message', function () {
+            it('should ignore empty message', () => {
                 client.receiveMessages(null, {});
                 assert(client.log.info.calledWith("complete (empty)"));
             });
 
             it('should queue and process download messages using downloadWorkerPool', function (done) {
-                client.receiveMessages(null, { Messages: [1, 2, 3, 4] }, function () {
+                client.receiveMessages(null, { Messages: [1, 2, 3, 4] }, () => {
                     assert.equal(client.downloadWorkerPool.remaining(), 4);
                 });
-                client.downloadWorkerPool.await(function () {
+                client.downloadWorkerPool.await(() => {
                     assert.equal(client.downloadWorkerPool.remaining(), 0);
                     done();
                 });
             });
         });
 
-        describe('.loadAvailableDownloadMessages method', function () {
+        describe('.loadAvailableDownloadMessages method', () => {
             // MC-2068 - Load messages once all jobs are done
             var client,
                 parallelism = 10,
                 queueLength = 50,
                 messages;
 
-            beforeEach(function () {
+            beforeEach(() => {
                 messages = Array.apply(null, Array(queueLength)).map(Number.prototype.valueOf, 0);
                 client = new Metrichor({});
                 client.queueLength = function (url, cb) {
@@ -388,7 +388,7 @@ describe('Array', function(){
                 };
                 sinon.spy(client, "processMessage");
                 client.downloadWorkerPool
-                    .await(function () {
+                    .await(() => {
                         client.loadAvailableDownloadMessages();
                         if (client.downloadWorkerPool.remaining() === 0) {
                             assert.equal(messages.length, 0);
@@ -402,16 +402,16 @@ describe('Array', function(){
                 client.discoverQueue = function (qs, queueName, successCb, failureCb) {
                     failureCb("ErrorType");
                 };
-                client.downloadWorkerPool.await(function () {
+                client.downloadWorkerPool.await(() => {
                     client.loadAvailableDownloadMessages();
                     if (client.downloadWorkerPool.remaining() === 0) done();
                 });
             });
         });
 
-        describe('.queueLength method', function () {
+        describe('.queueLength method', () => {
             var client, queueUrl = 'queueUrl';
-            beforeEach(function () {
+            beforeEach(() => {
                 client = new Metrichor({});
                 sinon.stub(client.log, "warn");
                 sinon.stub(client.log, "error");
@@ -437,8 +437,8 @@ describe('Array', function(){
                 client.queueLength(queueUrl, completeCb);
             });
 
-            it('should handle sessionedSQS errors', function () {
-                client.sessionedSQS = function () {
+            it('should handle sessionedSQS errors', () => {
+                client.sessionedSQS = () => {
                     return {
                         getQueueAttributes: function (opts, cb) {
                             throw Error;
@@ -451,23 +451,23 @@ describe('Array', function(){
                 assert.equal(completeCb.firstCall.args[0], undefined);
                 // assert.equal(completeCb.secondCall.args[0], undefined);
                 assert(client.log.error.calledOnce);
-                assert.doesNotThrow(function () {
+                assert.doesNotThrow(() => {
                     client.queueLength(queueUrl);
                     client.queueLength();
                 }, 'Error');
             });
         });
 
-        describe('.discoverQueue method', function () {
+        describe('.discoverQueue method', () => {
             var client, queueUrl = 'queueUrl';
-            beforeEach(function () {
+            beforeEach(() => {
                 client = new Metrichor({});
                 sinon.stub(client.log, "warn");
                 sinon.stub(client.log, "error");
                 sinon.stub(client.log, "info");
             });
 
-            /*it('should return sqs queue', function () {
+            /*it('should return sqs queue', () => {
              var sqs = {
              getQueueUrl: function (opts, cb) {
              cb("Error");
@@ -486,7 +486,7 @@ describe('Array', function(){
              client.discoverQueue(sqs, 'queueName', successCb, faliureCb);
              });*/
 
-            it('should handle sessionedSQS errors', function () {
+            it('should handle sessionedSQS errors', () => {
                 sinon.stub(client, "sessionedSQS");
                 var completeCb = sinon.spy();
                 client.queueLength(queueUrl, completeCb);
@@ -494,26 +494,20 @@ describe('Array', function(){
                 assert.equal(completeCb.firstCall.args[0], undefined);
                 //assert.equal(completeCb.secondCall.args[0], undefined);
                 assert(client.log.error.calledOnce);
-                assert.doesNotThrow(function () {
+                assert.doesNotThrow(() => {
                     client.queueLength(queueUrl);
                     client.queueLength();
                 }, 'Error');
             });
         });
 
-        describe('.sendMessage method', function () {
+        describe('.sendMessage method', () => {
 
-            var client, args,
-                sqsMock = {
-                    sendMessage: function () {
-                        args = arguments;
-                    }
-                };
+            var client;
 
-            beforeEach(function () {
-
-                fsProxy.rename = function () {};
-                mkdirpProxy = function () {};
+            beforeEach(() => {
+                fsProxy.rename = () => {};
+                mkdirpProxy = () => {};
 
                 client = new Metrichor({
                     inputFolder: 'path'
@@ -530,33 +524,37 @@ describe('Array', function(){
                 sinon.stub(client.log, "info");
             });
 
-            afterEach(function () {
+            afterEach(() => {
                 // Cleanup
                 delete fsProxy.rename;
                 delete awsProxy.SQS;
                 mkdirpProxy = {};
             });
 
-            it('sqs callback should handle error and log warning', function () {
-                var cb,
-                    item = 'filename.fast5',
-                    objectId = 'PREFIX/'+item;
+            it('sqs callback should handle error and log warning', () => {
+                var item     = 'filename.fast5',
+                    objectId = 'PREFIX/'+item,
+                    sqsMock  = {
+			sendMessage: () => {
+			    let cb = args[1];
+			    cb("Error message");
+			    assert(client.log.warn.calledOnce);
+			}
+                    };
 
-                client.sendMessage(sqsMock, objectId, item, function () {});
-
-                cb = args[1];
-                cb("Error message");
-                assert(client.log.warn.calledOnce);
+                client.sendMessage(sqsMock, objectId, item, () => {});
             });
 
-            it('sqs callback should move file to the ./uploaded folder', function () {
-                var cb,
-                    item = 'filename.fast5',
-                    objectId = 'PREFIX/'+item;
+            it('sqs callback should move file to the ./uploaded folder', () => {
+                var item     = 'filename.fast5',
+                    objectId = 'PREFIX/'+item,
+                    sqsMock  = {
+			sendMessage: () => {}
+                    };
 
-                client.sendMessage(sqsMock, objectId, item, function () {});
+                client.sendMessage(sqsMock, objectId, item, () => {});
 
-                cb = args[1];
+//                cb = args[1];
                 // cb();
                 //assert(client.enqueueUploadJob.calledOnce);
                 //assert(client.enqueueUploadJob.calledWith(item));
@@ -564,10 +562,10 @@ describe('Array', function(){
 
         });
 
-        describe('.uploadComplete method', function () {
+        describe('.uploadComplete method', () => {
             var client;
 
-            beforeEach(function () {
+            beforeEach(() => {
                 client = new Metrichor();
                 sinon.stub(client, "sessionedSQS");
                 sinon.stub(client.log, "warn");
@@ -576,48 +574,48 @@ describe('Array', function(){
                 sinon.stub(client, "discoverQueue");
             });
 
-            it('should handle error', function () {
+            it('should handle error', () => {
                 var errorCallback;
                 client.discoverQueue = function (sqs, queueName, cb, errorCb) {
                     cb();
                     errorCb();
                 };
-                client.uploadComplete(null, 'item', function () {});
+                client.uploadComplete(null, 'item', () => {});
             });
         });
 
-        describe('.processMessage method', function () {
+        describe('.processMessage method', () => {
             var client;
 
-            beforeEach(function () {
+            beforeEach(() => {
                 client = new Metrichor({downloadMode: "telemetry"});
                 client.sessionedSQS = function (cb) { cb(); };
                 sinon.stub(client.log, "info");
                 sinon.stub(client.log, "warn");
                 sinon.stub(client.log, "error");
                 sinon.stub(client, "deleteMessage");
-                fsProxy.createWriteStream = function () {};
-                mkdirpProxy.sync = function () {};
+                fsProxy.createWriteStream = () => {};
+                mkdirpProxy.sync = () => {};
                 sinon.spy(fsProxy, 'createWriteStream');
-                client.sessionedS3 = function () {};
+                client.sessionedS3 = () => {};
                 sinon.spy(client, 'sessionedS3');
             });
 
-            afterEach(function () {
+            afterEach(() => {
                 delete fsProxy.createWriteStream;
                 delete mkdirpProxy.sync;
             });
 
             it('should handle bad message json', function (done) {
                 var msg = { Body: '{message: body}' };
-                client.processMessage(msg, function () {
+                client.processMessage(msg, () => {
                     assert(client.deleteMessage.calledWith(msg));
                     assert(client.log.error.calledOnce);
                     done();
                 });
             });
 
-            it('should parse message json', function () {
+            it('should parse message json', () => {
                 client.sessionedS3 = function (cb) {
                     cb('error message');
                 };
@@ -625,45 +623,39 @@ describe('Array', function(){
 
                 client.processMessage({
                     Body: '{"message": "body"}'
-                }, function () {});
+                }, () => {});
                 assert(client.log.warn.calledOnce); // No path
             });
         });
 
-        it('should list workflows', function() {
-            var req, err, obj,
+        it('should list workflows', () => {
+            var req,
                 client = new Metrichor({
                     "url"    : "http://metrichor.local:8080",
                     "apikey" : "FooBar02"
                 });
 
             requestProxy.get = function(o, cb) {
-		console.log("request proxy", o);
-                req = o;
+		assert.deepEqual(req, {
+		    uri: "http://metrichor.local:8080/workflow.js",
+		    headers: {
+			'X-EPI2ME-ApiKey':  'FooBar02',
+			'X-EPI2ME-Client':  'Metrichor API',
+			'X-EPI2ME-Version': '0'
+		    }});
                 cb(null, null, JSON.stringify({"workflows":[{"description":"a workflow"}]}));
                 delete requestProxy.get;
             };
 
-            assert.doesNotThrow(function () {
+            assert.doesNotThrow(() => {
                 client.workflows(function(e, o) {
-		    console.log("workflows response", e, o);
-                    err = e;
-                    obj = o;
+		    assert.equal(e,     null, 'no error reported');
+		    assert.deepEqual(o, [{"description":"a workflow"}], 'workflow list');
                 });
             });
-
-            assert.deepEqual(req, {
-                uri: "http://metrichor.local:8080/workflow.js",
-                headers: {
-                    'X-EPI2ME-ApiKey':  'FooBar02',
-                    'X-EPI2ME-Client':  'Metrichor API',
-                    'X-EPI2ME-Version': '0'
-                }});
-            assert.equal(err,     null, 'no error reported');
-            assert.deepEqual(obj, [{"description":"a workflow"}], 'workflow list');
         });
 
-        it('should include useful request headers', function() {
+        it('should include useful request headers', () => {
             var obj1, obj2, err, client = new Metrichor({
                 "url"           : "http://metrichor.local:8080",
                 "apikey"        : "FooBar02",
@@ -676,7 +668,7 @@ describe('Array', function(){
                 delete requestProxy.get;
             };
 
-            assert.doesNotThrow(function () {
+            assert.doesNotThrow(() => {
                 client.workflows(function(e, o) {
                     err = e;
                     obj2 = o;
@@ -689,7 +681,7 @@ describe('Array', function(){
             assert.equal(err,      null, 'no error reported');
         });
 
-        it('should update a workflow', function() {
+        it('should update a workflow', () => {
             var client = new Metrichor({
                 "url"    : "http://metrichor.local:8080",
                 "apikey" : "FooBar02"
@@ -709,7 +701,7 @@ describe('Array', function(){
             });
         });
 
-        it('should start a workflow_instance', function() {
+        it('should start a workflow_instance', () => {
             var client = new Metrichor({
                 "url"    : "http://metrichor.local:8080",
                 "apikey" : "FooBar02"
@@ -729,7 +721,7 @@ describe('Array', function(){
             });
         });
 
-        it('should stop a workflow_instance', function() {
+        it('should stop a workflow_instance', () => {
             var client = new Metrichor({
                 "url"    : "http://metrichor.local:8080",
                 "apikey" : "FooBar02"
@@ -748,7 +740,7 @@ describe('Array', function(){
             });
         });
 
-        it('should list workflow_instances', function() {
+        it('should list workflow_instances', () => {
             var client = new Metrichor({
                 "url"    : "http://metrichor.local:8080",
                 "apikey" : "FooBar02"
@@ -766,7 +758,7 @@ describe('Array', function(){
             });
         });
 
-        it('should read a workflow_instance', function() {
+        it('should read a workflow_instance', () => {
             var client = new Metrichor({
                 "url"    : "http://metrichor.local:8080",
                 "apikey" : "FooBar02"
@@ -785,8 +777,8 @@ describe('Array', function(){
             });
         });
 
-        it('should read a workflow', function() {
-            var obj1, obj2, err, client = new Metrichor({
+        it('should read a workflow', () => {
+            var client = new Metrichor({
                 "url"    : "http://metrichor.local:8080",
                 "apikey" : "FooBar02"
             });
@@ -798,15 +790,12 @@ describe('Array', function(){
                 delete requestProxy.get;
             };
 
-            assert.doesNotThrow(function () {
+            assert.doesNotThrow(() => {
                 client.workflow('test', function(e, o) {
-                    err  = e;
-                    obj2 = o;
+		    assert.equal(e,      null, 'no error reported');
+		    assert.deepEqual(o, {"description":"a workflow","rev":"1.0"}, 'workflow read');
                 });
             });
-
-            assert.equal(err,      null, 'no error reported');
-            assert.deepEqual(obj2, {"description":"a workflow","rev":"1.0"}, 'workflow read');
         });
     });
 });
