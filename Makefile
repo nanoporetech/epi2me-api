@@ -5,7 +5,7 @@ ifeq ($(OS),Windows_NT)
 endif
 
 deps:
-	npm install
+	yarn install
 
 mocha: deps
 	@NODE_ENV=test find test -type f -name \*Spec.js -exec node node_modules/.bin/mocha {} \;

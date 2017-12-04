@@ -12,6 +12,7 @@ test:
     - ./nodejs-repo
     - rm nodejs-repo
     - apt-get install -y --force-yes nodejs git
+    - npm install -g yarn
     - make deps
     - make test || (cat xunit.xml ; echo "fail"  && exit 1)
   variables:
