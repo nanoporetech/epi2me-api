@@ -638,13 +638,15 @@ describe('Array', function(){
                 });
 
             requestProxy.get = function(o, cb) {
+		console.log("request proxy", o);
                 req = o;
-                cb(null, null, '{"workflows":[{"description":"a workflow"}]}');
+                cb(null, null, JSON.stringify({"workflows":[{"description":"a workflow"}]}));
                 delete requestProxy.get;
             };
 
             assert.doesNotThrow(function () {
                 client.workflows(function(e, o) {
+		    console.log("workflows response", e, o);
                     err = e;
                     obj = o;
                 });
@@ -661,7 +663,7 @@ describe('Array', function(){
             assert.deepEqual(obj, [{"description":"a workflow"}], 'workflow list');
         });
 
-        it('should list workflows and include agent_version', function() {
+        it('should include useful request headers', function() {
             var obj1, obj2, err, client = new Metrichor({
                 "url"           : "http://metrichor.local:8080",
                 "apikey"        : "FooBar02",
@@ -670,7 +672,7 @@ describe('Array', function(){
 
             requestProxy.get = function(o, cb) {
                 obj1 = o;
-                cb(null, null, '{"workflows":[{"description":"a workflow"}]}');
+                cb(null, null, '{}');
                 delete requestProxy.get;
             };
 
@@ -682,16 +684,9 @@ describe('Array', function(){
                 delete requestProxy.get;
             });
 
-            assert.deepEqual(obj1, {
-                uri: "http://metrichor.local:8080/workflow.js",
-                headers: {
-                    'X-EPI2ME-ApiKey':  'FooBar02',
-                    'X-EPI2ME-Version': '0.18.12345',
-                    'X-EPI2ME-Client':  'Metrichor API',
-                }
-            });
+            assert.deepEqual(obj1.headers['X-EPI2ME-Version'], '0.18.12345',    'version header sent');
+            assert.deepEqual(obj1.headers['X-EPI2ME-Client'],  'Metrichor API', 'useragent header sent');
             assert.equal(err,      null, 'no error reported');
-            assert.deepEqual(obj2, [{"description":"a workflow"}], 'workflow list');
         });
 
         it('should update a workflow', function() {
