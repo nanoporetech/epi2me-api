@@ -1,4 +1,4 @@
-image: docker-registry.oxfordnanolabs.local:5000/ont-base-ubuntu:14.04
+image: docker-registry.oxfordnanolabs.local:5000/ont-base-ubuntu:16.04
 stages:
   - test
   - triggers
@@ -23,6 +23,9 @@ trigger-dev:
   script:
    - curl -X POST -F token=$GUI_TOKEN -F ref=dev https://git.oxfordnanolabs.local/api/v3/projects/224/trigger/builds # desktop agent dev
    - curl -X POST -F token=$CLI_TOKEN -F ref=dev https://git.oxfordnanolabs.local/api/v3/projects/225/trigger/builds # cli agent dev
+# by default agent & cli both pull api#master so strictly, triggering dev builds from api#dev is meaningless...
+#   - curl -X POST -F token=$GUI_TOKEN -F ref=master https://git.oxfordnanolabs.local/api/v3/projects/224/trigger/builds # desktop agent master
+#   - curl -X POST -F token=$CLI_TOKEN -F ref=master https://git.oxfordnanolabs.local/api/v3/projects/225/trigger/builds # cli agent master
   only:
    - dev
 
