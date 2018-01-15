@@ -17,7 +17,7 @@
     "request": "2.75.0"
   },
   "devDependencies": {
-    "eslint": "3.12.2",
+    "eslint": "^4.15.0",
     "eslint-config-defaults": "9.0.0",
     "istanbul": "^0.4.5",
     "memwatch-ng": "^1.2.0",

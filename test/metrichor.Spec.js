@@ -21,7 +21,6 @@ describe('Array', () => {
     beforeEach(() => {
         EPI2ME = proxyquire('../lib/metrichor.js', {
             'aws-sdk'     : awsProxy,
-//            'request'     : requestProxy,
             'graceful-fs' : fsProxy,
             'mkdirp'      : mkdirpProxy
         });
@@ -31,7 +30,7 @@ describe('Array', () => {
         it('should create a metrichor object with defaults and allow overwriting', () => {
             var client;
             assert.doesNotThrow(() => {
-            client = new EPI2ME();
+		client = new EPI2ME();
             }, Error, 'client obtained');
 
             assert.equal(client.url(), 'https://epi2me.nanoporetech.com', 'default url');
@@ -52,8 +51,8 @@ describe('Array', () => {
             var client,
                 customLogging = {
                     debug: () => {},
-                    info: () => {},
-                    warn: () => {},
+                    info:  () => {},
+                    warn:  () => {},
                     error: () => {}
                 };
 
@@ -362,6 +361,7 @@ describe('Array', () => {
                 messages;
 
             beforeEach(() => {
+		console.log("BEFORE");
                 messages = Array.apply(null, Array(queueLength)).map(Number.prototype.valueOf, 0);
                 client = new EPI2ME({});
                 client.queueLength = function (url, cb) {
@@ -681,7 +681,7 @@ describe('Array', () => {
 
             assert.deepEqual(obj1.headers['X-EPI2ME-Version'], '0.18.12345',    'version header sent');
             assert.deepEqual(obj1.headers['X-EPI2ME-Client'],  'Metrichor API', 'useragent header sent');
-            assert.equal(err,      null, 'no error reported');
+            assert.equal(err, null, 'no error reported');
         });
 
         it('should update a workflow', () => {
