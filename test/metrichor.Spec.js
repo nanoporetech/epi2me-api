@@ -673,7 +673,7 @@ describe('Array', () => {
 
             assert.doesNotThrow(() => {
                 client.workflows(function(e, o) {
-                    err = e;
+                    err  = e;
                     obj2 = o;
                 });
                 delete requestProxy.get;

@@ -2,7 +2,7 @@ deps:
 	yarn install
 
 mocha: deps
-	@NODE_ENV=test node node_modules/.bin/mocha ./test
+	@NODE_ENV=test node node_modules/.bin/mocha ./test/*Spec*
 
 integration_test:
 	node node_modules/istanbul/lib/cli cover node_modules/mocha/bin/_mocha ./test/e2e
