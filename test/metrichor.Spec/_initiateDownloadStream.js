@@ -1,20 +1,21 @@
-var proxyquire     = require('proxyquire');
-var assert         = require("assert");
-var sinon          = require("sinon");
-var path           = require("path");
-var tmp            = require('tmp');
-var queue          = require('queue-async');
-var fs             = require('fs');
+"use strict";
+const proxyquire     = require('proxyquire');
+const assert         = require("assert");
+const sinon          = require("sinon");
+const path           = require("path");
+const tmp            = require('tmp');
+const queue          = require('queue-async');
+const fs             = require('fs');
 var requestProxy   = {};
 var fsProxy        = {};
 var mkdirpProxy    = {};
 var awsProxy       = {};
 
-proxyquire('../lib/utils', {
+proxyquire('../../lib/utils', {
     'request' : requestProxy
 });
 
-var Metrichor      = proxyquire('../lib/metrichor', {
+var Metrichor      = proxyquire('../../lib/metrichor', {
     'aws-sdk'     : awsProxy,
     'request'     : requestProxy,
     'graceful-fs' : fsProxy,
@@ -46,22 +47,20 @@ describe('._initiateDownloadStream method', function () {
     }
 
     beforeEach(function () {
-        tmpdir = tmp.dirSync({unsafeCleanup: true});
-        tmpfile = tmp.fileSync({ prefix: 'prefix-', postfix: '.txt' });
-        fs.writeFile(path.join(tmpdir.name, 'tmpfile.txt'), "dataset", function () {});
-        fsProxy.unlink = function () { };
-        fsProxy.stat = function () { };
-        fsProxy.createWriteStream = function () {
-            writeStream = fs.createWriteStream.apply(this, arguments);
-            return writeStream;
-        };
-    });
-
-    afterEach(function cleanup() {
         writeStream = null;
         delete fsProxy.stat;
         delete fsProxy.unlink;
         delete fsProxy.createWriteStream;
+        tmpdir  = tmp.dirSync({unsafeCleanup: true});
+        tmpfile = tmp.fileSync({ prefix: 'prefix-', postfix: '.txt' });
+        fs.writeFile(path.join(tmpdir.name, 'tmpfile.txt'), "dataset", function () {});
+
+        fsProxy.unlink = function () { };
+        fsProxy.stat   = function () { };
+        fsProxy.createWriteStream = function () {
+            writeStream = fs.createWriteStream.apply(this, arguments);
+            return writeStream;
+        };
     });
 
     it('should handle s3 error', function (done) {

@@ -1,3 +1,4 @@
+"use strict";
 /**
  * end-to-end test of the metrichor api
  *

@@ -1,3 +1,4 @@
+"use strict";
 var proxyquire     = require('proxyquire');
 var assert         = require("assert");
 var sinon          = require("sinon");
@@ -9,7 +10,7 @@ var requestProxy   = {};
 var fsProxy        = {};
 var mkdirpProxy    = {};
 var awsProxy       = {};
-var Metrichor      = proxyquire('../lib/metrichor', {
+var Metrichor      = proxyquire('../../lib/metrichor', {
     'aws-sdk'     : awsProxy,
     'request'     : requestProxy,
     'graceful-fs' : fsProxy,

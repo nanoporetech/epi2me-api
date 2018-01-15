@@ -17,17 +17,14 @@
     "request": "2.75.0"
   },
   "devDependencies": {
-    "eslint": "3.12.2",
+    "eslint": "^4.15.0",
     "eslint-config-defaults": "9.0.0",
-    "istanbul": "0.3.2",
+    "istanbul": "^0.4.5",
     "memwatch-ng": "^1.2.0",
-    "mocha": "2.2.5",
-    "proxyquire": "1.5.0",
+    "mocha": "^4.1.0",
+    "proxyquire": "^1.5.0",
     "sinon": "^1.15.4",
     "tmp": "0.0.27",
     "xunit-file": "*"
-  },
-  "scripts": {
-    "postinstall": "perl -M\"File::Copy move\" -e \"move(q[node_modules/proxy-agent/node_modules/pac-proxy-agent], q[node_modules/pac-proxy-agent]); move(q[node_modules/proxy-agent/node_modules/socks-proxy-agent], q[node_modules/socks-proxy-agent]); move(q[node_modules/proxy-agent/node_modules/https-proxy-agent], q[node_modules/https-proxy-agent]); move(q[node_modules/proxy-agent/node_modules/http-proxy-agent], q[node_modules/http-proxy-agent]); move(q[node_modules/pac-proxy-agent/node_modules/pac-resolver/node_modules/regenerator/node_modules/defs], q[node_modules/defs]); move(q[node_modules/pac-proxy-agent/node_modules/pac-resolver/node_modules/regenerator/node_modules/commoner], q[node_modules/commoner]); move(q[node_modules/pac-proxy-agent/node_modules/pac-resolver], q[node_modules/pac-resolver]);\""
   }
 }
