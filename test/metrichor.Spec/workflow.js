@@ -14,17 +14,13 @@ let awsProxy       = {};
 proxyquire('../../lib/utils', {
     'request' : requestProxy
 });
-var EPI2ME;
+var EPI2ME = proxyquire('../../lib/metrichor.js', {
+    'aws-sdk'     : awsProxy,
+    'graceful-fs' : fsProxy,
+    'mkdirp'      : mkdirpProxy
+});
 
-describe('metrichor api', () => {
-
-    beforeEach(() => {
-        EPI2ME = proxyquire('../../lib/metrichor.js', {
-            'aws-sdk'     : awsProxy,
-            'graceful-fs' : fsProxy,
-            'mkdirp'      : mkdirpProxy
-        });
-    });
+describe('workflow', () => {
 
     it('should update a workflow', () => {
         var client = new EPI2ME({

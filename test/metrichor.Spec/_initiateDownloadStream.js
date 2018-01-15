@@ -47,22 +47,20 @@ describe('._initiateDownloadStream method', function () {
     }
 
     beforeEach(function () {
-        tmpdir = tmp.dirSync({unsafeCleanup: true});
-        tmpfile = tmp.fileSync({ prefix: 'prefix-', postfix: '.txt' });
-        fs.writeFile(path.join(tmpdir.name, 'tmpfile.txt'), "dataset", function () {});
-        fsProxy.unlink = function () { };
-        fsProxy.stat = function () { };
-        fsProxy.createWriteStream = function () {
-            writeStream = fs.createWriteStream.apply(this, arguments);
-            return writeStream;
-        };
-    });
-
-    afterEach(function cleanup() {
         writeStream = null;
         delete fsProxy.stat;
         delete fsProxy.unlink;
         delete fsProxy.createWriteStream;
+        tmpdir  = tmp.dirSync({unsafeCleanup: true});
+        tmpfile = tmp.fileSync({ prefix: 'prefix-', postfix: '.txt' });
+        fs.writeFile(path.join(tmpdir.name, 'tmpfile.txt'), "dataset", function () {});
+
+        fsProxy.unlink = function () { };
+        fsProxy.stat   = function () { };
+        fsProxy.createWriteStream = function () {
+            writeStream = fs.createWriteStream.apply(this, arguments);
+            return writeStream;
+        };
     });
 
     it('should handle s3 error', function (done) {

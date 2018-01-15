@@ -14,40 +14,30 @@ let awsProxy       = {};
 proxyquire('../../lib/utils', {
     'request' : requestProxy
 });
-var EPI2ME;
+var EPI2ME = proxyquire('../../lib/metrichor.js', {
+    'aws-sdk'     : awsProxy,
+    'graceful-fs' : fsProxy,
+    'mkdirp'      : mkdirpProxy
+});
 
-describe('Array', () => {
+describe('uploadComplete', () => {
+    var client;
 
     beforeEach(() => {
-        EPI2ME = proxyquire('../../lib/metrichor.js', {
-            'aws-sdk'     : awsProxy,
-            'graceful-fs' : fsProxy,
-            'mkdirp'      : mkdirpProxy
-        });
+        client = new EPI2ME();
+        sinon.stub(client, "sessionedSQS");
+        sinon.stub(client.log, "warn");
+        sinon.stub(client.log, "info");
+        sinon.stub(client, "sendMessage");
+        sinon.stub(client, "discoverQueue");
     });
 
-    describe('metrichor api', function(){
-
-        describe('.uploadComplete method', () => {
-            var client;
-
-            beforeEach(() => {
-                client = new EPI2ME();
-                sinon.stub(client, "sessionedSQS");
-                sinon.stub(client.log, "warn");
-                sinon.stub(client.log, "info");
-                sinon.stub(client, "sendMessage");
-                sinon.stub(client, "discoverQueue");
-            });
-
-            it('should handle error', () => {
-                var errorCallback;
-                client.discoverQueue = function (sqs, queueName, cb, errorCb) {
-                    cb();
-                    errorCb();
-                };
-                client.uploadComplete(null, 'item', () => {});
-            });
-        });
+    it('should handle error', () => {
+        var errorCallback;
+        client.discoverQueue = function (sqs, queueName, cb, errorCb) {
+            cb();
+            errorCb();
+        };
+        client.uploadComplete(null, 'item', () => {});
     });
 });

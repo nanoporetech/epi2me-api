@@ -14,68 +14,59 @@ let awsProxy       = {};
 proxyquire('../../lib/utils', {
     'request' : requestProxy
 });
-var EPI2ME;
+var EPI2ME = proxyquire('../../lib/metrichor.js', {
+    'aws-sdk'     : awsProxy,
+    'graceful-fs' : fsProxy,
+    'mkdirp'      : mkdirpProxy
+});
 
-describe('Array', () => {
-
+describe('.queueLength method', () => {
+    var client, queueUrl = 'queueUrl';
     beforeEach(() => {
-        EPI2ME = proxyquire('../../lib/metrichor.js', {
-            'aws-sdk'     : awsProxy,
-            'graceful-fs' : fsProxy,
-            'mkdirp'      : mkdirpProxy
-        });
+        client = new EPI2ME({});
+        sinon.stub(client.log, "warn");
+        sinon.stub(client.log, "error");
+        sinon.stub(client.log, "info");
     });
 
-    describe('metrichor api', function(){
+    it('should return sqs queue', function (done) {
+        client.sessionedSQS = function (cb) {
+            return {
+                getQueueAttributes: function (opts, cb) {
+                    assert.equal(opts.QueueUrl, queueUrl);
+                    cb(null, { Attributes: { ApproximateNumberOfMessages: 10 } });
+                    assert(completeCb.calledOnce);
+                    assert.equal(completeCb.lastCall.args[0], 10);
+                    cb("Error");
+                    assert(client.log.warn.calledOnce);
+                    assert(completeCb.calledTwice);
+                    done();
+                }
+            };
+        };
 
-        describe('.queueLength method', () => {
-            var client, queueUrl = 'queueUrl';
-            beforeEach(() => {
-		console.log(".queueLength BEFORE");
-                client = new EPI2ME({});
-                sinon.stub(client.log, "warn");
-                sinon.stub(client.log, "error");
-                sinon.stub(client.log, "info");
-            });
+        var completeCb = sinon.spy();
+        client.queueLength(queueUrl, completeCb);
+    });
 
-            it('should return sqs queue', function (done) {
-                client.sessionedSQS = function (cb) {
-                    return {
-                        getQueueAttributes: function (opts, cb) {
-                            assert.equal(opts.QueueUrl, queueUrl);
-                            cb(null, { Attributes: { ApproximateNumberOfMessages: 10 } });
-                            assert(completeCb.calledOnce);
-                            assert.equal(completeCb.lastCall.args[0], 10);
-                            cb("Error");
-                            assert(client.log.warn.calledOnce);
-                            assert(completeCb.calledTwice);
-                            done();
-                        }
-                    };
-                };
-                var completeCb = sinon.spy();
-                client.queueLength(queueUrl, completeCb);
-            });
+    it('should handle sessionedSQS errors', () => {
+        client.sessionedSQS = () => {
+            return {
+                getQueueAttributes: function (opts, cb) {
+                    throw Error;
+                }
+            };
+        };
 
-            it('should handle sessionedSQS errors', () => {
-                client.sessionedSQS = () => {
-                    return {
-                        getQueueAttributes: function (opts, cb) {
-                            throw Error;
-                        }
-                    };
-                };
-                var completeCb = sinon.spy();
-                client.queueLength(queueUrl, completeCb);
-                // assert(completeCb.calledTwice, 'call callback even for errors');
-                assert.equal(completeCb.firstCall.args[0], undefined);
-                // assert.equal(completeCb.secondCall.args[0], undefined);
-                assert(client.log.error.calledOnce);
-                assert.doesNotThrow(() => {
-                    client.queueLength(queueUrl);
-                    client.queueLength();
-                }, 'Error');
-            });
-        });
+        var completeCb = sinon.spy();
+        client.queueLength(queueUrl, completeCb);
+        // assert(completeCb.calledTwice, 'call callback even for errors');
+        assert.equal(completeCb.firstCall.args[0], undefined);
+        // assert.equal(completeCb.secondCall.args[0], undefined);
+        assert(client.log.error.calledOnce);
+        assert.doesNotThrow(() => {
+            client.queueLength(queueUrl);
+            client.queueLength();
+        }, 'Error');
     });
 });

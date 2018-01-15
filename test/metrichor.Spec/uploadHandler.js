@@ -18,7 +18,7 @@ let EPI2ME = proxyquire('../../lib/metrichor', {
     'graceful-fs' : fsProxy
 });
 
-describe('.uploadHandler method', function () {
+describe('uploadHandler', function () {
 
     var tmpfile = 'tmpfile.txt', tmpdir, readStream;
 
@@ -35,10 +35,6 @@ describe('.uploadHandler method', function () {
     beforeEach(function () {
         tmpdir = tmp.dirSync({unsafeCleanup: true});
         fs.writeFile(path.join(tmpdir.name, tmpfile));
-    });
-
-    afterEach(function cleanup() {
-        readStream = null;
     });
 
     it('should open readStream', function (done) {
@@ -59,9 +55,9 @@ describe('.uploadHandler method', function () {
         };
         client.uploadHandler({name: tmpfile}, function (error) {
             assert(typeof error === 'undefined', 'unexpected error message: ' + error);
+	    readStream = null;
             done();
         });
-
     });
 
     it('should handle read stream errors', function (done) {
@@ -81,11 +77,14 @@ describe('.uploadHandler method', function () {
                 }
             };
         };
+
+	setTimeout(() => { readStream.emit("error"); }, 10); // fire a readstream error at some point after the readstream created
+
         client.uploadHandler({ name: tmpfile }, function (msg) {
+//	    console.log("ERROR HANDLER FIRED", msg);
             assert(msg.match(/error in upload readstream/), 'unexpected error message format: ' + msg);
-            setTimeout(done, 10);
+            done();
         });
-        readStream.emit("error");
     });
 
     it('should handle bad file name - ENOENT', function (done) {

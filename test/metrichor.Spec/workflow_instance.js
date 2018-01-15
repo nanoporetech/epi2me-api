@@ -21,8 +21,7 @@ var EPI2ME = proxyquire('../../lib/metrichor.js', {
 });
 
 
-describe('metrichor api', () => {
-
+describe('workflow_instance', () => {
     it('should read a workflow_instance', () => {
         var client = new EPI2ME({
             "url"    : "http://metrichor.local:8080",

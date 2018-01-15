@@ -20,7 +20,7 @@ var EPI2ME = proxyquire('../../lib/metrichor.js', {
     'mkdirp'      : mkdirpProxy
 });
 
-describe('metrichor api', () => {
+describe('start_workflow', () => {
 
     it('should start a workflow_instance', () => {
         var client = new EPI2ME({
