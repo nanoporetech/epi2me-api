@@ -1,21 +1,21 @@
 "use strict";
-var proxyquire     = require('proxyquire');
-var assert         = require("assert");
-var sinon          = require("sinon");
-var path           = require("path");
-var tmp            = require('tmp');
-var queue          = require('queue-async');
-var fs             = require('fs');
+const proxyquire     = require('proxyquire');
+const assert         = require("assert");
+const sinon          = require("sinon");
+const path           = require("path");
+const tmp            = require('tmp');
+const queue          = require('queue-async');
+const fs             = require('fs');
 var requestProxy   = {};
 var fsProxy        = {};
 var mkdirpProxy    = {};
 var awsProxy       = {};
 
-proxyquire('../lib/utils', {
+proxyquire('../../lib/utils', {
     'request' : requestProxy
 });
 
-var Metrichor      = proxyquire('../lib/metrichor', {
+var Metrichor      = proxyquire('../../lib/metrichor', {
     'aws-sdk'     : awsProxy,
     'request'     : requestProxy,
     'graceful-fs' : fsProxy,
