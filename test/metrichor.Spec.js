@@ -1,3 +1,4 @@
+"use strict";
 var proxyquire     = require('proxyquire');
 var assert         = require("assert");
 var sinon          = require("sinon");
@@ -13,11 +14,12 @@ var awsProxy       = {};
 proxyquire('../lib/utils', {
     'request' : requestProxy
 });
-var Metrichor;
+var EPI2ME;
 
 describe('Array', () => {
+
     beforeEach(() => {
-        Metrichor = proxyquire('../lib/metrichor.js', {
+        EPI2ME = proxyquire('../lib/metrichor.js', {
             'aws-sdk'     : awsProxy,
 //            'request'     : requestProxy,
             'graceful-fs' : fsProxy,
@@ -29,7 +31,7 @@ describe('Array', () => {
         it('should create a metrichor object with defaults and allow overwriting', () => {
             var client;
             assert.doesNotThrow(() => {
-                client = new Metrichor();
+            client = new EPI2ME();
             }, Error, 'client obtained');
 
             assert.equal(client.url(), 'https://epi2me.nanoporetech.com', 'default url');
@@ -37,8 +39,9 @@ describe('Array', () => {
         });
 
         it('should create a metrichor object using the parsed options string', () => {
+	    var client;
             assert.doesNotThrow(() => {
-                client = new Metrichor(JSON.stringify({
+                client = new EPI2ME(JSON.stringify({
                     url: "test_url"
                 }));
             }, Error, 'client obtained');
@@ -56,13 +59,13 @@ describe('Array', () => {
 
             // Default
             assert.doesNotThrow(() => {
-                client = new Metrichor();
+                client = new EPI2ME();
             }, Error, 'client obtained');
 
             // Custom logging
 
             assert.doesNotThrow(() => {
-                client = new Metrichor({
+                client = new EPI2ME({
                     log: customLogging
                 });
                 delete requestProxy.get;
@@ -71,7 +74,7 @@ describe('Array', () => {
 
             // Validating custom logging
             assert.throws(() => {
-                client = new Metrichor({
+                client = new EPI2ME({
                     log: {}
                 });
             }, Error, 'expected log object to have "error", "info" and "warn" methods');
@@ -80,7 +83,7 @@ describe('Array', () => {
         it('should get and overwrite config properties', () => {
             var client;
             assert.doesNotThrow(() => {
-                client = new Metrichor({
+                client = new EPI2ME({
                     url: 'initial'
                 });
                 delete requestProxy.get;
@@ -97,7 +100,7 @@ describe('Array', () => {
         it('should create a metrichor with opts', () => {
             var client;
             assert.doesNotThrow(() => {
-                client = new Metrichor({
+                client = new EPI2ME({
                     url: 'https://metrichor.local:8000',
                     apikey: 'FooBar02'
                 });
@@ -117,7 +120,7 @@ describe('Array', () => {
             };
 
             function newApi(error, instance) {
-                var client = new Metrichor(conf);
+                var client = new EPI2ME(conf);
 
                 client.uploadWorkerPool = {
                     defer: () => {}
@@ -150,7 +153,7 @@ describe('Array', () => {
 
             function newApi(error, instance) {
 
-                var client = new Metrichor();
+                var client = new EPI2ME();
                 client.start_workflow = function (id, cb) {
                     cb(error, instance);
                 };
@@ -204,7 +207,7 @@ describe('Array', () => {
 
             function newApi(error, instance) {
 
-                var client = new Metrichor();
+                var client = new EPI2ME();
 
                 client.workflow_instance = function (id, cb) {
                     cb(error, instance);
@@ -296,7 +299,7 @@ describe('Array', () => {
          fsProxy.readdir = function (dir, cb) {
          cb(null, ['blabab/defe/fef.fileExt', 'f2.fileExt tmp', 'f2.fileExt.tmp']);
          };
-         client = new Metrichor(conf);
+         client = new EPI2ME(conf);
          stub();
          client.loadUploadFiles();
          //assert(!client._inputFiles.length);
@@ -307,7 +310,7 @@ describe('Array', () => {
          fsProxy.readdir = function (dir, cb) {
          cb("ERROR");
          };
-         client = new Metrichor(conf);
+         client = new EPI2ME(conf);
          stub();
          client.loadUploadFiles();
          assert(client.log.error.calledOnce);
@@ -321,7 +324,7 @@ describe('Array', () => {
             var client;
 
             beforeEach(() => {
-                client = new Metrichor({});
+                client = new EPI2ME({});
                 client.processMessage = function (msg, queueCb) {
                     setTimeout(queueCb, 1);
                 };
@@ -360,7 +363,7 @@ describe('Array', () => {
 
             beforeEach(() => {
                 messages = Array.apply(null, Array(queueLength)).map(Number.prototype.valueOf, 0);
-                client = new Metrichor({});
+                client = new EPI2ME({});
                 client.queueLength = function (url, cb) {
                     cb(messages.length);
                 };
@@ -412,7 +415,7 @@ describe('Array', () => {
         describe('.queueLength method', () => {
             var client, queueUrl = 'queueUrl';
             beforeEach(() => {
-                client = new Metrichor({});
+                client = new EPI2ME({});
                 sinon.stub(client.log, "warn");
                 sinon.stub(client.log, "error");
                 sinon.stub(client.log, "info");
@@ -461,7 +464,7 @@ describe('Array', () => {
         describe('.discoverQueue method', () => {
             var client, queueUrl = 'queueUrl';
             beforeEach(() => {
-                client = new Metrichor({});
+                client = new EPI2ME({});
                 sinon.stub(client.log, "warn");
                 sinon.stub(client.log, "error");
                 sinon.stub(client.log, "info");
@@ -509,7 +512,7 @@ describe('Array', () => {
                 fsProxy.rename = () => {};
                 mkdirpProxy = () => {};
 
-                client = new Metrichor({
+                client = new EPI2ME({
                     inputFolder: 'path'
                 });
                 client.workflow_instance = function (id, cb) {
@@ -566,7 +569,7 @@ describe('Array', () => {
             var client;
 
             beforeEach(() => {
-                client = new Metrichor();
+                client = new EPI2ME();
                 sinon.stub(client, "sessionedSQS");
                 sinon.stub(client.log, "warn");
                 sinon.stub(client.log, "info");
@@ -588,7 +591,7 @@ describe('Array', () => {
             var client;
 
             beforeEach(() => {
-                client = new Metrichor({downloadMode: "telemetry"});
+                client = new EPI2ME({downloadMode: "telemetry"});
                 client.sessionedSQS = function (cb) { cb(); };
                 sinon.stub(client.log, "info");
                 sinon.stub(client.log, "warn");
@@ -630,12 +633,12 @@ describe('Array', () => {
 
         it('should list workflows', () => {
             var req,
-                client = new Metrichor({
+                client = new EPI2ME({
                     "url"    : "http://metrichor.local:8080",
                     "apikey" : "FooBar02"
                 });
 
-            requestProxy.get = function(o, cb) {
+            requestProxy.get = function(req, cb) {
 		assert.deepEqual(req, {
 		    uri: "http://metrichor.local:8080/workflow.js",
 		    headers: {
@@ -656,7 +659,7 @@ describe('Array', () => {
         });
 
         it('should include useful request headers', () => {
-            var obj1, obj2, err, client = new Metrichor({
+            var obj1, obj2, err, client = new EPI2ME({
                 "url"           : "http://metrichor.local:8080",
                 "apikey"        : "FooBar02",
                 "agent_version" : "0.18.12345",
@@ -682,7 +685,7 @@ describe('Array', () => {
         });
 
         it('should update a workflow', () => {
-            var client = new Metrichor({
+            var client = new EPI2ME({
                 "url"    : "http://metrichor.local:8080",
                 "apikey" : "FooBar02"
             });
@@ -702,7 +705,7 @@ describe('Array', () => {
         });
 
         it('should start a workflow_instance', () => {
-            var client = new Metrichor({
+            var client = new EPI2ME({
                 "url"    : "http://metrichor.local:8080",
                 "apikey" : "FooBar02"
             });
@@ -722,7 +725,7 @@ describe('Array', () => {
         });
 
         it('should stop a workflow_instance', () => {
-            var client = new Metrichor({
+            var client = new EPI2ME({
                 "url"    : "http://metrichor.local:8080",
                 "apikey" : "FooBar02"
             });
@@ -741,7 +744,7 @@ describe('Array', () => {
         });
 
         it('should list workflow_instances', () => {
-            var client = new Metrichor({
+            var client = new EPI2ME({
                 "url"    : "http://metrichor.local:8080",
                 "apikey" : "FooBar02"
             });
@@ -759,7 +762,7 @@ describe('Array', () => {
         });
 
         it('should read a workflow_instance', () => {
-            var client = new Metrichor({
+            var client = new EPI2ME({
                 "url"    : "http://metrichor.local:8080",
                 "apikey" : "FooBar02"
             });
@@ -778,7 +781,7 @@ describe('Array', () => {
         });
 
         it('should read a workflow', () => {
-            var client = new Metrichor({
+            var client = new EPI2ME({
                 "url"    : "http://metrichor.local:8080",
                 "apikey" : "FooBar02"
             });
