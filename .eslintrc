@@ -1,8 +1,0 @@
-{
-  "extends": "defaults",
-  "parser": "esprima",
-  "env": {
-    "node": true,
-    "es6": true
-  }
-}
