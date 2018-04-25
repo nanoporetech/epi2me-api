@@ -6,25 +6,25 @@
   "private": true,
   "main": "lib/metrichor.js",
   "dependencies": {
-    "aws-sdk": "2.130.0",
+    "aws-sdk": "2.228.1",
     "crypto": "0.0.3",
     "graceful-fs": "4.1.11",
-    "lodash": "4.17.2",
+    "lodash": "4.17.10",
     "mkdirp": "0.5.1",
     "proxy-agent": "1.1.0",
     "queue-async": "git+https://github.com/rmp/queue.git",
-    "recursive-readdir": "2.1.0",
-    "request": "2.75.0"
+    "recursive-readdir": "2.2.2",
+    "request": "2.85.0"
   },
   "devDependencies": {
-    "eslint": "^4.15.0",
+    "eslint": "4.19.1",
     "eslint-config-defaults": "9.0.0",
     "istanbul": "^0.4.5",
     "memwatch-ng": "^1.2.0",
-    "mocha": "^4.1.0",
-    "proxyquire": "^1.5.0",
-    "sinon": "^1.15.4",
-    "tmp": "0.0.27",
+    "mocha": "5.1.1",
+    "proxyquire": "2.0.1",
+    "sinon": "4.5.0",
+    "tmp": "0.0.33",
     "xunit-file": "*"
   }
 }
