@@ -22,6 +22,7 @@
     "istanbul": "^0.4.5",
     "memwatch-ng": "^1.2.0",
     "mocha": "5.1.1",
+    "nyc": "^11.7.3",
     "proxyquire": "2.0.1",
     "sinon": "5.0.7",
     "tmp": "0.0.33",
@@ -29,8 +30,8 @@
   },
   "scripts": {
     "lint": "yarn install && eslint --fix lib",
-    "test": "yarn lint && mocha --recursive test/metrichor.Spec",
-    "cover": "yarn install && istanbul cover mocha -- --recursive --reporter xunit-file test/metrichor.Spec",
+    "test": "yarn lint && mocha test/metrichor.Spec",
+    "cover": "yarn install && nyc --reporter=html mocha test/metrichor.Spec",
     "test_integration": "yarn install && istanbul/lib/cli cover mocha ./test/e2e"
   }
 }
