@@ -10,3 +10,5 @@ lint:
 cover:
 	yarn cover
 
+
+.PHONY: test lint cover test_integration

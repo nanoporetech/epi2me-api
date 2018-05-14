@@ -28,7 +28,7 @@
     "xunit-file": "*"
   },
   "scripts": {
-    "lint": "yarn install && eslint lib",
+    "lint": "yarn install && eslint --fix lib",
     "test": "yarn lint && mocha --recursive test/metrichor.Spec",
     "cover": "yarn install && istanbul cover mocha -- --recursive --reporter xunit-file test/metrichor.Spec",
     "test_integration": "yarn install && istanbul/lib/cli cover mocha ./test/e2e"
