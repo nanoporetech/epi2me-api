@@ -6,12 +6,12 @@
   "private": true,
   "main": "lib/metrichor.js",
   "dependencies": {
-    "aws-sdk": "2.228.1",
-    "crypto": "0.0.3",
+    "aws-sdk": "2.238.1",
+    "crypto": "1.0.1",
     "graceful-fs": "4.1.11",
     "lodash": "4.17.10",
     "mkdirp": "0.5.1",
-    "proxy-agent": "1.1.0",
+    "proxy-agent": "3.0.0",
     "queue-async": "git+https://github.com/rmp/queue.git",
     "recursive-readdir": "2.2.2",
     "request": "2.85.0"
@@ -22,9 +22,16 @@
     "istanbul": "^0.4.5",
     "memwatch-ng": "^1.2.0",
     "mocha": "5.1.1",
+    "nyc": "^11.7.3",
     "proxyquire": "2.0.1",
-    "sinon": "4.5.0",
+    "sinon": "5.0.7",
     "tmp": "0.0.33",
     "xunit-file": "*"
+  },
+  "scripts": {
+    "lint": "yarn install && eslint --fix lib",
+    "test": "yarn lint && mocha test/metrichor.Spec",
+    "cover": "yarn install && nyc --reporter=html mocha test/metrichor.Spec",
+    "test_integration": "yarn install && istanbul/lib/cli cover mocha ./test/e2e"
   }
 }
