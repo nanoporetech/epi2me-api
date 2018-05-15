@@ -14,7 +14,8 @@
     "proxy-agent": "3.0.0",
     "queue-async": "git+https://github.com/rmp/queue.git",
     "recursive-readdir": "2.2.2",
-    "request": "2.85.0"
+    "request": "2.85.0",
+    "request-progress": "^3.0.0"
   },
   "devDependencies": {
     "eslint": "4.19.1",
