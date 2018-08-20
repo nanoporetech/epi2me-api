@@ -43,7 +43,7 @@ describe('workflow', () => {
         });
 
         utilsProxy._get = function(uri, options, cb) {
-            assert.equal(uri, "workflow/test");
+            assert.ok(uri === 'workflow/test' || uri === 'workflow/config/test');
             assert.equal(options.apikey, 'FooBar02');
             cb(null, {"description":"a workflow","rev":"1.0"});
             delete utilsProxy._get;
