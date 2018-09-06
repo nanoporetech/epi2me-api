@@ -1,6 +1,7 @@
 {
+  "local"                  : false,
   "url"                    : "https://epi2me.nanoporetech.com",
-  "user_agent"             : "Metrichor API",
+  "user_agent"             : "EPI2ME API",
   "region"                 : "eu-west-1",
   "retention"              : "on",
   "sessionGrace"           : 5,
