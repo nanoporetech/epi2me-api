@@ -32,7 +32,7 @@ describe('workflows', () => {
 	    assert.equal(options.url,           "http://metrichor.local:8080");
 	    assert.equal(options.agent_version, '0.18.12345');
 	    assert.equal(options.apikey,        'FooBar02');
-	    assert.equal(options.user_agent,    'Metrichor API');
+	    assert.equal(options.user_agent,    'EPI2ME API');
             return cb(null, {workflows: [{"description":"a workflow"}]});
         };
 
