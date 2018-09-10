@@ -18,7 +18,7 @@ proxyquire('../../lib/utils', {
 var Metrichor      = proxyquire('../../lib/metrichor', {
     'aws-sdk'     : awsProxy,
     'request'     : requestProxy,
-    'graceful-fs' : fsProxy,
+    'fs-extra' : fsProxy,
     'mkdirp'      : mkdirpProxy
 });
 

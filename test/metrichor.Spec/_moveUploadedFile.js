@@ -15,7 +15,7 @@ proxyquire('../../lib/utils', {
 var EPI2ME = proxyquire('../../lib/metrichor', {
     'aws-sdk'     : awsProxy,
     'request'     : requestProxy,
-    'graceful-fs' : fsProxy
+    'fs-extra' : fsProxy
 });
 
 describe('._moveUploadedFile method', function () {

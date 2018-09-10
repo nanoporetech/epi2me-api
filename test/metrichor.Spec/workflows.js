@@ -14,7 +14,7 @@ let awsProxy       = {};
 let utilsProxy     = {};
 let EPI2ME         = proxyquire('../../lib/metrichor.js', {
     'aws-sdk'     : awsProxy,
-    'graceful-fs' : fsProxy,
+    'fs-extra' : fsProxy,
     'mkdirp'      : mkdirpProxy,
     './utils.js'       : utilsProxy,
 });
