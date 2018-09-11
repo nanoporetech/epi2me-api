@@ -11,14 +11,14 @@ let requestProxy   = {};
 let fsProxy        = {};
 let mkdirpProxy    = {};
 let awsProxy       = {};
-proxyquire('../../lib/utils', {
+proxyquire('../../build/lib/utils', {
     'request' : requestProxy
 });
-var EPI2ME = proxyquire('../../lib/epi2me.js', {
+var EPI2ME = proxyquire('../../build/lib/epi2me', {
     'aws-sdk'     : awsProxy,
     'fs-extra' : fsProxy,
     'mkdirp'      : mkdirpProxy
-});
+}).default;
 
 describe('.queueLength method', () => {
     var client, queueUrl = 'queueUrl';

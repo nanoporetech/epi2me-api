@@ -34,9 +34,9 @@
   },
   "scripts": {
     "lint": "yarn install && eslint --fix lib",
-    "build": "yarn lint && yarn babel lib -d build/lib && yarn babel test -d build/test && cp lib/default_options.json build/lib/",
-    "test": "yarn build && mocha build/test/epi2me.Spec",
-    "cover": "yarn build && nyc --reporter=html mocha build/test/epi2me.Spec",
-    "test_integration": "yarn build && istanbul/lib/cli cover mocha ./build/test/e2e"
+    "build": "yarn lint && yarn babel lib -d build/lib && cp lib/default_options.json build/lib/",
+    "test": "yarn build && mocha test/epi2me.Spec",
+    "cover": "yarn build && nyc --reporter=html mocha test/epi2me.Spec",
+    "test_integration": "yarn build && istanbul/lib/cli cover mocha test/e2e"
   }
 }

@@ -6,30 +6,31 @@ const path           = require("path");
 const tmp            = require('tmp');
 const queue          = require('queue-async');
 const fs             = require('fs');
-var requestProxy   = {};
-var fsProxy        = {};
-var mkdirpProxy    = {};
-var awsProxy       = {};
 
-proxyquire('../../lib/utils', {
+let requestProxy   = {};
+let fsProxy        = {};
+let mkdirpProxy    = {};
+let awsProxy       = {};
+
+proxyquire('../../build/lib/utils', {
     'request' : requestProxy
 });
 
-var Metrichor      = proxyquire('../../lib/metrichor', {
-    'aws-sdk'     : awsProxy,
-    'request'     : requestProxy,
+var EPI2ME = proxyquire('../../build/lib/epi2me', {
+    'aws-sdk'  : awsProxy,
+    'request'  : requestProxy,
     'fs-extra' : fsProxy,
-    'mkdirp'      : mkdirpProxy
-});
+    'mkdirp'   : mkdirpProxy
+}).default;
 
 // MC-1304 - test download streams
-describe('._initiateDownloadStream method', function () {
+describe('._initiateDownloadStream method', () => {
 
     var tmpfile, tmpdir, writeStream;
 
-    function s3Mock(cb) {
+    const s3Mock = (cb) => {
         return {
-            getObject: function () {
+            getObject: () => {
                 return {
                     createReadStream: cb
                 }
@@ -37,7 +38,7 @@ describe('._initiateDownloadStream method', function () {
         }
     }
 
-    function stub(client) {
+    const stub = (client) => {
         sinon.stub(client.log, "error");
         sinon.stub(client.log, "warn");
         sinon.stub(client.log, "info");
@@ -46,7 +47,7 @@ describe('._initiateDownloadStream method', function () {
         sinon.stub(client, "deleteMessage");
     }
 
-    beforeEach(function () {
+    beforeEach(() => {
         writeStream = null;
         delete fsProxy.stat;
         delete fsProxy.unlink;
@@ -55,8 +56,8 @@ describe('._initiateDownloadStream method', function () {
         tmpfile = tmp.fileSync({ prefix: 'prefix-', postfix: '.txt' });
         fs.writeFile(path.join(tmpdir.name, 'tmpfile.txt'), "dataset", function () {});
 
-        fsProxy.unlink = function () { };
-        fsProxy.stat   = function () { };
+        fsProxy.unlink = () => { };
+        fsProxy.stat   = () => { };
         fsProxy.createWriteStream = function () {
             writeStream = fs.createWriteStream.apply(this, arguments);
             return writeStream;
@@ -64,7 +65,7 @@ describe('._initiateDownloadStream method', function () {
     });
 
     it('should handle s3 error', function (done) {
-        var client = new Metrichor({});
+        var client = new EPI2ME({});
         stub(client);
         var s3 = s3Mock(function () { throw "Error" });
         client._initiateDownloadStream(s3, {}, {}, tmpfile.name, function () {
@@ -74,7 +75,7 @@ describe('._initiateDownloadStream method', function () {
     });
 
     it('should open read stream and write to outputFile', function (done) {
-        var client = new Metrichor({
+        var client = new EPI2ME({
             inputFolder: tmpdir.name,
             uploadedFolder: '+uploaded',
             outputFolder: '+downloads'
@@ -99,7 +100,7 @@ describe('._initiateDownloadStream method', function () {
     });
 
     it('should handle read stream errors', function (done) {
-        var client = new Metrichor({});
+        var client = new EPI2ME({});
         stub(client);
         var readStream, tmpfile, s3, filename;
         s3 = s3Mock(function cb() {
@@ -122,7 +123,7 @@ describe('._initiateDownloadStream method', function () {
     });
 
     it('should handle write stream errors', function (done) {
-        var client = new Metrichor({});
+        var client = new EPI2ME({});
         stub(client);
         var readStream, tmpfile, s3, filename;
         s3 = s3Mock(function cb() {
@@ -144,7 +145,7 @@ describe('._initiateDownloadStream method', function () {
     });
 
     it('should handle createWriteStream error', function (done) {
-        var client = new Metrichor({});
+        var client = new EPI2ME({});
         stub(client);
         assert.doesNotThrow(function () {
             client._initiateDownloadStream(s3Mock(function cb() {}), {}, {}, null, function cb() {
@@ -156,7 +157,7 @@ describe('._initiateDownloadStream method', function () {
     it('should handle transfer timeout errors', function (done) {
         // This test interacts with the other async test
         var readStream, tmpfile, filename, s3,
-            client = new Metrichor({downloadTimeout: 1e-10}); // effectively zero. Zero would result in default value
+            client = new EPI2ME({downloadTimeout: 1e-10}); // effectively zero. Zero would result in default value
         stub(client);
 
         s3 = s3Mock(function cb() {

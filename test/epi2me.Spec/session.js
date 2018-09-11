@@ -10,12 +10,12 @@ var requestProxy   = {};
 var fsProxy        = {};
 var mkdirpProxy    = {};
 var awsProxy       = {};
-var Metrichor      = proxyquire('../../lib/metrichor', {
+var Metrichor      = proxyquire('../../build/lib/epi2me', {
     'aws-sdk'     : awsProxy,
     'request'     : requestProxy,
     'fs-extra' : fsProxy,
     'mkdirp'      : mkdirpProxy
-});
+}).default;
 
 describe('session fetchInstanceToken method', function () {
 

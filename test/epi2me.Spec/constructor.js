@@ -11,19 +11,19 @@ let requestProxy   = {};
 let fsProxy        = {};
 let mkdirpProxy    = {};
 let awsProxy       = {};
-proxyquire('../../lib/utils', {
+proxyquire('../../build/lib/utils', {
     'request' : requestProxy
 });
-var EPI2ME;
 
 describe('Array', () => {
+    let EPI2ME;
 
     beforeEach(() => {
-        EPI2ME = proxyquire('../../lib/epi2me.js', {
-            'aws-sdk'     : awsProxy,
+        EPI2ME = proxyquire('../../build/lib/epi2me.js', {
+            'aws-sdk'  : awsProxy,
             'fs-extra' : fsProxy,
-            'mkdirp'      : mkdirpProxy
-        });
+            'mkdirp'   : mkdirpProxy
+        }).default;
     });
 
     describe('epi2me constructor', () => {
@@ -31,8 +31,9 @@ describe('Array', () => {
             var client;
             assert.doesNotThrow(() => {
 		client = new EPI2ME();
+		console.log(client);
             }, Error, 'client obtained');
-
+	    console.log(client.url());
             assert.equal(client.url(), 'https://epi2me.nanoporetech.com', 'default url');
             assert.equal(client.apikey(), null, 'default apikey');
         });

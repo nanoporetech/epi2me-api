@@ -4,24 +4,24 @@
  *
  */
 
-var proxyquire     = require('proxyquire');
-var assert         = require("assert");
-var sinon          = require("sinon");
-var path           = require("path");
-var tmp            = require('tmp');
-var queue          = require('queue-async');
-var fs             = require('fs');
+const proxyquire     = require('proxyquire');
+const assert         = require("assert");
+const sinon          = require("sinon");
+const path           = require("path");
+const tmp            = require('tmp');
+const queue          = require('queue-async');
+const fs             = require('fs');
 var fsProxy        = {};
-var api_key        = process.env.API_KEY;
-var workflowID     = 486;
-var timeout        = 50000;
-var fileCount      = 3;
-var serviceUrl     = 'https://epi2me-dev.nanoporetech.com';
-var fileExp        = new RegExp('fast5$');
+const api_key        = process.env.API_KEY;
+const workflowID     = 486;
+const timeout        = 50000;
+const fileCount      = 3;
+const serviceUrl     = 'https://epi2me-dev.nanoporetech.com';
+const fileExp        = new RegExp('fast5$');
 
-var Metrichor      = proxyquire('../lib/metrichor', {
-    'graceful-fs' : fsProxy
-});
+const EPI2ME         = proxyquire('../build/lib/epi2me', {
+    'fs-extra' : fsProxy
+}).default;
 
 describe('metrichor api integration test', function () {
 
@@ -111,7 +111,7 @@ describe('metrichor api integration test', function () {
 
         it('should initiate and upload files', function (done) {
             this.timeout(timeout);
-            client = new Metrichor({
+            client = new EPI2ME({
                 apikey: api_key,
                 url: serviceUrl,
                 agent_version: '10000.0.0',
@@ -146,7 +146,7 @@ describe('metrichor api integration test', function () {
 /*
         it('should initiate and upload files', function (done) {
             this.timeout(timeout);
-            client = new Metrichor({
+            client = new EPI2ME({
                 apikey: api_key,
                 url: serviceUrl,
                 fileCheckInterval: 1,
@@ -168,7 +168,7 @@ describe('metrichor api integration test', function () {
         /*
         it('should join workflow and upload files', function (done) {
             this.timeout(3000);
-            client = new Metrichor({
+            client = new EPI2ME({
                 fileCheckInterval: 1,
                 initDelay: 100,
                 log: logging(),

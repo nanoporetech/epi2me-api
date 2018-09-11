@@ -11,12 +11,12 @@ let utilsProxy     = {};
 let fsProxy        = {};
 let mkdirpProxy    = {};
 let awsProxy       = {};
-var EPI2ME         = proxyquire('../../lib/epi2me.js', {
+var EPI2ME         = proxyquire('../../build/lib/epi2me.js', {
     'aws-sdk'     : awsProxy,
     'fs-extra' : fsProxy,
     'mkdirp'      : mkdirpProxy,
     './utils'     : utilsProxy,
-});
+}).default;
 
 describe('start_workflow', () => {
 

@@ -12,12 +12,12 @@ let fsProxy        = {};
 let mkdirpProxy    = {};
 let awsProxy       = {};
 let utilsProxy     = {};
-let EPI2ME         = proxyquire('../../lib/epi2me.js', {
-    'aws-sdk'     : awsProxy,
+let EPI2ME         = proxyquire('../../build/lib/epi2me', {
+    'aws-sdk'  : awsProxy,
     'fs-extra' : fsProxy,
-    'mkdirp'      : mkdirpProxy,
-    './utils.js'       : utilsProxy,
-});
+    'mkdirp'   : mkdirpProxy,
+    './utils'  : utilsProxy,
+}).default;
 
 describe('workflows', () => {
     it('should list workflows', () => {
