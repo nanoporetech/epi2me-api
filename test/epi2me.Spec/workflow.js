@@ -6,7 +6,7 @@ let utilsProxy     = {};
 let fsProxy        = {};
 let mkdirpProxy    = {};
 let awsProxy       = {};
-var EPI2ME         = proxyquire('../../lib/metrichor.js', {
+var EPI2ME         = proxyquire('../../lib/epi2me.js', {
     'aws-sdk'     : awsProxy,
     'fs-extra' : fsProxy,
     'mkdirp'      : mkdirpProxy,

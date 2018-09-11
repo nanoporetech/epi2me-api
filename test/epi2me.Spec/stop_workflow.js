@@ -11,33 +11,33 @@ let utilsProxy     = {};
 let fsProxy        = {};
 let mkdirpProxy    = {};
 let awsProxy       = {};
-var EPI2ME         = proxyquire('../../lib/metrichor.js', {
+var EPI2ME         = proxyquire('../../lib/epi2me.js', {
     'aws-sdk'     : awsProxy,
     'fs-extra' : fsProxy,
     'mkdirp'      : mkdirpProxy,
     './utils'     : utilsProxy,
 });
 
-describe('start_workflow', () => {
+describe('stop_workflow', () => {
 
-    it('should start a workflow_instance', () => {
+    it('should stop a workflow_instance', () => {
         var client = new EPI2ME({
-	    "url"    : "http://metrichor.test:8080",
+            "url"    : "http://metrichor.local:8080",
             "apikey" : "FooBar02"
         });
 
-        utilsProxy._post = (uri, id, obj, options, cb) => {
-	    assert.equal(uri, "workflow_instance");
-            assert.equal(id,  null);
+        utilsProxy._put = (uri, id, obj, options, cb) => {
+	    assert.equal(uri, "workflow_instance/stop");
+	    assert.equal(id, "test");
+	    assert.equal(obj, null);
             assert.equal(options.apikey, "FooBar02");
-            assert.equal(obj.id_workflow, "test");
-            cb(null, {"id_workflow_instance":"1","id_user":"1"});
-            delete utilsProxy._post;
+            cb(null, {"id_workflow_instance":"1","id_user":"1","stop_requested_date":"2013-09-03 15:17:00"});
+            delete utilsProxy._put;
         };
 
-        client.start_workflow({id_workflow: 'test'}, (err, obj) => {
+        client.stop_workflow('test', (err, obj) => {
             assert.equal(err, null, 'no error reported');
-            assert.deepEqual(obj, {"id_workflow_instance":"1","id_user":"1"}, 'workflow_instance start response');
+            assert.deepEqual(obj, {"id_workflow_instance":"1","id_user":"1","stop_requested_date":"2013-09-03 15:17:00"}, 'workflow_instance stop response');
         });
     });
 });

@@ -4,17 +4,6 @@
  *
  */
 
-if (require("os").type() !== 'Darwin') {
-    console.log('WARNING: e2e tests only configured for OSX');
-    return;
-} else if (process.env.NODE_ENV !== 'development') {
-    console.log('WARNING: e2e tests require env variable NODE_ENV to equal development');
-    return;
-} else if (!process.env.API_KEY) {
-    console.log('WARNING: e2e tests require env variable API_KEY to be set');
-    return;
-}
-
 var proxyquire     = require('proxyquire');
 var assert         = require("assert");
 var sinon          = require("sinon");
@@ -35,6 +24,17 @@ var Metrichor      = proxyquire('../lib/metrichor', {
 });
 
 describe('metrichor api integration test', function () {
+
+    if (require("os").type() !== 'Darwin') {
+	console.log('WARNING: e2e tests only configured for OSX');
+	return;
+    } else if (process.env.NODE_ENV !== 'development') {
+	console.log('WARNING: e2e tests require env variable NODE_ENV to equal development');
+	return;
+    } else if (!process.env.API_KEY) {
+	console.log('WARNING: e2e tests require env variable API_KEY to be set');
+	return;
+    }
 
     after(function () {
         //fakeS3process.stop();
