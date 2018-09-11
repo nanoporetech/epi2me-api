@@ -20,9 +20,9 @@ describe('Array', () => {
 
     beforeEach(() => {
         EPI2ME = proxyquire('../../build/lib/epi2me', {
-            'aws-sdk'     : awsProxy,
+            'aws-sdk'  : awsProxy,
             'fs-extra' : fsProxy,
-            'mkdirp'      : mkdirpProxy
+            'mkdirp'   : mkdirpProxy
         }).default;
     });
 

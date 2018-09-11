@@ -6,17 +6,14 @@ let utilsProxy     = {};
 let fsProxy        = {};
 let mkdirpProxy    = {};
 let awsProxy       = {};
-var EPI2ME         = proxyquire('../../build/lib/epi2me', {
-    'aws-sdk'  : awsProxy,
-    'fs-extra' : fsProxy,
-    'mkdirp'   : mkdirpProxy,
+let REST         = proxyquire('../../../build/lib/rest', {
     './utils'  : utilsProxy,
 }).default;
 
 describe('workflow', () => {
 
     it('should update a workflow', () => {
-        var client = new EPI2ME({
+        var client = new REST({
             "url"    : "http://metrichor.local:8080",
             "apikey" : "FooBar02"
         });
@@ -37,7 +34,7 @@ describe('workflow', () => {
     });
 
     it('should read a workflow', () => {
-        var client = new EPI2ME({
+        var client = new REST({
             "url"    : "http://metrichor.local:8080",
             "apikey" : "FooBar02"
         });

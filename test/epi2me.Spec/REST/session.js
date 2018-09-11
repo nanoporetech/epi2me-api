@@ -27,7 +27,7 @@ describe('session fetchInstanceToken method', function () {
         sinon.stub(cb, 'queueCb');
         var client = new Metrichor(opts);
         // _config.instance.id_workflow_instance, function (tokenError, token) {}
-        client.instance_token = function (id_workflow_instance, cb) {
+        client.REST.instance_token = function (id_workflow_instance, cb) {
             setTimeout(function () {
                 cb(tokenError, token);
             }, 10);

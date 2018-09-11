@@ -4,7 +4,7 @@
   "repository": "https://git.oxfordnanolabs.local/metrichor/api.git",
   "description": "API for communicating with the EPI2ME website(s)",
   "private": true,
-  "main": "lib/epi2me.js",
+  "main": "build/lib/epi2me.js",
   "dependencies": {
     "aws-sdk": "2.292.0",
     "crypto": "1.0.1",
