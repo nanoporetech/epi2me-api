@@ -28,6 +28,11 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 class REST {
     constructor(options) {
+        // {log, ...options}) {
+        if (options.log) {
+            this.log = options.log;
+            //            delete options.log;
+        }
         this.options = options;
     }
 
