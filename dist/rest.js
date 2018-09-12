@@ -88,6 +88,7 @@ class REST {
             return this._list("workflow", cb);
         }
     }
+
     workflow(id, obj, cb) {
         if (cb) {
             // three args: update object
@@ -130,10 +131,11 @@ class REST {
                     if (err) {
                         this.log.error("failed to fetch " + uri);
                         reject(err);
-                    } else {
-                        _lodash2.default.merge(details, resp);
-                        resolve();
+                        return;
                     }
+
+                    _lodash2.default.merge(details, resp);
+                    resolve();
                 });
             }));
 
@@ -148,18 +150,19 @@ class REST {
                         if (err) {
                             this.log.error("failed to fetch " + uri);
                             reject(err);
-                        } else {
-                            const data_root = resp[param.values.data_root];
-                            if (data_root) {
-                                param.values = data_root.map(o => {
-                                    return {
-                                        label: o[param.values.items.label_key],
-                                        value: o[param.values.items.value_key]
-                                    };
-                                });
-                            }
-                            resolve();
+                            return;
                         }
+
+                        const data_root = resp[param.values.data_root];
+                        if (data_root) {
+                            param.values = data_root.map(o => {
+                                return {
+                                    label: o[param.values.items.label_key],
+                                    value: o[param.values.items.value_key]
+                                };
+                            });
+                        }
+                        resolve();
                     });
                 });
             }));

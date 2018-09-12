@@ -142,7 +142,7 @@ class EPI2ME {
             this.skipTo = _path2.default.join(this.config.options.inputFolder, "skip");
         }
 
-        this.REST = new _rest2.default(this.config.options);
+        this.REST = new _rest2.default(_lodash2.default.merge({ log: this.log }, this.config.options));
     }
 
     stop_everything(cb) {
