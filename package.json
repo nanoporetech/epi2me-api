@@ -4,7 +4,7 @@
   "repository": "https://git.oxfordnanolabs.local/metrichor/api.git",
   "description": "API for communicating with the EPI2ME website(s)",
   "private": true,
-  "main": "build/lib/epi2me.js",
+  "main": "dist/epi2me.js",
   "dependencies": {
     "aws-sdk": "2.292.0",
     "crypto": "1.0.1",
@@ -34,7 +34,7 @@
   },
   "scripts": {
     "lint": "yarn install && eslint --fix lib",
-    "build": "yarn lint && yarn babel lib -d build/lib && cp lib/default_options.json build/lib/",
+    "build": "yarn lint && yarn babel lib -d dist && cp lib/default_options.json dist/",
     "test": "yarn build && mocha test/epi2me.Spec",
     "cover": "yarn build && nyc --reporter=html mocha test/epi2me.Spec",
     "test_integration": "yarn build && istanbul/lib/cli cover mocha test/e2e"

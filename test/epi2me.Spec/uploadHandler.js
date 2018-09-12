@@ -9,10 +9,10 @@ const fs             = require('fs');
 let requestProxy   = {};
 let awsProxy       = {};
 let fsProxy        = {};
-proxyquire('../../build/lib/utils', {
+proxyquire('../../dist/utils', {
     'request' : requestProxy
 });
-let EPI2ME = proxyquire('../../build/lib/epi2me', {
+let EPI2ME = proxyquire('../../dist/epi2me', {
     'aws-sdk'     : awsProxy,
     'request'     : requestProxy,
     'fs-extra' : fsProxy

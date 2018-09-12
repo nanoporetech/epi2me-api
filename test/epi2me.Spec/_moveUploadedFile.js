@@ -8,10 +8,10 @@ const tmp        = require('tmp');
 let requestProxy = {};
 let awsProxy     = {};
 let fsProxy      = {};
-proxyquire('../../build/lib/utils', {
+proxyquire('../../dist/utils', {
     'request' : requestProxy
 });
-const EPI2ME = proxyquire('../../build/lib/epi2me', {
+const EPI2ME = proxyquire('../../dist/epi2me', {
     'aws-sdk'  : awsProxy,
     'request'  : requestProxy,
     'fs-extra' : fsProxy

@@ -11,10 +11,10 @@ let requestProxy   = {};
 let fsProxy        = {};
 let mkdirpProxy    = {};
 let awsProxy       = {};
-proxyquire('../../build/lib/utils', {
+proxyquire('../../dist/utils', {
     'request' : requestProxy
 });
-var EPI2ME = proxyquire('../../build/lib/epi2me.js', {
+var EPI2ME = proxyquire('../../dist/epi2me.js', {
     'aws-sdk'     : awsProxy,
     'fs-extra' : fsProxy,
     'mkdirp'      : mkdirpProxy
