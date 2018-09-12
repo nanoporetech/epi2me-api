@@ -131,7 +131,7 @@ class REST {
             let promises = [];
             promises.push(new Promise((resolve, reject) => {
                 const uri = "workflow/config/" + id;
-                _utils2.default._get(uri, this.config.options, (err, resp) => {
+                _utils2.default._get(uri, this.options, (err, resp) => {
                     if (err) {
                         this.log.error("failed to fetch " + uri);
                         reject(err);
