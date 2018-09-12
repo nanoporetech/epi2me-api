@@ -268,8 +268,7 @@ class REST {
     }
 
     fetchContent(url, cb) {
-        let options = JSON.parse(JSON.stringify(this.options));
-        options.skip_url_mangle = true;
+        let options = _lodash2.default.merge({ skip_url_mangle: true }, this.options);
         _utils2.default._get(url, options, cb);
     }
 }
