@@ -44,7 +44,7 @@ class REST {
                 return;
             }
             if (cb) {
-                entity = entity.match(/^[a-z]+/i)[0];
+                entity = entity.match(/^[a-z]+/i)[0]; // dataset?foo=bar => dataset
                 cb(null, json[entity + "s"]);
             }
         });
@@ -278,6 +278,10 @@ class REST {
             query.show = "mine";
         }
         return this._list(`dataset?show=${query.show}`, cb);
+    }
+
+    dataset(id, cb) {
+        return this._read("dataset", id, cb);
     }
 
     fetchContent(url, cb) {

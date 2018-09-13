@@ -100,8 +100,8 @@ utils._pipe = function (uri, filepath, options, cb, progressCb) {
     uri = uri.replace(/\/+/g, "/"); // clip multiple slashes
     call = srv + uri;
     req = {
-        uri: call
-        //      gzip: true
+        uri: call,
+        gzip: true
     };
 
     this._sign(req, options);
@@ -142,7 +142,7 @@ utils._post = function (uri, id, obj, options, cb) {
     call = srv + "/" + uri + (id ? "/" + id : "") + ".json";
     req = {
         uri: call,
-        //        gzip: true,
+        gzip: true,
         form: form
     };
 
@@ -178,7 +178,7 @@ utils._put = function (uri, id, obj, options, cb) {
     call = srv + "/" + uri + "/" + id + ".json";
     req = {
         uri: call,
-        //        gzip: true,
+        gzip: true,
         form: form
     };
 
