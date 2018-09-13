@@ -41,7 +41,10 @@ class REST {
             if (e) {
                 this.log.error("_list", e.error || e);
                 cb(e.error);
-            } else if (cb) {
+                return;
+            }
+            if (cb) {
+                entity = entity.match(/^[a-z]+/i)[0];
                 cb(null, json[entity + "s"]);
             }
         });
@@ -235,7 +238,7 @@ class REST {
         }
 
         if (query && query.run_id) {
-            return _utils2.default._get("workflow_instance/wi.json?show=all&columns[0][name]=run_id;columns[0][searchable]=true;columns[0][search][regex]=true;columns[0][search][value]=" + query.run_id + ";", this.options, (e, json) => {
+            return _utils2.default._get("workflow_instance/wi?show=all&columns[0][name]=run_id;columns[0][searchable]=true;columns[0][search][regex]=true;columns[0][search][value]=" + query.run_id + ";", this.options, (e, json) => {
                 let mapped = json.data.map(o => {
                     return {
                         id_workflow_instance: o.id_ins,
@@ -267,8 +270,14 @@ class REST {
         }, this.options, cb);
     }
 
-    datasets(cb) {
-        return this._list("dataset", cb);
+    datasets(cb, query) {
+        if (!query) {
+            query = {};
+        }
+        if (!query.show) {
+            query.show = "mine";
+        }
+        return this._list(`dataset?show=${query.show}`, cb);
     }
 
     fetchContent(url, cb) {

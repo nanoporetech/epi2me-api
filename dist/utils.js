@@ -28,6 +28,8 @@ utils._sign = function (req, options) {
         options = {};
     }
 
+    req.headers["Accept"] = "application/json";
+    req.headers["Content-Type"] = "application/json";
     req.headers["X-EPI2ME-Client"] = options.user_agent; // new world order
     req.headers["X-EPI2ME-Version"] = options.agent_version || "0"; // new world order
     req.headers["X-EPI2ME-ApiKey"] = options.apikey; // better than a logged CGI parameter
@@ -49,7 +51,9 @@ utils._sign = function (req, options) {
         req.uri = req.uri.replace(/:80/, "");
     }
 
-    var message = [req.uri, Object.keys(req.headers).sort().map(function (o) {
+    var message = [req.uri, Object.keys(req.headers).sort().filter(o => {
+        return o.match(/^x-epi2me/i);
+    }).map(o => {
         return o + ":" + req.headers[o];
     }).join("\n")].join("\n");
 
@@ -64,7 +68,7 @@ utils._get = function (uri, options, cb) {
         srv = options.url;
 
     if (!options.skip_url_mangle) {
-        uri = "/" + uri + ".json";
+        uri = "/" + uri; // + ".json";
         srv = srv.replace(/\/+$/, ""); // clip trailing slashes
         uri = uri.replace(/\/+/g, "/"); // clip multiple slashes
         call = srv + uri;
@@ -95,7 +99,10 @@ utils._pipe = function (uri, filepath, options, cb, progressCb) {
     srv = srv.replace(/\/+$/, ""); // clip trailing slashes
     uri = uri.replace(/\/+/g, "/"); // clip multiple slashes
     call = srv + uri;
-    req = { uri: call };
+    req = {
+        uri: call
+        //      gzip: true
+    };
 
     this._sign(req, options);
 
@@ -135,6 +142,7 @@ utils._post = function (uri, id, obj, options, cb) {
     call = srv + "/" + uri + (id ? "/" + id : "") + ".json";
     req = {
         uri: call,
+        //        gzip: true,
         form: form
     };
 
@@ -170,6 +178,7 @@ utils._put = function (uri, id, obj, options, cb) {
     call = srv + "/" + uri + "/" + id + ".json";
     req = {
         uri: call,
+        //        gzip: true,
         form: form
     };
 
