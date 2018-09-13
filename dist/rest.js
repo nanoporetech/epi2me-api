@@ -267,6 +267,10 @@ class REST {
         }, this.options, cb);
     }
 
+    datasets(cb) {
+        return this._list("dataset", cb);
+    }
+
     fetchContent(url, cb) {
         let options = _lodash2.default.merge({ skip_url_mangle: true }, this.options);
         _utils2.default._get(url, options, cb);
