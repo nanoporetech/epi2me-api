@@ -139,7 +139,7 @@ utils._post = function (uri, id, obj, options, cb) {
     srv = options.url;
     srv = srv.replace(/\/+$/, ""); // clip trailing slashes
     uri = uri.replace(/\/+/g, "/"); // clip multiple slashes
-    call = srv + "/" + uri + (id ? "/" + id : "") + ".json";
+    call = srv + "/" + uri + (id ? "/" + id : ""); // + ".json";
     req = {
         uri: call,
         gzip: true,
@@ -175,7 +175,7 @@ utils._put = function (uri, id, obj, options, cb) {
     srv = options.url;
     srv = srv.replace(/\/+$/, ""); // clip trailing slashes
     uri = uri.replace(/\/+/g, "/"); // clip multiple slashes
-    call = srv + "/" + uri + "/" + id + ".json";
+    call = srv + "/" + uri + "/" + id; // + ".json";
     req = {
         uri: call,
         gzip: true,
