@@ -21,7 +21,7 @@ describe('Array', () => {
     beforeEach(() => {
         EPI2ME = proxyquire('../../lib/metrichor.js', {
             'aws-sdk'     : awsProxy,
-            'graceful-fs' : fsProxy,
+            'fs-extra' : fsProxy,
             'mkdirp'      : mkdirpProxy
         });
     });
