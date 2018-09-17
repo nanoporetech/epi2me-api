@@ -7,10 +7,10 @@ let requestProxy   = {};
 let fsProxy        = {};
 let mkdirpProxy    = {};
 let awsProxy       = {};
-proxyquire('../../dist/utils', {
+proxyquire('../../lib/utils', {
     'request' : requestProxy
 });
-let EPI2ME = proxyquire('../../dist/epi2me', {
+let EPI2ME = proxyquire('../../lib/epi2me', {
     'aws-sdk'     : awsProxy,
     'fs-extra' : fsProxy,
     'mkdirp'      : mkdirpProxy

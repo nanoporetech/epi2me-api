@@ -5,7 +5,7 @@ const sinon      = require("sinon");
 
 let utilsProxy   = {};
 
-let REST         = proxyquire('../../../build/lib/rest', {
+let REST         = proxyquire('../../../lib/rest', {
     './utils'     : utilsProxy,
 }).default;
 

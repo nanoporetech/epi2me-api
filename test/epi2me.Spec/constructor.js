@@ -11,7 +11,7 @@ let requestProxy   = {};
 let fsProxy        = {};
 let mkdirpProxy    = {};
 let awsProxy       = {};
-proxyquire('../../dist/utils', {
+proxyquire('../../lib/utils', {
     'request' : requestProxy
 });
 
@@ -19,7 +19,7 @@ describe('Array', () => {
     let EPI2ME;
 
     beforeEach(() => {
-        EPI2ME = proxyquire('../../dist/epi2me.js', {
+        EPI2ME = proxyquire('../../lib/epi2me.js', {
             'aws-sdk'  : awsProxy,
             'fs-extra' : fsProxy,
             'mkdirp'   : mkdirpProxy

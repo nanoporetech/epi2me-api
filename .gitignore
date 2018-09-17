@@ -6,6 +6,7 @@ coverage/
 */.DS_store
 apikey
 npm-debug.log
+yarn-error.log
 xunit.xml
 package-lock.json
 test/tmp
