@@ -44,7 +44,7 @@ class REST {
                 return;
             }
 
-            entity = entity.match(/^[a-z]+/i)[0]; // dataset?foo=bar => dataset
+            entity = entity.match(/^[a-z_]+/i)[0]; // dataset?foo=bar => dataset
             cb(null, json[entity + "s"]);
         });
     }

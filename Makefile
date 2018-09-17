@@ -1,3 +1,6 @@
+dist:
+	yarn dist
+
 test:
 	yarn test
 
