@@ -36,7 +36,7 @@
     "lint": "yarn install && eslint --fix lib",
     "test": "yarn lint && mocha --recursive --require babel-register test/epi2me.Spec",
     "test_integration": "yarn istanbul cover mocha --recursive --require babel-register test/e2e",
-    "cover": "yarn build && nyc --reporter=html mocha test/epi2me.Spec",
+    "cover": "yarn dist && nyc --reporter=html mocha --recursive --require babel-register test/epi2me.Spec",
     "dist": "yarn test && yarn babel lib -d dist && cp lib/default_options.json dist/"
   }
 }
