@@ -1,6 +1,6 @@
 {
   "name": "epi2me-api",
-  "version": "2.57.1",
+  "version": "2.57.2",
   "repository": "https://git.oxfordnanolabs.local/metrichor/api.git",
   "description": "API for communicating with the EPI2ME website(s)",
   "private": true,
