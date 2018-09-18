@@ -107,7 +107,8 @@ class EPI2ME {
                 failure: {},
                 queueLength: 0,
                 totalSize: 0
-            }
+            },
+            warnings: []
         };
 
         // if (opts.filter === 'on') defaults.downloadPoolSize = 5;
@@ -511,9 +512,10 @@ class EPI2ME {
     }
 
     enqueueUploadFiles(files) {
-        let maxFiles,
+        let maxFiles = 0,
             maxFileSize = 0,
-            settings = {};
+            settings = {},
+            msg;
 
         if (!_lodash2.default.isArray(files) || !files.length) return;
         this.log.info(`enqueueUploadFiles: ${files.length} new files`);
@@ -527,22 +529,12 @@ class EPI2ME {
             }
         }
 
-        if (settings.hasOwnProperty("max_files")) {
-            maxFiles = parseInt(settings.max_files);
-            if (this._stats.upload.filesCount > maxFiles) {
-                this.log.error(`${this._stats.upload.filesCount} files have been found. This workflow can only accept ${maxFiles} files(s).  `);
-
-                this._stats.upload.filesCount -= files.length;
-                this.stop_everything(that => {
-                    if (typeof that.config.options.remoteShutdownCb === "function") {
-                        that.config.options.remoteShutdownCb("instance has been stopped because the limit on the number of uploaded files has been reached.");
-                    }
-                });
-            }
-        }
-
         if (settings.hasOwnProperty("max_size")) {
             maxFileSize = parseInt(settings.max_size);
+        }
+
+        if (settings.hasOwnProperty("max_files")) {
+            maxFiles = parseInt(settings.max_files);
         }
 
         if (this.config.options.filetype === ".fastq" || this.config.options.filetype === ".fq") {
@@ -550,15 +542,25 @@ class EPI2ME {
                 let uploadWorkerPool = (0, _queueAsync2.default)(this.config.options.uploadPoolSize);
                 let statQ = (0, _queueAsync2.default)(1);
                 this.log.debug("enqueueUploadFiles.countFileReads: counting FASTQ reads per file");
+
                 files.forEach(file => {
-                    if (maxFileSize) {
-                        if (file.size > maxFileSize) {
-                            this.log.error(`${file.name} is over ${maxFileSize}. Moving into skip folder`);
-                            file.tooBig = 1;
-                            this._stats.upload.filesCount -= 1;
-                            uploadWorkerPool.defer(this.uploadJob.bind(this, file));
-                            return;
-                        }
+                    if (maxFiles && this._stats.upload.filesCount > maxFiles) {
+                        msg = "Maximum " + maxFiles + " file(s) already uploaded. Moving " + file.name + " into skip folder";
+                        this.log.error(msg);
+                        this._stats.warnings.push(msg);
+                        this._stats.upload.filesCount -= 1;
+                        file.skip = "SKIP_TOO_MANY";
+                        uploadWorkerPool.defer(this.uploadJob.bind(this, file));
+                        return;
+                    } else if (maxFileSize && file.size > maxFileSize) {
+                        msg = file.name + " is over " + maxFileSize.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + ". Moving into skip folder";
+                        file.skip = "SKIP_TOO_BIG";
+                        this._stats.upload.filesCount -= 1;
+
+                        this.log.error(msg);
+                        this._stats.warnings.push(msg);
+                        uploadWorkerPool.defer(this.uploadJob.bind(this, file));
+                        return;
                     }
 
                     statQ.defer(releaseQSlot => {
@@ -574,6 +576,7 @@ class EPI2ME {
                         });
                     });
                 });
+
                 statQ.awaitAll(() => {
                     this.log.debug(`enqueueUploadFiles.enqueued: ${this._stats.upload.enqueued}`);
                     uploadWorkerPool.awaitAll(batch_complete);
@@ -584,17 +587,25 @@ class EPI2ME {
             this.inputBatchQueue.defer(batch_complete => {
                 let uploadWorkerPool = (0, _queueAsync2.default)(this.config.options.uploadPoolSize);
                 files.forEach(item => {
-                    if (maxFileSize) {
-                        if (item.size > maxFileSize) {
-                            this.log.error(`${item.name} is over ${maxFileSize}. Moving into skip folder`);
-                            this._stats.upload.filesCount -= 1;
-                            item.tooBig = 1;
-                        }
+                    if (maxFiles && this._stats.upload.filesCount > maxFiles) {
+                        msg = "Maximum " + maxFiles + " file(s) already uploaded. Moving " + item.name + " into skip folder";
+                        this.log.error(msg);
+                        this._stats.warnings.push(msg);
+                        this._stats.upload.filesCount -= 1;
+                        item.skip = "SKIP_TOO_MANY";
+                    } else if (maxFileSize && item.size > maxFileSize) {
+                        msg = item.name + " is over " + maxFileSize.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + ". Moving into skip folder";
+                        this.log.error(msg);
+                        this._stats.warnings.push(msg);
+                        this._stats.upload.filesCount -= 1;
+                        item.skip = "SKIP_TOO_BIG";
                     }
+
                     uploadWorkerPool.defer(completeCb => {
                         this.uploadJob(item, completeCb);
                     });
                 });
+
                 uploadWorkerPool.awaitAll(batch_complete);
             });
         }
@@ -613,7 +624,7 @@ class EPI2ME {
             this.log.error(`${file.id} could not stringify fileObject!`);
         } // ignore
 
-        if (file.hasOwnProperty("tooBig")) {
+        if (file.hasOwnProperty("skip")) {
             let readCount = file.readCount || 1;
             this._stats.upload.enqueued = this._stats.upload.enqueued - readCount;
             this._stats.upload.queueLength = this._stats.upload.queueLength ? this._stats.upload.queueLength - readCount : 0;
@@ -637,9 +648,9 @@ class EPI2ME {
                 if (!this._stats.upload.failure) {
                     this._stats.upload.failure = {};
                 }
+
                 this._stats.upload.failure[errorMsg] = this._stats.upload.failure[errorMsg] ? this._stats.upload.failure[errorMsg] + 1 : 1;
             } else {
-
                 this._stats.upload.queueLength = this._stats.upload.queueLength ? this._stats.upload.queueLength - readCount : 0;
                 this._stats.upload.success = this._stats.upload.success ? this._stats.upload.success + readCount : readCount;
             }

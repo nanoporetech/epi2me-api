@@ -22,8 +22,6 @@ var _path2 = _interopRequireDefault(_path);
 
 var _lodash = require("lodash");
 
-var _lodash2 = _interopRequireDefault(_lodash);
-
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 class REST {
@@ -140,13 +138,13 @@ class REST {
                         return;
                     }
 
-                    _lodash2.default.merge(details, resp);
+                    (0, _lodash.merge)(details, resp);
                     resolve();
                 });
             }));
 
             // MC-6483 - fetch ajax options for "AJAX drop down widget"
-            let toFetch = _lodash2.default.filter(details.params, { widget: "ajax_dropdown" });
+            let toFetch = (0, _lodash.filter)(details.params, { widget: "ajax_dropdown" });
             promises.unshift(...toFetch.map(param => {
                 return new Promise((resolve, reject) => {
 
@@ -284,7 +282,7 @@ class REST {
     }
 
     fetchContent(url, cb) {
-        let options = _lodash2.default.merge({ skip_url_mangle: true }, this.options);
+        let options = (0, _lodash.merge)({ skip_url_mangle: true }, this.options);
         _utils2.default._get(url, options, cb);
     }
 }
