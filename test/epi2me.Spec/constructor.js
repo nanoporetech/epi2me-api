@@ -14,30 +14,31 @@ let awsProxy       = {};
 proxyquire('../../lib/utils', {
     'request' : requestProxy
 });
-var EPI2ME;
 
 describe('Array', () => {
+    let EPI2ME;
 
     beforeEach(() => {
-        EPI2ME = proxyquire('../../lib/metrichor.js', {
-            'aws-sdk'     : awsProxy,
+        EPI2ME = proxyquire('../../lib/epi2me.js', {
+            'aws-sdk'  : awsProxy,
             'fs-extra' : fsProxy,
-            'mkdirp'      : mkdirpProxy
-        });
+            'mkdirp'   : mkdirpProxy
+        }).default;
     });
 
-    describe('metrichor constructor', () => {
-        it('should create a metrichor object with defaults and allow overwriting', () => {
+    describe('epi2me constructor', () => {
+        it('should create an epi2me object with defaults and allow overwriting', () => {
             var client;
             assert.doesNotThrow(() => {
 		client = new EPI2ME();
+		console.log(client);
             }, Error, 'client obtained');
-
+	    console.log(client.url());
             assert.equal(client.url(), 'https://epi2me.nanoporetech.com', 'default url');
             assert.equal(client.apikey(), null, 'default apikey');
         });
 
-        it('should create a metrichor object using the parsed options string', () => {
+        it('should create an epi2me object using the parsed options string', () => {
 	    var client;
             assert.doesNotThrow(() => {
                 client = new EPI2ME(JSON.stringify({
@@ -47,7 +48,7 @@ describe('Array', () => {
             assert.equal(client.url(), 'test_url', 'custom url');
         });
 
-        it('should create a metrichor object with log functions', () => {
+        it('should create an epi2me object with log functions', () => {
             var client,
                 customLogging = {
                     debug: () => {},
@@ -96,16 +97,16 @@ describe('Array', () => {
             }, Error, 'config object does not contain property not_a_key');
         });
 
-        it('should create a metrichor with opts', () => {
+        it('should create an epi2me with opts', () => {
             var client;
             assert.doesNotThrow(() => {
                 client = new EPI2ME({
-                    url: 'https://metrichor.local:8000',
+                    url: 'https://epi2me.local:8000',
                     apikey: 'FooBar02'
                 });
                 delete requestProxy.get;
             }, Error, 'client obtained');
-            assert.equal(client.url(), 'https://metrichor.local:8000', 'url built from constructor');
+            assert.equal(client.url(), 'https://epi2me.local:8000', 'url built from constructor');
             assert.equal(client.apikey(), 'FooBar02', 'apikey built from constructor');
         });
     });

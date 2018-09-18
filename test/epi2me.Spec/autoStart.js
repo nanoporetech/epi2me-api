@@ -1,12 +1,8 @@
 "use strict";
-const proxyquire     = require('proxyquire');
-const assert         = require("assert");
-const sinon          = require("sinon");
-const path           = require("path");
-const _              = require("lodash");
-const tmp            = require('tmp');
-const queue          = require('queue-async');
-const fs             = require('fs');
+const proxyquire   = require('proxyquire');
+const assert       = require("assert");
+const sinon        = require("sinon");
+
 let requestProxy   = {};
 let fsProxy        = {};
 let mkdirpProxy    = {};
@@ -14,18 +10,18 @@ let awsProxy       = {};
 proxyquire('../../lib/utils', {
     'request' : requestProxy
 });
-var EPI2ME = proxyquire('../../lib/metrichor.js', {
+let EPI2ME = proxyquire('../../lib/epi2me', {
     'aws-sdk'     : awsProxy,
     'fs-extra' : fsProxy,
     'mkdirp'      : mkdirpProxy
-});
+}).default;
 
 describe('.autoStart method', () => {
 
     function newApi(error, instance) {
 
         var client = new EPI2ME();
-        client.start_workflow = function (id, cb) {
+        client.REST.start_workflow = function (id, cb) {
             cb(error, instance);
         };
 
@@ -35,7 +31,7 @@ describe('.autoStart method', () => {
 
         sinon.stub(client.log, "warn");
         sinon.spy(client, "autoConfigure");
-        sinon.spy(client,  "start_workflow");
+        sinon.spy(client.REST,  "start_workflow");
         return client;
     }
 
@@ -47,7 +43,7 @@ describe('.autoStart method', () => {
         });
 
         client.autoStart(111, () => {
-            assert(client.start_workflow.calledOnce);
+            assert(client.REST.start_workflow.calledOnce);
             assert(client.autoConfigure.calledOnce);
 
             var args = client.autoConfigure.args[0][0];
@@ -67,7 +63,7 @@ describe('.autoStart method', () => {
             });
 
         client.autoStart(111, () => {
-            assert(client.start_workflow.calledOnce);
+            assert(client.REST.start_workflow.calledOnce);
             assert(client.log.warn.calledOnce);
             assert(client.log.warn.calledWith("Failed to start workflow: Message"));
             assert(client.autoConfigure.notCalled);

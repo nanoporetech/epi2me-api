@@ -14,11 +14,11 @@ let awsProxy       = {};
 proxyquire('../../lib/utils', {
     'request' : requestProxy
 });
-var EPI2ME = proxyquire('../../lib/metrichor.js', {
+var EPI2ME = proxyquire('../../lib/epi2me', {
     'aws-sdk'     : awsProxy,
     'fs-extra' : fsProxy,
     'mkdirp'      : mkdirpProxy
-});
+}).default;
 
 describe('.autoConfigure method', () => {
 

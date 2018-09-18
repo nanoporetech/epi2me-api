@@ -5,82 +5,78 @@
  *
  */
 "use strict";
-const request  = require("request");
+
+const request = require("request");
 const progress = require("request-progress");
-const crypto   = require("crypto");
-const fs       = require("fs");
-const path     = require("path");
-const queue    = require("queue-async");
-const mkdirp   = require("mkdirp");
-const _        = require("lodash");
-let utils      = {};
+const crypto = require("crypto");
+const fs = require("fs");
+const path = require("path");
+const queue = require("queue-async");
+const mkdirp = require("mkdirp");
+const _ = require("lodash");
+let utils = {};
 
 const targetBatchSize = 4000;
 
 utils._sign = function (req, options) {
     // common headers required for everything
-    if(!req.headers) {
+    if (!req.headers) {
         req.headers = {};
     }
 
-    if(!options) {
+    if (!options) {
         options = {};
     }
 
-    req.headers["Accept"]           = "application/json";
-    req.headers["Content-Type"]     = "application/json";
-    req.headers["X-EPI2ME-Client"]  = options.user_agent;           // new world order
+    req.headers["Accept"] = "application/json";
+    req.headers["Content-Type"] = "application/json";
+    req.headers["X-EPI2ME-Client"] = options.user_agent; // new world order
     req.headers["X-EPI2ME-Version"] = options.agent_version || "0"; // new world order
-    req.headers["X-EPI2ME-ApiKey"]  = options.apikey;               // better than a logged CGI parameter
+    req.headers["X-EPI2ME-ApiKey"] = options.apikey; // better than a logged CGI parameter
 
-    if(!options.apisecret) {
+    if (!options.apisecret) {
         return;
     }
 
     // timestamp mitigates replay attack outside a tolerance window determined by the server
-    req.headers["X-EPI2ME-SignatureDate"] = (new Date()).toISOString();
+    req.headers["X-EPI2ME-SignatureDate"] = new Date().toISOString();
 
-    if(req.uri.match(/^https:/)) {
+    if (req.uri.match(/^https:/)) {
         // MC-6412 - signing generated with https://...:443 but validated with https://...
-        req.uri = req.uri.replace(/:443/,"");
+        req.uri = req.uri.replace(/:443/, "");
     }
 
-    if(req.uri.match(/^http:/)) {
+    if (req.uri.match(/^http:/)) {
         // MC-6412 - signing generated with https://...:443 but validated with https://...
-        req.uri = req.uri.replace(/:80/,"");
+        req.uri = req.uri.replace(/:80/, "");
     }
 
-    var message = [req.uri,
+    var message = [req.uri, Object.keys(req.headers).sort().filter(o => {
+        return o.match(/^x-epi2me/i);
+    }).map(o => {
+        return o + ":" + req.headers[o];
+    }).join("\n")].join("\n");
 
-        Object.keys(req.headers)
-            .sort()
-            .filter((o) => { return o.match(/^x-epi2me/i); })
-            .map((o) => {
-                return o + ":" + req.headers[o];
-            })
-            .join("\n")
-
-    ].join("\n");
-
-    let digest  = crypto.createHmac("sha1", options.apisecret).update(message).digest("hex");
+    let digest = crypto.createHmac("sha1", options.apisecret).update(message).digest("hex");
     req.headers["X-EPI2ME-SignatureV0"] = digest;
 };
 
 utils._get = function (uri, options, cb) {
     // do something to get/set data in metrichor
-    var call, req,
+    var call,
+        req,
         srv = options.url;
 
-    if(!options.skip_url_mangle) {
-        uri  = "/" + uri;// + ".json";
-        srv  = srv.replace(/\/+$/, "");  // clip trailing slashes
-        uri  = uri.replace(/\/+/g, "/"); // clip multiple slashes
+    if (!options.skip_url_mangle) {
+        uri = "/" + uri; // + ".json";
+        srv = srv.replace(/\/+$/, ""); // clip trailing slashes
+        uri = uri.replace(/\/+/g, "/"); // clip multiple slashes
         call = srv + uri;
     } else {
         call = uri;
     }
 
-    req  = { uri: call, gzip: true };
+    req = { uri: call, gzip: true };
 
     this._sign(req, options);
 
@@ -88,23 +84,22 @@ utils._get = function (uri, options, cb) {
         req.proxy = options.proxy;
     }
 
-    request.get(req,
-        function (res_e, res, body) {
-            utils._responsehandler(res_e, res, body, cb);
-        }
-    );
+    request.get(req, function (res_e, res, body) {
+        utils._responsehandler(res_e, res, body, cb);
+    });
 };
 
 utils._pipe = function (uri, filepath, options, cb, progressCb) {
     // do something to get/set data in metrichor
-    var call, req,
+    var call,
+        req,
         srv = options.url;
 
-    uri  = "/" + uri; // note no forced extension for piped requests
-    srv  = srv.replace(/\/+$/, "");  // clip trailing slashes
-    uri  = uri.replace(/\/+/g, "/"); // clip multiple slashes
+    uri = "/" + uri; // note no forced extension for piped requests
+    srv = srv.replace(/\/+$/, ""); // clip trailing slashes
+    uri = uri.replace(/\/+/g, "/"); // clip multiple slashes
     call = srv + uri;
-    req  = {
+    req = {
         uri: call,
         gzip: true
     };
@@ -115,20 +110,18 @@ utils._pipe = function (uri, filepath, options, cb, progressCb) {
         req.proxy = options.proxy;
     }
 
-    if(progressCb) {
-        progress(request(req), {})
-            .on("progress", progressCb)
-            .on("end", cb)
-            .pipe(fs.createWriteStream(filepath));
+    if (progressCb) {
+        progress(request(req), {}).on("progress", progressCb).on("end", cb).pipe(fs.createWriteStream(filepath));
     } else {
-        request(req)
-            .pipe(fs.createWriteStream(filepath))
-            .on("close", cb);
+        request(req).pipe(fs.createWriteStream(filepath)).on("close", cb);
     }
 };
 
 utils._post = function (uri, id, obj, options, cb) {
-    var srv, call, req, form = {};
+    var srv,
+        call,
+        req,
+        form = {};
 
     if (obj !== undefined) {
         form.json = JSON.stringify(obj); // fwiw portal > 2.47.1-538664 shouldn't require this as a named parameter any more
@@ -143,17 +136,17 @@ utils._post = function (uri, id, obj, options, cb) {
         id = "";
     }
 
-    srv  = options.url;
-    srv  = srv.replace(/\/+$/, "");  // clip trailing slashes
-    uri  = uri.replace(/\/+/g, "/"); // clip multiple slashes
-    call = srv + "/" + uri + (id ? "/"+id : "");// + ".json";
-    req  = {
-        uri:  call,
+    srv = options.url;
+    srv = srv.replace(/\/+$/, ""); // clip trailing slashes
+    uri = uri.replace(/\/+/g, "/"); // clip multiple slashes
+    call = srv + "/" + uri + (id ? "/" + id : ""); // + ".json";
+    req = {
+        uri: call,
         gzip: true,
-        form: form,
+        form: form
     };
 
-    if(!obj || obj._signing !== false) {
+    if (!obj || obj._signing !== false) {
         this._sign(req, options);
     }
 
@@ -161,11 +154,9 @@ utils._post = function (uri, id, obj, options, cb) {
         req.proxy = options.proxy;
     }
 
-    request.post(req,
-        function (res_e, r, body) {
-            utils._responsehandler(res_e, r, body, cb);
-        }
-    );
+    request.post(req, function (res_e, r, body) {
+        utils._responsehandler(res_e, r, body, cb);
+    });
 };
 
 utils._put = function (uri, id, obj, options, cb) {
@@ -174,17 +165,19 @@ utils._put = function (uri, id, obj, options, cb) {
         cb = obj;
     }
 
-    var srv, call, req,
+    var srv,
+        call,
+        req,
         form = {
-            json: JSON.stringify(obj)
-        };
+        json: JSON.stringify(obj)
+    };
 
-    srv  = options.url;
-    srv  = srv.replace(/\/+$/, "");  // clip trailing slashes
-    uri  = uri.replace(/\/+/g, "/"); // clip multiple slashes
-    call = srv + "/" + uri + "/" + id;// + ".json";
-    req  = {
-        uri:  call,
+    srv = options.url;
+    srv = srv.replace(/\/+$/, ""); // clip trailing slashes
+    uri = uri.replace(/\/+/g, "/"); // clip multiple slashes
+    call = srv + "/" + uri + "/" + id; // + ".json";
+    req = {
+        uri: call,
         gzip: true,
         form: form
     };
@@ -195,11 +188,9 @@ utils._put = function (uri, id, obj, options, cb) {
         req.proxy = options.proxy;
     }
 
-    request.put(req,
-        function (res_e, r, body) {
-            utils._responsehandler(res_e, r, body, cb);
-        }
-    );
+    request.put(req, function (res_e, r, body) {
+        utils._responsehandler(res_e, r, body, cb);
+    });
 };
 
 utils._responsehandler = function (res_e, r, body, cb) {
@@ -230,12 +221,11 @@ utils._responsehandler = function (res_e, r, body, cb) {
             msg = "Please check your network connection and try again.";
         }
 
-        return cb({"error": msg});
+        return cb({ "error": msg });
     }
 
     try {
         json = JSON.parse(body);
-
     } catch (jsn_e) {
         if (cb) {
             return cb(jsn_e, {});
@@ -244,7 +234,7 @@ utils._responsehandler = function (res_e, r, body, cb) {
     }
 
     if (json.error) {
-        return cb({"error": json.error}, {});
+        return cb({ "error": json.error }, {});
     }
 
     return cb(null, json);
@@ -268,21 +258,18 @@ utils.countFileReads = function (filePath) {
         const LINES_PER_READ = 4;
         let lineCount = 1;
         let idx;
-        fs.createReadStream(filePath)
-            .on("data", (buffer) => {
-                idx = -1;
-                lineCount--;
-                do {
-                    idx = buffer.indexOf(10, idx + 1);
-                    lineCount++;
-                } while (idx !== -1);
-            })
-            .on("end", () => resolve(Math.floor(lineCount / LINES_PER_READ)))
-            .on("error", reject);
+        fs.createReadStream(filePath).on("data", buffer => {
+            idx = -1;
+            lineCount--;
+            do {
+                idx = buffer.indexOf(10, idx + 1);
+                lineCount++;
+            } while (idx !== -1);
+        }).on("end", () => resolve(Math.floor(lineCount / LINES_PER_READ))).on("error", reject);
     });
 };
 
-utils.getFileSize = (filename) => {
+utils.getFileSize = filename => {
     return new Promise((resolve, reject) => {
         fs.stat(filename, (err, stats) => {
             if (err) {
@@ -329,16 +316,15 @@ utils.lsFolder = function (dir, ignore, filetype, rootDir = "") {
                     console.error(err.Error); // eslint-disable-line no-console
                 }
                 onError(err);
-
             } else {
 
                 if (ignore) {
                     ls = ls.filter(ignore);
                 }
 
-                let folders    = [];
-                let files      = [];
-                let fileSizeQ  = queue(10);
+                let folders = [];
+                let files = [];
+                let fileSizeQ = queue(10);
 
                 ls.forEach(entry => {
                     fileSizeQ.defer(done => {
@@ -355,10 +341,9 @@ utils.lsFolder = function (dir, ignore, filetype, rootDir = "") {
                                         id: utils.getFileID()
                                     };
 
-                                    let batch = dir.replace(rootDir, "").replace("\\", "").replace("/","");
+                                    let batch = dir.replace(rootDir, "").replace("\\", "").replace("/", "");
                                     if (_.isString(batch) && batch.length) fileObject.batch = batch;
                                     files.push(fileObject);
-
                                 } else if (stats.isDirectory()) {
                                     folders.push(path.join(dir, entry));
                                 }
@@ -381,8 +366,7 @@ utils.lsFolder = function (dir, ignore, filetype, rootDir = "") {
     });
 };
 
-
-utils.loadInputFiles = function ({inputFolder, outputFolder, uploadedFolder, filetype}, uploaded = []) {
+utils.loadInputFiles = function ({ inputFolder, outputFolder, uploadedFolder, filetype }, uploaded = []) {
     /**
      * Entry point for new .fast5 / .fastq files.
      *  - Scan the input folder files
@@ -395,40 +379,30 @@ utils.loadInputFiles = function ({inputFolder, outputFolder, uploadedFolder, fil
 
         // function used to filter the readdir results in utils.lsFolder
         // exclude all files and folders meet any of these criteria:
-        const inputFilter = (file) => {
-            return !(
-                path.basename(file) === "downloads" ||
-                path.basename(file) === "uploaded" ||
-                path.basename(file) === "skip" ||
-                path.basename(file) === "fail" ||
-                uploadedFolder && path.basename(file) === path.basename(uploadedFolder) ||
-                outputFolder && path.basename(file) === path.basename(outputFolder) ||
-                path.basename(file) === "tmp" ||
-                (_.isArray(uploaded) && uploaded.indexOf(path.posix.basename(file)) > -1));
+        const inputFilter = file => {
+            return !(path.basename(file) === "downloads" || path.basename(file) === "uploaded" || path.basename(file) === "skip" || path.basename(file) === "fail" || uploadedFolder && path.basename(file) === path.basename(uploadedFolder) || outputFolder && path.basename(file) === path.basename(outputFolder) || path.basename(file) === "tmp" || _.isArray(uploaded) && uploaded.indexOf(path.posix.basename(file)) > -1);
         };
 
         // iterate through folders
-        let batchFolders = [ inputFolder ];
+        let batchFolders = [inputFolder];
 
         const next = () => {
             if (!batchFolders || !batchFolders.length) return;
-            utils.lsFolder(batchFolders.splice(0, 1)[0], inputFilter, filetype, inputFolder)
-                .then(({ files, folders }) => {
-                    // Keep iterating though batch folders until one with files is found
-                    if (files && files.length) {
-                        onSuccess(files); // Done. Resolve promise with new files
+            utils.lsFolder(batchFolders.splice(0, 1)[0], inputFilter, filetype, inputFolder).then(({ files, folders }) => {
+                // Keep iterating though batch folders until one with files is found
+                if (files && files.length) {
+                    onSuccess(files); // Done. Resolve promise with new files
+                } else {
+                    batchFolders = [...folders, ...batchFolders];
+                    if (batchFolders.length) {
+                        next(); // iterate
                     } else {
-                        batchFolders = [ ...folders, ...batchFolders ];
-                        if (batchFolders.length) {
-                            next(); // iterate
-                        } else {
-                            onSuccess(); // Done. No new files were found
-                        }
+                        onSuccess(); // Done. No new files were found
                     }
-                })
-                .catch(err => {
-                    onError("Failed to check for new files: " + err.message);
-                });
+                }
+            }).catch(err => {
+                onError("Failed to check for new files: " + err.message);
+            });
         };
 
         next(); // start first iteration

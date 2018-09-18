@@ -19,11 +19,11 @@ var EPI2ME;
 describe('metrichor api', () => {
 
     beforeEach(() => {
-        EPI2ME = proxyquire('../../lib/metrichor.js', {
+        EPI2ME = proxyquire('../../lib/epi2me', {
             'aws-sdk'     : awsProxy,
             'fs-extra' : fsProxy,
             'mkdirp'      : mkdirpProxy
-        });
+        }).default;
     });
 
     describe('.sendMessage method', () => {

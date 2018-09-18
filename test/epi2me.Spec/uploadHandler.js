@@ -12,11 +12,11 @@ let fsProxy        = {};
 proxyquire('../../lib/utils', {
     'request' : requestProxy
 });
-let EPI2ME = proxyquire('../../lib/metrichor', {
+let EPI2ME = proxyquire('../../lib/epi2me', {
     'aws-sdk'     : awsProxy,
     'request'     : requestProxy,
     'fs-extra' : fsProxy
-});
+}).default;
 
 describe('uploadHandler', function () {
 

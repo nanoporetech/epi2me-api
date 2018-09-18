@@ -1,27 +1,18 @@
 "use strict";
-const proxyquire   = require('proxyquire');
-const assert       = require("assert");
-const sinon        = require("sinon");
-const path         = require("path");
-const _            = require("lodash");
-const tmp          = require('tmp');
-const queue        = require('queue-async');
-const fs           = require('fs');
-let utilsProxy     = {};
-let fsProxy        = {};
-let mkdirpProxy    = {};
-let awsProxy       = {};
-var EPI2ME         = proxyquire('../../lib/metrichor.js', {
-    'aws-sdk'     : awsProxy,
-    'fs-extra' : fsProxy,
-    'mkdirp'      : mkdirpProxy,
-    './utils'     : utilsProxy,
-});
+const proxyquire = require('proxyquire');
+const assert     = require("assert");
+const sinon      = require("sinon");
+
+let utilsProxy   = {};
+
+let REST = proxyquire('../../../lib/rest', {
+    "./utils": utilsProxy,
+}).default;
 
 describe('start_workflow', () => {
 
     it('should start a workflow_instance', () => {
-        var client = new EPI2ME({
+        var client = new REST({
 	    "url"    : "http://metrichor.test:8080",
             "apikey" : "FooBar02"
         });

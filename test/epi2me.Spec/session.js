@@ -10,12 +10,13 @@ var requestProxy   = {};
 var fsProxy        = {};
 var mkdirpProxy    = {};
 var awsProxy       = {};
-var Metrichor      = proxyquire('../../lib/metrichor', {
+let REST = require("../../lib/rest").default;
+var EPI2ME      = proxyquire('../../lib/epi2me', {
     'aws-sdk'     : awsProxy,
     'request'     : requestProxy,
     'fs-extra' : fsProxy,
     'mkdirp'      : mkdirpProxy
-});
+}).default;
 
 describe('session fetchInstanceToken method', function () {
 
@@ -25,9 +26,11 @@ describe('session fetchInstanceToken method', function () {
         cb = {};
         cb.queueCb = function () {};
         sinon.stub(cb, 'queueCb');
-        var client = new Metrichor(opts);
+        var client = new EPI2ME(opts);
+	let _REST = new REST(opts);
+	client.REST = _REST;
         // _config.instance.id_workflow_instance, function (tokenError, token) {}
-        client.instance_token = function (id_workflow_instance, cb) {
+        _REST.instance_token = function (id_workflow_instance, cb) {
             setTimeout(function () {
                 cb(tokenError, token);
             }, 10);
@@ -43,26 +46,26 @@ describe('session fetchInstanceToken method', function () {
     it('should not fetch token when still valid', function () {
         var cli = newApi({id_workflow_instance: 10}, null, "abc");
         cli._stats.sts_expiration = new Date(Date.now() + 100);
-        sinon.spy(cli, "instance_token");
+        sinon.spy(cli.REST, "instance_token");
         cli.session();
-        assert(cli.instance_token.notCalled);
+        assert(cli.REST.instance_token.notCalled);
     });
 
     it('should fetch token only once when expired', function () {
         var cli = newApi({id_workflow_instance: 10}, null, { expiration: Date.now() + 1000000 });
         cli._stats.sts_expiration = new Date(Date.now() - 100);
-        sinon.spy(cli, "instance_token");
+        sinon.spy(cli.REST, "instance_token");
         sinon.spy(cli, "fetchInstanceToken");
 
         cli.session();
-        assert(cli.instance_token.calledOnce, "first call - fetch token");
+        assert(cli.REST.instance_token.calledOnce, "first call - fetch token");
 
         for (var i=0; i<10; i++) {
             cli.session(); // following calls - don't fetch token
         }
 
         cli.session();
-        assert(cli.instance_token.calledOnce, "last call - don't fetch token");
+        assert(cli.REST.instance_token.calledOnce, "last call - don't fetch token");
         assert.equal(cli.sessionQueue.remaining(), 1, "last call - don't fetch token");
     });
 

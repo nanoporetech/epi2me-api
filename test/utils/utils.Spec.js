@@ -10,7 +10,7 @@ describe('._responseHandler method', function () {
     var utils, container;
 
     beforeEach(function () {
-        utils = proxyquire('../../lib/utils', {
+        utils = proxyquire('../../dist/utils', {
             'request' : {}
         });
         container = {

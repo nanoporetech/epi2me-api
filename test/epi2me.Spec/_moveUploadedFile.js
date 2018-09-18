@@ -1,22 +1,21 @@
 "use strict";
-var proxyquire     = require('proxyquire');
-var assert         = require("assert");
-var sinon          = require("sinon");
-var path           = require("path");
-var tmp            = require('tmp');
-var queue          = require('queue-async');
-var fs             = require('fs');
-var requestProxy   = {};
-var awsProxy       = {};
-var fsProxy        = {};
+const proxyquire = require('proxyquire');
+const assert     = require("assert");
+const sinon      = require("sinon");
+const path       = require("path");
+const fs         = require('fs');
+const tmp        = require('tmp');
+let requestProxy = {};
+let awsProxy     = {};
+let fsProxy      = {};
 proxyquire('../../lib/utils', {
     'request' : requestProxy
 });
-var EPI2ME = proxyquire('../../lib/metrichor', {
-    'aws-sdk'     : awsProxy,
-    'request'     : requestProxy,
+const EPI2ME = proxyquire('../../lib/epi2me', {
+    'aws-sdk'  : awsProxy,
+    'request'  : requestProxy,
     'fs-extra' : fsProxy
-});
+}).default;
 
 describe('._moveUploadedFile method', function () {
 
@@ -33,7 +32,7 @@ describe('._moveUploadedFile method', function () {
         sinon.stub(client.log, "debug");
     }
 
-    beforeEach(function (done) {
+    beforeEach((done) => {
         tmpdir     = tmp.dirSync({unsafeCleanup: true});
         tmpfile    = path.join(tmpdir.name, fileName);
         tmpfileOut = path.join(tmpdir.name, 'uploaded', fileName);
@@ -57,21 +56,21 @@ describe('._moveUploadedFile method', function () {
         delete fsProxy.createReadStream;
     });
 
-    it('should move file to upload folder', function (done) {
+    it('should move file to upload folder', (done) => {
         var client = new EPI2ME({
             inputFolder: tmpdir.name,
             uploadedFolder:'+uploaded'
         });
         stub(client);
-        client._moveUploadedFile({name: fileName}, function (msg) {
-            fs.stat(tmpfileOut, function fsStatCallback(err, stats) {
+        client._moveUploadedFile({name: fileName}, (msg) => {
+            fs.stat(tmpfileOut, (err, stats) => {
                 if (err) {
                     console.log(err);
                 }
                 //assert(client.log.error.notCalled, 'logs no error messages');
                 assert(!err, 'throws no errors: ' + err);
 
-                fs.stat(tmpfile, function fsStatCallback(err, stats) {
+                fs.stat(tmpfile, (err, stats) => {
                     //assert(err && err.code === 'ENOENT', 'file should not exist');
                     done();
                 });
@@ -101,14 +100,14 @@ describe('._moveUploadedFile method', function () {
     });
 */
 
-    it('should handle non-existing input file', function (done) {
+    it('should handle non-existing input file', (done) => {
         var client = new EPI2ME({
             inputFolder: tmpdir.name,
             uploadedFolder:'+uploaded'
         });
         stub(client);
         var file = 'fileName';
-        client._moveUploadedFile({name: file}, function (errorMsg) {
+        client._moveUploadedFile({name: file}, (errorMsg) => {
             assert(errorMsg.match(/ENOENT/), "pass error message to successCb: " + errorMsg, 'passes ENOENT error code');
             done();
         });
