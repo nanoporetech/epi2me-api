@@ -1,33 +1,27 @@
-"use strict";
-const proxyquire = require('proxyquire');
-const assert     = require("assert");
-const sinon      = require("sinon");
+import REST from "../../lib/rest";
+import utils from "../../lib/utils";
 
-let utilsProxy   = {};
-let REST         = proxyquire('../../lib/rest', {
-    './utils'     : utilsProxy,
-}).default;
+const sinon  = require("sinon");
+const assert = require("assert");
+const bunyan = require("bunyan");
 
-describe('stop_workflow', () => {
-
-    it('should stop a workflow_instance', () => {
-        var client = new REST({
-            "url"    : "http://metrichor.local:8080",
-            "apikey" : "FooBar02"
-        });
-
-        utilsProxy._put = (uri, id, obj, options, cb) => {
-	    assert.equal(uri, "workflow_instance/stop");
-	    assert.equal(id, "test");
-	    assert.equal(obj, null);
-            assert.equal(options.apikey, "FooBar02");
-            cb(null, {"id_workflow_instance":"1","id_user":"1","stop_requested_date":"2013-09-03 15:17:00"});
-            delete utilsProxy._put;
-        };
-
-        client.stop_workflow('test', (err, obj) => {
-            assert.equal(err, null, 'no error reported');
-            assert.deepEqual(obj, {"id_workflow_instance":"1","id_user":"1","stop_requested_date":"2013-09-03 15:17:00"}, 'workflow_instance stop response');
-        });
+describe("rest.stop_workflow", () => {
+    it("must invoke put with details", () => {
+	let ringbuf    = new bunyan.RingBuffer({ limit: 100 });
+        let log        = bunyan.createLogger({ name: "log", stream: ringbuf });
+	let stub = sinon.stub(utils, "_put").callsFake((uri, id, payload, options, cb) => {
+	    assert.equal(uri, "workflow_instance/stop", "type passed");
+	    assert.equal(id, 123456, "id passed");
+	    assert.equal(payload, null, "payload passed");
+	    assert.ok(options.log instanceof bunyan, "options off");
+	    cb();
+	});
+	let fake = sinon.fake();
+	let rest = new REST({log: log});
+	assert.doesNotThrow(() => {
+	    rest.stop_workflow("123456", fake);
+	});
+	assert(fake.calledOnce, "callback invoked");
+	stub.restore();
     });
 });
