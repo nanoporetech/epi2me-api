@@ -21,6 +21,7 @@
     "babel-cli": "^6.26.0",
     "babel-preset-env": "^1.7.0",
     "babel-register": "^6.26.0",
+    "bunyan": "^1.8.12",
     "eslint": "5.3.0",
     "eslint-config-defaults": "9.0.0",
     "memwatch-ng": "^1.2.0",
@@ -33,9 +34,9 @@
   },
   "scripts": {
     "lint": "yarn install && eslint --fix lib",
-    "test": "yarn lint && mocha --recursive --require babel-register test/epi2me.Spec",
+    "test": "yarn lint && mocha --recursive --require babel-register test/*.Spec",
     "test_integration": "yarn nyc --reporter=html --reporter=text mocha --recursive --require babel-register test/e2e",
-    "cover": "yarn dist && nyc --reporter=html --reporter=text mocha --recursive --require babel-register test/epi2me.Spec",
+    "cover": "yarn nyc --reporter=html --reporter=text mocha --recursive --require babel-register test/*.Spec",
     "dist": "yarn test && yarn babel lib -d dist && cp lib/default_options.json dist/"
   }
 }

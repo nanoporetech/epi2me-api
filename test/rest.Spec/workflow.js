@@ -6,7 +6,7 @@ let utilsProxy     = {};
 let fsProxy        = {};
 let mkdirpProxy    = {};
 let awsProxy       = {};
-let REST         = proxyquire('../../../lib/rest', {
+let REST         = proxyquire('../../lib/rest', {
     './utils'  : utilsProxy,
 }).default;
 

@@ -4,7 +4,7 @@ const assert     = require("assert");
 const sinon      = require("sinon");
 
 let utilsProxy   = {};
-let REST         = proxyquire('../../../lib/rest', {
+let REST         = proxyquire('../../lib/rest', {
     './utils'     : utilsProxy,
 }).default;
 
