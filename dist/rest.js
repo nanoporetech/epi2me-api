@@ -52,7 +52,7 @@ class REST {
     }
 
     user(cb) {
-        if (this.options.apikey === "local") {
+        if (this.options.local) {
             return cb(null, { "accounts": [{ id_user_account: "none", number: "NONE", name: "None" }] }); // fake user with accounts
         }
         return _utils2.default._get("user", this.options, cb);
@@ -72,7 +72,7 @@ class REST {
     }
 
     workflows(cb) {
-        if (this.options.apikey === "local") {
+        if (this.options.local) {
             let WORKFLOW_DIR = _path2.default.join(this.options.url, "workflows");
 
             return _fsExtra2.default.readdir(WORKFLOW_DIR).then(data => {
@@ -107,7 +107,7 @@ class REST {
             return callback(null, null);
         }
 
-        if (this.options.apikey === "local") {
+        if (this.options.local) {
             let WORKFLOW_DIR = _path2.default.join(this.options.url, "workflows");
             let filename = _path2.default.join(WORKFLOW_DIR, id, "workflow.json");
             let workflow;
@@ -199,7 +199,7 @@ class REST {
     }
 
     workflow_instances(cb, query) {
-        if (this.options.apikey === "local") {
+        if (this.options.local) {
             if (query) {
                 this.log.error("querying of local instances is not yet available");
                 return;

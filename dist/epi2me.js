@@ -524,8 +524,8 @@ class EPI2ME {
         this._stats.upload.filesCount = this._stats.upload.filesCount ? this._stats.upload.filesCount + files.length : files.length;
 
         if (this.config.hasOwnProperty("workflow")) {
-            if (this.config.workflow.hasOwnProperty("settings")) {
-                settings = this.config.workflow.settings;
+            if (this.config.workflow.hasOwnProperty("workflow_attributes")) {
+                settings = this.config.workflow.workflow_attributes;
             }
         }
 

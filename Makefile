@@ -13,5 +13,8 @@ lint:
 cover:
 	yarn cover
 
+deps:
+	apt-get install -y --force-yes nodejs
+	npm install -g yarn
 
 .PHONY: test lint cover test_integration

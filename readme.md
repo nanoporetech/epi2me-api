@@ -2,11 +2,17 @@
 
 # Metrichor API
 
+Test Coverage
+[![coverage report](https://git.oxfordnanolabs.local/metrichor/api/badges/coverage.svg)]
+is hosted on Gitlab-Pages at:
+https://metrichor.git.oxfordnanolabs.local/api/
+
+
 ### Getting Started
 ```js
-const API = require('metrichor-api');
-let metrichor = new API({
-    "url": "custom metrichor host" || "https://epi2me.nanoporetech.com",
+const API = require('epi2me-api');
+let EPI2ME = new API({
+    "url": "custom EPI2ME host" || "https://epi2me.nanoporetech.com",
     "apikey": "<your api key>",
     "inputFolder": "<files to upload>",
     "uploadedFolder": "<where to move files after uploading>",
@@ -15,19 +21,19 @@ let metrichor = new API({
 // list of all options: ./lib/default_options.json
 
 // list all workflows
-metrichor.workflows(callback);
+EPI2ME.workflows(callback);
 
 // list all workflows
-metrichor.read_workflow(workflow_id, callback);
+EPI2ME.read_workflow(workflow_id, callback);
 
-// start a newmetrichor instance: callback(error, instance)
-metrichor.start_workflow(workflow_id, callback);
+// start a newEPI2ME instance: callback(error, instance)
+EPI2ME.start_workflow(workflow_id, callback);
 
 // stop an instance: callback(error)
-metrichor.stop_workflow(instance_id);
+EPI2ME.stop_workflow(instance_id);
 
 // stop all current uploads / downloads: callback(error)
-metrichor.stop_everything();
+EPI2ME.stop_everything();
 ```
 ### Constructor options:
 
@@ -55,7 +61,7 @@ metrichor.stop_everything();
     uploadBatchSize                         // Size of each batch upload
     fileCheckInterval                       // Seconds between loadUploadFiles()
     downloadCheckInterval                   // Seconds between loadAvailableMessages()
-    stateCheckInterval                      // Seconds between instance state is checked in metrichor
+    stateCheckInterval                      // Seconds between instance state is checked in EPI2ME
     initDelay                               // Seconds between loadAvailableMessages()
 
     outputFolder
@@ -75,10 +81,10 @@ metrichor.stop_everything();
 Dealing with the large number of read files is a considerable challenge:
 
 ##### Step 1: Input:
-MinKNOW may batch the files into folders of ~1000. The metrichor-api object will scan the input-folder (including any sub-directories) for .fast5 files. Because of the potential strain the fs.readdir operation puts on the system, it's run as infrequently as possible.
+MinKNOW may batch the files into folders of ~1000. The epi2me-api object will scan the input-folder (including any sub-directories) for .fast5 files. Because of the potential strain the fs.readdir operation puts on the system, it's run as infrequently as possible.
 ```js
 // trigger fs.readdir
-metrichor_api.loadUploadFiles()
+EPI2ME_api.loadUploadFiles()
 // once done, it pushes a list of new files into uploadWorkerPool
 ```
 
@@ -97,7 +103,7 @@ Flat folder structure:
 |   ├── *.fast5
 ```
 
-The metrichor api supports both folder structures as input. If the uploadedFolder or the outputFolder are subdirectories of the input folder, the .fast5 files they contain will be excluded.
+The EPI2ME api supports both folder structures as input. If the uploadedFolder or the outputFolder are subdirectories of the input folder, the .fast5 files they contain will be excluded.
 
 ##### Step 2: Uploaded
 Once a file has been successfully uploaded, it will be moved to the uploadedFolder. The batched folder structure is maintained:
@@ -110,34 +116,34 @@ Once a file has been successfully uploaded, it will be moved to the uploadedFold
 ```
 
 ##### Step 3: Download
-Once the read has been succesfully processed in the Metrichor Workflow, a message will appear on the SQS output queue, which is monitored by the metrichor-api. The output file is downloaded to the downloads folder. These files will also be batched into sub-folders whose names are completely arbitrary (and set by the metchor-api). Note that these names are not linked to the batch names created by MinKNOW
+Once the read has been succesfully processed in the EPI2ME Workflow, a message will appear on the SQS output queue, which is monitored by the epi2me-api. The output file is downloaded to the downloads folder. These files will also be batched into sub-folders whose names are completely arbitrary (and set by the metchor-api). Note that these names are not linked to the batch names created by MinKNOW
 ```
 ├── outputFolder
 |   ├── fail
-|   |   ├──  metrichor batch1
+|   |   ├──  EPI2ME batch1
 |   |   ├──  ...
-|   |   ├──  metrichor batch-n
+|   |   ├──  EPI2ME batch-n
 |   └── pass
-|   |   ├──  metrichor batch1
+|   |   ├──  EPI2ME batch1
 |   |   ├──  ...
-|   |   ├──  metrichor batch-n
+|   |   ├──  EPI2ME batch-n
 ```
 
-###### Notes on Metrichor Worker Folder Hint
-The Metrichor Worker may pass a specific folder hint in each SQS message (SQS.messageBody.telemetry.hints). If this flag exists, output files will be split according to exit-status into either "pass" or "fail" folders.
+###### Notes on EPI2ME Worker Folder Hint
+The EPI2ME Worker may pass a specific folder hint in each SQS message (SQS.messageBody.telemetry.hints). If this flag exists, output files will be split according to exit-status into either "pass" or "fail" folders.
 
 There's also the "telemetry.hints.folder" flag, which is used by the Barcoding workflow to split files by barcode:
 ```
 ├── outputFolder
 |   ├── BC01
 |   |   ├── fail
-|   |   |   ├──  metrichor batch1
+|   |   |   ├──  EPI2ME batch1
 |   |   |   ├──  ...
-|   |   |   ├──  metrichor batch-n
+|   |   |   ├──  EPI2ME batch-n
 |   |   └── pass
-|   |   |   ├──  metrichor batch1
+|   |   |   ├──  EPI2ME batch1
 |   |   |   ├──  ...
-|   |   |   ├──  metrichor batch-n
+|   |   |   ├──  EPI2ME batch-n
 |   ├── BC02
 |   ...
 ```
