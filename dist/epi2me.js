@@ -25,10 +25,6 @@ var _fsExtra = require("fs-extra");
 
 var _fsExtra2 = _interopRequireDefault(_fsExtra);
 
-var _mkdirp = require("mkdirp");
-
-var _mkdirp2 = _interopRequireDefault(_mkdirp);
-
 var _os = require("os");
 
 var _os2 = _interopRequireDefault(_os);
@@ -59,8 +55,7 @@ var _default_options2 = _interopRequireDefault(_default_options);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-/* MC-565 handle EMFILE gracefully; use Promises */
-const REST = exports.REST = _rest2.default;
+const REST = exports.REST = _rest2.default; /* MC-565 handle EMFILE gracefully; use Promises */
 class EPI2ME {
     constructor(opt_string) {
         let opts;
@@ -348,14 +343,14 @@ class EPI2ME {
         if (!this.config.instance.inputQueueName) throw new Error("inputQueueName must be set");
         if (!this.config.instance.outputQueueName) throw new Error("outputQueueName must be set");
 
-        _mkdirp2.default.sync(this.config.options.outputFolder);
+        _fsExtra2.default.mkdirpSync(this.config.options.outputFolder);
 
         // MC-1828 - include instance id in telemetry file name
         fileName = this.config.instance.id_workflow_instance ? "telemetry-" + this.config.instance.id_workflow_instance + ".log" : "telemetry.log";
         telemetryLogFolder = _path2.default.join(this.config.options.outputFolder, "epi2me-logs");
         telemetryLogPath = _path2.default.join(telemetryLogFolder, fileName);
 
-        (0, _mkdirp2.default)(telemetryLogFolder, mkdirException => {
+        _fsExtra2.default.mkdirp(telemetryLogFolder, mkdirException => {
             if (mkdirException && !String(mkdirException).match(/EEXIST/)) {
                 this.log.error("error opening telemetry log stream: mkdirpException:" + String(mkdirException));
             } else {
@@ -839,7 +834,7 @@ class EPI2ME {
             folder = _utils2.default.findSuitableBatchIn(folder);
         }
 
-        _mkdirp2.default.sync(folder);
+        _fsExtra2.default.mkdirpSync(folder);
         outputFile = _path2.default.join(folder, fn);
         outputFile = _path2.default.join(_path2.default.isAbsolute(outputFile) ? "/" : "", ...outputFile.split(_path2.default.sep).map(o => {
             return o === "pass" ? "PASS" : o;
@@ -1267,9 +1262,9 @@ class EPI2ME {
             }
         };
 
-        (0, _mkdirp2.default)(_path2.default.join(this.skipTo, fileBatch), mkdirException => {
+        _fsExtra2.default.mkdirp(_path2.default.join(this.skipTo, fileBatch), mkdirException => {
             if (mkdirException && !String(mkdirException).match(/EEXIST/)) {
-                done("mkdirpException " + String(mkdirException));
+                done("fs.mkdirpException " + String(mkdirException));
                 streamErrorFlag = true; // flag as uploaded
             } else {
                 // MC-2389 - fs.rename can cause "EXDEV, Cross-device link" exception
@@ -1350,7 +1345,7 @@ class EPI2ME {
             }
         };
 
-        (0, _mkdirp2.default)(_path2.default.join(this.uploadTo, fileBatch), mkdirException => {
+        _fsExtra2.default.mkdirp(_path2.default.join(this.uploadTo, fileBatch), mkdirException => {
             if (mkdirException && !String(mkdirException).match(/EEXIST/)) {
                 done("mkdirpException " + String(mkdirException));
                 streamErrorFlag = true; // flag as uploaded

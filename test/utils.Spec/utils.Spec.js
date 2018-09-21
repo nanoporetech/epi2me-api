@@ -2,7 +2,7 @@ var proxyquire     = require('proxyquire');
 var assert         = require("assert");
 var sinon          = require("sinon");
 var tmp            = require('tmp');
-var fs             = require('fs');
+var fs             = require('fs-extra');
 var _              = require('lodash');
 var path           = require('path');
 
@@ -10,7 +10,7 @@ describe('._responseHandler method', function () {
     var utils, container;
 
     beforeEach(function () {
-        utils = proxyquire('../../dist/utils', {
+        utils = proxyquire('../../lib/utils', {
             'request' : {}
         });
         container = {
