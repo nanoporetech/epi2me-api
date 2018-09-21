@@ -38,7 +38,7 @@ class REST {
         return _utils2.default._get(entity, this.options, (e, json) => {
             if (e) {
                 this.log.error("_list", e.error || e);
-                cb(e.error);
+                cb(e.error || e);
                 return;
             }
 
