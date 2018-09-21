@@ -1,47 +1,47 @@
-"use strict";
-const proxyquire = require('proxyquire');
-const assert     = require("assert");
-const sinon      = require("sinon");
+import REST from "../../lib/rest";
+import utils from "../../lib/utils";
 
-let utilsProxy   = {};
+const sinon  = require("sinon");
+const assert = require("assert");
+const bunyan = require("bunyan");
 
-let REST = proxyquire('../../lib/rest', {
-    './utils'  : utilsProxy,
-}).default;
+describe("rest.workflow_instances", () => {
+    it("must invoke list", () => {
+	let ringbuf    = new bunyan.RingBuffer({ limit: 100 });
+        let log        = bunyan.createLogger({ name: "log", stream: ringbuf });
+	let stub = sinon.stub(REST.prototype, "_list").callsFake((uri, cb) => {
+	    assert.equal(uri, "workflow_instance", "default uri");
+	    cb();
+	});
 
-describe('workflow_instances', () => {
+	let fake = sinon.fake();
+	let rest = new REST({log: log});
+	assert.doesNotThrow(() => {
+	    rest.workflow_instances(fake);
+	});
+	assert(fake.calledOnce, "callback invoked");
+	stub.restore();
+    });
 
-    it('should list workflow_instances', () => {
-        let client = new REST({
-            "url"    : "http://metrichor.local:8080",
-            "apikey" : "FooBar02"
-        });
+    it("must invoke get with query", () => {
+	let ringbuf    = new bunyan.RingBuffer({ limit: 100 });
+        let log        = bunyan.createLogger({ name: "log", stream: ringbuf });
+	let stub = sinon.stub(utils, "_get").callsFake((uri, options, cb) => {
+	    assert.equal(uri, "workflow_instance/wi?show=all&columns[0][name]=run_id;columns[0][searchable]=true;columns[0][search][regex]=true;columns[0][search][value]=abcdefabcdef;", "query uri");
+	    cb(null, {data:[{id_ins: 1, id_flo: 2, run_id: "abcdefabcdef", desc: "test wf 2", rev: "0.0.1"}]});
+	});
 
-	let data = {
-	    workflow_instances: [
-		{
-		    id_workflow_instance:"149",
-		    state:"running",
-		    workflow_filename:"DNA_Sequencing.js",
-		    start_requested_date:"2013-09-16 09:25:15",
-		    stop_requested_date:"2013-09-16 09:26:04",
-		    start_date:"2013-09-16 09:25:17",
-		    stop_date:"2013-09-16 09:26:11",
-		    control_url:"127.0.0.1:8001",
-		    data_url:"localhost:3006"
-		}
-	    ]
-	};
-
-        utilsProxy._get = (uri, options, cb) => {
-            assert.equal(uri, "workflow_instance");
-            assert.equal(options.apikey, "FooBar02");
-            cb(null, data);
-        };
-
-        client.workflow_instances((err, obj) => {
-            assert.equal(err, null, 'no error reported');
-            assert.deepEqual(obj, data.workflow_instances, 'workflow instance list');
-        });
+	let fake = sinon.fake();
+	let rest = new REST({log: log});
+	assert.doesNotThrow(() => {
+	    rest.workflow_instances(fake, {run_id:"abcdefabcdef"});
+	});
+	assert(fake.calledOnce, "callback invoked");
+	sinon.assert.calledWith(fake, null, [{id_workflow_instance: 1,
+					      id_workflow:2,
+					      run_id:"abcdefabcdef",
+					      description: "test wf 2",
+					      rev:"0.0.1"}]);
+	stub.restore();
     });
 });

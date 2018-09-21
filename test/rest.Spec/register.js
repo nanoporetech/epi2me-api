@@ -13,7 +13,7 @@ describe("rest.register", () => {
 	    assert.equal(type, "reg", "type passed");
 	    assert.equal(code, "abcdefg", "code passed");
 	    assert.ok(payload.description.match(/^\S+@\S+$/), "payload description");
-	    assert.equal(payload._signing, false, "signing off");
+	    assert.equal(options._signing, false, "signing off");
 	    cb();
 	});
 	let fake = sinon.fake();
