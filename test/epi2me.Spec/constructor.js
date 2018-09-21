@@ -31,9 +31,8 @@ describe('Array', () => {
             var client;
             assert.doesNotThrow(() => {
 		client = new EPI2ME();
-		console.log(client);
             }, Error, 'client obtained');
-	    console.log(client.url());
+
             assert.equal(client.url(), 'https://epi2me.nanoporetech.com', 'default url');
             assert.equal(client.apikey(), null, 'default apikey');
         });

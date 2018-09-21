@@ -78,4 +78,5 @@ describe('rest.workflow', () => {
 	assert(fake.calledOnce, "callback invoked");
 	assert(fake.firstCall.args[0] instanceof Error);
 	stub.restore();
-    });});
+    });
+});

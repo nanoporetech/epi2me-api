@@ -36,7 +36,6 @@ describe('Array', () => {
                 messages;
 
             beforeEach(() => {
-		console.log(".loadAvailableDownloadMessages BEFORE");
                 messages = Array.apply(null, Array(queueLength)).map(Number.prototype.valueOf, 0);
                 client   = new EPI2ME({});
                 client.queueLength = function (url, cb) {

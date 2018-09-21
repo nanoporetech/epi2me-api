@@ -23,7 +23,7 @@ describe('rest.workflows', () => {
 	assert(fake.calledOnce, "callback invoked");
 	stub.restore();
     });
-/*
+
     it("must list from filesystem", () => {
 	let ringbuf = new bunyan.RingBuffer({ limit: 100 });
         let log     = bunyan.createLogger({ name: "log", stream: ringbuf });
@@ -33,29 +33,34 @@ describe('rest.workflows', () => {
 	});
 	let stub2   = sinon.stub(fs, "statSync").callsFake((filepath) => {
 	    return {
-		"12345": { is_Directory: () => { return true;  } },
-		"23456": { is_Directory: () => { return false; } },
-		"34567": { is_Directory: () => { return true;  } },
+		"/path/to/workflows/12345": { isDirectory: () => { return true;  } },
+		"/path/to/workflows/23456": { isDirectory: () => { return false; } },
+		"/path/to/workflows/34567": { isDirectory: () => { return true;  } },
 	    }[filepath];
 	});
 
-	let stub3   = sinon.stub(fs, "readFileSync").callsFake((filepath) => {
+	let stub3   = sinon.stub(fs, "readFileSync").callsFake((filepath) => {console.log(filepath);
 	    return JSON.stringify({
-		"12345": {id_workflow: 12345},
-		"23456": {id_workflow: 23456},
-		"34567": {id_workflow: 34567},
+		"/path/to/workflows/12345/workflow.json": {id_workflow: 12345},
+		"/path/to/workflows/23456/workflow.json": {id_workflow: 23456},
+		"/path/to/workflows/34567/workflow.json": {id_workflow: 34567},
 	    }[filepath]);
 	});
 
-	let fake = sinon.fake();
+	/* there's a weird, non-obvious, race condition here:
+	 * without sinon.fake() the stubs aren't always installed in time
+	 * with sinon.fake() the callback isn't used
+	 */
+	let fake = (...args) => {
+	    assert.deepEqual(args, [null, [ { id_workflow: 12345 }, { id_workflow: 34567 } ]]);
+	};
 	let rest = new REST({log: log, local: true, url: "/path/to"});
-//	assert.doesNotThrow(() => {
-	    rest.workflows(fake);
-//	});
-	assert(fake.calledOnce, "callback invoked");
-	console.log(fake.firstCall.args);
+	assert.doesNotThrow(() => {
+	    rest.workflows(fake); //(...args) => { console.log("ARGS", args); });
+	});
 	stub1.restore();
 	stub2.restore();
 	stub3.restore();
-    });*/
+
+    });
 });

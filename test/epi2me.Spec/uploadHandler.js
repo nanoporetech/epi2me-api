@@ -81,7 +81,6 @@ describe('uploadHandler', function () {
 	setTimeout(() => { readStream.emit("error"); }, 10); // fire a readstream error at some point after the readstream created
 
         client.uploadHandler({ name: tmpfile }, function (msg) {
-//	    console.log("ERROR HANDLER FIRED", msg);
             assert(msg.match(/error in upload readstream/), 'unexpected error message format: ' + msg);
             done();
         });

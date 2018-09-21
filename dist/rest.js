@@ -87,7 +87,7 @@ class REST {
                     return JSON.parse(content); // try...catch
                 });
             }).then(data => {
-                cb(null, data);
+                return cb(null, data);
             });
         } else {
             return this._list("workflow", cb);
@@ -104,7 +104,7 @@ class REST {
         const callback = obj;
 
         if (!id) {
-            return callback(null, null);
+            return callback(new Error("no workflow id specified"), null);
         }
 
         if (this.options.local) {
@@ -114,7 +114,7 @@ class REST {
             try {
                 workflow = JSON.parse(_fsExtra2.default.readFileSync(filename));
             } catch (readWorkflowException) {
-                return cb(readWorkflowException);
+                return callback(readWorkflowException);
             }
             return callback(null, workflow);
         }
@@ -262,9 +262,8 @@ class REST {
 
     register(code, cb) {
         return _utils2.default._post("reg", code, {
-            description: _os2.default.userInfo().username + "@" + _os2.default.hostname(),
-            _signing: false
-        }, this.options, cb);
+            description: _os2.default.userInfo().username + "@" + _os2.default.hostname()
+        }, (0, _lodash.merge)({ _signing: false }, this.options), cb);
     }
 
     datasets(cb, query) {

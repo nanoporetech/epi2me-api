@@ -17,7 +17,7 @@ let utils = {};
 
 const targetBatchSize = 4000;
 
-utils._sign = function (req, options) {
+utils._headers = function (req, options) {
     // common headers required for everything
     if (!req.headers) {
         req.headers = {};
@@ -31,6 +31,24 @@ utils._sign = function (req, options) {
     req.headers["Content-Type"] = "application/json";
     req.headers["X-EPI2ME-Client"] = options.user_agent; // new world order
     req.headers["X-EPI2ME-Version"] = options.agent_version || "0"; // new world order
+
+    if (options._signing !== false) {
+        this._sign(req, options);
+    }
+
+    return;
+};
+
+utils._sign = function (req, options) {
+    // common headers required for everything
+    if (!req.headers) {
+        req.headers = {};
+    }
+
+    if (!options) {
+        options = {};
+    }
+
     req.headers["X-EPI2ME-ApiKey"] = options.apikey; // better than a logged CGI parameter
 
     if (!options.apisecret) {
@@ -77,7 +95,7 @@ utils._get = function (uri, options, cb) {
 
     req = { uri: call, gzip: true };
 
-    this._sign(req, options);
+    this._headers(req, options);
 
     if (options.proxy) {
         req.proxy = options.proxy;
@@ -103,7 +121,7 @@ utils._pipe = function (uri, filepath, options, cb, progressCb) {
         gzip: true
     };
 
-    this._sign(req, options);
+    this._headers(req, options);
 
     if (options.proxy) {
         req.proxy = options.proxy;
@@ -142,12 +160,14 @@ utils._post = function (uri, id, obj, options, cb) {
     req = {
         uri: call,
         gzip: true,
-        form: form
+        form: form,
+        headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json"
+        }
     };
 
-    if (!obj || obj._signing !== false) {
-        this._sign(req, options);
-    }
+    this._headers(req, options);
 
     if (options.proxy) {
         req.proxy = options.proxy;
@@ -181,7 +201,7 @@ utils._put = function (uri, id, obj, options, cb) {
         form: form
     };
 
-    this._sign(req, options);
+    this._headers(req, options);
 
     if (options.proxy) {
         req.proxy = options.proxy;

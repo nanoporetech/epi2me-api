@@ -64,9 +64,6 @@ describe('._moveUploadedFile method', function () {
         stub(client);
         client._moveUploadedFile({name: fileName}, (msg) => {
             fs.stat(tmpfileOut, (err, stats) => {
-                if (err) {
-                    console.log(err);
-                }
                 //assert(client.log.error.notCalled, 'logs no error messages');
                 assert(!err, 'throws no errors: ' + err);
 
