@@ -17,6 +17,7 @@
     "request-progress": "^3.0.0"
   },
   "devDependencies": {
+    "@types/bunyan": "^1.8.4",
     "babel-cli": "^6.26.0",
     "babel-preset-env": "^1.7.0",
     "babel-register": "^6.26.0",
