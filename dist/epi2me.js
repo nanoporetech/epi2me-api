@@ -280,7 +280,7 @@ class EPI2ME {
     autoJoin(id, cb) {
         this.config.instance.id_workflow_instance = id;
 
-        this.workflow_instance(id, (instanceError, instance) => {
+        this.REST.workflow_instance(id, (instanceError, instance) => {
             if (instanceError) {
                 let msg = "Failed to join workflow instance: " + (instanceError && instanceError.error ? instanceError.error : instanceError);
                 this.log.warn(msg);
@@ -371,7 +371,7 @@ class EPI2ME {
 
         // MC-1795 - stop workflow when instance has been stopped remotely
         this._stateCheckInterval = setInterval(() => {
-            this.workflow_instance(this.config.instance.id_workflow_instance, (instanceError, instance) => {
+            this.REST.workflow_instance(this.config.instance.id_workflow_instance, (instanceError, instance) => {
                 if (instanceError) {
                     this.log.warn("failed to check instance state: " + (instanceError && instanceError.error ? instanceError.error : instanceError));
                 } else {
@@ -1085,7 +1085,7 @@ class EPI2ME {
                 params["Content-Length"] = file.size;
             }
 
-            s3.upload(params, options, uploadStreamErr => {
+            let managedupload = s3.upload(params, options, uploadStreamErr => {
                 if (uploadStreamErr) {
                     this.log.warn(`${file.id} uploadStreamError ${uploadStreamErr}`);
                     return done("uploadStreamError " + String(uploadStreamErr)); // close the queue job
@@ -1093,6 +1093,17 @@ class EPI2ME {
                 this.log.info(`${file.id} S3 upload complete`);
                 this.uploadComplete(objectId, file, done);
                 rs.close();
+            });
+
+            managedupload.on("httpUploadProgress", progress => {
+                // MC-6789 - reset upload timeout
+                this.log.debug(`upload progress ${progress.key} ${progress.loaded} / ${progress.total}`);
+
+                clearTimeout(timeoutHandle);
+                timeoutHandle = setTimeout(() => {
+                    if (rs && !rs.closed) rs.close();
+                    done("this.uploadWorkerPool timeoutHandle. Clearing queue slot for file: " + file.name);
+                }, (this.config.options.uploadTimeout + 5) * 1000);
             });
         });
 
