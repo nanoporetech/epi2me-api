@@ -14,18 +14,20 @@ describe('epi2me-api', () => {
             queueLength = 50,
             messages;
 
-        beforeEach(() => {
-            ringbuf = new bunyan.RingBuffer({ limit: 100 });
-	    log     = bunyan.createLogger({ name: "log", stream: ringbuf });
-            client  = new EPI2ME({log: log});
-            messages = Array.apply(null, Array(queueLength)).map(Number.prototype.valueOf, 0);
+        beforeEach((done) => {
+            ringbuf  = new bunyan.RingBuffer({ limit: 100 });
+	    log      = bunyan.createLogger({ name: "log", stream: ringbuf });
+            client   = new EPI2ME({log: log});
+            messages = Array
+		.apply(null, Array(queueLength))
+		.map(Number.prototype.valueOf, 0);
 
             sinon.stub(client, "queueLength").callsFake((url, cb) => {
                 cb(messages.length);
             });
             sinon.stub(client, "sessionedSQS").callsFake((cb) => {
                 return {
-                    receiveMessage: function (opts, cb) {
+                    receiveMessage: (opts, cb) => {
                         cb(null, {
                             Messages: messages.splice(0, parallelism) // fetch 10 messages each time
                         });
@@ -34,20 +36,21 @@ describe('epi2me-api', () => {
             });
             client.downloadWorkerPool = queue(parallelism);
 
-	    stub = sinon.stub(client, "discoverQueue").callsFake((qs, queueName, successCb, failureCb) => {
-                successCb("queueUrl");
-            });
 	    sinon.stub(client, "processMessage").callsFake((msg, queueCb) => {
                 setTimeout(queueCb);
             });
+	    done();
         });
 
-	afterEach(() => {
+	afterEach((done) => {
 	    stub.restore();
+	    done();
 	});
 
         it('should process all messages', (done) => {
-
+	    stub = sinon.stub(client, "discoverQueue").callsFake((qs, queueName, successCb, failureCb) => {
+                successCb("queueUrl");
+            });
             client.downloadWorkerPool
                 .await(() => {
                     client.loadAvailableDownloadMessages();
@@ -59,14 +62,16 @@ describe('epi2me-api', () => {
                 });
         });
 
-        it('should handle discoverQueue errors', function (done) {
+        it('should handle discoverQueue errors', (done) => {
             sinon.stub(client, "discoverQueue").callsFake((qs, queueName, successCb, failureCb) => {
                 failureCb("ErrorType");
             });
 
             client.downloadWorkerPool.await(() => {
                 client.loadAvailableDownloadMessages();
-                if (client.downloadWorkerPool.remaining() === 0) done();
+                if (client.downloadWorkerPool.remaining() === 0) {
+		    done();
+		}
             });
         });
     });

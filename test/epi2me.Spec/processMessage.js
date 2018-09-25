@@ -15,13 +15,14 @@ describe('epi2me-api', () => {
             let msg     = { Body: '{message: body}' };
 
 	    sinon.spy(log, "error");
-            client.processMessage(msg, () => {
-		done();
-            });
+	    assert.doesNotThrow(() => {
+		client.processMessage(msg, () => {});
+	    });
 
             sinon.assert.calledWith(stub, msg);
             assert(log.error.calledOnce);
 	    stub.restore();
+	    done();
         });
 
         it('should parse message json', (done) => {
@@ -34,9 +35,11 @@ describe('epi2me-api', () => {
                 cb('error message');
             });
 
-            client.processMessage({
-                Body: '{"message": "body"}'
-            }, () => {});
+	    assert.doesNotThrow(() => {
+		client.processMessage({
+                    Body: '{"message": "body"}'
+		}, () => {});
+	    });
             assert(log.warn.calledOnce); // No path
 	    done();
         });

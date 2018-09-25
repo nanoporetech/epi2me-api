@@ -8,11 +8,12 @@ describe('epi2me-api', () => {
     describe('queueLength', () => {
 	let client, queueUrl = 'queueUrl';
 
-	beforeEach(() => {
+	beforeEach((done) => {
             client = new EPI2ME({});
             sinon.stub(client.log, "warn");
             sinon.stub(client.log, "error");
             sinon.stub(client.log, "info");
+	    done();
 	});
 
 	it('should return sqs queue', function (done) {

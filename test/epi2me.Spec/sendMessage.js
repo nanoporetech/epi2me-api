@@ -1,62 +1,44 @@
-"use strict";
-const proxyquire     = require('proxyquire');
-const assert         = require("assert");
-const sinon          = require("sinon");
-const path           = require("path");
-const _              = require("lodash");
-const tmp            = require('tmp');
-const queue          = require('queue-async');
-const fs             = require('fs');
-let requestProxy   = {};
-let fsProxy        = {};
-let mkdirpProxy    = {};
-let awsProxy       = {};
-proxyquire('../../lib/utils', {
-    'request' : requestProxy
-});
-var EPI2ME;
+import EPI2ME from "../../lib/epi2me";
 
-describe('metrichor api', () => {
+const assert = require("assert");
+const sinon  = require("sinon");
+const bunyan = require("bunyan");
+const queue  = require("queue-async");
+const fs     = require("fs-extra");
 
-    beforeEach(() => {
-        EPI2ME = proxyquire('../../lib/epi2me', {
-            'aws-sdk'     : awsProxy,
-            'fs-extra' : fsProxy,
-            'mkdirp'      : mkdirpProxy
-        }).default;
-    });
+describe('epi2me-api', () => {
 
-    describe('.sendMessage method', () => {
+    describe('sendMessage', () => {
 
-        var client;
+	let ringbuf, log, client, stubs = [];;
 
-        beforeEach(() => {
-            fsProxy.rename = () => {};
-            mkdirpProxy = () => {};
+	beforeEach((done) => {
+	    ringbuf = new bunyan.RingBuffer({ limit: 100 });
+	    log     = bunyan.createLogger({ name: "log", stream: ringbuf });
+	    client  = new EPI2ME({log: log, inputFolder: 'path'});
 
-            client = new EPI2ME({
-                inputFolder: 'path'
-            });
-            client.workflow_instance = function (id, cb) {
+	    stubs.push(sinon.stub(fs, "rename").callsFake(() => {}));
+	    stubs.push(sinon.stub(fs, "mkdirp").callsFake(() => {}));
+
+	    sinon.stub(client.REST, "workflow_instance").callsFake((id, cb) => {
                 cb(error, instance);
-            };
+            });
 
-            client.autoConfigure = function (id, cb) {
+            sinon.stub(client, "autoConfigure").callsFake((id, cb) => {
                 cb();
-            };
+            });
 
-            sinon.stub(client.log, "warn");
-            sinon.stub(client.log, "info");
+            sinon.stub(log, "warn");
+            sinon.stub(log, "info");
+	    done();
         });
 
-        afterEach(() => {
-            // Cleanup
-            delete fsProxy.rename;
-            delete awsProxy.SQS;
-            mkdirpProxy = {};
-        });
+	afterEach((done) => {
+	    stubs.forEach((s) => { s.restore(); });
+	    done();
+	});
 
-        it('sqs callback should handle error and log warning', () => {
+        it('sqs callback should handle error and log warning', (done) => {
             var item     = 'filename.fast5',
                 objectId = 'PREFIX/'+item,
                 sqsMock  = {
@@ -66,22 +48,28 @@ describe('metrichor api', () => {
                     }
                 };
 
-            client.sendMessage(sqsMock, objectId, item, () => {});
+	    assert.doesNotThrow(() => {
+		client.sendMessage(sqsMock, objectId, item, () => {});
+	    });
+	    done();
         });
 
-        it('sqs callback should move file to the ./uploaded folder', () => {
+        it('sqs callback should move file to the ./uploaded folder', (done) => {
             var item     = 'filename.fast5',
                 objectId = 'PREFIX/'+item,
                 sqsMock  = {
                     sendMessage: () => {}
                 };
 
-            client.sendMessage(sqsMock, objectId, item, () => {});
+	    assert.doesNotThrow(() => {
+		client.sendMessage(sqsMock, objectId, item, () => {});
+	    });
 
             //cb = args[1];
             // cb();
             //assert(client.enqueueUploadJob.calledOnce);
             //assert(client.enqueueUploadJob.calledWith(item));
+	    done();
         });
     });
 });
