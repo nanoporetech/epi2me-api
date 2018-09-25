@@ -44,10 +44,15 @@ describe('uploadHandler', function () {
         stub(client);
         client.sessionedS3 = function () {
             return {
-                upload: function (params, options, cb) {
+                upload: (params, options, cb) => {
                     cb();
-                    assert(params)
-                }
+                    assert(params);
+		    return {
+			on: () => {
+			    // support for httpUploadProgress
+			}
+		    };
+		}
             };
         };
         client.uploadComplete = function (objectId, item, successCb) {
@@ -71,9 +76,14 @@ describe('uploadHandler', function () {
         stub(client);
         client.sessionedS3 = function () {
             return {
-                upload: function (params, options, cb) {
+                upload: (params, options, cb) => {
                     cb();
-                    assert(params)
+                    assert(params);
+		    return {
+			on: () => {
+			    // support for httpUploadProgress
+			}
+		    };
                 }
             };
         };
