@@ -513,10 +513,6 @@ class EPI2ME {
             msg;
 
         if (!_lodash2.default.isArray(files) || !files.length) return;
-        this.log.info(`enqueueUploadFiles: ${files.length} new files`);
-        this.inputBatchQueue = (0, _queueAsync2.default)(1);
-
-        this._stats.upload.filesCount = this._stats.upload.filesCount ? this._stats.upload.filesCount + files.length : files.length;
 
         if (this.config.hasOwnProperty("workflow")) {
             if (this.config.workflow.hasOwnProperty("workflow_attributes")) {
@@ -530,7 +526,18 @@ class EPI2ME {
 
         if (settings.hasOwnProperty("max_files")) {
             maxFiles = parseInt(settings.max_files);
+            if (files.length > maxFiles) {
+                msg = "ERROR: " + files.length + " files found. Workflow can only accept " + maxFiles + ". Please move the extra files away.";
+                this.log.error(msg);
+                this._stats.warnings.push(msg);
+                return;
+            }
         }
+
+        this.log.info(`enqueueUploadFiles: ${files.length} new files`);
+        this.inputBatchQueue = (0, _queueAsync2.default)(1);
+
+        this._stats.upload.filesCount = this._stats.upload.filesCount ? this._stats.upload.filesCount + files.length : files.length;
 
         if (this.config.options.filetype === ".fastq" || this.config.options.filetype === ".fq") {
             this.inputBatchQueue.defer(batch_complete => {
@@ -923,8 +930,15 @@ class EPI2ME {
             // MC-6270 : disable append to avoid appending the same data 
             // file = fs.createWriteStream(outputFile, { "flags": "a" });
             file = _fsExtra2.default.createWriteStream(outputFile);
+            let req = s3.getObject(params);
 
-            rs = s3.getObject(params).createReadStream();
+            /* track request/response bytes expected
+            req.on('httpHeaders', (status, headers, response) => {
+                this._stats.download.totalBytes += parseInt(headers['content-length']);
+            });
+            */
+
+            rs = req.createReadStream();
         } catch (getObjectException) {
             this.log.error("getObject/createReadStream exception: " + String(getObjectException));
             if (completeCb) completeCb();
@@ -1020,12 +1034,18 @@ class EPI2ME {
             onStreamError();
         });
 
-        transferTimeout = setTimeout(() => {
+        let transferTimeoutFunc = () => {
             this.log.warn("transfer timed out");
             onStreamError();
-        }, 1000 * this.config.options.downloadTimeout); /* download stream timeout in ms */
+        };
+        transferTimeout = setTimeout(transferTimeoutFunc, 1000 * this.config.options.downloadTimeout); /* download stream timeout in ms */
 
-        rs.pipe(file); // initiate download stream
+        rs.on("data", chunk => {
+            //bytesLoaded += chunk.length;
+            clearTimeout(transferTimeout);
+            transferTimeout = setTimeout(transferTimeoutFunc, 1000 * this.config.options.downloadTimeout); /* download stream timeout in ms */
+            this.log.debug(`downloaded ${chunk.length} bytes. resetting transferTimeout`);
+        }).pipe(file); // initiate download stream
     }
 
     uploadHandler(file, completeCb) {
