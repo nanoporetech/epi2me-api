@@ -9,9 +9,8 @@ describe("rest.instance_token", () => {
     it("must invoke post with options", () => {
 	let ringbuf    = new bunyan.RingBuffer({ limit: 100 });
         let log        = bunyan.createLogger({ name: "log", stream: ringbuf });
-	let stub = sinon.stub(utils, "_post").callsFake((uri, params, obj, options, cb) => {
-	    assert.deepEqual(params, { id_workflow_instance: "12345" }, "params passed");
-	    assert.deepEqual(obj, null, "object passed");
+	let stub = sinon.stub(utils, "_post").callsFake((uri, obj, options, cb) => {
+	    assert.deepEqual(obj, { id_workflow_instance: "12345" }, "obj passed");
 	    assert.deepEqual(options, { log: log }, "options passed");
 	    assert.equal(uri, "token", "url passed");
 	    cb();

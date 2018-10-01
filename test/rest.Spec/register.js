@@ -7,9 +7,9 @@ const bunyan = require("bunyan");
 
 describe("rest.register", () => {
     it("must invoke post with details", () => {
-	let ringbuf    = new bunyan.RingBuffer({ limit: 100 });
-        let log        = bunyan.createLogger({ name: "log", stream: ringbuf });
-	let stub = sinon.stub(utils, "_post").callsFake((type, code, payload, options, cb) => {
+	let ringbuf = new bunyan.RingBuffer({ limit: 100 });
+        let log     = bunyan.createLogger({ name: "log", stream: ringbuf });
+	let stub    = sinon.stub(utils, "_put").callsFake((type, code, payload, options, cb) => {
 	    assert.equal(type, "reg", "type passed");
 	    assert.equal(code, "abcdefg", "code passed");
 	    assert.ok(payload.description.match(/^\S+@\S+$/), "payload description");

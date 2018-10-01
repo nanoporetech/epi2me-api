@@ -60,11 +60,11 @@ class REST {
 
     instance_token(id, cb) {
         /* should this be passed a hint at what the token is for? */
-        return _utils2.default._post("token", { id_workflow_instance: id }, null, this.options, cb);
+        return _utils2.default._post("token", { id_workflow_instance: id }, this.options, cb);
     }
 
     install_token(id, cb) {
-        return _utils2.default._post("token/install", { id_workflow: id }, null, this.options, cb);
+        return _utils2.default._post("token/install", { id_workflow: id }, this.options, cb);
     }
 
     attributes(cb) {
@@ -105,34 +105,47 @@ class REST {
     ami_image(id, obj, cb) {
         if (cb) {
             // three args: update object
-            return _utils2.default._post("ami_image", id, obj, this.options, cb);
+            return _utils2.default._put("ami_image", id, obj, this.options, cb);
+        }
+
+        if (id && typeof id === "object") {
+            cb = obj;
+            obj = id;
+            return _utils2.default._post("ami_image", obj, this.options, cb);
         }
 
         // two args: get object
-        const callback = obj;
+        cb = obj;
 
         if (!id) {
-            return callback(new Error("no id_ami_image specified"), null);
+            return cb(new Error("no id_ami_image specified"), null);
         }
 
         if (this.options.local) {
-            return callback(new Error("ami_image unsupported in local mode"));
+            return cb(new Error("ami_image unsupported in local mode"));
         }
 
-        this._read("ami_image", id, callback);
+        this._read("ami_image", id, cb);
     }
 
     workflow(id, obj, cb) {
         if (cb) {
-            // three args: update object
-            return _utils2.default._post("workflow", id, obj, this.options, cb);
+            // three args: update object: (123, {...}, func)
+            return _utils2.default._put("workflow", id, obj, this.options, cb);
         }
 
-        // two args: get object
-        const callback = obj;
+        if (id && typeof id === "object") {
+            // two args: create object: ({...}, func)
+            cb = obj;
+            obj = id;
+            return _utils2.default._post("workflow", obj, this.options, cb);
+        }
+
+        // two args: get object: (123, func)
+        cb = obj;
 
         if (!id) {
-            return callback(new Error("no workflow id specified"), null);
+            return cb(new Error("no workflow id specified"));
         }
 
         if (this.options.local) {
@@ -142,9 +155,9 @@ class REST {
             try {
                 workflow = JSON.parse(_fsExtra2.default.readFileSync(filename));
             } catch (readWorkflowException) {
-                return callback(readWorkflowException);
+                return cb(readWorkflowException);
             }
-            return callback(null, workflow);
+            return cb(null, workflow);
         }
 
         this._read("workflow", id, (err, details) => {
@@ -200,10 +213,10 @@ class REST {
             }));
 
             Promise.all(promises).then(() => {
-                callback(null, details);
+                cb(null, details);
             }).catch(err => {
                 this.log.error(`${id}: error fetching config and parameters (${err.error || err})`);
-                callback(err);
+                cb(err);
             });
         });
 
@@ -219,7 +232,7 @@ class REST {
     }
 
     start_workflow(config, cb) {
-        return _utils2.default._post("workflow_instance", null, config, this.options, cb);
+        return _utils2.default._post("workflow_instance", config, this.options, cb);
     }
 
     stop_workflow(instance_id, cb) {
@@ -289,7 +302,7 @@ class REST {
     }
 
     register(code, cb) {
-        return _utils2.default._post("reg", code, {
+        return _utils2.default._put("reg", code, {
             description: _os2.default.userInfo().username + "@" + _os2.default.hostname()
         }, (0, _lodash.merge)({ _signing: false }, this.options), cb);
     }

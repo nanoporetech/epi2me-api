@@ -1,13 +1,9 @@
-"use strict";
+import REST from "../../lib/rest";
+import utils from "../../lib/utils";
+
 const proxyquire = require('proxyquire');
 const assert     = require("assert");
 const sinon      = require("sinon");
-
-let utilsProxy   = {};
-
-let REST = proxyquire('../../lib/rest', {
-    "./utils": utilsProxy,
-}).default;
 
 describe('start_workflow', () => {
 
@@ -17,18 +13,20 @@ describe('start_workflow', () => {
             "apikey" : "FooBar02"
         });
 
-        utilsProxy._post = (uri, id, obj, options, cb) => {
+	let stub = sinon.stub(utils, "_post").callsFake((uri, obj, options, cb) => {
 	    assert.equal(uri, "workflow_instance");
-            assert.equal(id,  null);
             assert.equal(options.apikey, "FooBar02");
             assert.equal(obj.id_workflow, "test");
             cb(null, {"id_workflow_instance":"1","id_user":"1"});
-            delete utilsProxy._post;
-        };
-
-        client.start_workflow({id_workflow: 'test'}, (err, obj) => {
-            assert.equal(err, null, 'no error reported');
-            assert.deepEqual(obj, {"id_workflow_instance":"1","id_user":"1"}, 'workflow_instance start response');
         });
+
+	assert.doesNotThrow(() => {
+            client.start_workflow({id_workflow: 'test'}, (err, obj) => {
+		assert.equal(err, null, 'no error reported');
+		assert.deepEqual(obj, {"id_workflow_instance":"1","id_user":"1"}, 'workflow_instance start response');
+            });
+	});
+
+	stub.restore();
     });
 });
