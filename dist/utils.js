@@ -142,11 +142,7 @@ utils._post = function (uri, obj, options, cb) {
     let req = {
         uri: call,
         gzip: true,
-        body: JSON.stringify(obj), // not "form"
-        headers: {
-            "Accept": "application/json",
-            "Content-Type": "application/json"
-        }
+        body: JSON.stringify(obj) // not "form"
     };
 
     this._headers(req, options);
