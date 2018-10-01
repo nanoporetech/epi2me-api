@@ -39,7 +39,7 @@ describe('rest.workflows', () => {
 	    }[filepath];
 	});
 
-	let stub3   = sinon.stub(fs, "readFileSync").callsFake((filepath) => {console.log(filepath);
+	let stub3   = sinon.stub(fs, "readFileSync").callsFake((filepath) => {
 	    return JSON.stringify({
 		"/path/to/workflows/12345/workflow.json": {id_workflow: 12345},
 		"/path/to/workflows/23456/workflow.json": {id_workflow: 23456},
@@ -56,7 +56,7 @@ describe('rest.workflows', () => {
 	};
 	let rest = new REST({log: log, local: true, url: "/path/to"});
 	assert.doesNotThrow(() => {
-	    rest.workflows(fake); //(...args) => { console.log("ARGS", args); });
+	    rest.workflows(fake); //(...args) => {
 	});
 	stub1.restore();
 	stub2.restore();
