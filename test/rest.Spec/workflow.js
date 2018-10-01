@@ -28,6 +28,25 @@ describe('rest.workflow', () => {
 	stub.restore();
     });
 
+    it("must invoke post with options", () => {
+	let ringbuf = new bunyan.RingBuffer({ limit: 100 });
+        let log     = bunyan.createLogger({ name: "log", stream: ringbuf });
+	let stub    = sinon.stub(utils, "_post").callsFake((uri, obj, options, cb) => {
+	    assert.deepEqual(obj, {"description":"a workflow","rev":"1.0"}, "object passed");
+	    assert.deepEqual(options, { log: log, url: "http://metrichor.local:8080" }, "options passed");
+	    assert.equal(uri, "workflow", "url passed");
+	    cb();
+	});
+
+	let fake = sinon.fake();
+	let rest = new REST({log: log, url: "http://metrichor.local:8080"});
+	assert.doesNotThrow(() => {
+	    rest.workflow({"description":"a workflow","rev":"1.0"}, fake);
+	});
+	assert(fake.calledOnce, "callback invoked");
+	stub.restore();
+    });
+
     it("must throw if missing id", () => {
 	let ringbuf = new bunyan.RingBuffer({ limit: 100 });
         let log     = bunyan.createLogger({ name: "log", stream: ringbuf });

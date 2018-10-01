@@ -103,6 +103,13 @@ class REST {
     }
 
     ami_image(id, obj, cb) {
+        if (this.options.local) {
+            if (!cb) {
+                cb = obj;
+            }
+            return cb(new Error("ami_image unsupported in local mode"));
+        }
+
         if (cb) {
             // three args: update object
             return _utils2.default._put("ami_image", id, obj, this.options, cb);
@@ -119,10 +126,6 @@ class REST {
 
         if (!id) {
             return cb(new Error("no id_ami_image specified"), null);
-        }
-
-        if (this.options.local) {
-            return cb(new Error("ami_image unsupported in local mode"));
         }
 
         this._read("ami_image", id, cb);
