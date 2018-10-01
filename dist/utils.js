@@ -134,35 +134,17 @@ utils._pipe = function (uri, filepath, options, cb, progressCb) {
     }
 };
 
-utils._post = function (uri, id, obj, options, cb) {
-    var srv,
-        call,
-        req,
-        form = {};
-
-    if (obj !== undefined) {
-        form.json = JSON.stringify(obj); // fwiw portal > 2.47.1-538664 shouldn't require this as a named parameter any more
-    }
-
-    /* if id is an object, merge it into form post parameters */
-    if (id && typeof id === "object") {
-        Object.keys(id).forEach(function (attr) {
-            form[attr] = id[attr];
-        });
-
-        id = "";
-    }
-
-    srv = options.url;
+utils._post = function (uri, obj, options, cb) {
+    let srv = options.url;
     srv = srv.replace(/\/+$/, ""); // clip trailing slashes
     uri = uri.replace(/\/+/g, "/"); // clip multiple slashes
-    call = srv + "/" + uri + (id ? "/" + id : ""); // + ".json";
-    req = {
+    let call = srv + "/" + uri;
+    let req = {
         uri: call,
         gzip: true,
-        form: form,
+        body: JSON.stringify(obj), // not "form"
         headers: {
-            Accept: "application/json",
+            "Accept": "application/json",
             "Content-Type": "application/json"
         }
     };
@@ -173,7 +155,7 @@ utils._post = function (uri, id, obj, options, cb) {
         req.proxy = options.proxy;
     }
 
-    request.post(req, function (res_e, r, body) {
+    request.post(req, (res_e, r, body) => {
         utils._responsehandler(res_e, r, body, cb);
     });
 };
@@ -184,21 +166,14 @@ utils._put = function (uri, id, obj, options, cb) {
         cb = obj;
     }
 
-    var srv,
-        call,
-        req,
-        form = {
-        json: JSON.stringify(obj)
-    };
-
-    srv = options.url;
+    let srv = options.url;
     srv = srv.replace(/\/+$/, ""); // clip trailing slashes
     uri = uri.replace(/\/+/g, "/"); // clip multiple slashes
-    call = srv + "/" + uri + "/" + id; // + ".json";
-    req = {
+    let call = srv + "/" + uri + "/" + id;
+    let req = {
         uri: call,
         gzip: true,
-        form: form
+        body: obj ? JSON.stringify(obj) : {}
     };
 
     this._headers(req, options);

@@ -13,14 +13,14 @@ describe('rest.ami_image', () => {
         });
 
 	let data = {"aws_id":"ami-12345","name":"mon ami","description":"foo bar baz","id_region":1,"is_active":1};
-	let stub = sinon.stub(utils, "_post").callsFake((uri, id, obj, options, cb) => {
+	let stub = sinon.stub(utils, "_post").callsFake((uri, obj, options, cb) => {
             assert.equal(uri, "ami_image");
 	    assert.deepEqual(obj, data);
             cb(null, {"status":"success"});
         });
 
 	assert.doesNotThrow(() => {
-            client.ami_image(null, data, function(err, obj) {
+            client.ami_image(data, (err, obj) => {
 		assert.equal(err, null, 'no error reported');
 		assert.deepEqual(obj, {"status":"success"});
             });
