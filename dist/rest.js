@@ -94,6 +94,34 @@ class REST {
         }
     }
 
+    ami_images(cb) {
+        if (this.options.local) {
+            return cb(new Error("ami_images unsupported in local mode"));
+        }
+
+        return this._list("ami_image", cb);
+    }
+
+    ami_image(id, obj, cb) {
+        if (cb) {
+            // three args: update object
+            return _utils2.default._post("ami_image", id, obj, this.options, cb);
+        }
+
+        // two args: get object
+        const callback = obj;
+
+        if (!id) {
+            return callback(new Error("no id_ami_image specified"), null);
+        }
+
+        if (this.options.local) {
+            return callback(new Error("ami_image unsupported in local mode"));
+        }
+
+        this._read("ami_image", id, callback);
+    }
+
     workflow(id, obj, cb) {
         if (cb) {
             // three args: update object
