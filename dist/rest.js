@@ -72,26 +72,25 @@ class REST {
     }
 
     workflows(cb) {
-        if (this.options.local) {
-            let WORKFLOW_DIR = _path2.default.join(this.options.url, "workflows");
-
-            return _fsExtra2.default.readdir(WORKFLOW_DIR).then(data => {
-                return data.filter(id => {
-                    return _fsExtra2.default.statSync(_path2.default.join(WORKFLOW_DIR, id)) // ouch
-                    .isDirectory();
-                });
-            }).then(data => {
-                return data.map(id => {
-                    const filename = _path2.default.join(WORKFLOW_DIR, id, "workflow.json");
-                    const content = _fsExtra2.default.readFileSync(filename); // ouch
-                    return JSON.parse(content); // try...catch
-                });
-            }).then(data => {
-                return cb(null, data);
-            });
-        } else {
+        if (!this.options.local) {
             return this._list("workflow", cb);
         }
+
+        let WORKFLOW_DIR = _path2.default.join(this.options.url, "workflows");
+
+        _fsExtra2.default.readdir(WORKFLOW_DIR).then(data => {
+            return data.filter(id => {
+                return _fsExtra2.default.statSync(_path2.default.join(WORKFLOW_DIR, id)) // ouch
+                .isDirectory();
+            });
+        }).then(data => {
+            return data.map(id => {
+                const filename = _path2.default.join(WORKFLOW_DIR, id, "workflow.json");
+                return require(filename); // try...catch?
+            });
+        }).then(data => {
+            return Promise.resolve(cb(null, data));
+        });
     }
 
     ami_images(cb) {
