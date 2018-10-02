@@ -155,7 +155,7 @@ class REST {
             let filename = _path2.default.join(WORKFLOW_DIR, id, "workflow.json");
             let workflow;
             try {
-                workflow = JSON.parse(_fsExtra2.default.readFileSync(filename));
+                workflow = require(filename);
             } catch (readWorkflowException) {
                 return cb(readWorkflowException);
             }
@@ -215,10 +215,10 @@ class REST {
             }));
 
             Promise.all(promises).then(() => {
-                cb(null, details);
+                return Promise.resolve(cb(null, details));
             }).catch(err => {
                 this.log.error(`${id}: error fetching config and parameters (${err.error || err})`);
-                cb(err);
+                return Promise.reject(cb(err));
             });
         });
 

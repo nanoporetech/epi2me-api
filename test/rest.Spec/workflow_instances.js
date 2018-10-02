@@ -65,31 +65,35 @@ describe("rest.workflow_instances", () => {
 	let rest = new REST({log: log, local: true, url: dir});
 	let fake = sinon.fake();
 
-	assert.doesNotThrow(async () => {
-	    await rest.workflow_instances(fake);
-	    sinon.assert.calledOnce(fake);
-	    sinon.assert.calledWith(fake, null,
-				    [{
-  description: "test flow",
-  filename: dir+"/instances/2018-09-10T14-29-48.061Z/workflow.json",
-  id_workflow: 34567,
-  id_workflow_instance: "2018-09-10T14-29-48.061Z",
-  rev: "12.34"
-}, {
-  description: "test flow",
-  filename: dir+"/instances/2018-09-10T14-31-04.751Z/workflow.json",
-  id_workflow: 34567,
-  id_workflow_instance: "2018-09-10T14-31-04.751Z",
-  rev: "12.34"
-}, {
-  description: "-",
-  filename: dir+"/instances/2018-10-02T12-25-48.061Z/workflow.json",
-  id_workflow: "-",
-  id_workflow_instance: "2018-10-02T12-25-48.061Z",
-  rev: "0.0"
-}]
-				    );
-	});
+	new Promise((accept, reject) => {
+	    rest.workflow_instances((err, data) => {
+		if(err) reject(fake(err));
+		accept(fake(null, data));
+	    });
+	})
+	    .then(() => {
+		sinon.assert.calledOnce(fake);
+		sinon.assert.calledWith(fake, null,
+					[{
+					    description: "test flow",
+					    filename: dir+"/instances/2018-09-10T14-29-48.061Z/workflow.json",
+					    id_workflow: 34567,
+					    id_workflow_instance: "2018-09-10T14-29-48.061Z",
+					    rev: "12.34"
+					}, {
+					    description: "test flow",
+					    filename: dir+"/instances/2018-09-10T14-31-04.751Z/workflow.json",
+					    id_workflow: 34567,
+					    id_workflow_instance: "2018-09-10T14-31-04.751Z",
+					    rev: "12.34"
+					}, {
+					    description: "-",
+					    filename: dir+"/instances/2018-10-02T12-25-48.061Z/workflow.json",
+					    id_workflow: "-",
+					    id_workflow_instance: "2018-10-02T12-25-48.061Z",
+					    rev: "0.0"
+					}]);
+	    });
     });
 
     it("must bail when local with query", () => {
