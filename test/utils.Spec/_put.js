@@ -4,7 +4,7 @@ const assert  = require("assert");
 const sinon   = require("sinon");
 const request = require("request");
 
-describe('utils._headers', () => {
+describe('utils._put', () => {
     it("should invoke put", () => {
         let req  = {};
         let stub1 = sinon.stub(request, "put").callsFake((req, cb) => {
