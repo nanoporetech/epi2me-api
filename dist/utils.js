@@ -180,7 +180,7 @@ utils._put = (uri, id, obj, options, cb) => {
 };
 
 utils._responsehandler = (res_e, r, body, cb) => {
-    let json, msg;
+    let json;
 
     if (!cb) {
         throw new Error("callback must be specified");
@@ -191,7 +191,7 @@ utils._responsehandler = (res_e, r, body, cb) => {
     }
 
     if (r && r.statusCode >= 400) {
-        msg = "Network error " + r.statusCode;
+        let msg = "Network error " + r.statusCode;
 
         try {
             json = JSON.parse(body);
