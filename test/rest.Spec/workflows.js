@@ -9,6 +9,7 @@ const tmp    = require("tmp");
 const path   = require("path");
 
 describe('rest.workflows', () => {
+    process.on('unhandledRejection', (reason, promise) => { console.log("[workflows.js] UNHANDLED PROMISE REJECTION", reason, promise); });
     it("must invoke list with options", () => {
 	let ringbuf    = new bunyan.RingBuffer({ limit: 100 });
         let log        = bunyan.createLogger({ name: "log", stream: ringbuf });
@@ -39,11 +40,16 @@ describe('rest.workflows', () => {
 
 	let rest = new REST({log: log, local: true, url: dir});
 	let fake = sinon.fake();
-
-	assert.doesNotThrow(async () => {
-	    await rest.workflows(fake);
-	    sinon.assert.calledOnce(fake);
-	    sinon.assert.calledWith(fake, null, [ { id_workflow: 12345 }, { id_workflow: 34567 }]);
-	});
+	
+	new Promise((accept, reject) => {
+	    rest.workflows((err, data) => {
+		if(err) reject(fake(err));
+		accept(fake(null, data));
+	    });
+	})
+	    .then(() => {
+		sinon.assert.calledOnce(fake);
+		sinon.assert.calledWith(fake, null, [ { id_workflow: 12345 }, { id_workflow: 34567 }]);
+	    });
     });
 });

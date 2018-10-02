@@ -70,7 +70,26 @@ class REST {
     attributes(cb) {
         return this._list("attribute", cb);
     }
-
+    /*
+    async workflows(cb) {
+    if (!this.options.local) {
+      return this._list("workflow", cb);
+    }
+    let WORKFLOW_DIR = path.join(this.options.url, "workflows");
+     const data = await fs.readdir(WORKFLOW_DIR);
+    const only_directories = data.filter(async id => {
+      return await fs
+        .statSync(path.join(WORKFLOW_DIR, id)) // ouch
+        .isDirectory();
+    });
+     const file_contents = await Promise.all(
+      only_directories.map(async id => {
+        const filename = path.join(WORKFLOW_DIR, id, "workflow.json");
+        return await fs.readJson(filename);
+      })
+    );
+    return cb(file_contents);
+    }*/
     workflows(cb) {
         if (!this.options.local) {
             return this._list("workflow", cb);
@@ -155,7 +174,7 @@ class REST {
             let filename = _path2.default.join(WORKFLOW_DIR, id, "workflow.json");
             let workflow;
             try {
-                workflow = JSON.parse(_fsExtra2.default.readFileSync(filename));
+                workflow = require(filename);
             } catch (readWorkflowException) {
                 return cb(readWorkflowException);
             }
@@ -215,10 +234,10 @@ class REST {
             }));
 
             Promise.all(promises).then(() => {
-                cb(null, details);
+                return Promise.resolve(cb(null, details));
             }).catch(err => {
                 this.log.error(`${id}: error fetching config and parameters (${err.error || err})`);
-                cb(err);
+                return Promise.reject(cb(err));
             });
         });
 
