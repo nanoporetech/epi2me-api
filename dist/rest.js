@@ -244,8 +244,7 @@ class REST {
     workflow_instances(cb, query) {
         if (this.options.local) {
             if (query) {
-                this.log.error("querying of local instances is not yet available");
-                return;
+                return cb(new Error("querying of local instances unsupported in local mode"));
             }
 
             let INSTANCE_DIR = _path2.default.join(this.options.url, "instances");
@@ -259,7 +258,7 @@ class REST {
 
                     let workflow;
                     try {
-                        workflow = JSON.parse(_fsExtra2.default.readFileSync(filename));
+                        workflow = require(filename);
                     } catch (ignore) {
                         workflow = {
                             id_workflow: "-",
@@ -273,7 +272,7 @@ class REST {
                     return workflow;
                 });
             }).then(data => {
-                cb(null, data);
+                return Promise.resolve(cb(null, data));
             });
         }
 
