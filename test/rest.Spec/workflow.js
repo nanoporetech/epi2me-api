@@ -9,6 +9,7 @@ const tmp    = require("tmp");
 const path   = require("path");
 
 describe('rest.workflow', () => {
+    process.on('unhandledRejection', (reason, promise) => { console.log("[workflow.js] UNHANDLED PROMISE REJECTION", reason, promise); });
 
     it("must invoke put with options", () => {
 	let ringbuf = new bunyan.RingBuffer({ limit: 100 });
