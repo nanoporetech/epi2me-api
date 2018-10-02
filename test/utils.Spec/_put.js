@@ -5,12 +5,12 @@ const sinon   = require("sinon");
 const request = require("request");
 
 describe('utils._headers', () => {
-    it("should invoke post", () => {
+    it("should invoke put", () => {
         let req  = {};
-        let stub1 = sinon.stub(request, "post").callsFake((req, cb) => {
+        let stub1 = sinon.stub(request, "put").callsFake((req, cb) => {
             assert.deepEqual(req, {
-                uri: "http://epi2me.test/entity",
-                body: "{\"id_entity\":123,\"name\":\"test entity\"}",
+                uri: "http://epi2me.test/entity/123",
+                body: "{\"name\":\"test entity\"}",
                 gzip: true,
                 headers: {
                     "Accept": "application/json",
@@ -27,8 +27,7 @@ describe('utils._headers', () => {
             assert.equal(body, "three");
         });
 
-        utils._post("entity", {
-            "id_entity": 123,
+        utils._put("entity", 123, {
             "name": "test entity"
         }, {
             apikey: "foo",
@@ -41,12 +40,12 @@ describe('utils._headers', () => {
         stub2.restore();
     });
 
-    it("should invoke post with proxy", () => {
+    it("should invoke put with proxy", () => {
         let req  = {};
-        let stub1 = sinon.stub(request, "post").callsFake((req, cb) => {
+        let stub1 = sinon.stub(request, "put").callsFake((req, cb) => {
             assert.deepEqual(req, {
-                uri: "http://epi2me.test/entity",
-                body: "{\"id_entity\":123,\"name\":\"test entity\"}",
+                uri: "http://epi2me.test/entity/123",
+                body: "{\"name\":\"test entity\"}",
                 gzip: true,
                 proxy: "http://proxy.internal:3128/",
                 headers: {
@@ -64,8 +63,7 @@ describe('utils._headers', () => {
             assert.equal(body, "three");
         });
 
-        utils._post("entity", {
-            "id_entity": 123,
+        utils._put("entity", 123, {
             "name": "test entity"
         }, {
             apikey: "foo",
