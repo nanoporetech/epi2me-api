@@ -11,6 +11,7 @@ describe('utils._put', () => {
             assert.deepEqual(req, {
                 uri: "http://epi2me.test/entity/123",
                 body: "{\"name\":\"test entity\"}",
+                form: {json:"{\"name\":\"test entity\"}"},
                 gzip: true,
                 headers: {
                     "Accept": "application/json",
@@ -46,6 +47,7 @@ describe('utils._put', () => {
             assert.deepEqual(req, {
                 uri: "http://epi2me.test/entity/123",
                 body: "{\"name\":\"test entity\"}",
+                form: {json:"{\"name\":\"test entity\"}"},
                 gzip: true,
                 proxy: "http://proxy.internal:3128/",
                 headers: {
