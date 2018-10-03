@@ -10,7 +10,8 @@ describe('utils._post', () => {
         let stub1 = sinon.stub(request, "post").callsFake((req, cb) => {
             assert.deepEqual(req, {
                 uri: "http://epi2me.test/entity",
-                body: "{\"id_entity\":123,\"name\":\"test entity\"}",
+		body: "{\"id_entity\":123,\"name\":\"test entity\"}",
+		form: {json:"{\"id_entity\":123,\"name\":\"test entity\"}", id_entity: 123, name: "test entity"},
                 gzip: true,
                 headers: {
                     "Accept": "application/json",
@@ -47,6 +48,7 @@ describe('utils._post', () => {
             assert.deepEqual(req, {
                 uri: "http://epi2me.test/entity",
                 body: "{\"id_entity\":123,\"name\":\"test entity\"}",
+                form: {json:"{\"id_entity\":123,\"name\":\"test entity\"}", id_entity: 123, name: "test entity"},
                 gzip: true,
                 proxy: "http://proxy.internal:3128/",
                 headers: {
