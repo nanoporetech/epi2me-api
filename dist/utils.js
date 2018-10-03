@@ -404,4 +404,4 @@ utils.loadInputFiles = ({ inputFolder, outputFolder, uploadedFolder, filetype },
 };
 
 module.exports = utils;
-module.exports.version = "2.55.1";
+module.exports.version = require("../package.json").version;
