@@ -11,7 +11,7 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-exports.REST = undefined;
+exports.version = exports.REST = undefined;
 
 var _lodash = require("lodash");
 
@@ -56,6 +56,7 @@ var _default_options2 = _interopRequireDefault(_default_options);
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 const REST = exports.REST = _rest2.default; /* MC-565 handle EMFILE gracefully; use Promises */
+const version = exports.version = require("../package.json").version;
 class EPI2ME {
     constructor(opt_string) {
         let opts;
