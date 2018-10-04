@@ -135,23 +135,26 @@ utils._post = (uri, obj, options, cb) => {
     srv = srv.replace(/\/+$/, ""); // clip trailing slashes
     uri = uri.replace(/\/+/g, "/"); // clip multiple slashes
     let call = srv + "/" + uri;
-    let hack = {}; // garbage
-    hack.json = JSON.stringify(obj); // garbage
-
-    if (obj && typeof obj === "object") {
-        // garbage
-        Object.keys(obj).forEach(attr => {
-            // garbage
-            hack[attr] = obj[attr]; // garbage
-        }); // garbage
-    } // garbage
 
     let req = {
         uri: call,
         gzip: true,
-        form: hack,
         body: obj ? JSON.stringify(obj) : {}
     };
+
+    if (options.legacy_form) {
+        // include legacy form parameters
+        let form = {};
+        form.json = JSON.stringify(obj);
+
+        if (obj && typeof obj === "object") {
+            Object.keys(obj).forEach(attr => {
+                form[attr] = obj[attr];
+            });
+        } // garbage
+
+        req.form = form;
+    }
 
     utils._headers(req, options);
 
@@ -172,10 +175,13 @@ utils._put = (uri, id, obj, options, cb) => {
     let req = {
         uri: call,
         gzip: true,
-        form: { json: JSON.stringify(obj) }, // garbage
         body: obj ? JSON.stringify(obj) : {}
     };
 
+    if (options.legacy_form) {
+        // include legacy form parameters
+        req.form = { json: JSON.stringify(obj) };
+    }
     utils._headers(req, options);
 
     if (options.proxy) {
@@ -198,16 +204,19 @@ utils._responsehandler = (res_e, r, body, cb) => {
         return cb(res_e, {});
     }
 
+    let jsn_e;
+    try {
+        body = body.replace(/[^]*\n\n/, ""); // why doesn't request always parse headers? Content-type with charset?
+        json = JSON.parse(body);
+    } catch (err) {
+        jsn_e = err;
+    }
+
     if (r && r.statusCode >= 400) {
         let msg = "Network error " + r.statusCode;
 
-        try {
-            json = JSON.parse(body);
-            if (json.error) {
-                msg = json.error;
-            }
-        } catch (jsn_e) {
-            // ignore
+        if (json.error) {
+            msg = json.error;
         }
 
         if (r.statusCode === 504) {
@@ -218,13 +227,8 @@ utils._responsehandler = (res_e, r, body, cb) => {
         return cb({ "error": msg });
     }
 
-    try {
-        json = JSON.parse(body);
-    } catch (jsn_e) {
-        if (cb) {
-            return cb(jsn_e, {});
-        }
-        return;
+    if (jsn_e) {
+        return cb({ "error": jsn_e }, {});
     }
 
     if (json.error) {
