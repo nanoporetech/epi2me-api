@@ -11,7 +11,7 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-exports.REST = undefined;
+exports.version = exports.REST = undefined;
 
 var _lodash = require("lodash");
 
@@ -56,6 +56,7 @@ var _default_options2 = _interopRequireDefault(_default_options);
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 const REST = exports.REST = _rest2.default; /* MC-565 handle EMFILE gracefully; use Promises */
+const version = exports.version = require("../package.json").version;
 class EPI2ME {
     constructor(opt_string) {
         let opts;
@@ -510,13 +511,42 @@ class EPI2ME {
         let maxFiles = 0,
             maxFileSize = 0,
             settings = {},
-            msg;
+            msg,
+            attrs = {};
 
         if (!_lodash2.default.isArray(files) || !files.length) return;
 
         if (this.config.hasOwnProperty("workflow")) {
             if (this.config.workflow.hasOwnProperty("workflow_attributes")) {
+                // started from GUI agent
                 settings = this.config.workflow.workflow_attributes;
+            } else {
+                // started from CLI
+                if (this.config.workflow.hasOwnProperty("attributes")) {
+                    attrs = this.config.workflow.attributes;
+                    if (attrs.hasOwnProperty("epi2me:max_size")) {
+                        settings.max_size = parseInt(attrs["epi2me:max_size"]);
+                    }
+                    if (attrs.hasOwnProperty("epi2me:max_files")) {
+                        settings.max_files = parseInt(attrs["epi2me:max_files"]);
+                    }
+                    if (attrs.hasOwnProperty("epi2me:category")) {
+                        let epi2me_category = attrs["epi2me:category"];
+                        if (epi2me_category.includes("storage")) {
+                            settings.requires_storage = true;
+                        }
+                    }
+                }
+            }
+        }
+        if (settings.hasOwnProperty("requires_storage")) {
+            if (settings.requires_storage) {
+                if (!this.config.workflow.hasOwnProperty("storage_account")) {
+                    msg = "ERROR: Workflow requires storage enabled. Please provide a valid storage account [ --storage ].";
+                    this.log.error(msg);
+                    this._stats.warnings.push(msg);
+                    return;
+                }
             }
         }
 
