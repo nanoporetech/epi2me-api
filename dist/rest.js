@@ -60,11 +60,11 @@ class REST {
 
     instance_token(id, cb) {
         /* should this be passed a hint at what the token is for? */
-        return _utils2.default._post("token", { id_workflow_instance: id }, this.options, cb);
+        return _utils2.default._post("token", { id_workflow_instance: id }, (0, _lodash.merge)({ legacy_form: true }, this.options), cb);
     }
 
     install_token(id, cb) {
-        return _utils2.default._post("token/install", { id_workflow: id }, this.options, cb);
+        return _utils2.default._post("token/install", { id_workflow: id }, (0, _lodash.merge)({ legacy_form: true }, this.options), cb);
     }
 
     attributes(cb) {
@@ -152,14 +152,14 @@ class REST {
     workflow(id, obj, cb) {
         if (cb) {
             // three args: update object: (123, {...}, func)
-            return _utils2.default._put("workflow", id, obj, this.options, cb);
+            return _utils2.default._put("workflow", id, obj, (0, _lodash.merge)({ legacy_form: true }, this.options), cb);
         }
 
         if (id && typeof id === "object") {
             // two args: create object: ({...}, func)
             cb = obj;
             obj = id;
-            return _utils2.default._post("workflow", obj, this.options, cb);
+            return _utils2.default._post("workflow", obj, (0, _lodash.merge)({ legacy_form: true }, this.options), cb);
         }
 
         // two args: get object: (123, func)
@@ -253,11 +253,11 @@ class REST {
     }
 
     start_workflow(config, cb) {
-        return _utils2.default._post("workflow_instance", config, this.options, cb);
+        return _utils2.default._post("workflow_instance", config, (0, _lodash.merge)({ legacy_form: true }, this.options), cb);
     }
 
     stop_workflow(instance_id, cb) {
-        return _utils2.default._put("workflow_instance/stop", instance_id, null, this.options, cb);
+        return _utils2.default._put("workflow_instance/stop", instance_id, null, (0, _lodash.merge)({ legacy_form: true }, this.options), cb);
     }
 
     workflow_instances(cb, query) {
@@ -324,7 +324,7 @@ class REST {
     register(code, cb) {
         return _utils2.default._put("reg", code, {
             description: _os2.default.userInfo().username + "@" + _os2.default.hostname()
-        }, (0, _lodash.merge)({ _signing: false }, this.options), cb);
+        }, (0, _lodash.merge)({ _signing: false, legacy_form: true }, this.options), cb);
     }
 
     datasets(cb, query) {

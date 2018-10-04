@@ -17,7 +17,7 @@ describe('rest.workflow', () => {
 	let stub    = sinon.stub(utils, "_put").callsFake((uri, id, obj, options, cb) => {
 	    assert.deepEqual(id, "12345", "id passed");
 	    assert.deepEqual(obj, {"description":"a workflow","rev":"1.0"}, "object passed");
-	    assert.deepEqual(options, { log: log, url: "http://metrichor.local:8080" }, "options passed");
+	    assert.deepEqual(options, { log: log, url: "http://metrichor.local:8080", legacy_form: true }, "options passed");
 	    assert.equal(uri, "workflow", "url passed");
 	    cb();
 	});
@@ -36,7 +36,7 @@ describe('rest.workflow', () => {
         let log     = bunyan.createLogger({ name: "log", stream: ringbuf });
 	let stub    = sinon.stub(utils, "_post").callsFake((uri, obj, options, cb) => {
 	    assert.deepEqual(obj, {"description":"a workflow","rev":"1.0"}, "object passed");
-	    assert.deepEqual(options, { log: log, url: "http://metrichor.local:8080" }, "options passed");
+	    assert.deepEqual(options, { log: log, url: "http://metrichor.local:8080", legacy_form: true }, "options passed");
 	    assert.equal(uri, "workflow", "url passed");
 	    cb();
 	});
