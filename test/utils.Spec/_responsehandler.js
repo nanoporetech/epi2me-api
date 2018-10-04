@@ -17,9 +17,8 @@ describe('._responseHandler method', () => {
 
     it('should handle error status codes', () => {
         utils._responsehandler(null, {statusCode: 400}, '', callback);
-	console.log(callback);
-        assert(callback.calledWith({"error": "Network error 400"}));
         assert(callback.calledOnce);
+        assert(callback.calledWith({"error": "Network error 400"}));
     });
 
     it('should handle errors', () => {
@@ -27,8 +26,8 @@ describe('._responseHandler method', () => {
             utils._responsehandler('message', '', ''); // ensure it checks callback exists
         });
         utils._responsehandler('message', '', '', callback);
-        assert(callback.calledWith('message'));
         assert(callback.calledOnce);
+        assert(callback.calledWith('message'));
     });
 
     it('should parse body and handle bad json', () => {

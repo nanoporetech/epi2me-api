@@ -106,7 +106,6 @@ utils._get = (uri, options, cb) => {
 };
 
 utils._pipe = (uri, filepath, options, cb, progressCb) => {
-    // do something to get/set data in metrichor
     let srv = options.url;
     uri = "/" + uri; // note no forced extension for piped requests
     srv = srv.replace(/\/+$/, ""); // clip trailing slashes
@@ -162,8 +161,8 @@ utils._post = (uri, obj, options, cb) => {
         req.proxy = options.proxy;
     }
 
-    request.post(req, (res_e, r, body) => {
-        utils._responsehandler(res_e, r, body, cb);
+    request.post(req, (res_e, res, body) => {
+        utils._responsehandler(res_e, res, body, cb);
     });
 };
 
@@ -188,8 +187,8 @@ utils._put = (uri, id, obj, options, cb) => {
         req.proxy = options.proxy;
     }
 
-    request.put(req, (res_e, r, body) => {
-        utils._responsehandler(res_e, r, body, cb);
+    request.put(req, (res_e, res, body) => {
+        utils._responsehandler(res_e, res, body, cb);
     });
 };
 
@@ -214,9 +213,10 @@ utils._responsehandler = (res_e, r, body, cb) => {
 
     if (r && r.statusCode >= 400) {
         let msg = "Network error " + r.statusCode;
-
-        if (json.error) {
+        if (json && json.error) {
             msg = json.error;
+        } else if (jsn_e) {
+            //   msg = jsn_e;
         }
 
         if (r.statusCode === 504) {
