@@ -11,7 +11,6 @@ describe('utils._put', () => {
             assert.deepEqual(req, {
                 uri: "http://epi2me.test/entity/123",
                 body: "{\"name\":\"test entity\"}",
-                form: {json:"{\"name\":\"test entity\"}"},
                 gzip: true,
                 headers: {
                     "Accept": "application/json",
@@ -41,13 +40,49 @@ describe('utils._put', () => {
         stub2.restore();
     });
 
-    it("should invoke put with proxy", () => {
+    it("should invoke put with legacy form params", () => {
         let req  = {};
         let stub1 = sinon.stub(request, "put").callsFake((req, cb) => {
             assert.deepEqual(req, {
                 uri: "http://epi2me.test/entity/123",
                 body: "{\"name\":\"test entity\"}",
                 form: {json:"{\"name\":\"test entity\"}"},
+                gzip: true,
+                headers: {
+                    "Accept": "application/json",
+                    "Content-Type": "application/json",
+                    "X-EPI2ME-ApiKey": "foo",
+                    "X-EPI2ME-Client": "",
+                    "X-EPI2ME-Version": "0"
+                }});
+            cb("one", "two", "three");
+        });
+        let stub2 = sinon.stub(utils, "_responsehandler").callsFake((err, res, body, cb) => {
+            assert.equal(err, "one");
+            assert.equal(res, "two");
+            assert.equal(body, "three");
+        });
+
+        utils._put("entity", 123, {
+            "name": "test entity"
+        }, {
+            apikey: "foo",
+            url: "http://epi2me.test",
+	    legacy_form: true
+        }, (err, data) => {
+            assert.equal(err, "one");
+            assert.equal(data, "three");
+        });
+        stub1.restore();
+        stub2.restore();
+    });
+
+    it("should invoke put with proxy", () => {
+        let req  = {};
+        let stub1 = sinon.stub(request, "put").callsFake((req, cb) => {
+            assert.deepEqual(req, {
+                uri: "http://epi2me.test/entity/123",
+                body: "{\"name\":\"test entity\"}",
                 gzip: true,
                 proxy: "http://proxy.internal:3128/",
                 headers: {
