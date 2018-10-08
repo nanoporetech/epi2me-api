@@ -6,10 +6,9 @@ const path           = require("path");
 const _              = require("lodash");
 const tmp            = require('tmp');
 const queue          = require('queue-async');
-const fs             = require('fs');
+
 let requestProxy   = {};
 let fsProxy        = {};
-let mkdirpProxy    = {};
 let awsProxy       = {};
 proxyquire('../../lib/utils', {
     'request' : requestProxy
@@ -17,7 +16,6 @@ proxyquire('../../lib/utils', {
 var EPI2ME = proxyquire('../../lib/epi2me', {
     'aws-sdk'     : awsProxy,
     'fs-extra' : fsProxy,
-    'mkdirp'      : mkdirpProxy
 }).default;
 
 describe('.autoConfigure method', () => {

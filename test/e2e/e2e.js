@@ -6,8 +6,7 @@ const assert       = require("assert");
 const path         = require("path");
 const tmp          = require('tmp');
 const queue        = require('queue-async');
-const fs           = require('fs');
-const mkdirp       = require('mkdirp');
+const fs           = require('fs-extra');
 const readdir      = require('recursive-readdir') // handle batching
 var api_key        = "XXX";
 var workflowID     = 486;
@@ -182,7 +181,7 @@ describe('metrichor api end-to-end test', function () {
             tmpOutputDir = tmp.dirSync({unsafeCleanup: true});
             // Creating two empty batches for testing
             var fileQ = queue(1);
-            mkdirp.sync(path.join(tmpInputDir.name, 'batch_1'));
+            fs.mkdirpSync(path.join(tmpInputDir.name, 'batch_1'));
             // Generating 300 empty .fastq files
             // 100 in root, 100 in batch_1, 100 in batch_2
             let k = 0;

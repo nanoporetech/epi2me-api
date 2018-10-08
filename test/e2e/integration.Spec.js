@@ -1,6 +1,6 @@
 "use strict";
 /**
- * end-to-end test of the metrichor api
+ * end-to-end test of the epi2me api
  *
  */
 
@@ -10,7 +10,7 @@ const sinon          = require("sinon");
 const path           = require("path");
 const tmp            = require('tmp');
 const queue          = require('queue-async');
-const fs             = require('fs');
+const fs             = require('fs-extra');
 var fsProxy        = {};
 const api_key        = process.env.API_KEY;
 const workflowID     = 486;
@@ -23,7 +23,7 @@ const EPI2ME         = proxyquire('../build/lib/epi2me', {
     'fs-extra' : fsProxy
 }).default;
 
-describe('metrichor api integration test', function () {
+describe('epi2me api integration test', function () {
 
     if (require("os").type() !== 'Darwin') {
 	console.log('WARNING: e2e tests only configured for OSX');

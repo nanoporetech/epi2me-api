@@ -2,14 +2,9 @@
 const proxyquire     = require('proxyquire');
 const assert         = require("assert");
 const sinon          = require("sinon");
-const path           = require("path");
-const _              = require("lodash");
-const tmp            = require('tmp');
-const queue          = require('queue-async');
-const fs             = require('fs');
+
 let requestProxy   = {};
 let fsProxy        = {};
-let mkdirpProxy    = {};
 let awsProxy       = {};
 proxyquire('../../lib/utils', {
     'request' : requestProxy
@@ -22,7 +17,6 @@ describe('Array', () => {
         EPI2ME = proxyquire('../../lib/epi2me.js', {
             'aws-sdk'  : awsProxy,
             'fs-extra' : fsProxy,
-            'mkdirp'   : mkdirpProxy
         }).default;
     });
 

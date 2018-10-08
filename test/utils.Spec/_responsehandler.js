@@ -1,12 +1,11 @@
 import utils from "../../lib/utils";
 
-const proxyquire     = require('proxyquire');
-const assert         = require("assert");
-const sinon          = require("sinon");
-const tmp            = require('tmp');
-const fs             = require('fs-extra');
-const _              = require('lodash');
-const path           = require('path');
+const assert = require("assert");
+const sinon  = require("sinon");
+const tmp    = require('tmp');
+const fs     = require('fs-extra');
+const _      = require('lodash');
+const path   = require('path');
 
 describe('._responseHandler method', () => {
     let callback;

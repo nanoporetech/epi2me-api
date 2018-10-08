@@ -1020,13 +1020,13 @@ class EPI2ME {
                     if (this.config.options.filetype === ".fastq" || this.config.options.filetype === ".fq") {
                         // files may be appended, so can't increment the totalSize
                         if (!this._downloadedFileSizes) this._downloadedFileSizes = {};
-                        _utils2.default.getFileSize(outputFile).then(size => {
+                        _fsExtra2.default.stat(outputFile).then(stats => stats.size || 0).then(size => {
                             this._downloadedFileSizes[outputFile] = size;
                             this._stats.download.totalSize = _lodash2.default.chain(this._downloadedFileSizes).values().sum().value();
                             logStats();
                         }).catch(err => this.log.error("finish, getFileSize (fastq) " + err));
                     } else {
-                        _utils2.default.getFileSize(outputFile).then(size => {
+                        _utils2.default.getFileSize(outputFile).then(stats => stats.size || 0).then(size => {
                             this._stats.download.totalSize += size;
                             logStats();
                         }).catch(err => this.log.error("finish, getFileSize (other) " + err));
