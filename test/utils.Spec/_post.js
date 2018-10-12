@@ -1,16 +1,16 @@
+/* global describe, it */
 import utils from "../../lib/utils";
 
 const assert  = require("assert");
 const sinon   = require("sinon");
 const request = require("request");
 
-describe('utils._post', () => {
+describe("utils._post", () => {
     it("should invoke post", () => {
-        let req  = {};
         let stub1 = sinon.stub(request, "post").callsFake((req, cb) => {
             assert.deepEqual(req, {
                 uri: "http://epi2me.test/entity",
-		body: "{\"id_entity\":123,\"name\":\"test entity\"}",
+                body: "{\"id_entity\":123,\"name\":\"test entity\"}",
                 gzip: true,
                 headers: {
                     "Accept": "application/json",
@@ -42,12 +42,11 @@ describe('utils._post', () => {
     });
 
     it("should invoke post with legacy form params", () => {
-        let req  = {};
         let stub1 = sinon.stub(request, "post").callsFake((req, cb) => {
             assert.deepEqual(req, {
                 uri: "http://epi2me.test/entity",
-		body: "{\"id_entity\":123,\"name\":\"test entity\"}",
-		form: {json:"{\"id_entity\":123,\"name\":\"test entity\"}", id_entity: 123, name: "test entity"},
+                body: "{\"id_entity\":123,\"name\":\"test entity\"}",
+                form: {json:"{\"id_entity\":123,\"name\":\"test entity\"}", id_entity: 123, name: "test entity"},
                 gzip: true,
                 headers: {
                     "Accept": "application/json",
@@ -70,7 +69,7 @@ describe('utils._post', () => {
         }, {
             apikey: "foo",
             url: "http://epi2me.test",
-	    legacy_form: true
+            legacy_form: true
         }, (err, data) => {
             assert.equal(err, "one");
             assert.equal(data, "three");
@@ -80,7 +79,6 @@ describe('utils._post', () => {
     });
 
     it("should invoke post with proxy", () => {
-        let req  = {};
         let stub1 = sinon.stub(request, "post").callsFake((req, cb) => {
             assert.deepEqual(req, {
                 uri: "http://epi2me.test/entity",
