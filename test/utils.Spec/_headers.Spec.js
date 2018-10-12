@@ -33,6 +33,21 @@ describe('utils._headers', () => {
 	stub.restore();
     });
 
+    it("should override default headers", () => {
+        let req  = {headers: {"Accept":"application/gzip", "Accept-Encoding": "gzip"}};
+        let stub = sinon.stub(utils, "_sign").callsFake();
+        utils._headers(req, {user_agent: "EPI2ME Test", agent_version: "0.0.1"});
+        assert.deepEqual(req.headers, {
+            "Accept-Encoding": "gzip",
+            "Accept": "application/gzip",
+            "Content-Type": "application/json",
+            "X-EPI2ME-Client": "EPI2ME Test",
+            "X-EPI2ME-Version": "0.0.1"
+        });
+        assert(stub.calledOnce);
+        stub.restore();
+    });
+
     it("should initialise options", () => {
 	let req  = {headers: {"accept-language":"mt"}};
 	let stub = sinon.stub(utils, "_sign").callsFake();
