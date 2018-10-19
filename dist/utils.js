@@ -18,18 +18,16 @@ const targetBatchSize = 4000;
 
 utils._headers = (req, options) => {
     // common headers required for everything
-    if (!req.headers) {
-        req.headers = {};
-    }
-
     if (!options) {
         options = {};
     }
 
-    req.headers["Accept"] = "application/json";
-    req.headers["Content-Type"] = "application/json";
-    req.headers["X-EPI2ME-Client"] = options.user_agent || ""; // new world order
-    req.headers["X-EPI2ME-Version"] = options.agent_version || "0"; // new world order
+    req.headers = Object.assign({}, {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "X-EPI2ME-Client": options.user_agent || "", // new world order
+        "X-EPI2ME-Version": options.agent_version || "0" // new world order
+    }, req.headers);
 
     if (options._signing !== false) {
         utils._sign(req, options);
@@ -112,7 +110,11 @@ utils._pipe = (uri, filepath, options, cb, progressCb) => {
     let call = srv + uri;
     let req = {
         uri: call,
-        gzip: true
+        gzip: true,
+        headers: {
+            "Accept-Encoding": "gzip",
+            "Accept": "application/gzip"
+        }
     };
 
     utils._headers(req, options);
