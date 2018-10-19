@@ -860,7 +860,10 @@ class EPI2ME {
                 // MC-4987 - folder hints may now be nested.
                 // eg: HIGH_QUALITY/CLASSIFIED/ALIGNED
                 // or: LOW_QUALITY
-                let codes = messageBody.telemetry.hints.folder.split("/");
+                let codes = messageBody.telemetry.hints.folder.split("/") // hints are always unix-style
+                .map(o => {
+                    return o.toUpperCase();
+                }); // MC-5612 cross-platform uppercase "pass" folder
                 folder = _path2.default.join.apply(null, [folder, ...codes]);
             }
         }
@@ -873,9 +876,6 @@ class EPI2ME {
 
         _fsExtra2.default.mkdirpSync(folder);
         outputFile = _path2.default.join(folder, fn);
-        outputFile = _path2.default.join(_path2.default.isAbsolute(outputFile) ? "/" : "", ...outputFile.split(_path2.default.sep).map(o => {
-            return o === "pass" ? "PASS" : o;
-        })); // MC-5612 cross-platform uppercase "pass" folder
 
         if (this.config.options.downloadMode === "data+telemetry") {
             /* download file from S3 */
