@@ -384,7 +384,17 @@ class REST {
     }
 
     dataset(id, cb) {
-        return this._read("dataset", id, cb);
+        if (!this.options.local) {
+            return this._read("dataset", id, cb);
+        }
+
+        this.datasets((err, data) => {
+            // READ response has the same structure as LIST, so just
+            // fish out the matching id
+            return cb(err, data.find(o => {
+                return o.id_dataset == id;
+            }));
+        });
     }
 
     fetchContent(url, cb) {
