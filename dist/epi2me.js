@@ -253,16 +253,28 @@ class EPI2ME {
         });
     }
 
-    sessionedS3() {
-        this.session();
-        return new _awsSdk2.default.S3({
-            useAccelerateEndpoint: this.config.options.awsAcceleration === "on"
+    async sessionedS3() {
+        let s3 = await new Promise(resolve => {
+            this.session(resolve);
+        }).then(() => {
+            return Promise.resolve(new _awsSdk2.default.S3({
+                useAccelerateEndpoint: this.config.options.awsAcceleration === "on"
+            }));
+        }).catch(err => {
+            this.log.error(err);
         });
+        return s3;
     }
 
-    sessionedSQS() {
-        this.session();
-        return new _awsSdk2.default.SQS();
+    async sessionedSQS() {
+        let sqs = await new Promise(resolve => {
+            this.session(resolve);
+        }).then(() => {
+            return Promise.resolve(new _awsSdk2.default.SQS());
+        }).catch(err => {
+            this.log.error(err);
+        });
+        return sqs;
     }
 
     autoStart(workflow_config, cb) {
@@ -1088,7 +1100,7 @@ class EPI2ME {
                 }
             });
         };
-        visibilityInterval = setInterval(updateVisibilityFunc, 1000 * this.config.options.inFlightDelay * 0.9); /* message in flight timeout in ms, less 10% */
+        visibilityInterval = setInterval(updateVisibilityFunc, 900 * this.config.options.inFlightDelay); /* message in flight timeout in ms, less 10% */
 
         rs.on("data", () => {
             //bytesLoaded += chunk.length;
