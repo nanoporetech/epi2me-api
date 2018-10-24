@@ -253,28 +253,16 @@ class EPI2ME {
         });
     }
 
-    async sessionedS3() {
-        let s3 = await new Promise(resolve => {
-            this.session(resolve);
-        }).then(() => {
-            return Promise.resolve(new _awsSdk2.default.S3({
-                useAccelerateEndpoint: this.config.options.awsAcceleration === "on"
-            }));
-        }).catch(err => {
-            this.log.error(err);
+    sessionedS3() {
+        this.session();
+        return new _awsSdk2.default.S3({
+            useAccelerateEndpoint: this.config.options.awsAcceleration === "on"
         });
-        return s3;
     }
 
-    async sessionedSQS() {
-        let sqs = await new Promise(resolve => {
-            this.session(resolve);
-        }).then(() => {
-            return Promise.resolve(new _awsSdk2.default.SQS());
-        }).catch(err => {
-            this.log.error(err);
-        });
-        return sqs;
+    sessionedSQS() {
+        this.session();
+        return new _awsSdk2.default.SQS();
     }
 
     autoStart(workflow_config, cb) {
