@@ -1,7 +1,5 @@
-"use strict";
-const proxyquire     = require('proxyquire');
-const assert         = require("assert");
-const sinon          = require("sinon");
+const assert = require("assert");
+const sinon  = require("sinon");
 
 import EPI2ME from "../../lib/epi2me";
 
@@ -87,7 +85,7 @@ describe('epi2me', () => {
             assert.equal(client.apikey(), 'FooBar02', 'apikey built from constructor');
         });
 
-        it('should create default loggers', () => {
+        it('should create and fire default loggers', () => {
             let client;
 	    let stubs = {
 		info: sinon.stub(console, "log").callsFake(), // special
