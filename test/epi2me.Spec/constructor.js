@@ -1,28 +1,13 @@
-"use strict";
-const proxyquire     = require('proxyquire');
-const assert         = require("assert");
-const sinon          = require("sinon");
+const assert = require("assert");
+const sinon  = require("sinon");
 
-let requestProxy   = {};
-let fsProxy        = {};
-let awsProxy       = {};
-proxyquire('../../lib/utils', {
-    'request' : requestProxy
-});
+import EPI2ME from "../../lib/epi2me";
 
-describe('Array', () => {
-    let EPI2ME;
+describe('epi2me', () => {
 
-    beforeEach(() => {
-        EPI2ME = proxyquire('../../lib/epi2me.js', {
-            'aws-sdk'  : awsProxy,
-            'fs-extra' : fsProxy,
-        }).default;
-    });
-
-    describe('epi2me constructor', () => {
+    describe('constructor', () => {
         it('should create an epi2me object with defaults and allow overwriting', () => {
-            var client;
+            let client;
             assert.doesNotThrow(() => {
 		client = new EPI2ME();
             }, Error, 'client obtained');
@@ -32,7 +17,7 @@ describe('Array', () => {
         });
 
         it('should create an epi2me object using the parsed options string', () => {
-	    var client;
+	    let client;
             assert.doesNotThrow(() => {
                 client = new EPI2ME(JSON.stringify({
                     url: "test_url"
@@ -42,7 +27,7 @@ describe('Array', () => {
         });
 
         it('should create an epi2me object with log functions', () => {
-            var client,
+            let client,
                 customLogging = {
                     debug: () => {},
                     info:  () => {},
@@ -61,7 +46,6 @@ describe('Array', () => {
                 client = new EPI2ME({
                     log: customLogging
                 });
-                delete requestProxy.get;
             }, Error, 'client obtained');
             assert.deepEqual(client.log, customLogging, 'custom logging');
 
@@ -74,12 +58,11 @@ describe('Array', () => {
         });
 
         it('should get and overwrite config properties', () => {
-            var client;
+            let client;
             assert.doesNotThrow(() => {
                 client = new EPI2ME({
                     url: 'initial'
                 });
-                delete requestProxy.get;
             }, Error, 'client obtained');
 
             assert.equal(client.attr('url'), 'initial');
@@ -91,16 +74,38 @@ describe('Array', () => {
         });
 
         it('should create an epi2me with opts', () => {
-            var client;
+            let client;
             assert.doesNotThrow(() => {
                 client = new EPI2ME({
                     url: 'https://epi2me.local:8000',
                     apikey: 'FooBar02'
                 });
-                delete requestProxy.get;
             }, Error, 'client obtained');
             assert.equal(client.url(), 'https://epi2me.local:8000', 'url built from constructor');
             assert.equal(client.apikey(), 'FooBar02', 'apikey built from constructor');
+        });
+
+        it('should create and fire default loggers', () => {
+            let client;
+	    let stubs = {
+		info: sinon.stub(console, "log").callsFake(), // special
+		warn: sinon.stub(console, "warn").callsFake(),
+		error: sinon.stub(console, "error").callsFake(),
+		debug: sinon.stub(console, "debug").callsFake(),
+	    };
+
+            assert.doesNotThrow(() => {
+                client = new EPI2ME({loglevel: "debug"});
+		Object.keys(stubs).forEach((o) => {
+		    client.log[o](`hello ${o}`);
+		});
+            }, Error, 'client obtained');
+
+	    Object.keys(stubs).forEach((o) => {
+		stubs[o].restore();
+		console.log("ARGS", o, stubs[o].args[0]);
+		assert.ok(stubs[o].args[0][0].match(`hello ${o}`), "correct log level called with message");
+	    });
         });
     });
 });
