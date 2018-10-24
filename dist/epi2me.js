@@ -74,11 +74,11 @@ class EPI2ME {
             }
         } else {
             this.log = {
-                debug: msg => {
-                    console.debug("[" + new Date().toISOString() + `] DEBUG: ${msg}`);
-                }, // eslint-disable-line no-console
                 info: msg => {
                     console.log("[" + new Date().toISOString() + `] INFO: ${msg}`);
+                }, // eslint-disable-line no-console
+                debug: msg => {
+                    console.debug("[" + new Date().toISOString() + `] DEBUG: ${msg}`);
                 }, // eslint-disable-line no-console
                 warn: msg => {
                     console.warn("[" + new Date().toISOString() + `] WARN: ${msg}`);
@@ -1070,11 +1070,11 @@ class EPI2ME {
         };
         transferTimeout = setTimeout(transferTimeoutFunc, 1000 * this.config.options.downloadTimeout); /* download stream timeout in ms */
 
-        rs.on("data", chunk => {
+        rs.on("data", () => {
             //bytesLoaded += chunk.length;
             clearTimeout(transferTimeout);
             transferTimeout = setTimeout(transferTimeoutFunc, 1000 * this.config.options.downloadTimeout); /* download stream timeout in ms */
-            this.log.debug(`downloaded ${chunk.length} bytes. resetting transferTimeout`);
+            //                this.log.debug(`downloaded ${chunk.length} bytes. resetting transferTimeout`);
         }).pipe(file); // initiate download stream
     }
 
