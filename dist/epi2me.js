@@ -898,7 +898,7 @@ class EPI2ME {
 
     _initiateDownloadStream(s3, messageBody, message, outputFile, completeCb) {
 
-        let file, transferTimeout, rs;
+        let file, transferTimeout, visibilityInterval, rs;
 
         const deleteFile = () => {
             // cleanup on exception
@@ -1054,6 +1054,7 @@ class EPI2ME {
 
             /* must signal completion */
             clearTimeout(transferTimeout);
+            clearInterval(visibilityInterval);
             // MC-2143 - check for more jobs
             setTimeout(this.loadAvailableDownloadMessages.bind(this));
             completeCb();
@@ -1064,11 +1065,30 @@ class EPI2ME {
             onStreamError();
         });
 
-        let transferTimeoutFunc = () => {
+        const transferTimeoutFunc = () => {
             this.log.warn("transfer timed out");
             onStreamError();
         };
         transferTimeout = setTimeout(transferTimeoutFunc, 1000 * this.config.options.downloadTimeout); /* download stream timeout in ms */
+
+        const updateVisibilityFunc = () => {
+            const queueUrl = this.config.instance.outputQueueURL;
+            const receiptHandle = message.ReceiptHandle;
+
+            this.log.debug({ message_id: message.MessageId }, "updateVisibility");
+
+            this.sqs.changeMessageVisibility({
+                QueueUrl: queueUrl,
+                ReceiptHandle: receiptHandle,
+                VisibilityTimeout: this.config.options.inFlightDelay
+            }, (err, data) => {
+                if (err) {
+                    this.log.error({ message_id: message.MessageId, queue: queueUrl, error: err, data: data }, "Error setting visibility");
+                    clearInterval(visibilityInterval);
+                }
+            });
+        };
+        visibilityInterval = setInterval(updateVisibilityFunc, 1000 * this.config.options.inFlightDelay * 0.9); /* message in flight timeout in ms, less 10% */
 
         rs.on("data", () => {
             //bytesLoaded += chunk.length;

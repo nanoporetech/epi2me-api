@@ -1,8 +1,5 @@
-"use strict";
-
-const assert         = require("assert");
-const sinon          = require("sinon");
-const path           = require("path");
+const assert = require("assert");
+const sinon  = require("sinon");
 
 import EPI2ME from "../../lib/epi2me";
 
