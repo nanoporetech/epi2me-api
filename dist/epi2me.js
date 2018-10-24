@@ -716,10 +716,10 @@ class EPI2ME {
             this.downloadWorkerPool.defer(queueCb => {
                 /* queueCb *must* be called to signal queue job termination */
                 let timeoutHandle;
-                function done() {
+                const done = () => {
                     clearTimeout(timeoutHandle);
                     setTimeout(queueCb); // MC-5459 - setTimeout to clear callstack
-                }
+                };
 
                 // timeout to ensure this queueCb *always* gets called
                 timeoutHandle = setTimeout(() => {
@@ -745,7 +745,7 @@ class EPI2ME {
                     Bucket: messageBody.bucket,
                     Key: messageBody.path
 
-                }, function (deleteObjectErr) {
+                }, deleteObjectErr => {
                     if (deleteObjectErr) {
                         this.log.warn(String(deleteObjectErr) + " " + String(deleteObjectErr.stack)); // an error occurred
                     } else {
@@ -763,7 +763,7 @@ class EPI2ME {
                     QueueUrl: queueURL,
                     ReceiptHandle: message.ReceiptHandle
 
-                }, function (deleteMessageError) {
+                }, deleteMessageError => {
                     if (deleteMessageError) {
                         this.log.warn("error in deleteMessage " + String(deleteMessageError));
                     }
@@ -898,7 +898,7 @@ class EPI2ME {
 
     _initiateDownloadStream(s3, messageBody, message, outputFile, completeCb) {
 
-        let file, transferTimeout, rs;
+        let file, transferTimeout, visibilityInterval, rs;
 
         const deleteFile = () => {
             // cleanup on exception
@@ -1054,6 +1054,7 @@ class EPI2ME {
 
             /* must signal completion */
             clearTimeout(transferTimeout);
+            clearInterval(visibilityInterval);
             // MC-2143 - check for more jobs
             setTimeout(this.loadAvailableDownloadMessages.bind(this));
             completeCb();
@@ -1064,11 +1065,30 @@ class EPI2ME {
             onStreamError();
         });
 
-        let transferTimeoutFunc = () => {
+        const transferTimeoutFunc = () => {
             this.log.warn("transfer timed out");
             onStreamError();
         };
         transferTimeout = setTimeout(transferTimeoutFunc, 1000 * this.config.options.downloadTimeout); /* download stream timeout in ms */
+
+        const updateVisibilityFunc = () => {
+            const queueUrl = this.config.instance.outputQueueURL;
+            const receiptHandle = message.ReceiptHandle;
+
+            this.log.debug({ message_id: message.MessageId }, "updateVisibility");
+
+            this.sqs.changeMessageVisibility({
+                QueueUrl: queueUrl,
+                ReceiptHandle: receiptHandle,
+                VisibilityTimeout: this.config.options.inFlightDelay
+            }, (err, data) => {
+                if (err) {
+                    this.log.error({ message_id: message.MessageId, queue: queueUrl, error: err, data: data }, "Error setting visibility");
+                    clearInterval(visibilityInterval);
+                }
+            });
+        };
+        visibilityInterval = setInterval(updateVisibilityFunc, 900 * this.config.options.inFlightDelay); /* message in flight timeout in ms, less 10% */
 
         rs.on("data", () => {
             //bytesLoaded += chunk.length;
@@ -1088,13 +1108,13 @@ class EPI2ME {
             timeoutHandle,
             completed = false;
 
-        function done(err) {
+        const done = err => {
             if (!completed) {
                 completed = true;
                 clearTimeout(timeoutHandle);
                 completeCb(err, file);
             }
-        }
+        };
 
         // timeout to ensure this completeCb *always* gets called
         timeoutHandle = setTimeout(() => {
@@ -1244,7 +1264,7 @@ class EPI2ME {
 
         if (message.components) {
             // optionally populate input + output queues
-            Object.keys(message.components).forEach(function (o) {
+            Object.keys(message.components).forEach(o => {
                 if (message.components[o].inputQueueName === "uploadMessageQueue") {
                     message.components[o].inputQueueName = this.uploadMessageQueue;
                 }
@@ -1438,8 +1458,8 @@ class EPI2ME {
         let sqs = this.sessionedSQS(),
             queuename;
 
-        if (!cb) cb = function () {
-            return undefined;
+        if (!cb) cb = () => {
+            return;
         };
         if (!queueURL) return cb();
 
@@ -1494,7 +1514,7 @@ class EPI2ME {
         if (this._stats[key]) {
             this._stats[key].queueLength = isNaN(this._stats[key].queueLength) ? 0 : this._stats[key].queueLength; // a little housekeeping
             // 'total' is the most up-to-date measure of the total number of reads to be uploaded
-            if (key === "upload" && this._uploadedFiles && this._stats && this._stats.upload) {
+            if (key === "upload" && this._uploadedFiles && this._stats.upload) {
                 this._stats.upload.total = this._uploadedFiles.length + this._stats.upload.enqueued + this._stats.upload.success;
             }
         }
