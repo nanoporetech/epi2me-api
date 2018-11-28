@@ -3,7 +3,9 @@
 # Metrichor API
 
 Test Coverage
-[![coverage report](https://git.oxfordnanolabs.local/metrichor/api/badges/coverage.svg)]
+master: [![coverage report](https://git.oxfordnanolabs.local/metrichor/api/badges/master/coverage.svg)]
+dev: [![coverage report](https://git.oxfordnanolabs.local/metrichor/api/badges/dev/coverage.svg)]
+
 is hosted on Gitlab-Pages at:
 https://metrichor.git.oxfordnanolabs.local/api/
 
