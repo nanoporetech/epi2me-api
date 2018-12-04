@@ -16,9 +16,9 @@ var _path = require("path");
 
 var _path2 = _interopRequireDefault(_path);
 
-var _utils = require("./utils");
+var _utilsFs = require("./utils-fs");
 
-var _utils2 = _interopRequireDefault(_utils);
+var _utilsFs2 = _interopRequireDefault(_utilsFs);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -148,7 +148,7 @@ class REST_FS extends _rest2.default {
         // download tarball including workflow json
         // allocate install_token with STS credentials
         // initialise coastguard to perform ECR docker pull
-        return _utils2.default._pipe(`workflow/bundle/${id_workflow}.tar.gz`, filepath, this.options, cb, progressCb);
+        return _utilsFs2.default._pipe(`workflow/bundle/${id_workflow}.tar.gz`, filepath, this.options, cb, progressCb);
     }
 }
 exports.default = REST_FS;

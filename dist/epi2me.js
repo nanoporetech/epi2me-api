@@ -41,9 +41,9 @@ var _queueAsync = require("queue-async");
 
 var _queueAsync2 = _interopRequireDefault(_queueAsync);
 
-var _utils = require("./utils");
+var _utilsFs = require("./utils-fs");
 
-var _utils2 = _interopRequireDefault(_utils);
+var _utilsFs2 = _interopRequireDefault(_utilsFs);
 
 var _restFs = require("./rest-fs");
 
@@ -495,7 +495,7 @@ class EPI2ME {
             this.log.debug(`loadUploadFiles: ${remaining} batches in the inputBatchQueue`);
             this._dirScanInProgress = true;
             this.log.debug("scanning input folder for new files");
-            _utils2.default.loadInputFiles(this.config.options, this.log).then(files => {
+            _utilsFs2.default.loadInputFiles(this.config.options, this.log).then(files => {
                 this._dirScanInProgress = false;
                 if (files && files.length) {
                     this.enqueueUploadFiles(files);
@@ -596,7 +596,7 @@ class EPI2ME {
                     }
 
                     statQ.defer(releaseQSlot => {
-                        _utils2.default.countFileReads(file.path).then(count => {
+                        _utilsFs2.default.countFileReads(file.path).then(count => {
                             file.readCount = count;
                             this._stats.upload.enqueued += count;
                             this._stats.upload.readsCount = this._stats.upload.readsCount ? this._stats.upload.readsCount + count : count;
@@ -871,7 +871,7 @@ class EPI2ME {
         if (this.config.options.filetype === ".fast5") {
             // MC-5240: .fast5 files always need to be batched
             // eg: HIGH_QUALITY/CLASSIFIED/ALIGNED/BATCH-1
-            folder = _utils2.default.findSuitableBatchIn(folder);
+            folder = _utilsFs2.default.findSuitableBatchIn(folder);
         }
 
         _fsExtra2.default.mkdirpSync(folder);
@@ -1026,7 +1026,7 @@ class EPI2ME {
                             logStats();
                         }).catch(err => this.log.error("finish, getFileSize (fastq) " + err));
                     } else {
-                        _utils2.default.getFileSize(outputFile).then(stats => stats.size || 0).then(size => {
+                        _utilsFs2.default.getFileSize(outputFile).then(stats => stats.size || 0).then(size => {
                             this._stats.download.totalSize += size;
                             logStats();
                         }).catch(err => this.log.error("finish, getFileSize (other) " + err));
