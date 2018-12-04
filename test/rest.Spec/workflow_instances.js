@@ -1,5 +1,5 @@
 import REST from "../../lib/rest";
-import utils from "../../lib/utils";
+import * as utils from "../../lib/utils";
 
 const sinon  = require("sinon");
 const assert = require("assert");
@@ -46,65 +46,5 @@ describe("rest.workflow_instances", () => {
 					      description: "test wf 2",
 					      rev:"0.0.1"}]);
 	stub.restore();
-    });
-
-    it("must list from filesystem", () => {
-	let ringbuf = new bunyan.RingBuffer({ limit: 100 });
-        let log     = bunyan.createLogger({ name: "log", stream: ringbuf });
-	let dir     = tmp.dirSync({unsafeCleanup: true}).name;
-
-	fs.mkdirpSync(path.join(dir, "instances", "2018-09-10T14-31-04.751Z"));
-	fs.mkdirpSync(path.join(dir, "instances", "2018-09-10T14-29-48.061Z"));
-	fs.mkdirpSync(path.join(dir, "instances", "2018-10-02T12-25-48.061Z"));
-
-	let wf = {id_workflow: 34567, description: "test flow", "rev": "12.34"}
-	fs.writeFileSync(path.join(dir, "instances", "2018-09-10T14-31-04.751Z", "workflow.json"), JSON.stringify(wf));
-	fs.writeFileSync(path.join(dir, "instances", "2018-09-10T14-29-48.061Z", "workflow.json"), JSON.stringify(wf));
-	fs.writeFileSync(path.join(dir, "instances", "2018-10-02T12-25-48.061Z", "workflow.json"), "corrupt json");
-
-	let rest = new REST({log: log, local: true, url: dir});
-	let fake = sinon.fake();
-
-	new Promise((accept, reject) => {
-	    rest.workflow_instances((err, data) => {
-		if(err) reject(fake(err));
-		accept(fake(null, data));
-	    });
-	})
-	    .then(() => {
-		sinon.assert.calledOnce(fake);
-		sinon.assert.calledWith(fake, null,
-					[{
-					    description: "test flow",
-					    filename: dir+"/instances/2018-09-10T14-29-48.061Z/workflow.json",
-					    id_workflow: 34567,
-					    id_workflow_instance: "2018-09-10T14-29-48.061Z",
-					    rev: "12.34"
-					}, {
-					    description: "test flow",
-					    filename: dir+"/instances/2018-09-10T14-31-04.751Z/workflow.json",
-					    id_workflow: 34567,
-					    id_workflow_instance: "2018-09-10T14-31-04.751Z",
-					    rev: "12.34"
-					}, {
-					    description: "-",
-					    filename: dir+"/instances/2018-10-02T12-25-48.061Z/workflow.json",
-					    id_workflow: "-",
-					    id_workflow_instance: "2018-10-02T12-25-48.061Z",
-					    rev: "0.0"
-					}]);
-	    });
-    });
-
-    it("must bail when local with query", () => {
-        let ringbuf    = new bunyan.RingBuffer({ limit: 100 });
-        let log        = bunyan.createLogger({ name: "log", stream: ringbuf });
-        let fake = sinon.fake();
-        let rest = new REST({log: log, local: true});
-        assert.doesNotThrow(() => {
-            rest.workflow_instances(fake, "a query");
-        });
-        assert(fake.calledOnce, "callback invoked");
-        assert(fake.firstCall.args[0] instanceof Error);
     });
 });

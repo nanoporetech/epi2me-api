@@ -1,11 +1,11 @@
-import REST from "../../lib/rest";
+import REST from "../../lib/rest-fs";
 import * as utils from "../../lib/utils";
 
 const assert     = require("assert");
 const sinon      = require("sinon");
 const bunyan     = require("bunyan");
 
-describe('rest.ami_image', () => {
+describe('rest-fs.ami_image', () => {
     it('should update an ami_image', () => {
         var client = new REST({
             "url"    : "http://metrichor.local:8080",

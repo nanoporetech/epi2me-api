@@ -1,11 +1,11 @@
-import REST from "../../lib/rest";
+import REST from "../../lib/rest-fs";
 import * as utils from "../../lib/utils";
 
 const sinon  = require("sinon");
 const assert = require("assert");
 const bunyan = require("bunyan");
 
-describe("rest.register", () => {
+describe("rest-fs.register", () => {
     it("must invoke post with details", () => {
 	let ringbuf = new bunyan.RingBuffer({ limit: 100 });
         let log     = bunyan.createLogger({ name: "log", stream: ringbuf });

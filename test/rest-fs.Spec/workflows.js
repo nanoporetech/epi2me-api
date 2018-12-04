@@ -1,4 +1,4 @@
-import REST from "../../lib/rest";
+import REST from "../../lib/rest-fs";
 import fs from "fs-extra";
 
 const sinon  = require("sinon");
@@ -7,7 +7,7 @@ const bunyan = require("bunyan");
 const tmp    = require("tmp");
 const path   = require("path");
 
-describe('rest.workflows', () => {
+describe('rest-fs.workflows', () => {
     process.on('unhandledRejection', (reason, promise) => { console.log("[workflows.js] UNHANDLED PROMISE REJECTION", reason, promise); });
     it("must invoke list with options", () => {
 	let ringbuf    = new bunyan.RingBuffer({ limit: 100 });

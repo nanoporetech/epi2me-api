@@ -45,9 +45,9 @@ var _utils = require("./utils");
 
 var _utils2 = _interopRequireDefault(_utils);
 
-var _rest = require("./rest");
+var _restFs = require("./rest-fs");
 
-var _rest2 = _interopRequireDefault(_rest);
+var _restFs2 = _interopRequireDefault(_restFs);
 
 var _default_options = require("./default_options.json");
 
@@ -55,7 +55,7 @@ var _default_options2 = _interopRequireDefault(_default_options);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-const REST = exports.REST = _rest2.default; /* MC-565 handle EMFILE gracefully; use Promises */
+const REST = exports.REST = _restFs2.default; /* MC-565 handle EMFILE gracefully; use Promises */
 const version = exports.version = require("../package.json").version;
 class EPI2ME {
     constructor(opt_string) {
@@ -139,7 +139,7 @@ class EPI2ME {
             this.skipTo = _path2.default.join(this.config.options.inputFolder, "skip");
         }
 
-        this.REST = new _rest2.default(_lodash2.default.merge({}, { log: this.log }, this.config.options));
+        this.REST = new _restFs2.default(_lodash2.default.merge({}, { log: this.log }, this.config.options));
     }
 
     stop_everything(cb) {

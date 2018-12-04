@@ -6,6 +6,9 @@
  */
 "use strict";
 
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
 const request = require("request");
 const progress = require("request-progress");
 const crypto = require("crypto");
@@ -76,7 +79,7 @@ utils._sign = (req, options) => {
 };
 
 utils._get = (uri, options, cb) => {
-    // do something to get/set data in metrichor
+    // do something to get/set data in epi2me
     let call,
         srv = options.url;
 
@@ -376,5 +379,9 @@ utils.loadInputFiles = ({ inputFolder, outputFolder, uploadedFolder, filetype },
     });
 };
 
-module.exports = utils;
+const _get = exports._get = utils._get;
+const _put = exports._put = utils._put;
+const _post = exports._post = utils._post;
+exports.default = utils;
+
 module.exports.version = require("../package.json").version;

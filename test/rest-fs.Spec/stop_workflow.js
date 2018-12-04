@@ -1,11 +1,11 @@
-import REST from "../../lib/rest";
+import REST from "../../lib/rest-fs";
 import * as utils from "../../lib/utils";
 
 const sinon  = require("sinon");
 const assert = require("assert");
 const bunyan = require("bunyan");
 
-describe("rest.stop_workflow", () => {
+describe("rest-fs.stop_workflow", () => {
     it("must invoke put with details", () => {
 	let ringbuf    = new bunyan.RingBuffer({ limit: 100 });
         let log        = bunyan.createLogger({ name: "log", stream: ringbuf });

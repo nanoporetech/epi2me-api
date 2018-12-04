@@ -3,7 +3,7 @@ const sinon  = require("sinon");
 const tmp    = require("tmp");
 const fs     = require("fs-extra");
 const path   = require('path');
-const utils  = require('../../lib/utils');
+import utils from '../../lib/utils';
 
 describe('utils folder methods: ', () => {
     let tmpInputDir, batch_1, batch_2;
@@ -14,7 +14,6 @@ describe('utils folder methods: ', () => {
         batch_2 = path.join(tmpInputDir.name, 'batch_2');
         fs.mkdirpSync(batch_2);
         fs.mkdirpSync(batch_1);
-
     });
 
     afterEach(() => {

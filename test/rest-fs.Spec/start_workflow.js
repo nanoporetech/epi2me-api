@@ -1,11 +1,11 @@
-import REST from "../../lib/rest";
+import REST from "../../lib/rest-fs";
 import * as utils from "../../lib/utils";
 
 const proxyquire = require('proxyquire');
 const assert     = require("assert");
 const sinon      = require("sinon");
 
-describe('start_workflow', () => {
+describe('rest-fs.start_workflow', () => {
 
     it('should start a workflow_instance', () => {
         var client = new REST({

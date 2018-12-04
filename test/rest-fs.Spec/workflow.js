@@ -1,4 +1,4 @@
-import REST from "../../lib/rest";
+import REST from "../../lib/rest-fs";
 import * as utils from "../../lib/utils";
 import fs from "fs-extra";
 
@@ -8,7 +8,7 @@ const bunyan = require("bunyan");
 const tmp    = require("tmp");
 const path   = require("path");
 
-describe('rest.workflow', () => {
+describe('rest-fs.workflow', () => {
     process.on('unhandledRejection', (reason, promise) => { console.log("[workflow.js] UNHANDLED PROMISE REJECTION", reason, promise); });
 
     it("must invoke put with options", () => {
