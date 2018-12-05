@@ -1,10 +1,17 @@
 <html>
+    <head>
+      <style type="text/css">
+        input[type=text], input[type=password] { width: 400px; }
+      </style>
+    </head>
   <body>
     <p>
       <label for="url">Endpoint
       <input type="text" name="url" id="url" value="https://epi2me-dev.nanoporetech.com"></input>
       </label>
     </p>
+
+    <p>Works without apikey/secret if you're already logged in to the endpoint</p>
 
     <p>
       <label for="apikey">API Key
@@ -20,9 +27,9 @@
     </p>
 
     <p>
-      <button data-action="workflows">workflows</button>
-      <button data-action="datasets">datasets</button>
-      <button data-action="workflow_instances">instances</button>
+      <button data-action="workflows" data-key="name">workflows</button>
+      <button data-action="datasets" data-key="name">datasets</button>
+      <button data-action="workflow_instances" data-key="description">instances</button>
     </p>
 
     <p id="results">
@@ -50,8 +57,9 @@
 		$('#results').append(`<p>Error: ${e}</p>`);
 	    }
 	    if(data) {
+		let key = $(evt.target).data("key");
 		data.forEach((o) => {
-		    $('#results').append(`<p>${o.name}</p>`);
+		    $('#results').append(`<p>${o[key]}</p>`);
 		});
 	    }
 	});
