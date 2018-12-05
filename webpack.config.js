@@ -5,6 +5,7 @@ module.exports = {
 //	globalObject: 'typeof self !== \'undefined\' ? self : this',
 	filename: "rest.web.js",
 	library: "EPI2ME",
+	libraryExport: "default",
 //	libraryTarget: "umd",
 //	umdNamedDefine: true
     },
