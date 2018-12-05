@@ -20,7 +20,9 @@
     </p>
 
     <p>
-      <button>go</button>
+      <button data-action="workflows">workflows</button>
+      <button data-action="datasets">datasets</button>
+      <button data-action="workflow_instances">instances</button>
     </p>
 
     <p id="results">
@@ -30,15 +32,20 @@
     <script src="dist/rest.web.js"></script>
     <script>
     $('button').click((evt) => {
+	$('button').prop("disabled", true);
 	evt.preventDefault();
 	$('#results').empty();
+	$('#results').append("<p>spinner</p>");
 	let e=new EPI2ME({
 	    log: console,
 	    url: $('#url').val(),
 	    apikey: $('#apikey').val(),
 	    apisecret: $('apisecret').val(),
 	});
-	e.workflows((e, data) => {
+	let action = $(evt.target).data("action");
+	e[action]((e, data) => {
+	    $('#results').empty();
+	    $('button').prop("disabled", false);
 	    if(e) {
 		$('#results').append(`<p>Error: ${e}</p>`);
 	    }
