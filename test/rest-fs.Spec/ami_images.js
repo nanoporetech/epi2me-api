@@ -4,37 +4,46 @@ const sinon  = require("sinon");
 const assert = require("assert");
 const bunyan = require("bunyan");
 
-describe("rest-fs.ami_images", () => {
+describe("rest.ami_images", () => {
+    let ringbuf;
+    let log;
+    let stubs;
+    beforeEach(() => {
+	ringbuf = new bunyan.RingBuffer({ limit: 100 });
+        log     = bunyan.createLogger({ name: "log", stream: ringbuf });
+	stubs   = [];
+    });
+
+    afterEach(() => {
+	stubs.forEach((s) => { s.restore(); });
+    });
+
     it("must invoke list with null query", () => {
-        let ringbuf    = new bunyan.RingBuffer({ limit: 100 });
-        let log        = bunyan.createLogger({ name: "log", stream: ringbuf });
-        let stub = sinon.stub(REST.prototype, "_list").callsFake((uri, cb) => {
+        let fake = sinon.fake();
+        let rest = new REST({log: log});
+        let stub = sinon.stub(rest, "_list").callsFake((uri, cb) => {
             assert.equal(uri, "ami_image", "default uri");
             cb();
         });
-        let fake = sinon.fake();
-        let rest = new REST({log: log});
+	stubs.push(stub);
         assert.doesNotThrow(() => {
             rest.ami_images(fake);
         });
         assert(fake.calledOnce, "callback invoked");
-        stub.restore();
     });
 
     it("must bail when local", () => {
-        let ringbuf    = new bunyan.RingBuffer({ limit: 100 });
-        let log        = bunyan.createLogger({ name: "log", stream: ringbuf });
-        let stub = sinon.stub(REST.prototype, "_list").callsFake((uri, cb) => {
+        let fake = sinon.fake();
+        let rest = new REST({log: log, local: true});
+        let stub = sinon.stub(rest, "_list").callsFake((uri, cb) => {
             assert.equal(uri, "ami_image", "default uri");
             cb();
         });
-        let fake = sinon.fake();
-        let rest = new REST({log: log, local: true});
+	stubs.push(stub);
         assert.doesNotThrow(() => {
             rest.ami_images(fake);
         });
         assert(fake.calledOnce, "callback invoked");
         assert(fake.firstCall.args[0] instanceof Error);
-        stub.restore();
     });
 });

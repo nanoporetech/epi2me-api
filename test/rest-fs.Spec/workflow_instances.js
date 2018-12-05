@@ -25,6 +25,7 @@ describe("rest-fs.workflow_instances", () => {
     it("must invoke list", () => {
 	let rest = new REST({log: log});
 	let stub = sinon.stub(rest, "_list").callsFake((uri, cb) => {
+	    console.log("ARGS", uri, cb);
 	    assert.equal(uri, "workflow_instance", "default uri");
 	    cb();
 	});
