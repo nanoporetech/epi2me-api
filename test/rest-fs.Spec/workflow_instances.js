@@ -31,9 +31,9 @@ describe("rest-fs.workflow_instances", () => {
 
 	let fake = sinon.fake();
 	let rest = new REST({log: log});
-	assert.doesNotThrow(() => {
+//	assert.doesNotThrow(() => {
 	    rest.workflow_instances(fake);
-	});
+//	});
 	assert(fake.calledOnce, "callback invoked");
     });
 
