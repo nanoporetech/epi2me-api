@@ -1,9 +1,9 @@
 <html>
-    <head>
-      <style type="text/css">
-        input[type=text], input[type=password] { width: 400px; }
-      </style>
-    </head>
+  <head>
+    <style type="text/css">
+      input[type=text], input[type=password] { width: 400px; }
+    </style>
+  </head>
   <body>
     <p>
       <label for="url">Endpoint
@@ -43,19 +43,24 @@
 	evt.preventDefault();
 	$('#results').empty();
 	$('#results').append("<p>spinner</p>");
-	let e=new EPI2ME({
+
+	let e = new EPI2ME({
 	    log: console,
 	    url: $('#url').val(),
 	    apikey: $('#apikey').val(),
 	    apisecret: $('apisecret').val(),
 	});
+
 	let action = $(evt.target).data("action");
+
 	e[action]((e, data) => {
 	    $('#results').empty();
 	    $('button').prop("disabled", false);
+
 	    if(e) {
 		$('#results').append(`<p>Error: ${e}</p>`);
 	    }
+
 	    if(data) {
 		let key = $(evt.target).data("key");
 		data.forEach((o) => {
