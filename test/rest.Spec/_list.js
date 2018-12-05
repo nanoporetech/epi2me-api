@@ -20,6 +20,8 @@ describe('rest._list', () => {
     });
 
     it("must invoke get with options", () => {
+	let fake = sinon.fake();
+	let rest = new REST({log: log});
 	let stub = sinon.stub(utils, "_get").callsFake((uri, options, cb) => {
 	    assert.deepEqual(options, { log: log });
 	    assert.equal(uri, "thing", "url passed");
@@ -27,8 +29,6 @@ describe('rest._list', () => {
 	});
 	stubs.push(stub);
 
-	let fake = sinon.fake();
-	let rest = new REST({log: log});
 	assert.doesNotThrow(() => {
 	    rest._list("thing", fake);
 	});
@@ -37,6 +37,8 @@ describe('rest._list', () => {
     });
 
     it("must catch request failure with structured error", () => {
+	let fake = sinon.fake();
+	let rest = new REST({log: log});
 	let stub = sinon.stub(utils, "_get").callsFake((uri, options, cb) => {
 	    assert.deepEqual(options, { log: log });
 	    assert.equal(uri, "thing", "url passed");
@@ -44,8 +46,6 @@ describe('rest._list', () => {
 	});
 	stubs.push(stub);
 
-	let fake = sinon.fake();
-	let rest = new REST({log: log});
 	assert.doesNotThrow(() => {
 	    rest._list("thing", fake);
 	});
@@ -54,6 +54,8 @@ describe('rest._list', () => {
     });
 
     it("must catch request failure with unstructured", () => {
+	let fake = sinon.fake();
+	let rest = new REST({log: log});
 	let stub = sinon.stub(utils, "_get").callsFake((uri, options, cb) => {
 	    assert.deepEqual(options, { log: log });
 	    assert.equal(uri, "thing", "url passed");
@@ -61,8 +63,6 @@ describe('rest._list', () => {
 	});
 	stubs.push(stub);
 
-	let fake = sinon.fake();
-	let rest = new REST({log: log});
 	assert.doesNotThrow(() => {
 	    rest._list("thing", fake);
 	});
