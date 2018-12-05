@@ -4,7 +4,31 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-// babel index-src.js -o index.js
-const version = exports.version = require("./package.json").version;
+var _epi2me = require("./dist/epi2me");
 
-exports.default = typeof window !== 'undefined' && window.EPI2ME ? require("./dist/rest.web").default : require("./dist/epi2me").default;
+Object.defineProperty(exports, "default", {
+  enumerable: true,
+  get: function () {
+    return _interopRequireDefault(_epi2me).default;
+  }
+});
+Object.defineProperty(exports, "version", {
+  enumerable: true,
+  get: function () {
+    return _epi2me.version;
+  }
+});
+Object.defineProperty(exports, "EPI2ME", {
+  enumerable: true,
+  get: function () {
+    return _epi2me.EPI2ME;
+  }
+});
+Object.defineProperty(exports, "REST", {
+  enumerable: true,
+  get: function () {
+    return _epi2me.REST;
+  }
+});
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
