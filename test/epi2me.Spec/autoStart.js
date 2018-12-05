@@ -16,7 +16,7 @@ let EPI2ME = proxyquire('../../lib/epi2me', {
     'mkdirp'      : mkdirpProxy
 }).default;
 
-describe('.autoStart method', () => {
+describe('epi2me.autoStart', () => {
 
     function newApi(error, instance) {
 

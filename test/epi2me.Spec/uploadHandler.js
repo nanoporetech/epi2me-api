@@ -18,7 +18,7 @@ let EPI2ME = proxyquire('../../lib/epi2me', {
     'fs-extra' : fsProxy
 }).default;
 
-describe('uploadHandler', function () {
+describe('epi2me.uploadHandler', function () {
 
     var tmpfile = 'tmpfile.txt', tmpdir, readStream;
 

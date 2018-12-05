@@ -17,7 +17,7 @@ const EPI2ME = proxyquire('../../lib/epi2me', {
     'fs-extra' : fsProxy
 }).default;
 
-describe('._moveUploadedFile method', function () {
+describe('epi2me._moveUploadedFile', function () {
 
     var fileName = 'input.txt',
         readStream,

@@ -7,9 +7,9 @@ const bunyan = require("bunyan");
 
 describe('rest._list', () => {
     it("must invoke get with options", () => {
-	let ringbuf    = new bunyan.RingBuffer({ limit: 100 });
-        let log        = bunyan.createLogger({ name: "log", stream: ringbuf });
-	let stub = sinon.stub(utils, "_get").callsFake((uri, options, cb) => {
+	let ringbuf = new bunyan.RingBuffer({ limit: 100 });
+        let log     = bunyan.createLogger({ name: "log", stream: ringbuf });
+	let stub    = sinon.stub(utils, "_get").callsFake((uri, options, cb) => {
 	    assert.deepEqual(options, { log: log });
 	    assert.equal(uri, "thing", "url passed");
 	    cb(null, {"things":[{"foo":"id"}]});
