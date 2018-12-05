@@ -38,6 +38,6 @@
     "test": "yarn lint && mocha --recursive --require babel-register test/*.Spec",
     "test_integration": "yarn nyc --reporter=html --reporter=text mocha --recursive --require babel-register test/e2e",
     "cover": "yarn lint && yarn nyc --reporter=html --reporter=text mocha --recursive --require babel-register test/*.Spec",
-    "dist": "yarn test && yarn babel lib -d dist && cp lib/default_options.json dist/ && yarn webpack"
+    "dist": "yarn test && yarn babel lib -d dist && cp lib/default_options.json dist/ && yarn webpack && babel index-src.js -o index.js"
   }
 }
