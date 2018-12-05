@@ -1,0 +1,54 @@
+<html>
+  <body>
+    <p>
+      <label for="url">Endpoint
+      <input type="text" name="url" id="url" value="https://epi2me-dev.nanoporetech.com"></input>
+      </label>
+    </p>
+
+    <p>
+      <label for="apikey">API Key
+      <input type="text" name="apikey" id="apikey"></input>
+      </label>
+    </p>
+
+    <p>
+      <label for="apisecret">API Secret
+	<input type="password" name="apisecret"
+	       id="apisecret"></input>
+      </label>
+    </p>
+
+    <p>
+      <button>go</button>
+    </p>
+
+    <p id="results">
+    </p>
+
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+    <script src="dist/rest.web.js"></script>
+    <script>
+    $('button').click((evt) => {
+	evt.preventDefault();
+	$('#results').empty();
+	let e=new EPI2ME({
+	    log: console,
+	    url: $('#url').val(),
+	    apikey: $('#apikey').val(),
+	    apisecret: $('apisecret').val(),
+	});
+	e.workflows((e, data) => {
+	    if(e) {
+		$('#results').append(`<p>Error: ${e}</p>`);
+	    }
+	    if(data) {
+		data.forEach((o) => {
+		    $('#results').append(`<p>${o.name}</p>`);
+		});
+	    }
+	});
+    });
+    </script>
+  </body>
+</html>
