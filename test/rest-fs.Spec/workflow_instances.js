@@ -23,17 +23,17 @@ describe("rest-fs.workflow_instances", () => {
     });
 
     it("must invoke list", () => {
-	let stub = sinon.stub(REST.prototype, "_list").callsFake((uri, cb) => {
+	let rest = new REST({log: log});
+	let stub = sinon.stub(rest, "_list").callsFake((uri, cb) => {
 	    assert.equal(uri, "workflow_instance", "default uri");
 	    cb();
 	});
 	stubs.push(stub);
 
 	let fake = sinon.fake();
-	let rest = new REST({log: log});
-//	assert.doesNotThrow(() => {
+	assert.doesNotThrow(() => {
 	    rest.workflow_instances(fake);
-//	});
+	});
 	assert(fake.calledOnce, "callback invoked");
     });
 
