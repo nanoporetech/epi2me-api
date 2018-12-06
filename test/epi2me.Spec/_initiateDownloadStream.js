@@ -24,7 +24,7 @@ var EPI2ME = proxyquire('../../lib/epi2me', {
 }).default;
 
 // MC-1304 - test download streams
-describe('._initiateDownloadStream method', () => {
+describe('epi2me._initiateDownloadStream', () => {
 
     var tmpfile, tmpdir, writeStream;
 

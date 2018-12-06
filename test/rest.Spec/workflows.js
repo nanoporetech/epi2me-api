@@ -1,5 +1,4 @@
 import REST from "../../lib/rest";
-import utils from "../../lib/utils";
 import fs from "fs-extra";
 
 const sinon  = require("sinon");

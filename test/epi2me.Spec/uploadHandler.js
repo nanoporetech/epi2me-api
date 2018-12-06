@@ -1,48 +1,32 @@
-"use strict";
-const proxyquire     = require('proxyquire');
-const assert         = require("assert");
-const sinon          = require("sinon");
-const path           = require("path");
-const tmp            = require('tmp');
-const queue          = require('queue-async');
-const fs             = require('fs-extra');
-let requestProxy   = {};
-let awsProxy       = {};
-let fsProxy        = {};
-proxyquire('../../lib/utils', {
-    'request' : requestProxy
-});
-let EPI2ME = proxyquire('../../lib/epi2me', {
-    'aws-sdk'     : awsProxy,
-    'request'     : requestProxy,
-    'fs-extra' : fsProxy
-}).default;
+import EPI2ME from "../../lib/epi2me";
+import assert from "assert";
+import sinon from "sinon";
+import path from "path";
+import tmp from "tmp";
+import fs from "fs-extra";
 
-describe('uploadHandler', function () {
+describe('epi2me.uploadHandler', () => {
 
-    var tmpfile = 'tmpfile.txt', tmpdir, readStream;
+    let tmpfile = 'tmpfile.txt', tmpdir, client, stubs = [];
 
-    function stub(client) {
-        sinon.stub(client, "session");
-        sinon.stub(client, "sessionedS3");
-        sinon.stub(client, "uploadComplete");
-        sinon.stub(client.log, "error");
-        sinon.stub(client.log, "warn");
-        sinon.stub(client.log, "info");
-        sinon.stub(client.log, "debug");
-    }
-
-    beforeEach(function () {
+    beforeEach(() => {
         tmpdir = tmp.dirSync({unsafeCleanup: true});
         fs.writeFile(path.join(tmpdir.name, tmpfile));
+	client = new EPI2ME({
+	    log: console,
+            inputFolder: tmpdir.name,
+        });
+	stubs = [];
+
+	stubs.push(sinon.stub(client, "session"));
     });
 
-    it('should open readStream', function (done) {
-        var client = new EPI2ME({
-            inputFolder: tmpdir.name
-        });
-        stub(client);
-        client.sessionedS3 = function () {
+    afterEach(() => {
+	stubs.forEach((s) => { s.restore(); });
+    })
+
+    it('should open readStream', (done) => {
+        stubs.push(sinon.stub(client, "sessionedS3").callsFake(() => {
             return {
                 upload: (params, options, cb) => {
                     cb();
@@ -54,27 +38,27 @@ describe('uploadHandler', function () {
 		    };
 		}
             };
-        };
-        client.uploadComplete = function (objectId, item, successCb) {
+        }));
+
+        stubs.push(sinon.stub(client, "uploadComplete").callsFake((objectId, item, successCb) => {
             successCb();
-        };
-        client.uploadHandler({name: tmpfile}, function (error) {
+        }));
+
+        client.uploadHandler({name: tmpfile}, (error) => {
             assert(typeof error === 'undefined', 'unexpected error message: ' + error);
-	    readStream = null;
             done();
         });
     });
 
-    it('should handle read stream errors', function (done) {
-        fsProxy.createReadStream = function () {
-            readStream = fs.createReadStream.apply(this, arguments);
+    it('should handle read stream errors', (done) => {
+	let crso = fs.createReadStream;
+        stubs.push(sinon.stub(fs, "createReadStream").callsFake((...args) => {
+            let readStream = crso(...args);
+	    setTimeout(() => { readStream.emit("error"); }, 10); // fire a readstream error at some point after the readstream created
             return readStream;
-        };
-        var client = new EPI2ME({
-            inputFolder: tmpdir.name
-        });
-        stub(client);
-        client.sessionedS3 = function () {
+        }));
+
+        stubs.push(sinon.stub(client, "sessionedS3").callsFake(() => {
             return {
                 upload: (params, options, cb) => {
                     cb();
@@ -86,22 +70,18 @@ describe('uploadHandler', function () {
 		    };
                 }
             };
-        };
+        }));
 
-	setTimeout(() => { readStream.emit("error"); }, 10); // fire a readstream error at some point after the readstream created
+        stubs.push(sinon.stub(client, "uploadComplete"));
 
-        client.uploadHandler({ name: tmpfile }, function (msg) {
+        client.uploadHandler({ name: tmpfile }, (msg) => {
             assert(msg.match(/error in upload readstream/), 'unexpected error message format: ' + msg);
             done();
         });
     });
 
-    it('should handle bad file name - ENOENT', function (done) {
-        var client = new EPI2ME({
-            inputFolder: tmpdir.name,
-        });
-        stub(client);
-        client.uploadHandler({name: 'bad file name'}, function (msg) {
+    it('should handle bad file name - ENOENT', (done) => {
+        client.uploadHandler({name: 'bad file name'}, (msg) => {
             assert(typeof msg !== 'undefined', 'failure');
             done();
         });

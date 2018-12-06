@@ -1,0 +1,74 @@
+<html>
+  <head>
+    <style type="text/css">
+      input[type=text], input[type=password] { width: 400px; }
+    </style>
+  </head>
+  <body>
+    <p>
+      <label for="url">Endpoint
+      <input type="text" name="url" id="url" value="https://epi2me-dev.nanoporetech.com"></input>
+      </label>
+    </p>
+
+    <p>Works without apikey/secret if you're already logged in to the endpoint</p>
+
+    <p>
+      <label for="apikey">API Key
+      <input type="text" name="apikey" id="apikey"></input>
+      </label>
+    </p>
+
+    <p>
+      <label for="apisecret">API Secret
+	<input type="password" name="apisecret"
+	       id="apisecret"></input>
+      </label>
+    </p>
+
+    <p>
+      <button data-action="workflows" data-key="name">workflows</button>
+      <button data-action="datasets" data-key="name">datasets</button>
+      <button data-action="workflow_instances" data-key="description">instances</button>
+    </p>
+
+    <p id="results">
+    </p>
+
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+    <script src="dist/rest.web.js"></script>
+    <script>
+    $('button').click((evt) => {
+	$('button').prop("disabled", true);
+	evt.preventDefault();
+	$('#results').empty();
+	$('#results').append("<p>spinner</p>");
+
+	let e = new EPI2ME({
+	    log: console,
+	    url: $('#url').val(),
+	    apikey: $('#apikey').val(),
+	    apisecret: $('apisecret').val(),
+	});
+
+	let action = $(evt.target).data("action");
+
+	e[action]((e, data) => {
+	    $('#results').empty();
+	    $('button').prop("disabled", false);
+
+	    if(e) {
+		$('#results').append(`<p>Error: ${e}</p>`);
+	    }
+
+	    if(data) {
+		let key = $(evt.target).data("key");
+		data.forEach((o) => {
+		    $('#results').append(`<p>${o[key]}</p>`);
+		});
+	    }
+	});
+    });
+    </script>
+  </body>
+</html>

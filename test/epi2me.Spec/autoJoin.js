@@ -4,7 +4,7 @@ const assert = require("assert");
 const sinon  = require("sinon");
 const bunyan = require("bunyan");
 
-describe('epi2me-api', () => {
+describe('epi2me.autoJoin', () => {
 
     let stubs = [];
 

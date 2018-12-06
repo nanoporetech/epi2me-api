@@ -3,7 +3,7 @@ const sinon   = require("sinon");
 const tmp     = require("tmp");
 const fs      = require("fs-extra");
 const path    = require('path');
-const utils   = require('../../lib/utils');
+import utils from "../../lib/utils";
 
 describe('utils folder methods: ', () => {
     let tmpInputDir;

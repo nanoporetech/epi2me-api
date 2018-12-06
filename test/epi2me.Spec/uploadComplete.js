@@ -3,7 +3,7 @@ const sinon  = require("sinon");
 
 import EPI2ME from "../../lib/epi2me";
 
-describe('uploadComplete', () => {
+describe('epi2me.uploadComplete', () => {
     var client;
 
     beforeEach(() => {

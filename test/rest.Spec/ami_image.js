@@ -1,5 +1,5 @@
 import REST from "../../lib/rest";
-import utils from "../../lib/utils";
+import * as utils from "../../lib/utils";
 
 const assert     = require("assert");
 const sinon      = require("sinon");
@@ -74,40 +74,6 @@ describe('rest.ami_image', () => {
 	});
 
 	stub.restore();
-    });
-
-    it("must bail when local", () => {
-        let ringbuf    = new bunyan.RingBuffer({ limit: 100 });
-        let log        = bunyan.createLogger({ name: "log", stream: ringbuf });
-        let stub = sinon.stub(REST.prototype, "_list").callsFake((uri, cb) => {
-            assert.equal(uri, "ami_image", "default uri");
-            cb();
-        });
-        let fake = sinon.fake();
-        let rest = new REST({log: log, local: true});
-        assert.doesNotThrow(() => {
-          rest.ami_image("ami-123", fake);
-        });
-        assert(fake.calledOnce, "callback invoked");
-        assert(fake.firstCall.args[0] instanceof Error);
-        stub.restore();
-    });
-
-    it("must bail when local", () => {
-        let ringbuf    = new bunyan.RingBuffer({ limit: 100 });
-        let log        = bunyan.createLogger({ name: "log", stream: ringbuf });
-        let stub = sinon.stub(REST.prototype, "_list").callsFake((uri, obj, cb) => {
-            assert.equal(uri, "ami_image", "default uri");
-            cb();
-        });
-        let fake = sinon.fake();
-        let rest = new REST({log: log, local: true});
-        assert.doesNotThrow(() => {
-            rest.ami_image("ami-123", {"some data": "foo"}, fake);
-        });
-        assert(fake.calledOnce, "callback invoked");
-        assert(fake.firstCall.args[0] instanceof Error);
-        stub.restore();
     });
 
     it('should bail without an id', () => {
