@@ -1,54 +1,91 @@
-import REST from "../../lib/rest-fs";
-import fs from "fs-extra";
+import sinon     from "sinon";
+import assert    from "assert";
+import bunyan    from "bunyan";
+import tmp       from "tmp";
+import fs        from "fs-extra";
+import path      from "path";
+import RESTSuper from "../../lib/rest";
+import REST      from "../../lib/rest-fs";
 
-const sinon  = require("sinon");
-const assert = require("assert");
-const bunyan = require("bunyan");
-const tmp    = require("tmp");
-const path   = require("path");
+describe("rest-fs.workflows", () => {
+    let rest, log, ringbuf;
 
-describe('rest-fs.workflows', () => {
-    process.on('unhandledRejection', (reason, promise) => { console.log("[workflows.js] UNHANDLED PROMISE REJECTION", reason, promise); });
-    it("must invoke list with options", () => {
-	let ringbuf    = new bunyan.RingBuffer({ limit: 100 });
-        let log        = bunyan.createLogger({ name: "log", stream: ringbuf });
-	let stub = sinon.stub(REST.prototype, "_list").callsFake((uri, cb) => {
-	    assert.equal(uri, "workflow", "url passed");
+    beforeEach(() => {
+	ringbuf = new bunyan.RingBuffer({ limit: 100 });
+        log     = bunyan.createLogger({ name: "log", stream: ringbuf });
+	rest    = new REST({
+	    log:   log,
+	    local: true,
+	    url:   tmp.dirSync().name,
+	});
+    });
+
+    it("must pass through to super if not local", () => {
+	rest     = new REST({log: log});
+	let stub = sinon.stub(RESTSuper.prototype, "workflows").callsFake((cb, query) => {
 	    cb();
 	});
-
 	let fake = sinon.fake();
-	let rest = new REST({log: log});
 	assert.doesNotThrow(() => {
 	    rest.workflows(fake);
 	});
-	assert(fake.calledOnce, "callback invoked");
+	assert.ok(stub.calledOnce, "super invoked");
+	assert.ok(fake.calledOnce, "callback invoked");
 	stub.restore();
     });
 
-    it("must list from filesystem", () => {
-	let ringbuf = new bunyan.RingBuffer({ limit: 100 });
-        let log     = bunyan.createLogger({ name: "log", stream: ringbuf });
-	let dir     = tmp.dirSync({unsafeCleanup: true}).name;
+    it("must warn on missing folder", async () => {
+	let spy         = sinon.spy(fs, "readdir");
+	let fake        = sinon.fake();
+	let workflowdir = path.join(rest.options.url, "workflows");
 
-	fs.mkdirpSync(path.join(dir, "workflows", "12345"));
-	fs.mkdirpSync(path.join(dir, "workflows", "34567"));
-
-	fs.writeFileSync(path.join(dir, "workflows", "12345", "workflow.json"), JSON.stringify({id_workflow: 12345}));
-	fs.writeFileSync(path.join(dir, "workflows", "34567", "workflow.json"), JSON.stringify({id_workflow: 34567}));
-
-	let rest = new REST({log: log, local: true, url: dir});
-	let fake = sinon.fake();
-	
-	new Promise((accept, reject) => {
-	    rest.workflows((err, data) => {
-		if(err) reject(fake(err));
-		accept(fake(null, data));
-	    });
-	})
+	await rest
+	    .workflows(fake)
 	    .then(() => {
-		sinon.assert.calledOnce(fake);
-		sinon.assert.calledWith(fake, null, [ { id_workflow: 12345 }, { id_workflow: 34567 }]);
+		assert.ok(fake.calledOnce, "callback invoked");
+		assert.equal(spy.args[0][0], workflowdir, "url = local folder");
+		assert.ok(JSON.parse(ringbuf.records[0]).msg.match(/ENOENT/), "workflows folder not present");
+		spy.restore();
+	    });
+    });
+
+    it("must not warn on present folder", async () => {
+	let spy         = sinon.spy(fs, "readdir");
+	let fake        = sinon.fake();
+	let workflowdir = path.join(rest.options.url, "workflows");
+	fs.mkdirpSync(workflowdir);
+	await rest
+	    .workflows(fake)
+	    .then(() => {
+		assert.ok(fake.calledOnce, "callback invoked");
+		assert.deepEqual(fake.args[0], [null, []], "workflows callback args");
+		assert.equal(spy.args[0][0], workflowdir, "url = local folder");
+		assert.ok(!ringbuf.records.length, "no logged warnings");
+		spy.restore();
+	    });
+    });
+
+    it("must map local workflows", async () => {
+	let spy         = sinon.spy(fs, "readdir");
+	let fake        = sinon.fake();
+	let workflowdir = path.join(rest.options.url, "workflows");
+	fs.mkdirpSync(path.join(workflowdir, "12345"));
+	fs.mkdirpSync(path.join(workflowdir, "34567"));
+
+	fs.writeFileSync(path.join(workflowdir, "12345", "workflow.json"), JSON.stringify({id_workflow: 12345}));
+	fs.writeFileSync(path.join(workflowdir, "34567", "workflow.json"), JSON.stringify({id_workflow: 34567}));
+
+
+	await rest
+	    .workflows(fake)
+	    .then(() => {
+		assert.ok(fake.calledOnce, "callback invoked");
+		assert.deepEqual(fake.args[0], [null,
+						[ { id_workflow: 12345 }, { id_workflow: 34567 }]
+					       ], "workflows callback args");
+		assert.equal(spy.args[0][0], workflowdir, "url = local folder");
+		assert.ok(!ringbuf.records.length, "no logged warnings");
+		spy.restore();
 	    });
     });
 });
