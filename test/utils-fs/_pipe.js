@@ -9,7 +9,7 @@ import utils   from "../../lib/utils-fs";
 
 describe("utils-fs._pipe", () => {
 
-    it("should pipe without progress (and with proxy)", async () => {
+    it("should pipe without progress (and with proxy)", () => {
 	let cb             = sinon.fake();
 	let spy            = sinon.spy(utils, "_headers");
 	const mockResponse = `{"data": 123}`;
