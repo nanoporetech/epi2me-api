@@ -172,7 +172,7 @@ proxyquire('../../lib/utils', {
     }
 });
 
-let Metrichor = proxyquire('../../lib/metrichor', {
+let Metrichor = proxyquire('../../lib/epi2me', {
     'aws-sdk' : awsProxy
 });
 

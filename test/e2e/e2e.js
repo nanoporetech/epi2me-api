@@ -109,7 +109,7 @@ var awsProxy = {
 
 // it's a singleton
 // proxyquire lib/utils once to make sure the requestProxy is used
-proxyquire('../lib/utils', {
+proxyquire('../../lib/utils', {
     'request' : requestProxy,
     'graceful-fs' : {
         stat: function (cb) {
@@ -118,7 +118,7 @@ proxyquire('../lib/utils', {
     }
 });
 
-var Metrichor = proxyquire('../lib/metrichor', {
+var Metrichor = proxyquire('../../lib/epi2me', {
     'aws-sdk' : awsProxy
 });
 

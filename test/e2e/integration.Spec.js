@@ -19,7 +19,7 @@ const fileCount      = 3;
 const serviceUrl     = 'https://epi2me-dev.nanoporetech.com';
 const fileExp        = new RegExp('fast5$');
 
-const EPI2ME         = proxyquire('../build/lib/epi2me', {
+const EPI2ME         = proxyquire('../../lib/epi2me', {
     'fs-extra' : fsProxy
 }).default;
 

@@ -36,9 +36,9 @@
   },
   "scripts": {
     "lint": "yarn install && eslint --fix lib",
-    "test": "yarn lint && mocha --recursive --require babel-register test/*.Spec",
+    "test": "yarn lint && mocha --recursive --require babel-register test",
     "test_integration": "yarn nyc --reporter=html --reporter=text mocha --recursive --require babel-register test/e2e",
-    "cover": "yarn lint && yarn nyc --reporter=html --reporter=text mocha --recursive --require babel-register test/*.Spec",
+    "cover": "yarn lint && yarn nyc --reporter=html --reporter=text mocha --recursive --require babel-register test",
     "dist": "yarn test && yarn babel lib -d dist && cp lib/default_options.json dist/ && yarn webpack && babel index-src.js -o index.js"
   }
 }
