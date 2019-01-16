@@ -1,17 +1,30 @@
-import REST from "../../lib/rest";
+import REST       from "../../lib/rest";
 import * as utils from "../../lib/utils";
-
-const assert     = require("assert");
-const sinon      = require("sinon");
-const bunyan     = require("bunyan");
+import sinon      from "sinon";
+import assert     from "assert";
+import bunyan     from "bunyan";
 
 describe('rest.ami_image', () => {
-    it('should update an ami_image', () => {
-        var client = new REST({
+    let client;
+
+    beforeEach(() => {
+	client = new REST({
             "url"    : "http://metrichor.local:8080",
             "apikey" : "FooBar02"
         });
+    });
 
+    it('should not support local mode', () => {
+	client.options.local = true;
+	let data = {"aws_id":"ami-12345","name":"mon ami","description":"foo bar baz","id_region":1,"is_active":1};
+	assert.doesNotThrow(() => {
+            client.ami_image("ami-12345", data, (err, obj) => {
+		assert.ok(err instanceof Error, 'local-mode unsupported error');
+            });
+	});
+    });
+
+    it('should update an ami_image', () => {
 	let data = {"aws_id":"ami-12345","name":"mon ami","description":"foo bar baz","id_region":1,"is_active":1};
 	let stub = sinon.stub(utils, "_put").callsFake((uri, id, obj, options, cb) => {
 	    assert.equal(id, "ami-12345");
@@ -31,11 +44,6 @@ describe('rest.ami_image', () => {
     });
 
     it('should create an ami_image', () => {
-        var client = new REST({
-            "url"    : "http://metrichor.local:8080",
-            "apikey" : "FooBar02"
-        });
-
 	let data = {"aws_id":"ami-12345","name":"mon ami","description":"foo bar baz","id_region":1,"is_active":1};
 	let stub = sinon.stub(utils, "_post").callsFake((uri, obj, options, cb) => {
             assert.equal(uri, "ami_image");
@@ -54,11 +62,6 @@ describe('rest.ami_image', () => {
     });
 
     it('should read an ami_image', () => {
-        var client = new REST({
-            "url"    : "http://metrichor.local:8080",
-            "apikey" : "FooBar02"
-        });
-
 	let data = {"aws_id":"ami-12345","name":"mon ami","description":"foo bar baz","id_region":1,"is_active":1};
 	let stub = sinon.stub(client, "_read").callsFake((uri, id, cb) => {
             assert.equal(uri, "ami_image");
@@ -77,11 +80,6 @@ describe('rest.ami_image', () => {
     });
 
     it('should bail without an id', () => {
-        var client = new REST({
-            "url"    : "http://metrichor.local:8080",
-            "apikey" : "FooBar02"
-        });
-
 	let data = {"aws_id":"ami-12345","name":"mon ami","description":"foo bar baz","id_region":1,"is_active":1};
 	let stub = sinon.stub(client, "_read").callsFake((uri, id, cb) => {
             assert.equal(uri, "ami_image");

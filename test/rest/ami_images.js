@@ -1,8 +1,7 @@
 import REST from "../../lib/rest";
-
-const sinon  = require("sinon");
-const assert = require("assert");
-const bunyan = require("bunyan");
+import sinon     from "sinon";
+import assert    from "assert";
+import bunyan    from "bunyan";
 
 describe("rest.ami_images", () => {
     let ringbuf;
