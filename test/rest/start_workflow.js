@@ -1,19 +1,21 @@
-import REST from "../../lib/rest";
-import * as utils from "../../lib/utils";
+import assert from "assert";
+import sinon  from "sinon";
+import utils  from "../../lib/utils";
+import REST   from "../../lib/rest";
 
-const proxyquire = require('proxyquire');
-const assert     = require("assert");
-const sinon      = require("sinon");
+describe('epi2me.start_workflow', () => {
+    let client;
 
-describe('start_workflow', () => {
-
-    it('should start a workflow_instance', () => {
-        var client = new REST({
-	    "url"    : "http://metrichor.test:8080",
+    beforeEach(() => {
+	client = new REST({
+            "url"    : "http://metrichor.local:8080",
             "apikey" : "FooBar02"
         });
+    });
 
-	let stub = sinon.stub(utils, "_post").callsFake((uri, obj, options, cb) => {
+    it('should start a workflow_instance', () => {
+
+	sinon.stub(utils, "_post").callsFake((uri, obj, options, cb) => {
 	    assert.equal(uri, "workflow_instance");
             assert.equal(options.apikey, "FooBar02");
             assert.equal(obj.id_workflow, "test");
@@ -26,7 +28,5 @@ describe('start_workflow', () => {
 		assert.deepEqual(obj, {"id_workflow_instance":"1","id_user":"1"}, 'workflow_instance start response');
             });
 	});
-
-	stub.restore();
     });
 });
