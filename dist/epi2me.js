@@ -347,7 +347,7 @@ class EPI2ME {
         _fsExtra2.default.mkdirpSync(this.config.options.outputFolder);
 
         // MC-1828 - include instance id in telemetry file name
-        fileName = this.config.instance.id_workflow_instance ? "telemetry-" + this.config.instance.id_workflow_instance + ".log" : "telemetry.log";
+        fileName = this.config.instance.id_workflow_instance ? `telemetry-${this.config.instance.id_workflow_instance}.log` : "telemetry.log";
         telemetryLogFolder = _path2.default.join(this.config.options.outputFolder, "epi2me-logs");
         telemetryLogPath = _path2.default.join(telemetryLogFolder, fileName);
 

@@ -1,9 +1,3 @@
-/*
- * Copyright (c) 2018 Metrichor Ltd.
- * Author: ahurst
- * When: 2016-05-17
- *
- */
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -15,17 +9,33 @@ var _utils2 = require("./utils");
 
 var _utils3 = _interopRequireDefault(_utils2);
 
+var _request = require("request");
+
+var _request2 = _interopRequireDefault(_request);
+
+var _requestProgress = require("request-progress");
+
+var _requestProgress2 = _interopRequireDefault(_requestProgress);
+
+var _fsExtra = require("fs-extra");
+
+var _fsExtra2 = _interopRequireDefault(_fsExtra);
+
+var _path = require("path");
+
+var _path2 = _interopRequireDefault(_path);
+
+var _lodash = require("lodash");
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-const request = require("request");
-const progress = require("request-progress");
-const fs = require("fs-extra");
-const path = require("path");
-const _ = require("lodash");
-
-
-let utils = _utils3.default;
-
+/*
+ * Copyright (c) 2018 Metrichor Ltd.
+ * Author: ahurst
+ * When: 2016-05-17
+ *
+ */
+const utils = _utils3.default;
 const targetBatchSize = 4000;
 
 utils._pipe = (uri, filepath, options, cb, progressCb) => {
@@ -50,9 +60,9 @@ utils._pipe = (uri, filepath, options, cb, progressCb) => {
     }
 
     if (progressCb) {
-        progress(request(req), {}).on("progress", progressCb).on("end", cb).pipe(fs.createWriteStream(filepath));
+        (0, _requestProgress2.default)((0, _request2.default)(req), {}).on("progress", progressCb).on("end", cb).pipe(_fsExtra2.default.createWriteStream(filepath));
     } else {
-        request(req).pipe(fs.createWriteStream(filepath)).on("close", cb);
+        (0, _request2.default)(req).pipe(_fsExtra2.default.createWriteStream(filepath)).on("close", cb);
     }
 };
 
@@ -61,7 +71,7 @@ utils.countFileReads = filePath => {
         const LINES_PER_READ = 4;
         let lineCount = 1;
         let idx;
-        fs.createReadStream(filePath).on("data", buffer => {
+        _fsExtra2.default.createReadStream(filePath).on("data", buffer => {
             idx = -1;
             lineCount--;
             do {
@@ -78,19 +88,23 @@ utils.findSuitableBatchIn = folder => {
     // For downloads without the folder split
     // Look inside `folder` and return any batch with a free slot.
     // if no suitable batches, create one and return that.
-    fs.mkdirpSync(folder);
+    _fsExtra2.default.mkdirpSync(folder);
     const prefix = "batch_";
     const createBatch = () => {
         const batchName = `${prefix}${Date.now()}`;
-        const newBatchPath = path.join(folder, batchName);
-        fs.mkdirpSync(newBatchPath);
+        const newBatchPath = _path2.default.join(folder, batchName);
+        _fsExtra2.default.mkdirpSync(newBatchPath);
         return newBatchPath;
     };
-    let batches = fs.readdirSync(folder).filter(d => d.slice(0, prefix.length) === prefix);
 
-    if (!batches || !batches.length) return createBatch();
-    const latestBatch = path.join(folder, batches.pop());
-    if (fs.readdirSync(latestBatch).length < targetBatchSize) {
+    let batches = _fsExtra2.default.readdirSync(folder).filter(d => d.slice(0, prefix.length) === prefix);
+
+    if (!batches || !batches.length) {
+        return createBatch();
+    }
+
+    const latestBatch = _path2.default.join(folder, batches.pop());
+    if (_fsExtra2.default.readdirSync(latestBatch).length < targetBatchSize) {
         return latestBatch;
     }
     return createBatch();
@@ -100,48 +114,46 @@ let ID_counter = 0;
 utils.getFileID = () => `FILE_${++ID_counter}`;
 
 utils.lsFolder = (dir, ignore, filetype, rootDir = "") => {
-    return fs.readdir(dir).then(ls => {
+    return _fsExtra2.default.readdir(dir).then(ls => {
         if (ignore) {
             ls = ls.filter(ignore);
         }
 
         let folders = [];
         let files = [];
-        let promises = [];
-
-        ls.forEach(entry => {
-            promises.push(fs.stat(path.join(dir, entry)).then(stats => {
+        let promises = ls.map(entry => {
+            return _fsExtra2.default.stat(_path2.default.join(dir, entry)).then(stats => {
                 if (stats.isDirectory()) {
-                    folders.push(path.join(dir, entry));
+                    folders.push(_path2.default.join(dir, entry));
                     return Promise.resolve();
                 }
 
-                if (stats.isFile() && (!filetype || path.extname(entry) === filetype)) {
+                if (stats.isFile() && (!filetype || _path2.default.extname(entry) === filetype)) {
                     /** For each file, construct a file object: */
-                    let parsed = path.parse(entry);
+                    let parsed = _path2.default.parse(entry);
 
                     let fileObject = {
                         name: parsed.base,
-                        path: path.join(dir, entry),
+                        path: _path2.default.join(dir, entry),
                         size: stats.size,
                         id: utils.getFileID()
                     };
 
                     let batch = dir.replace(rootDir, "").replace("\\", "").replace("/", "");
-                    if (_.isString(batch) && batch.length) fileObject.batch = batch;
+                    if ((0, _lodash.isString)(batch) && batch.length) fileObject.batch = batch;
                     files.push(fileObject);
                     return Promise.resolve();
                 }
 
                 return Promise.resolve(); // unhandled type. ignore? reject?
-            }));
+            });
         });
 
         return Promise.all(promises).then(() => {
             folders = folders.sort();
             /**
              * // It's important to load the batch folders alphabetically
-             * 1, then 2, ect.
+             * 1, then 2, etc.
              */
             return Promise.resolve({ files, folders });
         }).catch(err => {
@@ -164,24 +176,30 @@ utils.loadInputFiles = ({ inputFolder, outputFolder, uploadedFolder, filetype },
         // function used to filter the readdir results in utils.lsFolder
         // exclude all files and folders meet any of these criteria:
         const inputFilter = file => {
-            return !(path.basename(file) === "downloads" || path.basename(file) === "uploaded" || path.basename(file) === "skip" || path.basename(file) === "fail" || uploadedFolder && path.basename(file) === path.basename(uploadedFolder) || outputFolder && path.basename(file) === path.basename(outputFolder) || path.basename(file) === "tmp" || _.isArray(uploaded) && uploaded.indexOf(path.posix.basename(file)) > -1);
+            let basename = _path2.default.basename(file);
+            return !(basename === "downloads" || basename === "uploaded" || basename === "skip" || basename === "fail" || uploadedFolder && basename === _path2.default.basename(uploadedFolder) || outputFolder && basename === _path2.default.basename(outputFolder) || basename === "tmp" || (0, _lodash.isArray)(uploaded) && uploaded.indexOf(_path2.default.posix.basename(file)) > -1);
         };
 
         // iterate through folders
         let batchFolders = [inputFolder];
 
         const next = () => {
-            if (!batchFolders || !batchFolders.length) return;
+            if (!batchFolders || !batchFolders.length) {
+                return;
+            }
+
             utils.lsFolder(batchFolders.splice(0, 1)[0], inputFilter, filetype, inputFolder).then(({ files, folders }) => {
                 // Keep iterating though batch folders until one with files is found
                 if (files && files.length) {
                     resolve(files); // Done. Resolve promise with new files
+                    return;
                 } else {
                     batchFolders = [...folders, ...batchFolders];
                     if (batchFolders.length) {
                         next(); // iterate
                     } else {
                         resolve(); // Done. No new files were found
+                        return;
                     }
                 }
             }).catch(err => {

@@ -27,14 +27,14 @@ class REST_FS extends _rest2.default {
         super(options);
     }
 
-    workflows(cb) {
+    async workflows(cb) {
         if (!this.options.local) {
             return super.workflows(cb);
         }
 
         let WORKFLOW_DIR = _path2.default.join(this.options.url, "workflows");
 
-        _fsExtra2.default.readdir(WORKFLOW_DIR).then(data => {
+        await _fsExtra2.default.readdir(WORKFLOW_DIR).then(data => {
             return data.filter(id => {
                 return _fsExtra2.default.statSync(_path2.default.join(WORKFLOW_DIR, id)) // ouch
                 .isDirectory();
@@ -45,7 +45,10 @@ class REST_FS extends _rest2.default {
                 return require(filename); // try...catch?
             });
         }).then(data => {
-            return Promise.resolve(cb(null, data));
+            return cb(null, data);
+        }).catch(err => {
+            this.log.warn(err);
+            return cb(null, []);
         });
     }
 
@@ -87,7 +90,7 @@ class REST_FS extends _rest2.default {
         });
     }
 
-    datasets(cb, query) {
+    async datasets(cb, query) {
         if (!this.options.local) {
             return super.datasets(cb, query);
         }
@@ -105,7 +108,7 @@ class REST_FS extends _rest2.default {
         }
 
         let DATASET_DIR = _path2.default.join(this.options.url, "datasets");
-        _fsExtra2.default.readdir(DATASET_DIR).then(data => {
+        return await _fsExtra2.default.readdir(DATASET_DIR).then(data => {
             return data.filter(id => {
                 return _fsExtra2.default.statSync(_path2.default.join(DATASET_DIR, id)).isDirectory();
             });
@@ -138,9 +141,11 @@ class REST_FS extends _rest2.default {
                 };
             });
         }).then(data => {
-            return Promise.resolve(cb(null, data));
+            return cb(null, data);
+        }).catch(err => {
+            this.log.warn(err);
+            return cb(null, []);
         });
-        return;
     }
 
     bundle_workflow(id_workflow, filepath, cb, progressCb) {

@@ -81,9 +81,6 @@ class REST {
 
     ami_image(id, obj, cb) {
         if (this.options.local) {
-            if (!cb) {
-                cb = obj;
-            }
             return cb(new Error("ami_image unsupported in local mode"));
         }
 
@@ -193,10 +190,10 @@ class REST {
             }));
 
             Promise.all(promises).then(() => {
-                return Promise.resolve(cb(null, details));
+                return cb(null, details);
             }).catch(err => {
                 this.log.error(`${id}: error fetching config and parameters (${err.error || err})`);
-                return Promise.reject(cb(err));
+                return cb(err);
             });
         });
 
