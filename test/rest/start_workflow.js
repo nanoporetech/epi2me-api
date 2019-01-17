@@ -15,7 +15,7 @@ describe('epi2me.start_workflow', () => {
 
     it('should start a workflow_instance', () => {
 
-	sinon.stub(utils, "_post").callsFake((uri, obj, options, cb) => {
+	let stub = sinon.stub(utils, "_post").callsFake((uri, obj, options, cb) => {
 	    assert.equal(uri, "workflow_instance");
             assert.equal(options.apikey, "FooBar02");
             assert.equal(obj.id_workflow, "test");
@@ -28,5 +28,7 @@ describe('epi2me.start_workflow', () => {
 		assert.deepEqual(obj, {"id_workflow_instance":"1","id_user":"1"}, 'workflow_instance start response');
             });
 	});
+
+	stub.restore();
     });
 });
