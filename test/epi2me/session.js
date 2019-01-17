@@ -43,7 +43,7 @@ describe('session fetchInstanceToken method', () => {
 
     it("should not call if sts_expiration in the future", () => {
         let stub = sinon.stub(client, "fetchInstanceToken").callsFake();
-        client._stats.sts_expiration = 1000 + new Date();
+        client._stats.sts_expiration = 1000 + Date.now();
         client.session();
         assert(stub.notCalled);
     });
@@ -51,7 +51,7 @@ describe('session fetchInstanceToken method', () => {
     it("should fire callback if sts_expiration in the future", () => {
         let stub  = sinon.stub(client, "fetchInstanceToken").callsFake();
         let stub2 = sinon.fake();
-        client._stats.sts_expiration = 1000 + new Date();
+        client._stats.sts_expiration = 1000 + Date.now();
         client.session(stub2);
         assert(stub.notCalled);
         assert(stub2.calledOnce);
