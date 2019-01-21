@@ -12,8 +12,8 @@ describe("epi2me.fetchInstanceToken", () => {
 	    url: "https://epi2me-test.local",
 	    log: {
 		debug: sinon.stub(),
-		info: sinon.stub(),
-		warn: sinon.stub(),
+		info:  sinon.stub(),
+		warn:  sinon.stub(),
 		error: sinon.stub(),
 	    }
 	}, opts));
