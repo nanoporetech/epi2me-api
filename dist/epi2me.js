@@ -1,11 +1,3 @@
-/*
- * Copyright (c) 2018 Metrichor Ltd.
- * Author: rpettett
- * When: A long time ago, in a galaxy far, far away
- *
- */
-/*global console */
-
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -55,8 +47,17 @@ var _default_options2 = _interopRequireDefault(_default_options);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-const REST = exports.REST = _restFs2.default; /* MC-565 handle EMFILE gracefully; use Promises */
+/*
+ * Copyright (c) 2018 Metrichor Ltd.
+ * Author: rpettett
+ * When: A long time ago, in a galaxy far, far away
+ *
+ */
+/*global console */
+
+const REST = exports.REST = _restFs2.default; /* MC-565 handle EMFILE & EXDIR gracefully; use Promises */
 const version = exports.version = require("../package.json").version;
+
 class EPI2ME {
     constructor(opt_string) {
         let opts;
@@ -192,7 +193,7 @@ class EPI2ME {
             this.sessionQueue = (0, _queueAsync2.default)(1);
         }
 
-        if (!this._stats.sts_expiration || this._stats.sts_expiration && this._stats.sts_expiration <= new Date() /* Ignore if session is still valid */
+        if (!this._stats.sts_expiration || this._stats.sts_expiration && this._stats.sts_expiration <= Date.now() /* Ignore if session is still valid */
         && !this.sessionQueue.remaining()) {
             /* Throttle to n=1: bail out if there's already a job queued */
             /* queue a request for a new session token and hope it comes back in under this.config.options.sessionGrace time */
@@ -221,7 +222,7 @@ class EPI2ME {
             throw new Error("must specify id_workflow_instance");
         }
 
-        if (this._stats.sts_expiration && this._stats.sts_expiration > new Date()) {
+        if (this._stats.sts_expiration && this._stats.sts_expiration > Date.now()) {
             /* escape if session is still valid */
             return queueCb();
         }
@@ -236,8 +237,7 @@ class EPI2ME {
             }
 
             this.log.debug("allocated new instance token expiring at " + token.expiration);
-            this._stats.sts_expiration = new Date(token.expiration); // Date object for expiration check later
-            this._stats.sts_expiration.setMinutes(this._stats.sts_expiration.getMinutes() - this.config.options.sessionGrace); // refresh token x mins before it expires
+            this._stats.sts_expiration = new Date(token.expiration).getTime() - 60 * this.config.options.sessionGrace; // refresh token x mins before it expires
             // "classic" token mode no longer supported
 
             if (this.config.options.proxy) {
@@ -398,7 +398,7 @@ class EPI2ME {
 
     downloadWork(len, cb) {
         if (!cb) cb = () => {
-            return undefined;
+            return;
         };
         if (len === undefined || len === null) return cb();
 
@@ -735,27 +735,7 @@ class EPI2ME {
     }
 
     deleteMessage(message) {
-        let sqs = this.sessionedSQS(),
-            messageBody = JSON.parse(message.Body);
-
-        if (this.rentention === "on") {
-            /* MC-622 data retention */
-            try {
-                this.sessionedS3().deleteObject({
-                    Bucket: messageBody.bucket,
-                    Key: messageBody.path
-
-                }, deleteObjectErr => {
-                    if (deleteObjectErr) {
-                        this.log.warn(String(deleteObjectErr) + " " + String(deleteObjectErr.stack)); // an error occurred
-                    } else {
-                        this.log.debug("deleteObject " + messageBody.path);
-                    }
-                });
-            } catch (deleteObjectException) {
-                this.log.error("deleteObject exception: " + JSON.stringify(deleteObjectException));
-            }
-        }
+        let sqs = this.sessionedSQS();
 
         this.discoverQueue(sqs, this.config.instance.outputQueueName, queueURL => {
             try {
@@ -768,8 +748,8 @@ class EPI2ME {
                         this.log.warn("error in deleteMessage " + String(deleteMessageError));
                     }
                 });
-            } catch (deleteMessageErr) {
-                this.log.error("deleteMessage exception: " + String(deleteMessageErr));
+            } catch (deleteMessageException) {
+                this.log.error("deleteMessage exception: " + String(deleteMessageException));
             }
         }, reason => {
             this._stats.download.failure[reason] = this._stats.download.failure[reason] ? this._stats.download.failure[reason] + 1 : 1;
@@ -912,7 +892,7 @@ class EPI2ME {
             //
             try {
                 // if (file && file.bytesWritten > 0)
-                _fsExtra2.default.unlink(outputFile, err => {
+                _fsExtra2.default.remove(outputFile, err => {
                     if (err) {
                         this.log.warn("failed to remove file: " + outputFile);
                     } else {
@@ -1245,7 +1225,7 @@ class EPI2ME {
                 message.components = JSON.parse(JSON.stringify(this.config.instance.chain.components)); // low-frills object clone
                 message.targetComponentId = this.config.instance.chain.targetComponentId; // first component to run
             } catch (jsonException) {
-                this.log.error(`${file.id} exception parsing components JSON ${jsonException}`);
+                this.log.error(`${file.id} exception parsing components JSON ${String(jsonException)}`);
                 return successCb("json exception"); // close the queue job
             }
         }
@@ -1259,7 +1239,7 @@ class EPI2ME {
         try {
             if (this.config.options.agent_address) message.agent_address = JSON.parse(this.config.options.agent_address);
         } catch (exception) {
-            this.log.error(`${file.id} Could not parse agent_address ${exception}`);
+            this.log.error(`${file.id} Could not parse agent_address ${String(exception)}`);
         }
 
         if (message.components) {
@@ -1280,178 +1260,60 @@ class EPI2ME {
                 MessageBody: JSON.stringify(message)
             }, sendMessageError => {
                 if (sendMessageError) {
-                    this.log.warn(`${file.id} error sending SQS message: ${sendMessageError}`);
+                    this.log.warn(`${file.id} error sending SQS message: ${String(sendMessageError)}`);
                     return successCb("SQS sendmessage error"); // close the queue job
                 }
                 this.log.info(`${file.id} SQS message sent. Move to uploaded`);
                 this._moveUploadedFile(file, successCb);
             });
         } catch (sendMessageException) {
-            this.log.error(`${file.id} exception sending SQS message: ${sendMessageException}`);
-            if (successCb) successCb("SQS sendmessage exception"); // close the queue job
+            this.log.error(`${file.id} exception sending SQS message: ${String(sendMessageException)}`);
+            return successCb("SQS sendmessage exception"); // close the queue job
         }
     }
 
-    /* _moveSkippedFile is very similar to _moveUploadedFile - they could be combined, but even better if we can get rid of moving files around */
-    _moveSkippedFile(file, successCb) {
+    async _moveFile(file, successCb, type) {
+        let moveTo = type === "upload" ? this.uploadTo : this.skipTo;
         let fileName = file.name;
         let fileBatch = file.batch || "";
         let fileFrom = file.path || _path2.default.join(this.config.options.inputFolder, fileBatch, fileName);
-        let fileTo = _path2.default.join(this.skipTo, fileBatch, fileName);
-        let streamErrorFlag, readStream, writeStream, renameComplete;
+        let fileTo = _path2.default.join(moveTo, fileBatch, fileName);
+        let err = "";
 
-        const done = err => {
-            if (!renameComplete) {
-                renameComplete = true;
-                if (err) {
-                    successCb(err);
-                    this._uploadedFiles.push(fileName); // flag as uploaded to prevent multiple uploads
-                } else {
-                    successCb();
-                }
-            }
-        };
-
-        const deleteFile = outputFile => {
-            try {
-                _fsExtra2.default.unlink(outputFile, err => {
-                    if (err) {
-                        this._uploadedFiles[fileName] = true; // flag as uploaded
-                        this.log.warn(`${file.id}: failed to remove file after uploaded: ${err}`);
-                    }
-                });
-            } catch (unlinkException) {
-                this._uploadedFiles[fileName] = true; // flag as uploaded
-                this.log.warn(`${file.id} failed to remove file. unlinkException: ${unlinkException}`);
-            }
-        };
-
-        const onError = err => {
-            done(`${file.id} _moveSkippedFile error: ${err}`); // close the queue job
-            if (err && !streamErrorFlag) {
-                streamErrorFlag = true; // flag as uploaded
-                try {
-                    writeStream.close();
-                    if (readStream.destroy) {
-                        this.log.error(`${file.id} destroying upload readstream ${err}`);
-                        readStream.destroy();
-                    }
-                    deleteFile(fileTo);
-                } catch (e) {
-                    this.log.error(`${file.id} error removing skipped target file: ${e}`);
-                }
-            }
-        };
-
-        _fsExtra2.default.mkdirp(_path2.default.join(this.skipTo, fileBatch), mkdirException => {
-            if (mkdirException && !String(mkdirException).match(/EEXIST/)) {
-                done("fs.mkdirpException " + String(mkdirException));
-                streamErrorFlag = true; // flag as uploaded
-            } else {
-                // MC-2389 - fs.rename can cause "EXDEV, Cross-device link" exception
-                // Ref: http://stackoverflow.com/questions/4568689/how-do-i-move-file-a-to-a-different-partition-or-device-in-node-js
-
-                try {
-                    readStream = _fsExtra2.default.createReadStream(fileFrom);
-                    writeStream = _fsExtra2.default.createWriteStream(fileTo).on("error", writeStreamError => onError(`${file.id} writeStream error: ${writeStreamError}`));
-
-                    readStream.on("close", () => {
-                        if (!streamErrorFlag) {
-                            deleteFile(fileFrom); // don't delete if there's an error
-                        }
-                        this.log.debug(`${file.id}: upload and mv done`);
-                        done(); // close the queue job // SUCCESS
-                    }).on("error", readStreamError => onError(`${file.id} failed to rename uploaded file. ${readStreamError}`)).pipe(writeStream);
-                } catch (renameStreamException) {
-                    onError(`${file.id} failed to move uploaded file into upload folder: ${String(renameStreamException)}`);
-                }
-            }
+        await _fsExtra2.default.mkdirp(_path2.default.join(moveTo, fileBatch)).then(async () => {
+            await _fsExtra2.default.move(fileFrom, fileTo).then(() => {
+                this.log.debug(`${file.id}: ${type} and mv done`);
+            }).catch(moveError => {
+                err = `${file.id} ${type} move error: ${String(moveError)}`;
+            });
+        }).catch(mkdirpException => {
+            err = `${file.id} ${type} mkdirp exception ${String(mkdirpException)}`;
         });
+
+        if (type === "upload") {
+            this._stats.upload.totalSize += file.size;
+        }
+        this._uploadedFiles.push(fileName); // flag as uploaded to prevent multiple uploads
+
+        if (!err) {
+            return successCb();
+        }
+
+        this.log.debug(err);
+
+        await _fsExtra2.default.remove(fileTo).catch(unlinkError => {
+            this.log.warn(`${file.id} {$type} failed to delete ${fileTo}: ${String(unlinkError)}`);
+        });
+
+        return successCb(err);
+    }
+
+    _moveSkippedFile(file, successCb) {
+        return this._moveFile(file, successCb, "skip");
     }
 
     _moveUploadedFile(file, successCb) {
-        let fileName = file.name;
-        let fileBatch = file.batch || "";
-        let fileFrom = file.path || _path2.default.join(this.config.options.inputFolder, fileBatch, fileName);
-        let fileTo = _path2.default.join(this.uploadTo, fileBatch, fileName);
-        let streamErrorFlag, readStream, writeStream, renameComplete;
-
-        const done = err => {
-            if (!renameComplete) {
-                renameComplete = true;
-                if (err) {
-                    successCb(err);
-                    this._uploadedFiles.push(fileName); // flag as uploaded to prevent multiple uploads
-                } else {
-                    successCb();
-                }
-            }
-        };
-
-        const statFile = () => {
-            if (file.size) {
-                this._stats.upload.totalSize += file.size;
-            }
-        };
-
-        const deleteFile = outputFile => {
-            try {
-                _fsExtra2.default.unlink(outputFile, err => {
-                    if (err) {
-                        this._uploadedFiles[fileName] = true; // flag as uploaded
-                        this.log.warn(`${file.id}: failed to remove file after uploaded: ${err}`);
-                    }
-                });
-            } catch (unlinkException) {
-                this._uploadedFiles[fileName] = true; // flag as uploaded
-                this.log.warn(`${file.id} failed to remove file. unlinkException: ${unlinkException}`);
-            }
-        };
-
-        const onError = err => {
-            done(`${file.id} _moveUploadedFile error: ${err}`); // close the queue job
-            if (err && !streamErrorFlag) {
-                streamErrorFlag = true; // flag as uploaded
-                try {
-                    statFile();
-                    writeStream.close();
-                    if (readStream.destroy) {
-                        this.log.error(`${file.id} destroying upload readstream ${err}`);
-                        readStream.destroy();
-                    }
-                    deleteFile(fileTo);
-                } catch (e) {
-                    this.log.error(`${file.id} error removing uploaded target file: ${e}`);
-                }
-            }
-        };
-
-        _fsExtra2.default.mkdirp(_path2.default.join(this.uploadTo, fileBatch), mkdirException => {
-            if (mkdirException && !String(mkdirException).match(/EEXIST/)) {
-                done("mkdirpException " + String(mkdirException));
-                streamErrorFlag = true; // flag as uploaded
-                statFile();
-            } else {
-                // MC-2389 - fs.rename can cause "EXDEV, Cross-device link" exception
-                // Ref: http://stackoverflow.com/questions/4568689/how-do-i-move-file-a-to-a-different-partition-or-device-in-node-js
-
-                try {
-                    readStream = _fsExtra2.default.createReadStream(fileFrom);
-                    writeStream = _fsExtra2.default.createWriteStream(fileTo).on("error", writeStreamError => onError(`${file.id} writeStream error: ${writeStreamError}`));
-
-                    readStream.on("close", () => {
-                        if (!streamErrorFlag) {
-                            deleteFile(fileFrom); // don't delete if there's an error
-                        }
-                        statFile();
-                        this.log.debug(`${file.id}: upload and mv done`);
-                        done(); // close the queue job // SUCCESS
-                    }).on("error", readStreamError => onError(`${file.id} failed to rename uploaded file. ${readStreamError}`)).pipe(writeStream);
-                } catch (renameStreamException) {
-                    onError(`${file.id} failed to move uploaded file into upload folder: ${String(renameStreamException)}`);
-                }
-            }
-        });
+        return this._moveFile(file, successCb, "upload");
     }
 
     queueLength(queueURL, cb) {
