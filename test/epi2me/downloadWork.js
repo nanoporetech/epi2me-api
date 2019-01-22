@@ -7,7 +7,7 @@ import { merge } from "lodash";
 import AWS       from "aws-sdk";
 import EPI2ME    from "../../lib/epi2me";
 
-describe('epi2me.uploadJob', () => {
+describe('epi2me.downloadWork', () => {
 
     const clientFactory = (opts) => {
 	return new EPI2ME(merge({

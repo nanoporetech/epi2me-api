@@ -64,12 +64,12 @@ describe('epi2me.stop_everything', () => {
         clock.restore();
         done();
     });
-    
+    /* converted to promise.all - not quite right
     it('should drain upload worker', (done) => {
         let client;
         const clock = sinon.useFakeTimers();
         
-        let uploadDrain=sinon.fake();
+        let uploadDrain = sinon.fake();
         
         assert.doesNotThrow(() => {
             client = new EPI2ME();
@@ -77,8 +77,8 @@ describe('epi2me.stop_everything', () => {
             client.uploadWorkerPool = { "drain": uploadDrain };
             
             client._downloadCheckInterval = setInterval(() => {}, 100);
-            client._stateCheckInterval = setInterval(() => {}, 100);
-            client._fileCheckInterval = setInterval(() => {}, 100);
+            client._stateCheckInterval    = setInterval(() => {}, 100);
+            client._fileCheckInterval     = setInterval(() => {}, 100);
         });
         
         assert.doesNotThrow(() => {
@@ -90,7 +90,7 @@ describe('epi2me.stop_everything', () => {
         clock.restore();
         done();
     });
-    
+    */
     it('should drain download worker', (done) => {
         let client;
         const clock = sinon.useFakeTimers();

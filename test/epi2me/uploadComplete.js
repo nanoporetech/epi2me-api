@@ -15,14 +15,12 @@ describe('epi2me.uploadComplete', () => {
     });
 
     it('should handle error', (done) => {
-        let discoverQueue = sinon.stub(client, "discoverQueue").callsFake((sqs, queueName, cb, errorCb) => {
-            cb();
-            errorCb();
-        });
+        let discoverQueue = sinon.stub(client, "discoverQueue").rejects(new Error("failed"));
 	assert.doesNotThrow(() => {
-            client.uploadComplete(null, 'item', () => {});
-	    sinon.assert.calledOnce(discoverQueue);
-	    done();
+            client.uploadComplete(null, 'item', () => {
+		sinon.assert.calledOnce(discoverQueue);
+		done();
+	    });
 	}, () => {});
     });
 });

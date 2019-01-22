@@ -1,9 +1,7 @@
+import assert from "assert";
+import sinon  from "sinon";
+import bunyan from "bunyan";
 import EPI2ME from "../../lib/epi2me";
-
-const assert = require("assert");
-const sinon  = require("sinon");
-const bunyan = require("bunyan");
-const queue  = require ('queue-async');
 
 describe('epi2me.loadAvailableDownloadMessages', () => {
 
@@ -32,7 +30,7 @@ describe('epi2me.loadAvailableDownloadMessages', () => {
                 }
             };
         });
-        client.downloadWorkerPool = queue(parallelism);
+//        client.downloadWorkerPool = queue(parallelism);
 
 	sinon.stub(client, "processMessage").callsFake((msg, queueCb) => {
             setTimeout(queueCb);
@@ -45,31 +43,18 @@ describe('epi2me.loadAvailableDownloadMessages', () => {
 	done();
     });
 
-    it('should process all messages', (done) => {
-	stub = sinon.stub(client, "discoverQueue").callsFake((qs, queueName, successCb, failureCb) => {
-            successCb("queueUrl");
-        });
-        client.downloadWorkerPool
-            .await(() => {
-                client.loadAvailableDownloadMessages();
-                if (client.downloadWorkerPool.remaining() === 0) {
-                    assert.equal(messages.length, 0);
-                    assert.equal(client.processMessage.callCount, queueLength);
-                    done();
-                }
-            });
+    it('should process all messages', async () => {
+	stub = sinon.stub(client, "discoverQueue").resolves("queueUrl");
+
+        await client.loadAvailableDownloadMessages();
+
+        assert.equal(messages.length, 0);
+        assert.equal(client.processMessage.callCount, queueLength);
     });
     
-    it('should handle discoverQueue errors', (done) => {
-        sinon.stub(client, "discoverQueue").callsFake((qs, queueName, successCb, failureCb) => {
-            failureCb("ErrorType");
-        });
+    it('should handle discoverQueue errors', async () => {
+        sinon.stub(client, "discoverQueue").rejects("ErrorType");
 	
-        client.downloadWorkerPool.await(() => {
-            client.loadAvailableDownloadMessages();
-            if (client.downloadWorkerPool.remaining() === 0) {
-		done();
-	    }
-        });
+        await client.loadAvailableDownloadMessages();
     });
 });
