@@ -24,7 +24,7 @@ describe('epi2me.uploadJob', () => {
     it("should handle bad file object", () => {
 	let client = clientFactory();
 
-	sinon.stub(client, "_moveSkippedFile");
+	sinon.stub(client, "_moveFile");
 	sinon.stub(client, "uploadHandler");
 
 	assert.doesNotThrow(() => {
@@ -36,162 +36,165 @@ describe('epi2me.uploadJob', () => {
 	assert(client.uploadHandler.calledOnce);
     });
 
-    it("should handle file object with skip and no readCount", () => {
+    it("should handle file object with skip and no readCount", async () => {
 	let client   = clientFactory();
-	let callback = sinon.stub();
 
-	sinon.stub(client, "_moveSkippedFile").callsFake((file, cb) => {
+	sinon.stub(client, "_moveFile").callsFake((file, cb) => {
 	    assert.deepEqual(file, { skip: true });
-	    cb();
+	    return Promise.resolve();
 	});
 	sinon.stub(client, "uploadHandler");
 	client._stats.upload.enqueued = 10;
 
-	assert.doesNotThrow(() => {
+	try {
 	    let x = { skip: true};
-	    client.uploadJob(x, callback);
-	});
+	    await client.uploadJob(x);
+	} catch (e) {
+	    assert.fail(e);
+	}
 
-	assert(callback.calledOnce);
-	assert(client._moveSkippedFile.calledOnce);
+	assert(client._moveFile.calledOnce);
 	assert.equal(client._stats.upload.enqueued, 9);
         assert.equal(client._stats.upload.queueLength, 0);
     });
 
-    it("should handle file object with skip and readCount", () => {
+    it("should handle file object with skip and readCount", async () => {
 	let client   = clientFactory();
-	let callback = sinon.stub();
 
-	sinon.stub(client, "_moveSkippedFile").callsFake((file, cb) => {
+	sinon.stub(client, "_moveFile").callsFake((file) => {
 	    assert.deepEqual(file, { skip: true, readCount: 5 });
-	    cb();
+	    return Promise.resolve();
 	});
 	sinon.stub(client, "uploadHandler");
 	client._stats.upload.enqueued = 10;
 
-	assert.doesNotThrow(() => {
+	try {
 	    let x = { skip: true, readCount: 5};
-	    client.uploadJob(x, callback);
-	});
+	    await client.uploadJob(x);
+	} catch (e) {
+	    assert.fail(e);
+	}
 
-	assert(callback.calledOnce);
-	assert(client._moveSkippedFile.calledOnce);
+	assert(client._moveFile.calledOnce);
 	assert.equal(client._stats.upload.enqueued, 5);
         assert.equal(client._stats.upload.queueLength, 0);
     });
 
-    it("should handle file object with skip and queueLength", () => {
+    it("should handle file object with skip and queueLength", async () => {
 	let client   = clientFactory();
-	let callback = sinon.stub();
 
-	sinon.stub(client, "_moveSkippedFile").callsFake((file, cb) => {
+	sinon.stub(client, "_moveFile").callsFake((file) => {
 	    assert.deepEqual(file, { skip: true, readCount: 5 });
-	    cb();
+	    return Promise.resolve();
 	});
 	sinon.stub(client, "uploadHandler");
 	client._stats.upload.enqueued = 10;
 	client._stats.upload.queueLength = 10;
 
-	assert.doesNotThrow(() => {
+	try {
 	    let x = { skip: true, readCount: 5};
-	    client.uploadJob(x, callback);
-	});
+	    await client.uploadJob(x);
+	} catch (e) {
+	    assert.fail(e);
+	}
 
-	assert(callback.calledOnce);
-	assert(client._moveSkippedFile.calledOnce);
+	assert(client._moveFile.calledOnce);
 	assert.equal(client._stats.upload.enqueued, 5);
         assert.equal(client._stats.upload.queueLength, 5);
     });
 
-    it("should handle callback with error and no tally", () => {
+    it("should handle callback with error and no tally", async () => {
 	let clock    = sinon.useFakeTimers();
 	let client   = clientFactory();
-	let callback = sinon.stub();
 
 	sinon.stub(client, "uploadHandler").callsFake((file, callback) => {
 	    callback(new Error("uploadHandler failed"), file);
 	});
 	delete client._stats.upload.failure;
 
-	assert.doesNotThrow(() => {
+	let err;
+	try {
 	    let x = { id: 72 };
-	    client.uploadJob(x, callback);
+	    await client.uploadJob(x);
 	    clock.tick(1000);
-	});
-	assert(client.log.info.args[1][0].match(/uploadHandler failed/), "error message propagated");
-	assert(callback.calledOnce, "completion callback fired");
+	} catch (e) {
+	    err = e;
+	}
 
+	assert(client.log.info.args[1][0].match(/uploadHandler failed/), "error message propagated");
 	clock.restore();
     });
 
-    it("should handle callback with error and empty tally", () => {
+    it("should handle callback with error and empty tally", async () => {
 	let clock    = sinon.useFakeTimers();
 	let client   = clientFactory();
-	let callback = sinon.stub();
 
 	sinon.stub(client, "uploadHandler").callsFake((file, callback) => {
 	    callback(new Error("uploadHandler failed"), file);
 	});
 	client._stats.upload.failure = {}; // empty error tally
 
-	assert.doesNotThrow(() => {
+	try {
 	    let x = { id: 72 };
-	    client.uploadJob(x, callback);
+	    await client.uploadJob(x);
 	    clock.tick(1000);
-	});
+	} catch (e) {
+	    assert.fail(e);
+	}
+
 	assert(client.log.info.args[1][0].match(/uploadHandler failed/), "error message propagated");
-	assert(callback.calledOnce, "completion callback fired");
 	assert.deepEqual(client._stats.upload.failure, {"Error: uploadHandler failed": 1}, "error counted");
 
 	clock.restore();
     });
 
-    it("should handle callback with error and initialised tally", () => {
+    it("should handle callback with error and initialised tally", async () => {
 	let clock    = sinon.useFakeTimers();
 	let client   = clientFactory();
-	let callback = sinon.stub();
 
 	sinon.stub(client, "uploadHandler").callsFake((file, callback) => {
 	    callback(new Error("uploadHandler failed"), file);
 	});
 	client._stats.upload.failure = {"Error: uploadHandler failed": 7}; // empty error tally
 
-	assert.doesNotThrow(() => {
+	try {
 	    let x = { id: 72 };
-	    client.uploadJob(x, callback);
+	    client.uploadJob(x);
 	    clock.tick(1000);
-	});
+	} catch (e) {
+	    assert.fail(e);
+	}
+
 	assert(client.log.info.args[1][0].match(/uploadHandler failed/), "error message propagated");
-	assert(callback.calledOnce, "completion callback fired");
 	assert.deepEqual(client._stats.upload.failure, {"Error: uploadHandler failed": 8}, "error counted");
 
 	clock.restore();
     });
 
-    it("should handle callback without error", () => {
+    it("should handle callback without error", async () => {
 	let clock    = sinon.useFakeTimers();
 	let client   = clientFactory();
-	let callback = sinon.stub();
 
 	sinon.stub(client, "uploadHandler").callsFake((file, callback) => {
 	    callback(null, file);
 	});
 
-	assert.doesNotThrow(() => {
+	try {
 	    let x = { id: 72 };
-	    client.uploadJob(x, callback);
+	    await client.uploadJob(x);
 	    clock.tick(1000);
-	});
+	} catch (e) {
+	    assert.fail(e);
+	}
+
 	assert(client.log.info.args[1][0].match(/completely done/), "completion info message");
-	assert(callback.calledOnce, "completion callback fired");
 
 	clock.restore();
     });
 
-    it("should handle callback without error and with counts", () => {
-	let clock    = sinon.useFakeTimers();
-	let client   = clientFactory();
-	let callback = sinon.stub();
+    it("should handle callback without error and with counts", async () => {
+	let clock  = sinon.useFakeTimers();
+	let client = clientFactory();
 
 	sinon.stub(client, "uploadHandler").callsFake((file, callback) => {
 	    callback(null, file);
@@ -200,13 +203,15 @@ describe('epi2me.uploadJob', () => {
 	client._stats.upload.queueLength = 8192;
 	client._stats.upload.success     = 25;
 
-	assert.doesNotThrow(() => {
+	try {
 	    let x = { id: 72, readCount: 4096 };
-	    client.uploadJob(x, callback);
+	    await client.uploadJob(x);
 	    clock.tick(1000);
-	});
+	} catch (e) {
+	    assert.fail(e);
+	}
+
 	assert(client.log.info.args[1][0].match(/completely done/), "completion info message");
-	assert(callback.calledOnce, "completion callback fired");
 	assert.deepEqual(client._stats, {
 	    "download": {
 		"fail": 0,
@@ -227,3 +232,4 @@ describe('epi2me.uploadJob', () => {
 	clock.restore();
     });
 });
+

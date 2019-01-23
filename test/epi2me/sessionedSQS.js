@@ -1,20 +1,17 @@
-"use strict";
-const assert = require("assert");
-const sinon  = require("sinon");
-const AWS    = require("aws-sdk");
-
+import assert from "assert";
+import sinon  from "sinon";
+import AWS    from "aws-sdk";
 import EPI2ME from "../../lib/epi2me";
-import REST from "../../lib/rest";
 
 describe("epi2me.sessionedSQS", () => {
 
     it("should session", () => {
 	let client = new EPI2ME({});
 
-	sinon.stub(client, "session").callsFake();
+	sinon.stub(client, "session").resolves();
 
-	assert.doesNotThrow(() => {
-	    let sqs = client.sessionedSQS();
+	assert.doesNotThrow(async () => {
+	    let sqs = await client.sessionedSQS();
 	    assert.ok(sqs instanceof AWS.SQS);
 	});
     });

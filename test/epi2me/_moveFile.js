@@ -34,7 +34,7 @@ describe('epi2me._moveFile', () => {
         error = sinon.stub();
     });
 
-    it("should handle mkdirp error without unlink error", () => {
+    it("should handle mkdirp error without unlink error", async () => {
         let workingDir = tmp.dirSync().name;
         fs.mkdirpSync(path.join(workingDir, "uploaded"));
         let client     = clientFactory({
@@ -44,7 +44,6 @@ describe('epi2me._moveFile', () => {
         client._stats.upload.totalSize = 0;
 
         let mkdirp    = sinon.stub(fs, "mkdirp").rejects(new Error("mkdirp failed"));
-        let successCb = sinon.fake();
         let file = {
             id: "my-file",
             size: 10,
@@ -53,22 +52,19 @@ describe('epi2me._moveFile', () => {
             path: path.join(workingDir, "batchB", "fileA.fq"),
         };
 
-        assert.doesNotThrow(() => {
-            client
-                ._moveUploadedFile(file, successCb, type)
-                .then(() => {
-                    assert.ok(successCb.calledOnce, "success callback fired");
-                    sinon.assert.calledWith(successCb, "my-file upload mkdirp exception Error: mkdirp failed");
-                })
-                .catch((err) => {
-                    assert.fail("FAIL");
-                });
-        });
+	let err;
+	try {
+            await client._moveFile(file, "upload");
+	} catch (e) {
+	    err = e;
+	}
+
+	assert.ok(String(err).match(/mkdirp failed/), "mkdirp error propagated");
 
         mkdirp.restore();
     });
 
-    it("should handle mkdirp error with unlink error", () => {
+    it("should handle mkdirp error with unlink error", async () => {
         let workingDir = tmp.dirSync().name;
         fs.mkdirpSync(path.join(workingDir, "uploaded"));
         let client     = clientFactory({
@@ -77,9 +73,9 @@ describe('epi2me._moveFile', () => {
         client._uploadedFiles = [];
         client._stats.upload.totalSize = 0;
 
-        let remove    = sinon.stub(fs, "remove").rejects(new Error("failed to remove")); // weird scoping problem - this doesn't work correctly
+        let remove    = sinon.stub(fs, "remove").rejects(new Error("failed to remove"));
         let mkdirp    = sinon.stub(fs, "mkdirp").rejects(new Error("mkdirp failed"));
-        let successCb = sinon.fake();
+
         let file = {
             id: "my-file",
             size: 10,
@@ -88,21 +84,21 @@ describe('epi2me._moveFile', () => {
             path: path.join(workingDir, "batchB", "fileA.fq"),
         };
 
-        assert.doesNotThrow(() => {
-            client
-                ._moveUploadedFile(file, successCb, type)
-                .then(() => {
-                    assert.ok(successCb.calledOnce, "success callback fired");
-                    sinon.assert.calledWith(successCb, "my-file upload mkdirp exception Error: mkdirp failed");
-//                    assert.ok(warn.args[0][0].match(/my-file failed to delete.*failed to remove/), "deletion failure logged"); // fs.remove stub scoping broken
-                });
-        });
+	let err;
+        try {
+            await client._moveFile(file, "upload");
+	} catch (e) {
+	    err = e;
+	}
+
+	assert.ok(String(err).match(/mkdirp failed/), "mkdirp error propagated");
+	assert.ok(warn.args[0][0].match(/my-file upload additionally failed to delete.*failed to remove/), "deletion failure logged");
 
         mkdirp.restore();
         remove.restore();
     });
 
-    it("should handle no mkdirp error with move error", () => {
+    it("should handle no mkdirp error with move error", async () => {
         let workingDir = tmp.dirSync().name;
         fs.mkdirpSync(path.join(workingDir, "uploaded"));
         let client     = clientFactory({
@@ -113,9 +109,6 @@ describe('epi2me._moveFile', () => {
 
         fs.mkdirpSync(path.join(workingDir, "batchB")); // source folder present
         fs.mkdirpSync(path.join(workingDir, "uploaded", "batchB")); // target folder present
-        fs.writeFileSync(path.join(workingDir, "uploaded", "batchB", "fileA.fq")); // target file to remove without error
-
-        let successCb = sinon.fake();
 
         let file = {
             id: "my-file",
@@ -125,17 +118,17 @@ describe('epi2me._moveFile', () => {
             path: path.join(workingDir, "batchB", "fileA.fq"),
         };
 
-        assert.doesNotThrow(() => {
-            client
-                ._moveUploadedFile(file, successCb, type)
-                .then(() => {
-                        assert.ok(successCb.calledOnce, "success callback fired");
-                    assert.ok(successCb.args[0][0].match(/move error/), "error message returned");
-                });
-        });
+	let err;
+	try {
+            await client._moveFile(file, "upload");
+	} catch (e) {
+	    err = e;
+	}
+
+        assert.ok(String(err).match(/no such file/), "error message returned");
     });
 
-    it("should handle no mkdirp error and no move error", () => {
+    it("should handle no mkdirp error and no move error", async () => {
         let workingDir = tmp.dirSync().name;
         fs.mkdirpSync(path.join(workingDir, "uploaded"));
         let client     = clientFactory({
@@ -148,8 +141,6 @@ describe('epi2me._moveFile', () => {
         fs.mkdirpSync(path.join(workingDir, "uploaded", "batchB")); // target folder present
         fs.writeFileSync(path.join(workingDir, "batchB", "fileA.fq")); // source file present
 
-        let successCb = sinon.fake();
-
         let file = {
             id: "my-file",
             size: 10,
@@ -158,14 +149,19 @@ describe('epi2me._moveFile', () => {
             path: path.join(workingDir, "batchB", "fileA.fq"),
         };
 
-        assert.doesNotThrow(() => {
-            client
-                ._moveUploadedFile(file, successCb, type)
-                .then(() => {
-                        assert.ok(successCb.calledOnce, "success callback fired");console.log(successCb.args);
-//                    assert.ok(successCb.args[0][0].match(/move failed/), "error message returned");
-                });
-        });
+	let err;
+	try {
+            await client._moveFile(file, "upload");
+	} catch (e) {
+	    err = e;
+	}
+
+	if(err) {
+	    assert.fail(err);
+	}
+
+        assert.ok(!err, "no error thrown");
+	// check successful filesystem state here
     });
     /*
     it('should move file to upload folder', () => {
