@@ -28,25 +28,32 @@ describe("epi2me.fetchInstanceToken", () => {
 	clock.restore();
     });
 
-    it("should throw if no id_workflow_instance", () => {
+    it("should throw if no id_workflow_instance", async () => {
 	let client = clientFactory();
 
-	assert.throws(() => {
-	    client.fetchInstanceToken();
-	}, new Error("must specify id_workflow_instance"), "correct error thrown");
+	let err;
+	try {
+	    await client.fetchInstanceToken();
+	} catch (e) {
+	    err = e;
+	}
+	assert(String(err).match(/must specify id_workflow_instance/), "correct error thrown");
     });
 
-    it("should not throw if id_workflow_instance and token valid", () => {
+    it("should not throw if id_workflow_instance and token valid", async () => {
 	let client = clientFactory({
 	    id_workflow_instance: 5
 	});
 
-	assert.doesNotThrow(() => {
+	try {
 	    let fake = sinon.fake();
 	    client._stats.sts_expiration = 10000 + Date.now();
-	    client.fetchInstanceToken(fake);
-	    assert(fake.calledOnce, "callback fired");
-	}, "error not thrown");
+	    await client.fetchInstanceToken();
+	} catch (e) {
+	    assert.fail(e);
+	}
+
+	// error not thrown
     });
 
     it("should request a token if not present", () => {
@@ -57,7 +64,7 @@ describe("epi2me.fetchInstanceToken", () => {
 	assert.doesNotThrow(() => {
 	    let stub = sinon.stub(client.REST, "instance_token").callsFake();
 	    client._stats.sts_expiration = Date.now() - 10000; // expired
-	    client.fetchInstanceToken(sinon.fake());
+	    client.fetchInstanceToken();
 	    assert(stub.calledOnce, "callback fired if expired");
 	}, "error not thrown");
     });
@@ -68,7 +75,6 @@ describe("epi2me.fetchInstanceToken", () => {
 	});
 
 	assert.doesNotThrow(() => {
-	    let fake = sinon.fake();
 	    let stub = sinon.stub(client.REST, "instance_token").callsFake((id, callback) => {
 		assert.equal(id, 5, "id passed correctly");
 		callback(new Error("token error"), null);
@@ -77,7 +83,7 @@ describe("epi2me.fetchInstanceToken", () => {
 	    });
 
 	    client._stats.sts_expiration = Date.now() - 10000; // expired
-	    client.fetchInstanceToken(fake);
+	    client.fetchInstanceToken();
 	    assert(stub.calledOnce, "callback fired if expired");
 	}, "error not thrown");
     });
@@ -91,7 +97,6 @@ describe("epi2me.fetchInstanceToken", () => {
 	    let token = {
 		expiration: new Date(),
 	    };
-	    let fake = sinon.fake();
 	    let stub = sinon.stub(client.REST, "instance_token").callsFake((id, callback) => {
 		assert.equal(id, 5, "id passed correctly");
 		callback(null, token);
@@ -101,7 +106,7 @@ describe("epi2me.fetchInstanceToken", () => {
 
 	    let stub2 = sinon.stub(AWS.config, "update").callsFake();
 	    client._stats.sts_expiration = Date.now() - 10000; // expired
-	    client.fetchInstanceToken(fake);
+	    client.fetchInstanceToken();
 	    assert(stub.calledOnce, "callback fired if expired");
 	    assert.ok(stub2.calledTwice);
 	    assert.deepEqual(stub2.args[1][0], token, "token contents");
@@ -119,7 +124,6 @@ describe("epi2me.fetchInstanceToken", () => {
 	    let token = {
 		expiration: new Date(),
 	    };
-	    let fake = sinon.fake();
 	    let stub = sinon.stub(client.REST, "instance_token").callsFake((id, callback) => {
 		assert.equal(id, 5, "id passed correctly");
 		callback(null, token);
@@ -129,7 +133,7 @@ describe("epi2me.fetchInstanceToken", () => {
 
 	    let stub2 = sinon.stub(AWS.config, "update").callsFake();
 	    client._stats.sts_expiration = Date.now() - 10000; // expired
-	    client.fetchInstanceToken(fake);
+	    client.fetchInstanceToken();
 	    assert(stub.calledOnce, "callback fired if expired");
 	    assert.ok(stub2.calledThrice);
 	    assert.equal(stub2.args[0][0].httpOptions.agent.proxy.href, "http://proxy.test:3128/", "tightly coupled proxy contents");

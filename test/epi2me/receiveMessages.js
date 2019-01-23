@@ -1,9 +1,7 @@
+import assert from "assert";
+import sinon from "sinon";
+import bunyan from "bunyan";
 import EPI2ME from "../../lib/epi2me";
-
-const assert = require("assert");
-const sinon  = require("sinon");
-const bunyan = require("bunyan");
-const queue  = require("queue-async");
 
 describe('epi2me.receiveMessages', () => {
     let ringbuf, log, client;
@@ -17,35 +15,29 @@ describe('epi2me.receiveMessages', () => {
         sinon.stub(client, "processMessage").callsFake((msg, queueCb) => {
             setTimeout(queueCb, 1);
         });
-        client.downloadWorkerPool = queue(10);
     });
 
-    it('should handle error and log warning', (done) => {
-        assert.doesNotThrow(() => {
-	    client.receiveMessages('Error Message');
-	});
-        assert(log.warn.calledOnce);
-	done();
-    });
-
-    it('should ignore empty message', (done) => {
-        assert.doesNotThrow(() => {
-	    client.receiveMessages(null, {});
-	});
+    it('should ignore empty message', async () => {
+        try {
+	    await client.receiveMessages({});
+	} catch (e) {
+	    assert.fail(e);
+	}
 	assert.equal(JSON.parse(ringbuf.records[0]).msg, "complete (empty)");
-	done();
     });
 
-    it('should queue and process download messages using downloadWorkerPool', (done) => {
-	assert.doesNotThrow(() => {
-	    client.receiveMessages(null, { Messages: [1, 2, 3, 4] }, () => {
-                assert.equal(client.downloadWorkerPool.remaining(), 4);
-	    });
-	});
+    it('should queue and process download messages using downloadWorkerPool', async () => {
+	try {
+	    await client.receiveMessages({ Messages: [1, 2, 3, 4] });
+	} catch (e) {
+	    assert.fail(e);
+	}
+        assert.equal(client.downloadWorkerPool.remaining(), 4);
 
-        client.downloadWorkerPool.await(() => {
-            assert.equal(client.downloadWorkerPool.remaining(), 0);
-            done();
-        });
+	let p = new Promise((resolve, reject) => {
+            client.downloadWorkerPool.await(resolve);
+	});
+	await p;
+	assert.equal(client.downloadWorkerPool.remaining(), 0);
     });
 });

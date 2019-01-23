@@ -1,58 +1,58 @@
+import assert from "assert";
+import sinon  from "sinon";
+import bunyan from "bunyan";
+import AWS    from "aws-sdk";
 import EPI2ME from "../../lib/epi2me";
-
-const assert = require("assert");
-const sinon  = require("sinon");
-const bunyan = require("bunyan");
 
 describe('epi2me.queueLength', () => {
     let client, queueUrl = 'queueUrl';
 
-    beforeEach((done) => {
-        client = new EPI2ME({});
-        sinon.stub(client.log, "warn");
-        sinon.stub(client.log, "error");
-        sinon.stub(client.log, "info");
-	done();
+    beforeEach(() => {
+        client = new EPI2ME({
+	    log: {
+		warn:  sinon.stub(),
+		error: sinon.stub(),
+		debug: sinon.stub(),
+		info:  sinon.stub(),
+	    }
+	});
     });
 
-    it('should return sqs queue', function (done) {
-        client.sessionedSQS = function (cb) {
+    it('should return sqs queue', async () => {
+	let sqs = new AWS.SQS();
+	sinon.stub(client, "sessionedSQS").callsFake(() => { return sqs; });
+	sinon.stub(sqs, "getQueueAttributes").callsFake((opts) => {
+	    assert.equal(opts.QueueUrl, queueUrl);
 	    return {
-                getQueueAttributes: function (opts, cb) {
-		    assert.equal(opts.QueueUrl, queueUrl);
-		    cb(null, { Attributes: { ApproximateNumberOfMessages: 10 } });
-		    assert(completeCb.calledOnce);
-		    assert.equal(completeCb.lastCall.args[0], 10);
-		    cb("Error");
-		    assert(client.log.warn.calledOnce);
-		    assert(completeCb.calledTwice);
-		    done();
-                }
-	    };
-        };
+		promise: () => { return Promise.resolve({ Attributes: { ApproximateNumberOfMessages: 10 } }); }
+	    }
+	});
 
-        var completeCb = sinon.spy();
-        client.queueLength(queueUrl, completeCb);
+        try {
+	    let len = await client.queueLength(queueUrl);
+	    assert.equal(len, 10, "expected length");
+	} catch (e) {
+	    assert.fail(e);
+	}
     });
 
-    it('should handle sessionedSQS errors', () => {
-        client.sessionedSQS = () => {
+    it('should handle sessionedSQS errors', async () => {
+	let sqs = new AWS.SQS();
+	sinon.stub(client, "sessionedSQS").callsFake(() => { return sqs; });
+	sinon.stub(sqs, "getQueueAttributes").callsFake((opts) => {
+	    assert.equal(opts.QueueUrl, queueUrl);
 	    return {
-                getQueueAttributes: function (opts, cb) {
-		    throw Error;
-                }
-	    };
-        };
+		promise: () => { return Promise.reject(new Error("getQueueAttributes failure")); }
+	    }
+	});
 
-        var completeCb = sinon.spy();
-        client.queueLength(queueUrl, completeCb);
-        // assert(completeCb.calledTwice, 'call callback even for errors');
-        assert.equal(completeCb.firstCall.args[0], undefined);
-        // assert.equal(completeCb.secondCall.args[0], undefined);
-        assert(client.log.error.calledOnce);
-        assert.doesNotThrow(() => {
-	    client.queueLength(queueUrl);
-	    client.queueLength();
-        }, 'Error');
+	let err;
+        try {
+	    await client.queueLength(queueUrl);
+	} catch (e) {
+	    err = e;
+	}
+
+	assert(String(err).match(/getQueueAttributes failure/), "error propagated");
     });
 });
