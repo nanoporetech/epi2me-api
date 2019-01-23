@@ -1,9 +1,9 @@
 import EPI2ME from "../../lib/epi2me";
 import assert from "assert";
-import sinon from "sinon";
-import path from "path";
-import tmp from "tmp";
-import fs from "fs-extra";
+import sinon  from "sinon";
+import path   from "path";
+import tmp    from "tmp";
+import fs     from "fs-extra";
 
 describe('epi2me.uploadHandler', () => {
 
@@ -40,9 +40,7 @@ describe('epi2me.uploadHandler', () => {
             };
         }));
 
-        stubs.push(sinon.stub(client, "uploadComplete").callsFake((objectId, item, successCb) => {
-            successCb();
-        }));
+        sinon.stub(client, "uploadComplete").resolves();
 
         client.uploadHandler({name: tmpfile}, (error) => {
             assert(typeof error === 'undefined', 'unexpected error message: ' + error);
@@ -72,10 +70,10 @@ describe('epi2me.uploadHandler', () => {
             };
         }));
 
-        stubs.push(sinon.stub(client, "uploadComplete"));
+        sinon.stub(client, "uploadComplete").resolves();
 
-        client.uploadHandler({ name: tmpfile }, (msg) => {
-            assert(msg.match(/error in upload readstream/), 'unexpected error message format: ' + msg);
+        client.uploadHandler({ name: tmpfile }, (error) => {
+	    assert(String(error).match(/error in upload readstream/), 'unexpected error message format: ' + error);
             done();
         });
     });
