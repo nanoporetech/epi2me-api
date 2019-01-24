@@ -29,10 +29,6 @@ var _proxyAgent = require("proxy-agent");
 
 var _proxyAgent2 = _interopRequireDefault(_proxyAgent);
 
-var _queueAsync = require("queue-async");
-
-var _queueAsync2 = _interopRequireDefault(_queueAsync);
-
 var _utilsFs = require("./utils-fs");
 
 var _utilsFs2 = _interopRequireDefault(_utilsFs);
@@ -47,15 +43,15 @@ var _default_options2 = _interopRequireDefault(_default_options);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-/*
- * Copyright (c) 2018 Metrichor Ltd.
- * Author: rpettett
- * When: A long time ago, in a galaxy far, far away
- *
- */
+/* MC-565 handle EMFILE & EXDIR gracefully; use Promises */
+const REST = exports.REST = _restFs2.default; /*
+                                               * Copyright (c) 2018 Metrichor Ltd.
+                                               * Author: rpettett
+                                               * When: A long time ago, in a galaxy far, far away
+                                               *
+                                               */
 /*global console */
 
-const REST = exports.REST = _restFs2.default; /* MC-565 handle EMFILE & EXDIR gracefully; use Promises */
 const version = exports.version = require("../package.json").version;
 
 class EPI2ME {
@@ -420,7 +416,7 @@ class EPI2ME {
     }
 
     async downloadAvailable() {
-        let downloadWorkerPoolRemaining = this.downloadWorkerPool ? this.downloadWorkerPool.remaining() : 0;
+        let downloadWorkerPoolRemaining = this.downloadWorkerPool ? this.downloadWorkerPool.remaining : 0;
 
         if (downloadWorkerPoolRemaining >= this.config.options.downloadPoolSize * 5) {
             /* ensure downloadPool is limited but fully utilised */
@@ -460,7 +456,7 @@ class EPI2ME {
          */
 
         // const fileExp = new RegExp('\\.' + this.config.options.inputFormat + '$');   // only consider files with the specified extension
-        const remaining = this.inputBatchQueue ? this.inputBatchQueue.remaining() : 0;
+        const remaining = this.inputBatchQueue ? this.inputBatchQueue.remaining : 0;
 
         // if remaining > 0, there are still files in the inputBatchQueue
         if (!this._dirScanInProgress && remaining === 0) {
@@ -536,6 +532,7 @@ class EPI2ME {
 
         this.log.info(`enqueueUploadFiles: ${files.length} new files`);
         this.inputBatchQueue = [];
+        this.inputBatchQueue.remaining = 0;
 
         this._stats.upload.filesCount = this._stats.upload.filesCount ? this._stats.upload.filesCount + files.length : files.length;
 
@@ -583,7 +580,9 @@ class EPI2ME {
                         this.log.error(`uploadWorkerPool (fastq) exception ${String(err)}`);
                     });
                 });
+                this.inputBatchQueue.remaining--;
             });
+            this.inputBatchQueue.remaining++;
         } else {
             this._stats.upload.enqueued += files.length;
             this.inputBatchQueue = files.map(item => {
@@ -601,8 +600,11 @@ class EPI2ME {
                     item.skip = "SKIP_TOO_BIG";
                 }
 
-                return this.uploadJob(item); // Promise
+                return this.uploadJob(item).then(() => {
+                    this.inputBatchQueue.remaining--;
+                }); // Promise
             });
+            this.inputBatchQueue.remaining++;
         }
 
         // should this await Promise.all() ?
@@ -675,29 +677,35 @@ class EPI2ME {
         }
 
         if (!this.downloadWorkerPool) {
-            this.downloadWorkerPool = (0, _queueAsync2.default)(this.config.options.downloadPoolSize);
+            this.downloadWorkerPool = [];
+            this.downloadWorkerPool.remaining = 0;
         }
 
         receiveMessages.Messages.forEach(message => {
-            this.downloadWorkerPool.defer(queueCb => {
-                /* queueCb *must* be called to signal queue job termination */
-                let timeoutHandle;
-                const done = () => {
-                    clearTimeout(timeoutHandle);
-                    setTimeout(queueCb); // MC-5459 - setTimeout to clear callstack
-                };
-
+            let p = new Promise((resolve, reject) => {
                 // timeout to ensure this queueCb *always* gets called
+                let timeoutHandle;
+
                 timeoutHandle = setTimeout(() => {
-                    done();
+                    clearTimeout(timeoutHandle);
                     this.log.error("this.downloadWorkerPool timeoutHandle. Clearing queue slot for message: " + message.Body);
+                    this.downloadWorkerPool.remaining--;
+                    reject();
                 }, (60 + this.config.options.downloadTimeout) * 1000);
-                setTimeout(() => this.processMessage(message, done));
+
+                this.processMessage(message, () => {
+                    this.downloadWorkerPool.remaining--;
+                    clearTimeout(timeoutHandle);
+                    resolve();
+                });
             });
+
+            this.downloadWorkerPool.remaining++;
+            this.downloadWorkerPool.push(p);
         });
 
-        this.log.info("downloader queued " + receiveMessages.Messages.length + " files for download");
-        return Promise.resolve();
+        this.log.info(`downloader queued ${receiveMessages.Messages.length} files for download`);
+        return Promise.all(this.downloadWorkerPool); // would awaiting here control parallelism better?
     }
 
     async deleteMessage(message) {
