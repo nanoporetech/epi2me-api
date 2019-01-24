@@ -1,60 +1,89 @@
-import assert from "assert";
-import sinon  from "sinon";
-import bunyan from "bunyan";
-import EPI2ME from "../../lib/epi2me";
+import assert    from "assert";
+import sinon     from "sinon";
+import bunyan    from "bunyan";
+import { merge } from "lodash";
+import EPI2ME    from "../../lib/epi2me";
 
 describe('epi2me.loadAvailableDownloadMessages', () => {
 
-    let client, ringbuf, log, stub,
-        parallelism = 10,
-        queueLength = 50,
-        messages;
+    let debug;
+    const clientFactory = (opts) => {
+	return new EPI2ME(merge({
+	    url: "https://epi2me-test.local",
+	    log: {
+		debug: debug,
+		info:  sinon.stub(),
+		warn:  sinon.stub(),
+		error: sinon.stub(),
+	    }
+	}, opts));
+    };
 
-    beforeEach((done) => {
-        ringbuf  = new bunyan.RingBuffer({ limit: 100 });
-	log      = bunyan.createLogger({ name: "log", stream: ringbuf });
-        client   = new EPI2ME({log: log});
-        messages = Array
-	    .apply(null, Array(queueLength))
-	    .map(Number.prototype.valueOf, 0);
-	
-        sinon.stub(client, "queueLength").callsFake((url, cb) => {
-            cb(messages.length);
-        });
-        sinon.stub(client, "sessionedSQS").callsFake((cb) => {
-            return {
-                receiveMessage: (opts, cb) => {
-                    cb(null, {
-                        Messages: messages.splice(0, parallelism) // fetch 10 messages each time
-                    });
-                }
-            };
-        });
-//        client.downloadWorkerPool = queue(parallelism);
-
-	sinon.stub(client, "processMessage").callsFake((msg, queueCb) => {
-            setTimeout(queueCb);
-        });
-	done();
-    });
-    
-    afterEach((done) => {
-	stub.restore();
-	done();
+    beforeEach(() => {
+	debug = sinon.stub();
     });
 
-    it('should process all messages', async () => {
-	stub = sinon.stub(client, "discoverQueue").resolves("queueUrl");
+    it('should process undefined messages', async () => {
+	let client = clientFactory();
+	sinon.stub(client, "discoverQueue").resolves("http://queue.url/");
+	sinon.stub(client, "queueLength").resolves(); // undefined
+	sinon.stub(client, "downloadAvailable").callsFake();
 
-        await client.loadAvailableDownloadMessages();
+	try {
+	    await client.loadAvailableDownloadMessages();
+	} catch (e) {
+	    assert.fail(e);
+	}
 
-        assert.equal(messages.length, 0);
-        assert.equal(client.processMessage.callCount, queueLength);
+	assert(debug.lastCall.args[0].match(/no downloads available/));
+	assert(client.downloadAvailable.notCalled);
     });
-    
-    it('should handle discoverQueue errors', async () => {
-        sinon.stub(client, "discoverQueue").rejects("ErrorType");
-	
-        await client.loadAvailableDownloadMessages();
+
+    it('should process null messages', async () => {
+	let client = clientFactory();
+	sinon.stub(client, "discoverQueue").resolves("http://queue.url/");
+	sinon.stub(client, "queueLength").resolves(null); // null
+	sinon.stub(client, "downloadAvailable").callsFake();
+
+	try {
+	    await client.loadAvailableDownloadMessages();
+	} catch (e) {
+	    assert.fail(e);
+	}
+
+	assert(debug.lastCall.args[0].match(/no downloads available/));
+	assert(client.downloadAvailable.notCalled);
+    });
+
+    it('should process zero messages', async () => {
+	let client = clientFactory();
+	sinon.stub(client, "discoverQueue").resolves("http://queue.url/");
+	sinon.stub(client, "queueLength").resolves(0); // zero
+	sinon.stub(client, "downloadAvailable").callsFake();
+
+	try {
+	    await client.loadAvailableDownloadMessages();
+	} catch (e) {
+	    assert.fail(e);
+	}
+
+	assert(debug.lastCall.args[0].match(/no downloads available/));
+	assert(client.downloadAvailable.notCalled);
+    });
+
+    it('should process n messages', async () => {
+	let client = clientFactory();
+	sinon.stub(client, "discoverQueue").resolves("http://queue.url/");
+	sinon.stub(client, "queueLength").resolves(50); // n
+	sinon.stub(client, "downloadAvailable").callsFake();
+
+	try {
+	    await client.loadAvailableDownloadMessages();
+	} catch (e) {
+	    assert.fail(e);
+	}
+
+	assert(debug.lastCall.args[0].match(/downloads available: 50/));
+	assert(client.downloadAvailable.calledOnce);
     });
 });

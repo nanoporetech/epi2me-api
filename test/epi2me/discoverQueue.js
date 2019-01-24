@@ -78,10 +78,10 @@ describe('epi2me.discoverQueue', () => {
 	});
 
 	try {
-	    await client.discoverQueue('my_queue');
+	    let q = await client.discoverQueue('my_queue');console.log(q);
 	    assert.fail("unexpected success");
 	} catch (error) {
-	    assert.ok(String(error).match(/getqueueurl error/), "failure callback fired with message");
+	    assert.ok(String(error).match(/no such queue/), "failure callback fired with message");
 	};
     });
 });

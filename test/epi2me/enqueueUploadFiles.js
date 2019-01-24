@@ -9,7 +9,7 @@ import { merge } from "lodash";
 import AWS       from "aws-sdk";
 import EPI2ME    from "../../lib/epi2me";
 
-describe('epi2me._enqueueUploadFiles', () => {
+describe('epi2me.enqueueUploadFiles', () => {
 
     let debug, info, warn, error;
     let type = "upload";
@@ -50,22 +50,24 @@ describe('epi2me._enqueueUploadFiles', () => {
 	});
     });
 
-    it("should process", () => { // This test is failing even though the code is exercised.. async fun.
+    it("should process", async () => { // This test is failing even though the code is exercised.. async fun.
 	let client          = clientFactory();
 	let loadUploadFiles = sinon.stub(client, "loadUploadFiles").callsFake();
-	sinon.stub(client, "uploadJob").callsFake((item, cb) => { return cb(); });
+	sinon.stub(client, "uploadJob").resolves();
 
-	assert.doesNotThrow(async () => {
+	try {
 	    await client.enqueueUploadFiles([
 		{}
 	    ]);
+	} catch (e) {
+	    assert.fail(e);
+	}
 
-	    assert.ok(info.args[0][0].match(/slot released/), "logged as complete");
-	    assert.ok(loadUploadFiles.calledOnce, "loadUploadFiles fired");
-	});
+	assert.ok(info.lastCall.args[0].match(/slot released/), "logged as complete");
+	assert.ok(loadUploadFiles.calledOnce, "loadUploadFiles fired");
     });
 
-    it("should process. storage required from workflow attributes. no account provided", () => {
+    it("should process. storage required from workflow attributes. no account provided", async () => {
 	let client = clientFactory();
 	client.config.workflow = {
 	    workflow_attributes: {
@@ -73,18 +75,20 @@ describe('epi2me._enqueueUploadFiles', () => {
 	    }
 	}
 	let loadUploadFiles = sinon.stub(client, "loadUploadFiles").callsFake();
-	sinon.stub(client, "uploadJob").callsFake((item, cb) => { return cb(); });
+	sinon.stub(client, "uploadJob").resolves();
 
-	assert.doesNotThrow(async () => {
+	try {
 	    await client.enqueueUploadFiles([
 		{}
 	    ]);
 
 	    assert.ok(error.args[0][0].match(/provide a valid storage account/), "storage-required error");
-	});
+	} catch (e) {
+	    assert.fail(e);
+	}
     });
 
-    it("should process. storage required from workflow attributes. account provided", () => {
+    it("should process. storage required from workflow attributes. account provided", async () => {
 	let client = clientFactory();
 	client.config.workflow = {
 	    workflow_attributes: {
@@ -93,35 +97,17 @@ describe('epi2me._enqueueUploadFiles', () => {
 	    storage_account: "C000000",
 	}
 	let loadUploadFiles = sinon.stub(client, "loadUploadFiles").callsFake();
-	sinon.stub(client, "uploadJob").callsFake((item, cb) => { return cb(); });
+	sinon.stub(client, "uploadJob").resolves();
 
-	assert.doesNotThrow(async () => {
+	try {
 	    await client.enqueueUploadFiles([
 		{}
 	    ]);
 
 	    assert.ok(error.notCalled, "no errors raised");
 	    assert.ok(loadUploadFiles.calledOnce, "loadUploadFiles fired");
-	});
-    });
-
-    it("should process. storage set but not required from workflow attributes", () => {
-	let client = clientFactory();
-	client.config.workflow = {
-	    workflow_attributes: {
-		requires_storage: false
-	    },
+	} catch (e) {
+	    assert.fail(e);
 	}
-	let loadUploadFiles = sinon.stub(client, "loadUploadFiles").callsFake();
-	sinon.stub(client, "uploadJob").callsFake((item, cb) => { return cb(); });
-
-	assert.doesNotThrow(async () => {
-	    await client.enqueueUploadFiles([
-		{}
-	    ]);
-
-	    assert.ok(error.notCalled, "no errors raised");
-	    assert.ok(loadUploadFiles.notCalled, "loadUploadFiles not fired");
-	});
     });
 });

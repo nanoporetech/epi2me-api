@@ -1,31 +1,42 @@
-import EPI2ME from "../../lib/epi2me";
-import assert from "assert";
-import sinon  from "sinon";
-import path   from "path";
-import tmp    from "tmp";
-import fs     from "fs-extra";
+import assert    from "assert";
+import sinon     from "sinon";
+import path      from "path";
+import tmp       from "tmp";
+import fs        from "fs-extra";
+import { merge } from "lodash";
+import EPI2ME    from "../../lib/epi2me";
 
 describe('epi2me.uploadHandler', () => {
 
-    let tmpfile = 'tmpfile.txt', tmpdir, client, stubs = [];
+    let tmpfile = 'tmpfile.txt', stubs;
 
-    beforeEach(() => {
-        tmpdir = tmp.dirSync({unsafeCleanup: true});
-        fs.writeFile(path.join(tmpdir.name, tmpfile));
-	client = new EPI2ME({
-	    log: console,
-            inputFolder: tmpdir.name,
-        });
+    const clientFactory = (opts) => {
 	stubs = [];
 
-	stubs.push(sinon.stub(client, "session"));
-    });
+        let tmpdir = tmp.dirSync().name;
+        fs.writeFile(path.join(tmpdir, tmpfile));
+	let client = new EPI2ME(merge({
+	    inputFolder: tmpdir,
+	    url: "https://epi2me-test.local",
+	    log: {
+		debug: sinon.stub(),
+		info:  sinon.stub(),
+		warn:  sinon.stub(),
+		error: sinon.stub(),
+	    }
+	}, opts));
+
+	sinon.stub(client, "session").resolves();
+
+	return client;
+    };
 
     afterEach(() => {
 	stubs.forEach((s) => { s.restore(); });
     })
 
     it('should open readStream', (done) => {
+	let client = clientFactory();
         stubs.push(sinon.stub(client, "sessionedS3").callsFake(() => {
             return {
                 upload: (params, options, cb) => {
@@ -49,18 +60,19 @@ describe('epi2me.uploadHandler', () => {
     });
 
     it('should handle read stream errors', (done) => {
-	let crso = fs.createReadStream;
+	let client = clientFactory();
+	let crso   = fs.createReadStream;
         stubs.push(sinon.stub(fs, "createReadStream").callsFake((...args) => {
             let readStream = crso(...args);
-	    setTimeout(() => { readStream.emit("error"); }, 10); // fire a readstream error at some point after the readstream created
+	    readStream.on("open", () => { readStream.emit("error"); }); // fire a readstream error at some point after the readstream created
             return readStream;
         }));
 
-        stubs.push(sinon.stub(client, "sessionedS3").callsFake(() => {
+        sinon.stub(client, "sessionedS3").callsFake(() => {
             return {
                 upload: (params, options, cb) => {
                     cb();
-                    assert(params);
+                    assert(params); // not a very useful test
 		    return {
 			on: () => {
 			    // support for httpUploadProgress
@@ -68,20 +80,25 @@ describe('epi2me.uploadHandler', () => {
 		    };
                 }
             };
-        }));
+        });
 
         sinon.stub(client, "uploadComplete").resolves();
 
-        client.uploadHandler({ name: tmpfile }, (error) => {
-	    assert(String(error).match(/error in upload readstream/), 'unexpected error message format: ' + error);
-            done();
-        });
+	assert.doesNotThrow(() => {
+            client.uploadHandler({ id: "my-file", name: tmpfile }, (error) => {
+		assert(String(error).match(/error in upload readstream/), 'unexpected error message format: ' + error);
+		done();
+            });
+	});
     });
 
     it('should handle bad file name - ENOENT', (done) => {
-        client.uploadHandler({name: 'bad file name'}, (msg) => {
-            assert(typeof msg !== 'undefined', 'failure');
-            done();
-        });
+	let client = clientFactory();
+	assert.doesNotThrow(() => {
+            client.uploadHandler({ id: "my-file", name: 'bad file name'}, (msg) => {
+		assert(typeof msg !== 'undefined', 'failure');
+		done();
+            });
+	});
     });
 });

@@ -44,8 +44,7 @@ describe("epi2me.deleteMessage", () => {
 
 	assert(sessionedSQS.calledOnce);
 	assert(discoverQueue.calledOnce);
-	assert.deepEqual(discoverQueue.args[0][0], {"sqs":"obj"}, "sqs object passed");
-	assert.equal(discoverQueue.args[0][1], "my-output-queue", "queue name passed");
+	assert.equal(discoverQueue.lastCall.args[0], "my-output-queue", "queue name passed");
     });
 
     it("should invoke sqs.deleteMessage without error", async () => {
@@ -56,7 +55,11 @@ describe("epi2me.deleteMessage", () => {
 	});
 	
 	let discoverQueue = sinon.stub(client, "discoverQueue").resolves("http://my-output-queue.eu-test-1.aws.com");
-	let deleteMessage = sinon.stub(sqs, "deleteMessage").callsFake();
+	let deleteMessage = sinon.stub(sqs, "deleteMessage").callsFake(() => {
+	    return {
+		promise: () => { return Promise.resolve(); }
+	    }
+	});
 
 	try {
 	    await client
@@ -70,7 +73,6 @@ describe("epi2me.deleteMessage", () => {
 	    QueueUrl: "http://my-output-queue.eu-test-1.aws.com",
 	    ReceiptHandle: "abcd-1234",
 	});
-	assert(deleteMessage.args[0][1] instanceof Function, "failure callback passed");
     });
 
     it("should invoke sqs.deleteMessage with error", async () => {
@@ -81,8 +83,10 @@ describe("epi2me.deleteMessage", () => {
 	});
 	
 	let discoverQueue = sinon.stub(client, "discoverQueue").resolves("http://my-output-queue.eu-test-1.aws.com");
-	let deleteMessage = sinon.stub(sqs, "deleteMessage").callsFake((details, errorCallback) => {
-	    errorCallback(new Error("deleteMessage failed"));
+	let deleteMessage = sinon.stub(sqs, "deleteMessage").callsFake(() => {
+	    return {
+		promise: () => { return Promise.reject(new Error("deleteMessage failed")); },
+	    }
 	});
 
 	try {
@@ -92,7 +96,7 @@ describe("epi2me.deleteMessage", () => {
 	    assert.fail(error);
 	}
 
-	assert.ok(client.log.warn.args[0][0].match(/deleteMessage failed/), "error message logged");
+	assert.ok(client.log.error.args[0][0].match(/deleteMessage failed/), "error message logged");
     });
 
     it("should invoke sqs.deleteMessage with exception", async () => {
