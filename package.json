@@ -19,6 +19,7 @@
   "devDependencies": {
     "@babel/cli": "^7.2.3",
     "@babel/core": "^7.2.2",
+    "@babel/plugin-proposal-object-rest-spread": "^7.3.1",
     "@babel/preset-env": "^7.3.1",
     "@babel/register": "^7.0.0",
     "@types/bunyan": "^1.8.4",
@@ -65,7 +66,7 @@
     "clean": "yarn clean:build && yarn clean:dist",
     "test": "yarn deps && yarn lint && mocha --recursive --require @babel/register test",
     "cover": "yarn deps && yarn lint && yarn nyc --reporter=html --reporter=text mocha --recursive --require @babel/register test",
-    "build": "yarn clean:build && yarn babel src -d build && cp src/default_options.json build/ && yarn webpack --config ./config/webpack.config.build.js",
+    "build": "yarn clean:build && yarn webpack --config ./config/webpack.config.build.js",
     "build:dist": "yarn clean:dist && yarn webpack-cli --config ./config/webpack.config.dist.js"
   }
 }

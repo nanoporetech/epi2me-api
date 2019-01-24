@@ -5,6 +5,8 @@
  *
  */
 
+import { version as VERSION } from '../package.json';
+
 const request = require('request');
 const crypto = require('crypto');
 
@@ -218,5 +220,5 @@ utils._responsehandler = (res_e, r, body, cb) => {
 export const _get = utils._get;
 export const _put = utils._put;
 export const _post = utils._post;
+export const version = VERSION;
 export default utils;
-module.exports.version = require('../package.json').version;
