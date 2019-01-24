@@ -1,7 +1,6 @@
 import assert    from "assert";
 import sinon     from "sinon";
 import bunyan    from "bunyan";
-import queue     from "queue-async";
 import fs        from "fs-extra";
 import tmp       from "tmp";
 import path      from "path";

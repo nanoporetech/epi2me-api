@@ -4,17 +4,17 @@ import bunyan from "bunyan";
 import EPI2ME from "../../lib/epi2me";
 
 describe('epi2me.receiveMessages', () => {
-    let ringbuf, log, client;
+    let ringbuf, log, client, clock;
 
     beforeEach(() => {
 	ringbuf = new bunyan.RingBuffer({ limit: 100 });
 	log     = bunyan.createLogger({ name: "log", stream: ringbuf });
 	client  = new EPI2ME({log: log});
+	clock   = sinon.useFakeTimers();
+    });
 
-	sinon.spy(log, "warn");
-        sinon.stub(client, "processMessage").callsFake((msg, queueCb) => {
-            setTimeout(queueCb, 1);
-        });
+    afterEach(() => {
+	clock.restore();
     });
 
     it('should ignore empty message', async () => {
@@ -27,17 +27,20 @@ describe('epi2me.receiveMessages', () => {
     });
 
     it('should queue and process download messages using downloadWorkerPool', async () => {
+	sinon.stub(client, "processMessage").callsFake((message, resolver) => {
+	    setTimeout(resolver, 1);
+	});
+
 	try {
-	    await client.receiveMessages({ Messages: [1, 2, 3, 4] });
+	    client.receiveMessages({ Messages: [1, 2, 3, 4] }); // no awaiting here so we can resolve promises with a clock tick
 	} catch (e) {
 	    assert.fail(e);
 	}
-        assert.equal(client.downloadWorkerPool.remaining(), 4);
+        assert.equal(client.downloadWorkerPool.remaining, 4, "pending message count");
 
-	let p = new Promise((resolve, reject) => {
-            client.downloadWorkerPool.await(resolve);
-	});
-	await p;
-	assert.equal(client.downloadWorkerPool.remaining(), 0);
+	clock.tick(10);
+
+	assert.equal(client.downloadWorkerPool.remaining, 0, "processed message count");
+	assert.equal(client.processMessage.callCount, 4, "processMessage invocation count");
     });
 });
