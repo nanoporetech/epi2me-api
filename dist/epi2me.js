@@ -115,7 +115,6 @@ class EPI2ME {
             instance: {
                 id_workflow_instance: opts.id_workflow_instance,
                 inputQueueName: null,
-                inputQueueURL: null,
                 outputQueueName: null,
                 outputQueueURL: null,
                 _discoverQueueCache: {},
@@ -143,7 +142,7 @@ class EPI2ME {
         this.REST = new _restFs2.default(_lodash2.default.merge({}, { log: this.log }, this.config.options));
     }
 
-    stop_everything(cb) {
+    async stop_everything(cb) {
         this.log.debug("stopping watchers");
 
         if (this._downloadCheckInterval) {
@@ -166,7 +165,7 @@ class EPI2ME {
 
         if (this.uploadWorkerPool) {
             this.log.debug("clearing uploadWorkerPool");
-            this.uploadWorkerPool.drain();
+            await Promise.all(this.uploadWorkerPool);
             this.uploadWorkerPool = null;
         }
 
@@ -187,36 +186,32 @@ class EPI2ME {
         }
     }
 
-    session(cb) {
+    async session() {
         /* MC-1848 all session requests are serialised through that.sessionQueue to avoid multiple overlapping requests */
-        if (!this.sessionQueue) {
-            this.sessionQueue = (0, _queueAsync2.default)(1);
+        if (this.sessioning) {
+            return; /* Throttle to n=1: bail out if there's already a job queued */
         }
 
-        if (!this._stats.sts_expiration || this._stats.sts_expiration && this._stats.sts_expiration <= Date.now() /* Ignore if session is still valid */
-        && !this.sessionQueue.remaining()) {
-            /* Throttle to n=1: bail out if there's already a job queued */
+        if (!this._stats.sts_expiration || this._stats.sts_expiration && this._stats.sts_expiration <= Date.now()) {
+            /* Ignore if session is still valid */
+
             /* queue a request for a new session token and hope it comes back in under this.config.options.sessionGrace time */
-            this.sessionQueue.defer(queueCb => {
-                this.fetchInstanceToken(e => {
-                    if (e) {
-                        this.log.error(e);
-                    }
-                    queueCb();
-                    if (cb) cb(e);
-                });
-            });
-        } else if (cb) {
-            cb();
+            this.sessioning = true;
+
+            try {
+                await this.fetchInstanceToken();
+                this.sessioning = false;
+            } catch (err) {
+                this.sessioning = false;
+                this.log.error(`session error ${String(err)}`);
+                return Promise.reject(err);
+            }
         }
 
-        /* carry on regardless. These will fail if the session does
-         * expire and isn't refreshed in time - could consider
-         * delaying them in those cases
-         */
+        return Promise.resolve();
     }
 
-    fetchInstanceToken(queueCb) {
+    async fetchInstanceToken() {
 
         if (!this.config.instance.id_workflow_instance) {
             throw new Error("must specify id_workflow_instance");
@@ -224,49 +219,54 @@ class EPI2ME {
 
         if (this._stats.sts_expiration && this._stats.sts_expiration > Date.now()) {
             /* escape if session is still valid */
-            return queueCb();
+            return Promise.resolve();
         }
 
         this.log.debug("new instance token needed");
 
-        this.REST.instance_token(this.config.instance.id_workflow_instance, (tokenError, token) => {
-            if (tokenError) {
-                this.log.warn("failed to fetch instance token: " + tokenError.error ? tokenError.error : tokenError);
-                setTimeout(queueCb, 1000 * this.config.options.waitTokenError); /* delay this one 30 secs so we don't hammer the website */
-                return;
-            }
+        let p = new Promise(resolve => {
 
-            this.log.debug("allocated new instance token expiring at " + token.expiration);
-            this._stats.sts_expiration = new Date(token.expiration).getTime() - 60 * this.config.options.sessionGrace; // refresh token x mins before it expires
-            // "classic" token mode no longer supported
+            this.REST.instance_token(this.config.instance.id_workflow_instance, (tokenError, token) => {
+                if (tokenError) {
+                    this.log.warn("failed to fetch instance token: " + tokenError.error ? tokenError.error : tokenError);
+                    setTimeout(resolve, 1000 * this.config.options.waitTokenError); /* delay this one 30 secs so we don't hammer the website */
+                    return;
+                }
 
-            if (this.config.options.proxy) {
-                _awsSdk2.default.config.update({
-                    httpOptions: { agent: (0, _proxyAgent2.default)(this.config.options.proxy, true) }
-                });
-            }
+                this.log.debug("allocated new instance token expiring at " + token.expiration);
+                this._stats.sts_expiration = new Date(token.expiration).getTime() - 60 * this.config.options.sessionGrace; // refresh token x mins before it expires
+                // "classic" token mode no longer supported
 
-            // MC-5418 - This needs to be done before the process starts uploading messages!
-            _awsSdk2.default.config.update(this.config.instance.awssettings);
-            _awsSdk2.default.config.update(token);
-            return queueCb();
+                if (this.config.options.proxy) {
+                    _awsSdk2.default.config.update({
+                        httpOptions: { agent: (0, _proxyAgent2.default)(this.config.options.proxy, true) }
+                    });
+                }
+
+                // MC-5418 - This needs to be done before the process starts uploading messages!
+                _awsSdk2.default.config.update(this.config.instance.awssettings);
+                _awsSdk2.default.config.update(token);
+                return resolve();
+            });
         });
+
+        return p;
     }
 
-    sessionedS3() {
-        this.session();
+    async sessionedS3() {
+        await this.session();
         return new _awsSdk2.default.S3({
             useAccelerateEndpoint: this.config.options.awsAcceleration === "on"
         });
     }
 
-    sessionedSQS() {
-        this.session();
+    async sessionedSQS() {
+        await this.session();
         return new _awsSdk2.default.SQS();
     }
 
     autoStart(workflow_config, cb) {
-        this.REST.start_workflow(workflow_config, (workflowError, instance) => {
+        this.REST.start_workflow(workflow_config, async (workflowError, instance) => {
             if (workflowError) {
                 let msg = "Failed to start workflow: " + (workflowError && workflowError.error ? workflowError.error : workflowError);
                 this.log.warn(msg);
@@ -274,14 +274,14 @@ class EPI2ME {
                 return;
             }
             this.config.workflow = JSON.parse(JSON.stringify(workflow_config));
-            this.autoConfigure(instance, cb);
+            await this.autoConfigure(instance, cb);
         });
     }
 
     autoJoin(id, cb) {
         this.config.instance.id_workflow_instance = id;
 
-        this.REST.workflow_instance(id, (instanceError, instance) => {
+        this.REST.workflow_instance(id, async (instanceError, instance) => {
             if (instanceError) {
                 let msg = "Failed to join workflow instance: " + (instanceError && instanceError.error ? instanceError.error : instanceError);
                 this.log.warn(msg);
@@ -298,11 +298,11 @@ class EPI2ME {
             /* it could be useful to populate this as autoStart does */
             this.config.workflow = this.config.workflow || {};
 
-            this.autoConfigure(instance, cb);
+            await this.autoConfigure(instance, cb);
         });
     }
 
-    autoConfigure(instance, autoStartCb) {
+    async autoConfigure(instance, autoStartCb) {
         let telemetryLogPath, telemetryLogFolder, fileName;
 
         /* region
@@ -389,93 +389,65 @@ class EPI2ME {
         }, this.config.options.stateCheckInterval * 1000);
 
         /* Request session token */
-        this.session(() => {
-            // MC-5418: ensure that the session has been established before starting the upload
-            this.loadUploadFiles(); // Trigger once at workflow instance start
-            this._fileCheckInterval = setInterval(this.loadUploadFiles.bind(this), this.config.options.fileCheckInterval * 1000);
-        });
+        await this.session();
+
+        // MC-5418: ensure that the session has been established before starting the upload
+        this.loadUploadFiles(); // Trigger once at workflow instance start
+        this._fileCheckInterval = setInterval(this.loadUploadFiles.bind(this), this.config.options.fileCheckInterval * 1000);
     }
 
-    downloadWork(len, cb) {
-        if (!cb) cb = () => {
-            return;
-        };
-        if (len === undefined || len === null) return cb();
+    async loadAvailableDownloadMessages() {
+        try {
+            let queueURL = await this.discoverQueue(this.config.instance.outputQueueName);
+            let len = await this.queueLength(queueURL);
 
-        this._stats.download.queueLength = len;
+            if (len !== undefined && len !== null) {
+                this._stats.download.queueLength = len;
 
-        if (len > 0) {
-            /* only process downloads if there are downloads to process */
-            this.log.debug(`downloads available: ${len}`);
-            return this.downloadAvailable(cb);
-        }
-
-        this.log.debug("no downloads available");
-        return cb();
-    }
-
-    loadAvailableDownloadMessages() {
-        if (!this.queueLengthQueue) this.queueLengthQueue = (0, _queueAsync2.default)(1);
-        if (this.queueLengthQueue.remaining() > 0) {
-            /* don't build up a backlog by queuing another job */
-            return;
-        }
-
-        this.queueLengthQueue.defer(cb => {
-            let sqs = this.sessionedSQS(),
-                queryQueueLength = () => {
-                this.queueLength(this.config.instance.outputQueueURL, len => this.downloadWork(len, cb));
-            };
-
-            if (this.config.instance.outputQueueURL) {
-                queryQueueLength();
-            } else {
-                this.discoverQueue(sqs, this.config.instance.outputQueueName, queueURL => {
-                    this.config.instance.outputQueueURL = queueURL;
-                    queryQueueLength();
-                }, err => {
-                    this.log.warn("error looking up queue. " + String(err));
-                    if (!this._stats.download.failure) this._stats.download.failure = {};
-                    this._stats.download.failure[err] = this._stats.download.failure[err] ? this._stats.download.failure[err] + 1 : 1;
-                    return cb(); // clear queueLengthQueue slot
-                });
+                if (len > 0) {
+                    /* only process downloads if there are downloads to process */
+                    this.log.debug(`downloads available: ${len}`);
+                    return await this.downloadAvailable();
+                }
             }
-        });
+
+            this.log.debug("no downloads available");
+        } catch (err) {
+            this.log.warn(err);
+            if (!this._stats.download.failure) this._stats.download.failure = {};
+            this._stats.download.failure[err] = this._stats.download.failure[err] ? this._stats.download.failure[err] + 1 : 1;
+        }
     }
 
-    downloadAvailable(cb) {
-        let sqs = this.sessionedSQS(),
-            downloadWorkerPoolRemaining = this.downloadWorkerPool ? this.downloadWorkerPool.remaining() : 0;
-
-        if (!cb) cb = () => {};
+    async downloadAvailable() {
+        let downloadWorkerPoolRemaining = this.downloadWorkerPool ? this.downloadWorkerPool.remaining() : 0;
 
         if (downloadWorkerPoolRemaining >= this.config.options.downloadPoolSize * 5) {
             /* ensure downloadPool is limited but fully utilised */
             this.log.debug(downloadWorkerPoolRemaining + " downloads already queued");
-            return cb();
+            return Promise.resolve();
         }
 
-        this.discoverQueue(sqs, this.config.instance.outputQueueName, queueURL => {
+        let receiveMessageSet;
+        try {
+            let queueURL = await this.discoverQueue(this.config.instance.outputQueueName);
             this.log.debug("fetching messages");
-            try {
-                sqs.receiveMessage({
-                    AttributeNames: ["All"], // to check if the same message is received multiple times
-                    QueueUrl: queueURL,
-                    VisibilityTimeout: this.config.options.inFlightDelay, // approximate time taken to pass/fail job before resubbing
-                    MaxNumberOfMessages: this.config.options.downloadPoolSize, // MC-505 - download multiple threads simultaneously
-                    WaitTimeSeconds: this.config.options.waitTimeSeconds // long-poll
 
-                }, (receiveMessageErr, receiveMessageSet) => {
-                    this.receiveMessages(receiveMessageErr, receiveMessageSet, cb);
-                });
-            } catch (receiveMessageErr) {
-                this.log.error("receiveMessage exception: " + String(receiveMessageErr));
-                return cb();
-            }
-        }, reason => {
-            this._stats.download.failure[reason] = this._stats.download.failure[reason] ? this._stats.download.failure[reason] + 1 : 1;
-            return cb();
-        });
+            let sqs = this.sessionedSQS();
+            receiveMessageSet = await sqs.receiveMessage({
+                AttributeNames: ["All"], // to check if the same message is received multiple times
+                QueueUrl: queueURL,
+                VisibilityTimeout: this.config.options.inFlightDelay, // approximate time taken to pass/fail job before resubbing
+                MaxNumberOfMessages: this.config.options.downloadPoolSize, // MC-505 - download multiple threads simultaneously
+                WaitTimeSeconds: this.config.options.waitTimeSeconds // long-poll
+            }).promise();
+        } catch (receiveMessageException) {
+            this.log.error("receiveMessage exception: " + String(receiveMessageException));
+            this._stats.download.failure[receiveMessageException] = this._stats.download.failure[receiveMessageException] ? this._stats.download.failure[receiveMessageException] + 1 : 1;
+            return Promise.reject(receiveMessageException);
+        }
+
+        return this.receiveMessages(receiveMessageSet);
     }
 
     loadUploadFiles() {
@@ -495,11 +467,9 @@ class EPI2ME {
             this.log.debug(`loadUploadFiles: ${remaining} batches in the inputBatchQueue`);
             this._dirScanInProgress = true;
             this.log.debug("scanning input folder for new files");
-            _utilsFs2.default.loadInputFiles(this.config.options, this.log).then(files => {
+            _utilsFs2.default.loadInputFiles(this.config.options, this.log).then(async files => {
                 this._dirScanInProgress = false;
-                if (files && files.length) {
-                    this.enqueueUploadFiles(files);
-                }
+                await this.enqueueUploadFiles(files);
             }).catch(err => {
                 this._dirScanInProgress = false;
                 this.log.error(err);
@@ -565,90 +535,86 @@ class EPI2ME {
         }
 
         this.log.info(`enqueueUploadFiles: ${files.length} new files`);
-        this.inputBatchQueue = (0, _queueAsync2.default)(1);
+        this.inputBatchQueue = [];
 
         this._stats.upload.filesCount = this._stats.upload.filesCount ? this._stats.upload.filesCount + files.length : files.length;
 
         if (this.config.options.filetype === ".fastq" || this.config.options.filetype === ".fq") {
-            this.inputBatchQueue.defer(batch_complete => {
-                let uploadWorkerPool = (0, _queueAsync2.default)(this.config.options.uploadPoolSize);
-                let statQ = (0, _queueAsync2.default)(1);
+            this.inputBatchQueue.push(async () => {
+                let uploadWorkerPool = [];
+                let statP = [];
                 this.log.debug("enqueueUploadFiles.countFileReads: counting FASTQ reads per file");
 
                 files.forEach(file => {
                     if (maxFiles && this._stats.upload.filesCount > maxFiles) {
-                        msg = "Maximum " + maxFiles + " file(s) already uploaded. Moving " + file.name + " into skip folder";
+                        msg = `Maximum ${maxFiles} file(s) already uploaded. Moving ${file.name} into skip folder`;
                         this.log.error(msg);
                         this._stats.warnings.push(msg);
                         this._stats.upload.filesCount -= 1;
                         file.skip = "SKIP_TOO_MANY";
-                        uploadWorkerPool.defer(this.uploadJob.bind(this, file));
+                        uploadWorkerPool.push(this.uploadJob(file));
                         return;
                     } else if (maxFileSize && file.size > maxFileSize) {
-                        msg = file.name + " is over " + maxFileSize.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + ". Moving into skip folder";
+                        msg = `${file.name} is over ${maxFileSize.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")}. Moving into skip folder`;
                         file.skip = "SKIP_TOO_BIG";
                         this._stats.upload.filesCount -= 1;
 
                         this.log.error(msg);
                         this._stats.warnings.push(msg);
-                        uploadWorkerPool.defer(this.uploadJob.bind(this, file));
+                        uploadWorkerPool.push(this.uploadJob(file));
                         return;
                     }
 
-                    statQ.defer(releaseQSlot => {
-                        _utilsFs2.default.countFileReads(file.path).then(count => {
-                            file.readCount = count;
-                            this._stats.upload.enqueued += count;
-                            this._stats.upload.readsCount = this._stats.upload.readsCount ? this._stats.upload.readsCount + count : count;
-                            uploadWorkerPool.defer(this.uploadJob.bind(this, file));
-                            releaseQSlot();
-                        }).catch(err => {
-                            this.log.error("statQ, countFileReads " + err);
-                            releaseQSlot();
-                        });
-                    });
+                    statP.push(_utilsFs2.default.countFileReads(file.path).then(count => {
+                        file.readCount = count;
+                        this._stats.upload.enqueued += count;
+                        this._stats.upload.readsCount = this._stats.upload.readsCount ? this._stats.upload.readsCount + count : count;
+                        uploadWorkerPool.push(this.uploadJob(file));
+                        return;
+                    }).catch(err => {
+                        this.log.error(`statQ, countFileReads ${String(err)}`);
+                        return;
+                    }));
                 });
 
-                statQ.awaitAll(() => {
+                await Promise.all(statP).then(async () => {
                     this.log.debug(`enqueueUploadFiles.enqueued: ${this._stats.upload.enqueued}`);
-                    uploadWorkerPool.awaitAll(batch_complete);
+                    await Promise.all(uploadWorkerPool).catch(err => {
+                        this.log.error(`uploadWorkerPool (fastq) exception ${String(err)}`);
+                    });
                 });
             });
         } else {
             this._stats.upload.enqueued += files.length;
-            this.inputBatchQueue.defer(batch_complete => {
-                let uploadWorkerPool = (0, _queueAsync2.default)(this.config.options.uploadPoolSize);
-                files.forEach(item => {
-                    if (maxFiles && this._stats.upload.filesCount > maxFiles) {
-                        msg = "Maximum " + maxFiles + " file(s) already uploaded. Moving " + item.name + " into skip folder";
-                        this.log.error(msg);
-                        this._stats.warnings.push(msg);
-                        this._stats.upload.filesCount -= 1;
-                        item.skip = "SKIP_TOO_MANY";
-                    } else if (maxFileSize && item.size > maxFileSize) {
-                        msg = item.name + " is over " + maxFileSize.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + ". Moving into skip folder";
-                        this.log.error(msg);
-                        this._stats.warnings.push(msg);
-                        this._stats.upload.filesCount -= 1;
-                        item.skip = "SKIP_TOO_BIG";
-                    }
+            this.inputBatchQueue = files.map(item => {
+                if (maxFiles && this._stats.upload.filesCount > maxFiles) {
+                    msg = `Maximum ${maxFiles} file(s) already uploaded. Moving ${item.name} into skip folder`;
+                    this.log.error(msg);
+                    this._stats.warnings.push(msg);
+                    this._stats.upload.filesCount -= 1;
+                    item.skip = "SKIP_TOO_MANY";
+                } else if (maxFileSize && item.size > maxFileSize) {
+                    msg = `${item.name} is over ${maxFileSize.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")}. Moving into skip folder`;
+                    this.log.error(msg);
+                    this._stats.warnings.push(msg);
+                    this._stats.upload.filesCount -= 1;
+                    item.skip = "SKIP_TOO_BIG";
+                }
 
-                    uploadWorkerPool.defer(completeCb => {
-                        this.uploadJob(item, completeCb);
-                    });
-                });
-
-                uploadWorkerPool.awaitAll(batch_complete);
+                return this.uploadJob(item); // Promise
             });
         }
 
-        this.inputBatchQueue.awaitAll(() => {
+        // should this await Promise.all() ?
+        return Promise.all(this.inputBatchQueue).then(() => {
             this.log.info("inputBatchQueue slot released. trigger loadUploadFiles");
-            this.loadUploadFiles(); // immediately load more files!
+            return this.loadUploadFiles(); // immediately load more files
+        }).catch(err => {
+            this.log.error(`enqueueUploadFiles exception ${String(err)}`);
         });
     }
 
-    uploadJob(file, completeCb) {
+    async uploadJob(file) {
         // Initiate file upload to S3
         try {
             this.log.info(JSON.stringify(file));
@@ -660,52 +626,52 @@ class EPI2ME {
             let readCount = file.readCount || 1;
             this._stats.upload.enqueued = this._stats.upload.enqueued - readCount;
             this._stats.upload.queueLength = this._stats.upload.queueLength ? this._stats.upload.queueLength - readCount : 0;
-            this._moveSkippedFile(file, completeCb);
-            return;
+            try {
+                await this._moveFile(file, "skip");
+            } catch (e) {
+                return Promise.reject(e);
+            }
+            return Promise.resolve();
         }
 
-        this.uploadHandler(file, (errorMsg, file) => {
-            if (errorMsg) {
-                this.log.info(`${file.id} done, but failed: ${String(errorMsg)}`);
-            } else {
-                this.log.info(`${file.id} completely done. releasing uploadWorkerPool queue slot`);
-            }
-            setTimeout(completeCb); // Release uploadWorkerPool queue slot
+        let p = new Promise(resolve => {
 
-            let readCount = file.readCount || 1;
-            this._stats.upload.enqueued = this._stats.upload.enqueued - readCount;
-
-            if (errorMsg) {
-                this.log.error(`uploadHandler ${errorMsg}`);
-                if (!this._stats.upload.failure) {
-                    this._stats.upload.failure = {};
+            this.uploadHandler(file, (errorMsg, file) => {
+                if (errorMsg) {
+                    this.log.info(`${file.id} done, but failed: ${String(errorMsg)}`);
+                } else {
+                    this.log.info(`${file.id} completely done. releasing uploadWorkerPool queue slot`);
                 }
 
-                this._stats.upload.failure[errorMsg] = this._stats.upload.failure[errorMsg] ? this._stats.upload.failure[errorMsg] + 1 : 1;
-            } else {
-                this._stats.upload.queueLength = this._stats.upload.queueLength ? this._stats.upload.queueLength - readCount : 0;
-                this._stats.upload.success = this._stats.upload.success ? this._stats.upload.success + readCount : readCount;
-            }
+                resolve(); // Release uploadWorkerPool queue slot
+
+                let readCount = file.readCount || 1;
+                this._stats.upload.enqueued = this._stats.upload.enqueued - readCount;
+
+                if (errorMsg) {
+                    this.log.error(`uploadHandler ${errorMsg}`);
+                    if (!this._stats.upload.failure) {
+                        this._stats.upload.failure = {};
+                    }
+
+                    this._stats.upload.failure[errorMsg] = this._stats.upload.failure[errorMsg] ? this._stats.upload.failure[errorMsg] + 1 : 1;
+                } else {
+                    this._stats.upload.queueLength = this._stats.upload.queueLength ? this._stats.upload.queueLength - readCount : 0;
+                    this._stats.upload.success = this._stats.upload.success ? this._stats.upload.success + readCount : readCount;
+                }
+            });
         });
+
+        return p; // how about "await p" here? file-by-file?
     }
 
-    receiveMessages(receiveMessageError, receiveMessages, cb) {
-        if (!cb) {
-            cb = () => {
-                return undefined;
-            };
-        }
-
-        if (receiveMessageError) {
-            this.log.warn("error in receiveMessage " + String(receiveMessageError));
-            return cb();
-        }
+    async receiveMessages(receiveMessages) {
 
         if (!receiveMessages || !receiveMessages.Messages || !receiveMessages.Messages.length) {
             /* no work to do */
             this.log.info("complete (empty)");
 
-            return cb();
+            return Promise.resolve();
         }
 
         if (!this.downloadWorkerPool) {
@@ -731,29 +697,21 @@ class EPI2ME {
         });
 
         this.log.info("downloader queued " + receiveMessages.Messages.length + " files for download");
-        return cb();
+        return Promise.resolve();
     }
 
-    deleteMessage(message) {
-        let sqs = this.sessionedSQS();
-
-        this.discoverQueue(sqs, this.config.instance.outputQueueName, queueURL => {
-            try {
-                sqs.deleteMessage({
-                    QueueUrl: queueURL,
-                    ReceiptHandle: message.ReceiptHandle
-
-                }, deleteMessageError => {
-                    if (deleteMessageError) {
-                        this.log.warn("error in deleteMessage " + String(deleteMessageError));
-                    }
-                });
-            } catch (deleteMessageException) {
-                this.log.error("deleteMessage exception: " + String(deleteMessageException));
-            }
-        }, reason => {
-            this._stats.download.failure[reason] = this._stats.download.failure[reason] ? this._stats.download.failure[reason] + 1 : 1;
-        });
+    async deleteMessage(message) {
+        try {
+            let queueURL = await this.discoverQueue(this.config.instance.outputQueueName);
+            let sqs = this.sessionedSQS();
+            await sqs.deleteMessage({
+                QueueUrl: queueURL,
+                ReceiptHandle: message.ReceiptHandle
+            }).promise();
+        } catch (error) {
+            this.log.error(`deleteMessage exception: ${String(error)}`);
+            this._stats.download.failure[error] = this._stats.download.failure[error] ? this._stats.download.failure[error] + 1 : 1;
+        }
     }
 
     processMessage(message, completeCb) {
@@ -783,11 +741,12 @@ class EPI2ME {
 
         if ("Attributes" in message) {
             if ("ApproximateReceiveCount" in message.Attributes) {
-                this.log.info("download.processMessage : " + message.MessageId + " / " + message.Attributes.ApproximateReceiveCount);
+                this.log.info(`download.processMessage: ${message.MessageId} / ${message.Attributes.ApproximateReceiveCount}`);
             } else {
-                this.log.info("download.processMessage : " + message.MessageId + " / NA ");
+                this.log.info(`download.processMessage: ${message.MessageId} / NA `);
             }
         }
+
         try {
             messageBody = JSON.parse(message.Body);
         } catch (jsonError) {
@@ -1021,6 +980,7 @@ class EPI2ME {
                 } catch (err) {
                     this.log.warn("failed to fs.stat file: " + err);
                 }
+
                 this.deleteMessage(message); /* MC-1953 - only delete message on condition neither end of the pipe failed */
             }
         });
@@ -1051,22 +1011,22 @@ class EPI2ME {
         };
         transferTimeout = setTimeout(transferTimeoutFunc, 1000 * this.config.options.downloadTimeout); /* download stream timeout in ms */
 
-        const updateVisibilityFunc = () => {
+        const updateVisibilityFunc = async () => {
             const queueUrl = this.config.instance.outputQueueURL;
             const receiptHandle = message.ReceiptHandle;
 
             this.log.debug({ message_id: message.MessageId }, "updateVisibility");
 
-            this.sqs.changeMessageVisibility({
-                QueueUrl: queueUrl,
-                ReceiptHandle: receiptHandle,
-                VisibilityTimeout: this.config.options.inFlightDelay
-            }, (err, data) => {
-                if (err) {
-                    this.log.error({ message_id: message.MessageId, queue: queueUrl, error: err, data: data }, "Error setting visibility");
-                    clearInterval(visibilityInterval);
-                }
-            });
+            try {
+                await this.sqs.changeMessageVisibility({
+                    QueueUrl: queueUrl,
+                    ReceiptHandle: receiptHandle,
+                    VisibilityTimeout: this.config.options.inFlightDelay
+                }).promise();
+            } catch (err) {
+                this.log.error({ message_id: message.MessageId, queue: queueUrl, error: err }, "Error setting visibility");
+                clearInterval(visibilityInterval);
+            }
         };
         visibilityInterval = setInterval(updateVisibilityFunc, 900 * this.config.options.inFlightDelay); /* message in flight timeout in ms, less 10% */
 
@@ -1135,13 +1095,19 @@ class EPI2ME {
                 params["Content-Length"] = file.size;
             }
 
-            let managedupload = s3.upload(params, options, uploadStreamErr => {
+            let managedupload = s3.upload(params, options, async uploadStreamErr => {
                 if (uploadStreamErr) {
                     this.log.warn(`${file.id} uploadStreamError ${uploadStreamErr}`);
                     return done("uploadStreamError " + String(uploadStreamErr)); // close the queue job
                 }
                 this.log.info(`${file.id} S3 upload complete`);
-                this.uploadComplete(objectId, file, done);
+                try {
+                    await this.uploadComplete(objectId, file);
+                } catch (e) {
+                    done(e);
+                    return Promise.reject(e);
+                }
+                done();
                 rs.close();
             });
 
@@ -1161,51 +1127,30 @@ class EPI2ME {
         rs.on("close", () => this.log.debug("closing readstream"));
     }
 
-    discoverQueue(sqs, queueName, successCb, failureCb) {
+    async discoverQueue(queueName) {
 
         if (this.config.instance._discoverQueueCache[queueName]) {
-            if (successCb) successCb(this.config.instance._discoverQueueCache[queueName]);
-            return;
+            return this.config.instance._discoverQueueCache[queueName];
         }
 
         this.log.debug("discovering queue for " + queueName);
-        sqs.getQueueUrl({ QueueName: queueName }, (getQueueErr, getQueue) => {
-            if (getQueueErr) {
-                if (this.config.options.proxy && String(getQueueErr).match(/Unexpected close tag/)) {
-                    this.log.warn("error in getQueueUrl. Could be an aws-sdk/SSL/proxy compatibility issue");
-                }
-                this.log.warn("uploader: could not getQueueUrl: " + getQueueErr);
-                if (failureCb) failureCb("getqueueurl error");
-                return;
-            }
 
-            if (!getQueue || !getQueue.QueueUrl) return failureCb ? failureCb("getqueueurl error") : null;
+        try {
+            let sqs = this.sessionedSQS();
+            let getQueue = await sqs.getQueueUrl({ QueueName: queueName }).promise();
 
-            this.log.debug("found queue " + getQueue.QueueUrl);
+            this.log.debug(`found queue ${getQueue.QueueUrl}`);
             this.config.instance._discoverQueueCache[queueName] = getQueue.QueueUrl;
-            if (successCb) successCb(getQueue.QueueUrl);
-        });
-    }
 
-    uploadComplete(objectId, file, successCb) {
-        let sqs = this.sessionedSQS();
-        this.log.info(`${file.id} uploaded to S3: ${objectId}`);
-
-        if (this.config.instance.inputQueueURL) {
-            return this.sendMessage(sqs, objectId, file, successCb);
+            return getQueue.QueueUrl;
+        } catch (e) {
+            this.log.error(`failed to find queue for ${queueName}: ${String(e)}`);
+            return Promise.reject(`failed to find queue for ${queueName}: ${String(e)}`);
         }
-
-        this.discoverQueue(sqs, this.config.instance.inputQueueName, queueURL => {
-            this.config.instance.inputQueueURL = queueURL;
-            return this.sendMessage(sqs, objectId, file, successCb);
-        }, discoverQueueErr => {
-            this.log.warn(`${file.id} discoverQueueErr: ${discoverQueueErr}`);
-            successCb(discoverQueueErr);
-        });
     }
 
-    sendMessage(sqs, objectId, file, successCb) {
-        this.log.info(`${file.id} sending SQS message to input queue`);
+    async uploadComplete(objectId, file) {
+        this.log.info(`${file.id} uploaded to S3: ${objectId}`);
 
         let message = {
             bucket: this.config.instance.bucket,
@@ -1226,7 +1171,7 @@ class EPI2ME {
                 message.targetComponentId = this.config.instance.chain.targetComponentId; // first component to run
             } catch (jsonException) {
                 this.log.error(`${file.id} exception parsing components JSON ${String(jsonException)}`);
-                return successCb("json exception"); // close the queue job
+                return Promise.reject(new Error("json exception")); // close the queue job
             }
         }
 
@@ -1236,10 +1181,12 @@ class EPI2ME {
         }
 
         // MC-1304 - attach geo location and ip
-        try {
-            if (this.config.options.agent_address) message.agent_address = JSON.parse(this.config.options.agent_address);
-        } catch (exception) {
-            this.log.error(`${file.id} Could not parse agent_address ${String(exception)}`);
+        if (this.config.options.agent_address) {
+            try {
+                message.agent_address = JSON.parse(this.config.options.agent_address);
+            } catch (exception) {
+                this.log.error(`${file.id} Could not parse agent_address ${String(exception)}`);
+            }
         }
 
         if (message.components) {
@@ -1255,99 +1202,83 @@ class EPI2ME {
         }
 
         try {
-            sqs.sendMessage({
-                QueueUrl: this.config.instance.inputQueueURL,
+            let inputQueueURL = await this.discoverQueue(this.config.instance.inputQueueName);
+            let sqs = this.sessionedSQS();
+
+            this.log.info(`${file.id} sending SQS message to input queue`);
+            await sqs.sendMessage({
+                QueueUrl: inputQueueURL,
                 MessageBody: JSON.stringify(message)
-            }, sendMessageError => {
-                if (sendMessageError) {
-                    this.log.warn(`${file.id} error sending SQS message: ${String(sendMessageError)}`);
-                    return successCb("SQS sendmessage error"); // close the queue job
-                }
-                this.log.info(`${file.id} SQS message sent. Move to uploaded`);
-                this._moveUploadedFile(file, successCb);
-            });
+            }).promise();
         } catch (sendMessageException) {
             this.log.error(`${file.id} exception sending SQS message: ${String(sendMessageException)}`);
-            return successCb("SQS sendmessage exception"); // close the queue job
+            return Promise.reject(new Error("SQS sendmessage exception"));
         }
+
+        this.log.info(`${file.id} SQS message sent. Move to uploaded`);
+
+        try {
+            await this._moveFile(file, "upload");
+        } catch (e) {
+            return Promise.reject(e);
+        }
+
+        return; // success
     }
 
-    async _moveFile(file, successCb, type) {
+    async _moveFile(file, type) {
         let moveTo = type === "upload" ? this.uploadTo : this.skipTo;
         let fileName = file.name;
         let fileBatch = file.batch || "";
         let fileFrom = file.path || _path2.default.join(this.config.options.inputFolder, fileBatch, fileName);
         let fileTo = _path2.default.join(moveTo, fileBatch, fileName);
-        let err = "";
 
-        await _fsExtra2.default.mkdirp(_path2.default.join(moveTo, fileBatch)).then(async () => {
-            await _fsExtra2.default.move(fileFrom, fileTo).then(() => {
-                this.log.debug(`${file.id}: ${type} and mv done`);
-            }).catch(moveError => {
-                err = `${file.id} ${type} move error: ${String(moveError)}`;
-            });
-        }).catch(mkdirpException => {
-            err = `${file.id} ${type} mkdirp exception ${String(mkdirpException)}`;
-        });
+        try {
+            await _fsExtra2.default.mkdirp(_path2.default.join(moveTo, fileBatch));
+            await _fsExtra2.default.move(fileFrom, fileTo);
 
-        if (type === "upload") {
-            this._stats.upload.totalSize += file.size;
+            this.log.debug(`${file.id}: ${type} and mv done`);
+
+            if (type === "upload") {
+                this._stats.upload.totalSize += file.size;
+            }
+            this._uploadedFiles.push(fileName); // flag as uploaded to prevent multiple uploads
+        } catch (moveError) {
+            this.log.debug(`${file.id} ${type} move error: ${String(moveError)}`);
+
+            try {
+                await _fsExtra2.default.remove(fileTo);
+            } catch (unlinkError) {
+                this.log.warn(`${file.id} ${type} additionally failed to delete ${fileTo}: ${String(unlinkError)}`);
+            }
+
+            return Promise.reject(moveError);
         }
-        this._uploadedFiles.push(fileName); // flag as uploaded to prevent multiple uploads
 
-        if (!err) {
-            return successCb();
-        }
-
-        this.log.debug(err);
-
-        await _fsExtra2.default.remove(fileTo).catch(unlinkError => {
-            this.log.warn(`${file.id} {$type} failed to delete ${fileTo}: ${String(unlinkError)}`);
-        });
-
-        return successCb(err);
+        return;
     }
 
-    _moveSkippedFile(file, successCb) {
-        return this._moveFile(file, successCb, "skip");
-    }
+    async queueLength(queueURL) {
+        if (!queueURL) return;
 
-    _moveUploadedFile(file, successCb) {
-        return this._moveFile(file, successCb, "upload");
-    }
-
-    queueLength(queueURL, cb) {
-        let sqs = this.sessionedSQS(),
-            queuename;
-
-        if (!cb) cb = () => {
-            return;
-        };
-        if (!queueURL) return cb();
-
-        queuename = queueURL.match(/([\w\-_]+)$/)[0];
+        let sqs = this.sessionedSQS();
+        let queuename = queueURL.match(/([\w\-_]+)$/)[0];
         this.log.debug("querying queue length of " + queuename);
 
         try {
-            sqs.getQueueAttributes({
+            let attrs = await sqs.getQueueAttributes({
                 QueueUrl: queueURL,
                 AttributeNames: ["ApproximateNumberOfMessages"]
+            }).promise();
 
-            }, (attrErr, attrs) => {
-                if (attrErr) {
-                    this.log.warn("error in getQueueAttributes: " + String(attrErr));
-                    return cb();
-                }
-
-                if (attrs && attrs.Attributes && attrs.Attributes.hasOwnProperty("ApproximateNumberOfMessages")) {
-                    let len = attrs.Attributes.ApproximateNumberOfMessages;
-                    len = isNaN(len) ? 0 : parseInt(len, 10);
-                    return cb(len);
-                }
-            });
+            if (attrs && attrs.Attributes && attrs.Attributes.hasOwnProperty("ApproximateNumberOfMessages")) {
+                let len = attrs.Attributes.ApproximateNumberOfMessages;
+                len = isNaN(len) ? 0 : parseInt(len, 10);
+                return len;
+            }
         } catch (getQueueAttrException) {
-            this.log.error("error in getQueueAttributes " + String(getQueueAttrException));
-            return cb();
+            this.log.error(`error in getQueueAttributes ${String(getQueueAttrException)}`);
+            return Promise.reject(getQueueAttrException);
         }
     }
 

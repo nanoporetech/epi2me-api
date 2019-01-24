@@ -6,7 +6,6 @@
   "retention"              : "on",
   "sessionGrace"           : 5,
   "sortInputFiles"         : false,
-  "uploadPoolSize"         : 3,
   "uploadTimeout"          : 1200,
   "downloadTimeout"        : 1200,
   "fileCheckInterval"      : 5,
