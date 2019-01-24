@@ -4,8 +4,8 @@ import bunyan    from "bunyan";
 import tmp       from "tmp";
 import fs        from "fs-extra";
 import path      from "path";
-import RESTSuper from "../../lib/rest";
-import REST      from "../../lib/rest-fs";
+import RESTSuper from "../../src/rest";
+import REST      from "../../src/rest-fs";
 
 describe("rest-fs.datasets", () => {
     let rest, log, ringbuf;

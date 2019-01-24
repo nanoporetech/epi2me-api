@@ -2,7 +2,7 @@
 import assert  from "assert";
 import sinon   from "sinon";
 import request from "request";
-import utils   from "../../lib/utils";
+import utils   from "../../src/utils";
 
 describe("utils._post", () => {
     let stub1, stub2;

@@ -1,4 +1,4 @@
-import EPI2ME from "../../lib/epi2me";
+import EPI2ME from "../../src/epi2me";
 
 const assert = require("assert");
 const sinon  = require("sinon");

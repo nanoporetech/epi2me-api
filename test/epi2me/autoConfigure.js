@@ -4,8 +4,8 @@ import fs        from "fs-extra";
 import tmp       from "tmp";
 import path      from "path";
 import { merge } from "lodash";
-import EPI2ME    from "../../lib/epi2me";
-import REST      from "../../lib/rest";
+import EPI2ME    from "../../src/epi2me";
+import REST      from "../../src/rest";
 
 describe("epi2me.autoConfigure", () => {
 

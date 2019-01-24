@@ -1,6 +1,6 @@
 import assert from "assert";
 import sinon  from "sinon";
-import utils  from "../../lib/utils";
+import utils  from "../../src/utils";
 
 describe('._responseHandler method', () => {
     let callback;

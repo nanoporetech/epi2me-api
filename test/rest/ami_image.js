@@ -1,5 +1,5 @@
-import REST       from "../../lib/rest";
-import * as utils from "../../lib/utils";
+import REST       from "../../src/rest";
+import * as utils from "../../src/utils";
 import sinon      from "sinon";
 import assert     from "assert";
 import bunyan     from "bunyan";

@@ -1,7 +1,7 @@
 import assert from "assert";
 import sinon  from "sinon";
 import AWS    from "aws-sdk";
-import EPI2ME from "../../lib/epi2me";
+import EPI2ME from "../../src/epi2me";
 
 describe("epi2me.sessionedS3", () => {
 

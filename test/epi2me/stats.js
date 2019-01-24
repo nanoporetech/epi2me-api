@@ -3,8 +3,8 @@ const assert = require("assert");
 const sinon  = require("sinon");
 const AWS    = require("aws-sdk");
 
-import EPI2ME from "../../lib/epi2me";
-import REST from "../../lib/rest";
+import EPI2ME from "../../src/epi2me";
+import REST from "../../src/rest";
 
 describe("epi2me.stats", () => {
 

@@ -3,7 +3,7 @@ import sinon  from "sinon";
 import tmp    from "tmp";
 import fs     from "fs-extra";
 import path   from "path";
-import utils  from "../../lib/utils-fs";
+import utils  from "../../src/utils-fs";
 
 describe('utils-fs.lsFolder', () => {
     let tmpInputDir;

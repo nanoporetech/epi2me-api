@@ -1,4 +1,4 @@
-import REST from "../../lib/rest";
+import REST from "../../src/rest";
 import sinon     from "sinon";
 import assert    from "assert";
 import bunyan    from "bunyan";

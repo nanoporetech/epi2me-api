@@ -2,8 +2,8 @@ import assert    from "assert";
 import sinon     from "sinon";
 import { merge } from "lodash";
 import AWS       from "aws-sdk";
-import REST      from "../../lib/rest";
-import EPI2ME    from "../../lib/epi2me";
+import REST      from "../../src/rest";
+import EPI2ME    from "../../src/epi2me";
 
 describe("epi2me.deleteMessage", () => {
 

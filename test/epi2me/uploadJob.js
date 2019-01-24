@@ -4,7 +4,7 @@ import bunyan    from "bunyan";
 import fs        from "fs-extra";
 import { merge } from "lodash";
 import AWS       from "aws-sdk";
-import EPI2ME    from "../../lib/epi2me";
+import EPI2ME    from "../../src/epi2me";
 
 describe('epi2me.uploadJob', () => {
 

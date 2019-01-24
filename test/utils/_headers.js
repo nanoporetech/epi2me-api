@@ -1,6 +1,6 @@
 /* global describe, it */
 
-import utils from "../../lib/utils";
+import utils from "../../src/utils";
 
 const assert = require("assert");
 const sinon  = require("sinon");

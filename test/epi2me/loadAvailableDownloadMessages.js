@@ -2,7 +2,7 @@ import assert    from "assert";
 import sinon     from "sinon";
 import bunyan    from "bunyan";
 import { merge } from "lodash";
-import EPI2ME    from "../../lib/epi2me";
+import EPI2ME    from "../../src/epi2me";
 
 describe('epi2me.loadAvailableDownloadMessages', () => {
 

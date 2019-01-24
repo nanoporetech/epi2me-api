@@ -1,5 +1,5 @@
-import REST from "../../lib/rest-fs";
-import * as utils from "../../lib/utils";
+import REST from "../../src/rest-fs";
+import * as utils from "../../src/utils";
 
 const sinon  = require("sinon");
 const assert = require("assert");

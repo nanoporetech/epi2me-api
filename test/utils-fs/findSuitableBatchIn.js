@@ -5,7 +5,7 @@ import fs      from "fs-extra";
 import path    from "path";
 import request from "request";
 import {PassThrough} from "stream";
-import utils   from "../../lib/utils-fs";
+import utils   from "../../src/utils-fs";
 
 describe("utils-fs.findSuitablebatchIn", () => {
     let clock;

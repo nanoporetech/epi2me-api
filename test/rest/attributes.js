@@ -1,4 +1,4 @@
-import REST from "../../lib/rest";
+import REST from "../../src/rest";
 
 const sinon  = require("sinon");
 const assert = require("assert");

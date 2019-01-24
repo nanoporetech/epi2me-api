@@ -4,8 +4,8 @@ import bunyan    from "bunyan";
 import tmp       from "tmp";
 import fs        from "fs-extra";
 import path      from "path";
-import EPI2ME    from "../../lib/epi2me";
-import utils     from "../../lib/utils";
+import EPI2ME    from "../../src/epi2me";
+import utils     from "../../src/utils";
 import { merge } from "lodash";
 
 describe('epi2me-api.processMessage', () => {

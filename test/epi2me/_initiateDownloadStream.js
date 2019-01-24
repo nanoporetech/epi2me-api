@@ -4,8 +4,8 @@ import path      from "path";
 import tmp       from "tmp";
 import fs        from "fs-extra";
 import { merge } from "lodash";
-import utils     from "../../lib/utils";
-import EPI2ME    from "../../lib/epi2me";
+import utils     from "../../src/utils";
+import EPI2ME    from "../../src/epi2me";
 
 // MC-1304 - test download streams
 describe('epi2me._initiateDownloadStream', () => {

@@ -5,7 +5,7 @@ import bunyan    from "bunyan";
 import tmp       from "tmp";
 import path      from "path";
 import { merge } from "lodash";
-import REST      from "../../lib/rest";
+import REST      from "../../src/rest";
 
 describe('rest.workflow', () => {
     const restFactory = (opts) => {

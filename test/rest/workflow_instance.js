@@ -1,7 +1,7 @@
 import assert from "assert";
 import sinon  from "sinon";
-import utils  from "../../lib/utils";
-import REST   from "../../lib/rest";
+import utils  from "../../src/utils";
+import REST   from "../../src/rest";
 
 describe("epi2me.workflow_instance", () => {
     let client;
