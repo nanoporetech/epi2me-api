@@ -61,9 +61,11 @@
     "lint": "yarn lint-js",
     "deps": "yarn install",
     "clean:dist": "rm -rf dist",
+    "clean:build": "rm -rf build && rm -rf dist/lib",
+    "clean": "yarn clean:build && yarn clean:dist",
     "test": "yarn deps && yarn lint && mocha --recursive --require @babel/register test",
     "cover": "yarn deps && yarn lint && yarn nyc --reporter=html --reporter=text mocha --recursive --require @babel/register test",
-    "dist": "yarn test && yarn babel lib -d dist && cp lib/default_options.json dist/ && yarn webpack && babel index-src.js -o index.js",
-    "build:dist": "yarn clean:dist && yarn webpack-cli --config ./config/webpack.config.js"
+    "build": "yarn clean:build && yarn babel src -d build && cp src/default_options.json build/ && yarn webpack --config ./config/webpack.config.build.js",
+    "build:dist": "yarn clean:dist && yarn webpack-cli --config ./config/webpack.config.dist.js"
   }
 }
