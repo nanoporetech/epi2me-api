@@ -1,29 +1,31 @@
-import REST from "../../lib/rest";
+import sinon      from "sinon";
+import assert     from "assert";
+import tmp        from "tmp";
+import path       from "path";
+import fs         from "fs-extra";
+import bunyan     from "bunyan";
+import { merge }  from "lodash";
+import REST       from "../../lib/rest";
 import * as utils from "../../lib/utils";
-import fs from "fs-extra";
-
-const sinon  = require("sinon");
-const assert = require("assert");
-const bunyan = require("bunyan");
-const tmp    = require("tmp");
-const path   = require("path");
 
 describe('rest.workflow', () => {
-    process.on('unhandledRejection', (reason, promise) => { console.log("[workflow.js] UNHANDLED PROMISE REJECTION", reason, promise); });
-
-    it("must invoke put with options", () => {
+    const restFactory = (opts) => {
 	let ringbuf = new bunyan.RingBuffer({ limit: 100 });
         let log     = bunyan.createLogger({ name: "log", stream: ringbuf });
-	let stub    = sinon.stub(utils, "_put").callsFake((uri, id, obj, options, cb) => {
+	return new REST(merge({log: log}, opts));
+    };
+
+    it("must invoke put with options", () => {
+	let fake = sinon.fake();
+	let rest = restFactory({url: "http://metrichor.local:8080"});
+	let stub = sinon.stub(utils, "_put").callsFake((uri, id, obj, options, cb) => {
 	    assert.deepEqual(id, "12345", "id passed");
 	    assert.deepEqual(obj, {"description":"a workflow","rev":"1.0"}, "object passed");
-	    assert.deepEqual(options, { log: log, url: "http://metrichor.local:8080", legacy_form: true }, "options passed");
+	    assert.deepEqual(options, { log: rest.log, url: "http://metrichor.local:8080", legacy_form: true }, "options passed");
 	    assert.equal(uri, "workflow", "url passed");
 	    cb();
 	});
 
-	let fake = sinon.fake();
-	let rest = new REST({log: log, url: "http://metrichor.local:8080"});
 	assert.doesNotThrow(() => {
 	    rest.workflow("12345", {"description":"a workflow","rev":"1.0"}, fake);
 	});
@@ -32,17 +34,15 @@ describe('rest.workflow', () => {
     });
 
     it("must invoke post with options", () => {
-	let ringbuf = new bunyan.RingBuffer({ limit: 100 });
-        let log     = bunyan.createLogger({ name: "log", stream: ringbuf });
-	let stub    = sinon.stub(utils, "_post").callsFake((uri, obj, options, cb) => {
+	let fake = sinon.fake();
+	let rest = restFactory({url: "http://metrichor.local:8080"});
+	let stub = sinon.stub(utils, "_post").callsFake((uri, obj, options, cb) => {
 	    assert.deepEqual(obj, {"description":"a workflow","rev":"1.0"}, "object passed");
-	    assert.deepEqual(options, { log: log, url: "http://metrichor.local:8080", legacy_form: true }, "options passed");
+	    assert.deepEqual(options, { log: rest.log, url: "http://metrichor.local:8080", legacy_form: true }, "options passed");
 	    assert.equal(uri, "workflow", "url passed");
 	    cb();
 	});
 
-	let fake = sinon.fake();
-	let rest = new REST({log: log, url: "http://metrichor.local:8080"});
 	assert.doesNotThrow(() => {
 	    rest.workflow({"description":"a workflow","rev":"1.0"}, fake);
 	});
@@ -51,14 +51,12 @@ describe('rest.workflow', () => {
     });
 
     it("must throw if missing id", () => {
-	let ringbuf = new bunyan.RingBuffer({ limit: 100 });
-        let log     = bunyan.createLogger({ name: "log", stream: ringbuf });
-	let stub    = sinon.stub(utils, "_put").callsFake((uri, id, obj, options, cb) => {
+	let stub = sinon.stub(utils, "_put").callsFake((uri, id, obj, options, cb) => {
 	    cb();
 	});
 
 	let fake = sinon.fake();
-	let rest = new REST({log: log, url: "http://metrichor.local:8080"});
+	let rest = restFactory({url: "http://metrichor.local:8080"});
 	assert.doesNotThrow(() => {
 	    rest.workflow(null, fake);
 	});
@@ -68,15 +66,13 @@ describe('rest.workflow', () => {
     });
 
     it("must invoke read workflow from filesystem", () => {
-	let ringbuf = new bunyan.RingBuffer({ limit: 100 });
-        let log     = bunyan.createLogger({ name: "log", stream: ringbuf });
-	let dir     = tmp.dirSync({unsafeCleanup: true}).name;
+	let dir = tmp.dirSync({unsafeCleanup: true}).name;
 
 	fs.mkdirpSync(path.join(dir, "workflows", "12345"));
 	fs.writeFileSync(path.join(dir, "workflows", "12345", "workflow.json"), JSON.stringify({id_workflow: 12345, name: "test", description: "test workflow 12345"}));
 
 	let fake = sinon.fake();
-	let rest = new REST({log: log, url: dir, local: true});
+	let rest = restFactory({url: dir, local: true});
 	assert.doesNotThrow(() => {
 	    rest.workflow("12345", fake);
 	});
@@ -85,14 +81,13 @@ describe('rest.workflow', () => {
     });
 
     it("must catch a read-workflow exception from filesystem", () => {
-	let ringbuf = new bunyan.RingBuffer({ limit: 100 });
-        let log     = bunyan.createLogger({ name: "log", stream: ringbuf });
-	let stub    = sinon.stub(fs, "readFileSync").callsFake((filename) => {
+	let stub = sinon.stub(fs, "readFileSync").callsFake((filename) => {
 	    throw new Error("no such file or directory");
 	});
 
 	let fake = sinon.fake();
-	let rest = new REST({log: log, url: "/path/to/", local: true});
+	let rest = restFactory({url: "/path/to/", local: true});
+
 	assert.doesNotThrow(() => {
 	    rest.workflow("12345", fake);
 	});
@@ -102,16 +97,13 @@ describe('rest.workflow', () => {
     });
 
     it("must invoke get then fetch config with workflow missing params", () => {
-	let ringbuf = new bunyan.RingBuffer({ limit: 100 });
-        let log     = bunyan.createLogger({ name: "log", stream: ringbuf });
-
-	let stub1   = sinon.stub(REST.prototype, "_read").callsFake((uri, id, cb) => {
+	let stub1 = sinon.stub(REST.prototype, "_read").callsFake((uri, id, cb) => {
 	    assert.deepEqual(id, "12345", "id passed");
 	    assert.equal(uri, "workflow", "url passed");
 	    cb(null, {id_workflow:12345, description: "a workflow"});
 	});
 
-	let stub2   = sinon.stub(utils, "_get").callsFake((uri, options, cb) => {
+	let stub2 = sinon.stub(utils, "_get").callsFake((uri, options, cb) => {
 	    if(uri === "workflow/config/12345") {
 		return cb(null, {});
 	    }
@@ -119,7 +111,7 @@ describe('rest.workflow', () => {
 	});
 
 	let fake = sinon.fake();
-	let rest = new REST({log: log, url: "http://metrichor.local:8080"});
+	let rest = restFactory({url: "http://metrichor.local:8080"});
 
 	new Promise((accept, reject) => {
 	    rest.workflow("12345", (err, data) => {
@@ -137,16 +129,13 @@ describe('rest.workflow', () => {
     });
 
     it("must invoke get then fetch config with null workflow", () => {
-	let ringbuf = new bunyan.RingBuffer({ limit: 100 });
-        let log     = bunyan.createLogger({ name: "log", stream: ringbuf });
-
-	let stub1   = sinon.stub(REST.prototype, "_read").callsFake((uri, id, cb) => {
+	let stub1 = sinon.stub(REST.prototype, "_read").callsFake((uri, id, cb) => {
 	    assert.deepEqual(id, "12345", "id passed");
 	    assert.equal(uri, "workflow", "url passed");
 	    cb(null, null); // null workflow
 	});
 
-	let stub2   = sinon.stub(utils, "_get").callsFake((uri, options, cb) => {
+	let stub2 = sinon.stub(utils, "_get").callsFake((uri, options, cb) => {
 	    if(uri === "workflow/config/12345") {
 		return cb(null, {});
 	    }
@@ -154,7 +143,7 @@ describe('rest.workflow', () => {
 	});
 
 	let fake = sinon.fake();
-	let rest = new REST({log: log, url: "http://metrichor.local:8080"});
+	let rest = restFactory({url: "http://metrichor.local:8080"});
 
 	new Promise((accept, reject) => {
 	    rest.workflow("12345", (err, data) => {
@@ -172,9 +161,6 @@ describe('rest.workflow', () => {
     });
 
     it("must invoke get then fetch config with workflow including params", () => {
-	let ringbuf = new bunyan.RingBuffer({ limit: 100 });
-        let log     = bunyan.createLogger({ name: "log", stream: ringbuf });
-
 	let stub1   = sinon.stub(REST.prototype, "_read").callsFake((uri, id, cb) => {
 	    assert.deepEqual(id, "12345", "id passed");
 	    assert.equal(uri, "workflow", "url passed");
@@ -205,7 +191,7 @@ describe('rest.workflow', () => {
 	});
 
 	let fake = sinon.fake();
-	let rest = new REST({log: log, url: "http://metrichor.local:8080"});
+	let rest = restFactory({url: "http://metrichor.local:8080"});
 
 	new Promise((accept, reject) => {
 	    rest.workflow("12345", (err, data) => {
@@ -230,10 +216,7 @@ describe('rest.workflow', () => {
     });
 
     it("must invoke get then fetch config with workflow including params and skip handling of data_root", () => {
-	let ringbuf = new bunyan.RingBuffer({ limit: 100 });
-        let log     = bunyan.createLogger({ name: "log", stream: ringbuf });
-
-	let stub1   = sinon.stub(REST.prototype, "_read").callsFake((uri, id, cb) => {
+	let stub1 = sinon.stub(REST.prototype, "_read").callsFake((uri, id, cb) => {
 	    assert.deepEqual(id, "12345", "id passed");
 	    assert.equal(uri, "workflow", "url passed");
 	    cb(null, {
@@ -246,7 +229,7 @@ describe('rest.workflow', () => {
 	    });
 	});
 
-	let stub2   = sinon.stub(utils, "_get").callsFake((uri, options, cb) => {
+	let stub2 = sinon.stub(utils, "_get").callsFake((uri, options, cb) => {
 	    if(uri === "workflow/config/12345") {
 		return cb(null, {});
 	    }
@@ -263,7 +246,7 @@ describe('rest.workflow', () => {
 	});
 
 	let fake = sinon.fake();
-	let rest = new REST({log: log, url: "http://metrichor.local:8080"});
+	let rest = restFactory({url: "http://metrichor.local:8080"});
 
 	new Promise((accept, reject) => {
 	    rest.workflow("12345", (err, data) => {
@@ -291,10 +274,7 @@ describe('rest.workflow', () => {
     });
 
     it("must handle failure during config fetch", async () => {
-	let ringbuf = new bunyan.RingBuffer({ limit: 100 });
-        let log     = bunyan.createLogger({ name: "log", stream: ringbuf });
-
-	let stub1   = sinon.stub(REST.prototype, "_read").callsFake((uri, id, cb) => {
+	let stub1 = sinon.stub(REST.prototype, "_read").callsFake((uri, id, cb) => {
 	    assert.deepEqual(id, "12345", "id passed");
 	    assert.equal(uri, "workflow", "url passed");
 	    cb(null, {
@@ -307,7 +287,7 @@ describe('rest.workflow', () => {
 	    });
 	});
 
-	let stub2   = sinon.stub(utils, "_get").callsFake((uri, options, cb) => {
+	let stub2 = sinon.stub(utils, "_get").callsFake((uri, options, cb) => {
 	    if(uri === "workflow/config/12345") {
 		return cb({"error": "forbidden"});
 	    }
@@ -324,7 +304,7 @@ describe('rest.workflow', () => {
 	});
 
 	let fake = sinon.fake();
-	let rest = new REST({log: log, url: "http://metrichor.local:8080"});
+	let rest = restFactory({url: "http://metrichor.local:8080"});
 
 	let p = new Promise((resolve) => {
 	    rest.workflow("12345", (err, data) => {
@@ -344,10 +324,7 @@ describe('rest.workflow', () => {
     });
 
     it("must handle failure during parameter fetch", async () => {
-	let ringbuf = new bunyan.RingBuffer({ limit: 100 });
-        let log     = bunyan.createLogger({ name: "log", stream: ringbuf });
-
-	let stub1   = sinon.stub(REST.prototype, "_read").callsFake((uri, id, cb) => {
+	let stub1 = sinon.stub(REST.prototype, "_read").callsFake((uri, id, cb) => {
 	    assert.deepEqual(id, "12345", "id passed");
 	    assert.equal(uri, "workflow", "url passed");
 	    cb(null, {
@@ -360,7 +337,7 @@ describe('rest.workflow', () => {
 	    });
 	});
 
-	let stub2   = sinon.stub(utils, "_get").callsFake((uri, options, cb) => {
+	let stub2 = sinon.stub(utils, "_get").callsFake((uri, options, cb) => {
 	    if(uri === "workflow/config/12345") {
 		return cb(null, {});
 	    }
@@ -372,7 +349,7 @@ describe('rest.workflow', () => {
 	});
 
 	let fake = sinon.fake();
-	let rest = new REST({log: log, url: "http://metrichor.local:8080"});
+	let rest = restFactory({url: "http://metrichor.local:8080"});
 
 	let p = new Promise((resolve, reject) => {
 	    rest.workflow("12345", (err, data) => {
