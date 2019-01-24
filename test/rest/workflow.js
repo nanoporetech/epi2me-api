@@ -290,7 +290,7 @@ describe('rest.workflow', () => {
 	stub2.restore();
     });
 
-    it("must handle failure during config fetch", () => {
+    it("must handle failure during config fetch", async () => {
 	let ringbuf = new bunyan.RingBuffer({ limit: 100 });
         let log     = bunyan.createLogger({ name: "log", stream: ringbuf });
 
@@ -326,29 +326,24 @@ describe('rest.workflow', () => {
 	let fake = sinon.fake();
 	let rest = new REST({log: log, url: "http://metrichor.local:8080"});
 
-	new Promise((accept, reject) => {
+	let p = new Promise((resolve) => {
 	    rest.workflow("12345", (err, data) => {
-		if(err) reject(fake(err));
-		accept(fake(null, data));
+		assert.deepEqual(err, { error: 'forbidden' }, "error message");
+		resolve();
 	    });
-	})
-	    .then(() => {
-		assert(fake.called, "callback invoked with error");
-		sinon.assert.calledWith(fake, null, {
-		    description: "a workflow",
-		    id_workflow: 12345,
-		    params: [{
-			values: [{ label: "foo", value: 1 }, { label: "bar", value: 2 }, { label: "baz", value: 3 }],
-			widget: "ajax_dropdown"
-		    }]
-		} );
-	    });
+	});
+
+	try {
+	    await p;
+	} catch (e) {
+	    assert.fail(e);
+	}
 
 	stub1.restore();
 	stub2.restore();
     });
 
-    it("must handle failure during parameter fetch", () => {
+    it("must handle failure during parameter fetch", async () => {
 	let ringbuf = new bunyan.RingBuffer({ limit: 100 });
         let log     = bunyan.createLogger({ name: "log", stream: ringbuf });
 
@@ -379,23 +374,19 @@ describe('rest.workflow', () => {
 	let fake = sinon.fake();
 	let rest = new REST({log: log, url: "http://metrichor.local:8080"});
 
-	new Promise((accept, reject) => {
+	let p = new Promise((resolve, reject) => {
 	    rest.workflow("12345", (err, data) => {
-		if(err) reject(fake(err));
-		accept(fake(null, data));
+		assert.deepEqual(err, { error: "forbidden" });
+
+		resolve();
 	    });
 	})
-	    .then(() => {
-		assert(fake.called, "callback invoked with error");
-		sinon.assert.calledWith(fake, null, {
-		    description: "a workflow",
-		    id_workflow: 12345,
-		    params: [{
-			values: [{ label: "foo", value: 1 }, { label: "bar", value: 2 }, { label: "baz", value: 3 }],
-			widget: "ajax_dropdown"
-		    }]
-		} );
-	    });
+
+	try {
+	    await p;
+	} catch (e) {
+	    assert.fail(e);
+	}
 
 	stub1.restore();
 	stub2.restore();
