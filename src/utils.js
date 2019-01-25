@@ -5,10 +5,10 @@
  *
  */
 
-import { version as VERSION } from '../package.json';
-
 import axios from 'axios';
 import crypto from 'crypto';
+
+import { version as VERSION } from '../package.json';
 
 const utils = {};
 
