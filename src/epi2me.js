@@ -206,8 +206,7 @@ export class EPI2ME {
         // MC-5418 - This needs to be done before the process starts uploading messages!
         AWS.config.update(this.config.instance.awssettings);
         AWS.config.update(token);
-          resolve();
-	  return;
+        resolve();
       });
     });
 
