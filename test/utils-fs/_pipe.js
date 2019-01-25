@@ -3,7 +3,7 @@ import sinon   from "sinon";
 import tmp     from "tmp";
 import fs      from "fs-extra";
 import path    from "path";
-import request from "request";
+import axios   from "axios";
 import {PassThrough} from "stream";
 import utils   from "../../lib/utils-fs";
 
@@ -21,8 +21,10 @@ describe("utils-fs._pipe", () => {
 	//Finally keep track of how 'pipe' is going to be called
 	sinon.spy(mockStream, 'pipe');
 
-	let stub = sinon.stub(request.Request.prototype, "pipe").callsFake((stream) => {
-	    return mockStream;
+	let stub = sinon.stub(axios, "get").resolves({
+	    data: {
+		pipe: () => { return mockStream(); }
+	    }
 	});
 
 	let outfn = path.join(tmp.dirSync().name, "magic");
@@ -46,7 +48,8 @@ describe("utils-fs._pipe", () => {
 				     "X-EPI2ME-Client":  "",
 				     "X-EPI2ME-Version": "0",
 				 },
-				 proxy: "http://proxy.local:3128/"
+				 proxy: "http://proxy.local:3128/",
+				 responseType: "stream"
 			     },
 			     {url:"http://epi2me.local", proxy: "http://proxy.local:3128/"},
 			 ]);
@@ -68,8 +71,10 @@ describe("utils-fs._pipe", () => {
 	//Finally keep track of how 'pipe' is going to be called
 	sinon.spy(mockStream, 'pipe');
 
-	let stub = sinon.stub(request.Request.prototype, "pipe").callsFake((stream) => {
-	    return mockStream;
+	let stub = sinon.stub(axios, "get").resolves({
+	    data: {
+		pipe: () => { return mockStream(); }
+	    }
 	});
 
 	let outfn = path.join(tmp.dirSync().name, "magic");
@@ -89,10 +94,12 @@ describe("utils-fs._pipe", () => {
 				     "Accept-Encoding":  "gzip",
 				     "Accept":           "application/gzip",
 				     "Content-Type":     "application/json",
-				     "X-EPI2ME-ApiKey":  null,
+				     "X-EPI2ME-ApiKey":  undefined,
 				     "X-EPI2ME-Client":  "",
 				     "X-EPI2ME-Version": "0",
-				 }
+				 },
+				 responseType: "stream",
+				 onUploadProgress: progressCb,
 			     },
 			     {url:"http://epi2me.local"},
 			 ]);

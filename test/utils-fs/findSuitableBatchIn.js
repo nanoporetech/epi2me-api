@@ -3,8 +3,6 @@ import sinon   from "sinon";
 import tmp     from "tmp";
 import fs      from "fs-extra";
 import path    from "path";
-import request from "request";
-import {PassThrough} from "stream";
 import utils   from "../../lib/utils-fs";
 
 describe("utils-fs.findSuitablebatchIn", () => {

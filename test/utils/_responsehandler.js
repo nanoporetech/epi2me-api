@@ -10,30 +10,25 @@ describe('._responseHandler method', () => {
     });
 
     it('should handle error status codes', () => {
-        utils._responsehandler(null, {statusCode: 400}, '', callback);
+        utils._responsehandler({statusCode: 400}, callback);
         assert(callback.calledOnce);
         assert(callback.calledWith({"error": "Network error 400"}));
     });
 
-    it('should handle errors', () => {
+    it('should expect a passed callback', () => {
         assert.throws(() => {
-            utils._responsehandler('message', '', ''); // ensure it checks callback exists
+            utils._responsehandler('{\"error\": \"message\"}');
         });
-        utils._responsehandler('message', '', '', callback);
+    });
+
+    it('should parse body', () => {
+	utils._responsehandler({data: '{\"error\": \"message\"}'}, callback);
+        assert(callback.calledWith({error: 'message'}));
         assert(callback.calledOnce);
-        assert(callback.calledWith('message'));
     });
 
     it('should parse body and handle bad json', () => {
-        assert.throws(() => {
-            utils._responsehandler(null, '', '{\"error\": \"message\"}');
-        });
-
-        utils._responsehandler(null, '', '{\"error\": \"message\"}', callback);
-        assert(callback.calledWith({error: 'message'}));
+        utils._responsehandler('{error: message}', callback); // Handles JSON error gracefully
         assert(callback.calledOnce);
-
-        utils._responsehandler(null, '', '{error: message}', callback); // Handles JSON error gracefully
-        assert(callback.calledTwice);
     });
 });
