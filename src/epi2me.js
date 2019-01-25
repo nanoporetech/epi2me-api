@@ -950,7 +950,7 @@ export class EPI2ME {
       }
     });
 
-    file.on('finish', () => {
+    file.on('finish', async () => {
       if (!file._networkStreamError) {
         // SUCCESS
         this.log.debug(`downloaded ${outputFile}`);
@@ -967,18 +967,12 @@ export class EPI2ME {
         }
 
         // MC-1993 - store total size of downloaded files
-        setTimeout(() => {
-          fs.stat(outputFile, (err, stats) => {
-            if (err) {
-              this.log.warn(`failed to fs.stat file: ${err}`);
-            } else if (stats && stats.size) {
-              // doesn't make sense if file already exists...
-              this._stats.download.totalSize += stats.size;
-              // MC-2540 : if there is some postprocessing to do( e.g fastq extraction) - call the dataCallback
-              // dataCallback might depend on the exit_status ( e.g. fastq can only be extracted from successful reads )
-            }
-          });
-        });
+        try {
+          const stats = await fs.stat(outputFile);
+          this._stats.download.totalSize += stats.size;
+        } catch (err) {
+          this.log.warn(`failed to stat file: ${String(err)}`);
+        }
 
         try {
           const logStats = () => {
@@ -989,26 +983,26 @@ export class EPI2ME {
           if (this.config.options.filetype === '.fastq' || this.config.options.filetype === '.fq') {
             // files may be appended, so can't increment the totalSize
             if (!this._downloadedFileSizes) this._downloadedFileSizes = {};
-            fs.stat(outputFile)
-              .then(stats => stats.size || 0)
-              .then(size => {
-                this._downloadedFileSizes[outputFile] = size;
-                this._stats.download.totalSize = _.chain(this._downloadedFileSizes)
-                  .values()
-                  .sum()
-                  .value();
-                logStats();
-              })
-              .catch(err => this.log.error(`finish, getFileSize (fastq) ${err}`));
+
+            try {
+              const stats = await fs.stat(outputFile);
+              this._downloadedFileSizes[outputFile] = stats.size || 0;
+              this._stats.download.totalSize = _.chain(this._downloadedFileSizes)
+                .values()
+                .sum()
+                .value();
+              logStats();
+            } catch (err) {
+              this.log.error(`finish, getFileSize (fastq) ${String(err)}`);
+            }
           } else {
-            utils
-              .getFileSize(outputFile)
-              .then(stats => stats.size || 0)
-              .then(size => {
-                this._stats.download.totalSize += size;
-                logStats();
-              })
-              .catch(err => this.log.error(`finish, getFileSize (other) ${err}`));
+            try {
+              const stats = await utils.getFileSize(outputFile);
+              this._stats.download.totalSize += stats.size || 0;
+              logStats();
+            } catch (err) {
+              this.log.error(`finish, getFileSize (other) ${String(err)}`);
+            }
           }
 
           // MC-2540 : if there is some postprocessing to do( e.g fastq extraction) - call the dataCallback
