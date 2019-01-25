@@ -1,0 +1,16 @@
+{
+  "recommendations": [
+    "editorconfig.editorconfig",
+    "donjayamanne.githistory",
+    "eamodio.gitlens",
+    "maty.vscode-mocha-sidebar",
+    "christian-kohler.path-intellisense",
+    "shinnn.stylelint",
+    "streetsidesoftware.code-spell-checker",
+    "kisstkondoros.vscode-codemetrics",
+    "wix.vscode-import-cost",
+    "dbaeumer.vscode-eslint",
+    "alefragnani.bookmarks"
+  ],
+  "unwantedRecommendations": ["eg2.tslint"]
+}
