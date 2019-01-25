@@ -7,8 +7,8 @@
 
 import { version as VERSION } from '../package.json';
 
-const request = require('request');
-const crypto = require('crypto');
+import axios from 'axios';
+import crypto from 'crypto';
 
 const utils = {};
 
@@ -80,7 +80,7 @@ utils._sign = (req, options) => {
   req.headers['X-EPI2ME-SignatureV0'] = digest;
 };
 
-utils._get = (uri, options, cb) => {
+utils._get = async (uri, options, cb) => {
   // do something to get/set data in epi2me
   let call;
 
@@ -103,12 +103,15 @@ utils._get = (uri, options, cb) => {
     req.proxy = options.proxy;
   }
 
-  request.get(req, (res_e, res, body) => {
-    utils._responsehandler(res_e, res, body, cb);
-  });
+  try {
+    const res = await axios.get(req.uri, req);
+    utils._responsehandler(res, cb);
+  } catch (res_e) {
+    return cb(res_e, {});
+  }
 };
 
-utils._post = (uri, obj, options, cb) => {
+utils._post = async (uri, obj, options, cb) => {
   let srv = options.url;
   srv = srv.replace(/\/+$/, ''); // clip trailing slashes
   uri = uri.replace(/\/+/g, '/'); // clip multiple slashes
@@ -140,12 +143,15 @@ utils._post = (uri, obj, options, cb) => {
     req.proxy = options.proxy;
   }
 
-  request.post(req, (res_e, res, body) => {
-    utils._responsehandler(res_e, res, body, cb);
-  });
+  try {
+    const res = await axios.post(req.uri, req);
+    utils._responsehandler(res, cb);
+  } catch (res_e) {
+    return cb(res_e, {});
+  }
 };
 
-utils._put = (uri, id, obj, options, cb) => {
+utils._put = async (uri, id, obj, options, cb) => {
   let srv = options.url;
   srv = srv.replace(/\/+$/, ''); // clip trailing slashes
   uri = uri.replace(/\/+/g, '/'); // clip multiple slashes
@@ -166,22 +172,21 @@ utils._put = (uri, id, obj, options, cb) => {
     req.proxy = options.proxy;
   }
 
-  request.put(req, (res_e, res, body) => {
-    utils._responsehandler(res_e, res, body, cb);
-  });
+  try {
+    const res = await axios.put(req.uri, req);
+    utils._responsehandler(res, cb);
+  } catch (res_e) {
+    return cb(res_e, {});
+  }
 };
 
-utils._responsehandler = (res_e, r, body, cb) => {
+utils._responsehandler = (r, cb) => {
   let json;
-
   if (!cb) {
     throw new Error('callback must be specified');
   }
 
-  if (res_e) {
-    return cb(res_e, {});
-  }
-
+  let body = r ? r.data : '';
   let jsn_e;
   try {
     body = body.replace(/[^]*\n\n/, ''); // why doesn't request always parse headers? Content-type with charset?

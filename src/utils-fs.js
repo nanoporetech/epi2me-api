@@ -4,8 +4,7 @@
  * When: 2016-05-17
  *
  */
-import request from 'request';
-import progress from 'request-progress';
+import axios from 'axios';
 import fs from 'fs-extra';
 import path from 'path';
 import { isString, isArray } from 'lodash';
@@ -14,7 +13,7 @@ import _utils from './utils';
 const utils = _utils;
 const targetBatchSize = 4000;
 
-utils._pipe = (uri, filepath, options, cb, progressCb) => {
+utils._pipe = async (uri, filepath, options, cb, progressCb) => {
   let srv = options.url;
   uri = `/${uri}`; // note no forced extension for piped requests
   srv = srv.replace(/\/+$/, ''); // clip trailing slashes
@@ -36,15 +35,32 @@ utils._pipe = (uri, filepath, options, cb, progressCb) => {
   }
 
   if (progressCb) {
-    progress(request(req), {})
-      .on('progress', progressCb)
-      .on('end', cb)
-      .pipe(fs.createWriteStream(filepath));
-  } else {
-    request(req)
-      .pipe(fs.createWriteStream(filepath))
-      .on('close', cb);
+    req.onUploadProgress = progressCb;
   }
+  req.responseType = 'stream';
+
+  const p = new Promise(async (resolve, reject) => {
+    try {
+      const writer = fs.createWriteStream(filepath);
+      const res = await axios.get(req.uri, req);
+      res.data.pipe(writer);
+
+      writer.on('finish', resolve(filepath));
+      writer.on('error', reject(new Error('writer failed')));
+    } catch (err) {
+      reject(err);
+    }
+  });
+
+  let err;
+  try {
+    await p;
+  } catch (e) {
+    err = e;
+  }
+
+  // call back in either success or failure case
+  cb(err);
 };
 
 utils.countFileReads = filePath =>

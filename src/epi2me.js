@@ -4,7 +4,6 @@
  * When: A long time ago, in a galaxy far, far away
  *
  */
-/* global console */
 
 import _ from 'lodash';
 import AWS from 'aws-sdk';
