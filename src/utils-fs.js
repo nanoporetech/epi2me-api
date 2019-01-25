@@ -109,8 +109,8 @@ utils.findSuitableBatchIn = folder => {
   return createBatch();
 };
 
-let ID_counter = 0;
-utils.getFileID = () => `FILE_${++ID_counter}`;
+let IdCounter = 0;
+utils.getFileID = () => `FILE_${++IdCounter}`;
 
 utils.lsFolder = (dir, ignore, filetype, rootDir = '') =>
   fs.readdir(dir).then(ls => {
@@ -160,7 +160,7 @@ utils.lsFolder = (dir, ignore, filetype, rootDir = '') =>
          */
         return Promise.resolve({ files, folders });
       })
-      .catch(err => Promise.reject(`error listing folder ${err}`));
+      .catch(err => Promise.reject(new Error(`error listing folder ${err}`)));
   });
 
 utils.loadInputFiles = ({ inputFolder, outputFolder, uploadedFolder, filetype }, uploaded = []) =>
@@ -213,7 +213,7 @@ utils.loadInputFiles = ({ inputFolder, outputFolder, uploadedFolder, filetype },
           }
         })
         .catch(err => {
-          reject(`Failed to check for new files: ${err.message}`);
+          reject(new Error(`Failed to check for new files: ${err.message}`));
         });
     };
 

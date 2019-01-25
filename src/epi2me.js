@@ -19,12 +19,12 @@ export const REST = _REST;
 export const version = require('../package.json').version;
 
 export class EPI2ME {
-  constructor(opt_string) {
+  constructor(OptString) {
     let opts;
-    if (typeof opt_string === 'string' || (typeof opt_string === 'object' && opt_string.constructor === String)) {
-      opts = JSON.parse(opt_string);
+    if (typeof OptString === 'string' || (typeof OptString === 'object' && OptString.constructor === String)) {
+      opts = JSON.parse(OptString);
     } else {
-      opts = opt_string || {};
+      opts = OptString || {};
     }
 
     if (opts.log) {
@@ -206,7 +206,8 @@ export class EPI2ME {
         // MC-5418 - This needs to be done before the process starts uploading messages!
         AWS.config.update(this.config.instance.awssettings);
         AWS.config.update(token);
-        return resolve();
+          resolve();
+	  return;
       });
     });
 
@@ -339,18 +340,18 @@ export class EPI2ME {
 
     // MC-1795 - stop workflow when instance has been stopped remotely
     this._stateCheckInterval = setInterval(() => {
-      this.REST.workflow_instance(this.config.instance.id_workflow_instance, (instanceError, instance) => {
+      this.REST.workflow_instance(this.config.instance.id_workflow_instance, (instanceError, instanceObj) => {
         if (instanceError) {
           this.log.warn(
             `failed to check instance state: ${
               instanceError && instanceError.error ? instanceError.error : instanceError
             }`,
           );
-        } else if (instance.state === 'stopped') {
-          this.log.warn(`instance was stopped remotely at ${instance.stop_date}. shutting down the workflow.`);
+        } else if (instanceObj.state === 'stopped') {
+          this.log.warn(`instance was stopped remotely at ${instanceObj.stop_date}. shutting down the workflow.`);
           this.stop_everything(that => {
             if (typeof that.config.options.remoteShutdownCb === 'function') {
-              that.config.options.remoteShutdownCb(`instance was stopped remotely at ${instance.stop_date}`);
+              that.config.options.remoteShutdownCb(`instance was stopped remotely at ${instanceObj.stop_date}`);
             }
           });
         }
@@ -366,6 +367,7 @@ export class EPI2ME {
       this.loadUploadFiles.bind(this),
       this.config.options.fileCheckInterval * 1000,
     );
+    return Promise.resolve();
   }
 
   async loadAvailableDownloadMessages() {
@@ -478,10 +480,10 @@ export class EPI2ME {
         if (this.config.workflow.hasOwnProperty('attributes')) {
           attrs = this.config.workflow.attributes;
           if (attrs.hasOwnProperty('epi2me:max_size')) {
-            settings.max_size = parseInt(attrs['epi2me:max_size']);
+            settings.max_size = parseInt(attrs['epi2me:max_size'], 10);
           }
           if (attrs.hasOwnProperty('epi2me:max_files')) {
-            settings.max_files = parseInt(attrs['epi2me:max_files']);
+            settings.max_files = parseInt(attrs['epi2me:max_files'], 10);
           }
           if (attrs.hasOwnProperty('epi2me:category')) {
             const epi2me_category = attrs['epi2me:category'];
@@ -504,11 +506,11 @@ export class EPI2ME {
     }
 
     if (settings.hasOwnProperty('max_size')) {
-      maxFileSize = parseInt(settings.max_size);
+      maxFileSize = parseInt(settings.max_size, 10);
     }
 
     if (settings.hasOwnProperty('max_files')) {
-      maxFiles = parseInt(settings.max_files);
+      maxFiles = parseInt(settings.max_files, 10);
       if (files.length > maxFiles) {
         msg = `ERROR: ${
           files.length

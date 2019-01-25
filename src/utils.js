@@ -174,7 +174,7 @@ utils._put = async (uri, id, obj, options, cb) => {
 
   try {
     const res = await axios.put(req.uri, req);
-    utils._responsehandler(res, cb);
+    return utils._responsehandler(res, cb);
   } catch (res_e) {
     return cb(res_e, {});
   }
@@ -187,20 +187,20 @@ utils._responsehandler = (r, cb) => {
   }
 
   let body = r ? r.data : '';
-  let jsn_e;
+  let JsonError;
   try {
     body = body.replace(/[^]*\n\n/, ''); // why doesn't request always parse headers? Content-type with charset?
     json = JSON.parse(body);
   } catch (err) {
-    jsn_e = err;
+    JsonError = err;
   }
 
   if (r && r.statusCode >= 400) {
     let msg = `Network error ${r.statusCode}`;
     if (json && json.error) {
       msg = json.error;
-    } else if (jsn_e) {
-      //   msg = jsn_e;
+    } else if (JsonError) {
+      //   msg = JsonError;
     }
 
     if (r.statusCode === 504) {
@@ -211,8 +211,8 @@ utils._responsehandler = (r, cb) => {
     return cb({ error: msg });
   }
 
-  if (jsn_e) {
-    return cb({ error: jsn_e }, {});
+  if (JsonError) {
+    return cb({ error: JsonError }, {});
   }
 
   if (json.error) {
