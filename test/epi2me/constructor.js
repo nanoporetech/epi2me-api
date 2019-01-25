@@ -122,7 +122,7 @@ describe('epi2me', () => {
     it('should create and fire default loggers', () => {
       let client;
       const stubs = {
-        info: sinon.stub(console, 'log').callsFake(), // special
+        info: sinon.stub(console, 'info').callsFake(),
         warn: sinon.stub(console, 'warn').callsFake(),
         error: sinon.stub(console, 'error').callsFake(),
         debug: sinon.stub(console, 'debug').callsFake(),
