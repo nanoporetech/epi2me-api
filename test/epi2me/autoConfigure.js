@@ -1,103 +1,112 @@
-import assert    from "assert";
-import sinon     from "sinon";
-import fs        from "fs-extra";
-import tmp       from "tmp";
-import path      from "path";
-import { merge } from "lodash";
-import EPI2ME    from "../../lib/epi2me";
-import REST      from "../../lib/rest";
+import assert from 'assert';
+import sinon from 'sinon';
+import fs from 'fs-extra';
+import tmp from 'tmp';
+import path from 'path';
+import { merge } from 'lodash';
+import EPI2ME from '../../src/epi2me';
+import REST from '../../src/rest';
 
-describe("epi2me.autoConfigure", () => {
+describe('epi2me.autoConfigure', () => {
+  let clock;
+  beforeEach(() => {
+    clock = sinon.useFakeTimers();
+  });
 
-    let clock;
-    beforeEach(() => {
-	clock = sinon.useFakeTimers();
+  afterEach(() => {
+    clock.restore();
+  });
+
+  const clientFactory = opts =>
+    new EPI2ME(
+      merge(
+        {
+          url: 'https://epi2me-test.local',
+          log: {
+            debug: sinon.stub(),
+            info: sinon.stub(),
+            warn: sinon.stub(),
+            error: sinon.stub(),
+          },
+        },
+        opts,
+      ),
+    );
+
+  it('should require inputFolder', async () => {
+    const tmpDir = tmp.dirSync();
+    let client = clientFactory();
+
+    let autoStartCb = sinon.fake();
+    let mkdirp = sinon.stub(fs, 'mkdirp').callsFake((folder, cb) => {
+      cb();
+    });
+    let mkdirpSync = sinon.stub(fs, 'mkdirpSync').callsFake();
+
+    let err;
+    try {
+      await client.autoConfigure({}, autoStartCb);
+    } catch (e) {
+      err = e;
+    }
+
+    assert(String(err).match(/must set inputFolder/));
+
+    mkdirp.restore();
+    mkdirpSync.restore();
+    tmpDir.removeCallback();
+  });
+
+  it('should require outputFolder', async () => {
+    const tmpDir = tmp.dirSync();
+    let client = clientFactory({
+      inputFolder: path.join(tmpDir.name, 'input'),
     });
 
-    afterEach(() => {
-	clock.restore();
+    let autoStartCb = sinon.fake();
+    let mkdirp = sinon.stub(fs, 'mkdirp').callsFake((folder, cb) => {
+      cb();
+    });
+    let mkdirpSync = sinon.stub(fs, 'mkdirpSync').callsFake();
+
+    let err;
+    try {
+      await client.autoConfigure({}, autoStartCb);
+    } catch (e) {
+      err = e;
+    }
+    assert(String(err).match(/must set outputFolder/));
+    mkdirp.restore();
+    mkdirpSync.restore();
+    tmpDir.removeCallback();
+  });
+
+  it('should require inputqueue', async () => {
+    const tmpDir = tmp.dirSync();
+    let client = clientFactory({
+      inputFolder: path.join(tmpDir.name, 'input'),
+      outputFolder: path.join(tmpDir.name, 'output'),
     });
 
-    const clientFactory = (opts) => {
-	return new EPI2ME(merge({
-	    url: "https://epi2me-test.local",
-	    log: {
-		debug: sinon.stub(),
-		info:  sinon.stub(),
-		warn:  sinon.stub(),
-		error: sinon.stub(),
-	    }
-	}, opts));
-    };
-
-    it("should require inputFolder", async () => {
-	const tmpDir    = tmp.dirSync();
-	let client      = clientFactory();
-
-	let autoStartCb = sinon.fake();
-	let mkdirp      = sinon.stub(fs, "mkdirp").callsFake((folder, cb) => { cb(); });
-	let mkdirpSync  = sinon.stub(fs, "mkdirpSync").callsFake();
-
-	let err;
-	try {
-	    await client.autoConfigure({}, autoStartCb);
-	} catch (e) {
-	    err = e;
-	}
-
-	assert(String(err).match(/must set inputFolder/));
-
-	mkdirp.restore();
-	mkdirpSync.restore();
-	tmpDir.removeCallback();
+    let autoStartCb = sinon.fake();
+    let mkdirp = sinon.stub(fs, 'mkdirp').callsFake((folder, cb) => {
+      cb();
     });
+    let mkdirpSync = sinon.stub(fs, 'mkdirpSync').callsFake();
 
-    it("should require outputFolder", async () => {
-	const tmpDir    = tmp.dirSync();
-	let client      = clientFactory({
-	    inputFolder:  path.join(tmpDir.name, "input"),
-	});
+    let err;
+    try {
+      await client.autoConfigure({}, autoStartCb);
+    } catch (e) {
+      err = e;
+    }
 
-	let autoStartCb = sinon.fake();
-	let mkdirp      = sinon.stub(fs, "mkdirp").callsFake((folder, cb) => { cb(); });
-	let mkdirpSync  = sinon.stub(fs, "mkdirpSync").callsFake();
-
-	let err;
-	try {
-	    await client.autoConfigure({}, autoStartCb);
-	} catch(e) {
-	    err = e;
-	}
-	assert(String(err).match(/must set outputFolder/));
-	mkdirp.restore();
-	mkdirpSync.restore();
-	tmpDir.removeCallback();
-    });
-
-    it("should require inputqueue", async () => {
-	const tmpDir    = tmp.dirSync();
-	let client      = clientFactory({
-	    inputFolder:  path.join(tmpDir.name, "input"),
-	    outputFolder: path.join(tmpDir.name, "output"),
-	});
-
-	let autoStartCb = sinon.fake();
-	let mkdirp      = sinon.stub(fs, "mkdirp").callsFake((folder, cb) => { cb(); });
-	let mkdirpSync  = sinon.stub(fs, "mkdirpSync").callsFake();
-
-	let err;
-	try {
-	    await client.autoConfigure({}, autoStartCb);
-	} catch (e) {
-	    err = e;
-	}
-
-	assert(String(err).match(/inputQueueName must be set/));
-	mkdirp.restore();
-	mkdirpSync.restore();
-	tmpDir.removeCallback();
-    });
-/*
+    assert(String(err).match(/inputQueueName must be set/));
+    mkdirp.restore();
+    mkdirpSync.restore();
+    tmpDir.removeCallback();
+  });
+  /*
     it("should require outputqueue", () => {
 	const tmpDir    = tmp.dirSync();
 	let client      = clientFactory({
@@ -160,4 +169,5 @@ describe("epi2me.autoConfigure", () => {
 	createWriteStream.restore();
 	tmpDir.removeCallback();
     });
-*/});
+*/
+});

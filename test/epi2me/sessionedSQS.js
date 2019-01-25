@@ -1,18 +1,17 @@
-import assert from "assert";
-import sinon  from "sinon";
-import AWS    from "aws-sdk";
-import EPI2ME from "../../lib/epi2me";
+import assert from 'assert';
+import sinon from 'sinon';
+import AWS from 'aws-sdk';
+import EPI2ME from '../../src/epi2me';
 
-describe("epi2me.sessionedSQS", () => {
+describe('epi2me.sessionedSQS', () => {
+  it('should session', () => {
+    const client = new EPI2ME({});
 
-    it("should session", () => {
-	let client = new EPI2ME({});
+    sinon.stub(client, 'session').resolves();
 
-	sinon.stub(client, "session").resolves();
-
-	assert.doesNotThrow(async () => {
-	    let sqs = await client.sessionedSQS();
-	    assert.ok(sqs instanceof AWS.SQS);
-	});
+    assert.doesNotThrow(async () => {
+      const sqs = await client.sessionedSQS();
+      assert.ok(sqs instanceof AWS.SQS);
     });
+  });
 });

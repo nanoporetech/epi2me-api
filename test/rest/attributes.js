@@ -1,24 +1,24 @@
-import REST from "../../lib/rest";
+import REST from '../../src/rest';
 
-const sinon  = require("sinon");
-const assert = require("assert");
-const bunyan = require("bunyan");
+const sinon = require('sinon');
+const assert = require('assert');
+const bunyan = require('bunyan');
 
-describe("rest.attributes", () => {
-    it("must invoke list", () => {
-	let ringbuf    = new bunyan.RingBuffer({ limit: 100 });
-        let log        = bunyan.createLogger({ name: "log", stream: ringbuf });
-	let stub = sinon.stub(REST.prototype, "_list").callsFake((uri, cb) => {
-	    assert.equal(uri, "attribute", "default uri");
-	    cb();
-	});
-
-	let fake = sinon.fake();
-	let rest = new REST({log: log});
-	assert.doesNotThrow(() => {
-	    rest.attributes(fake);
-	});
-	assert(fake.calledOnce, "callback invoked");
-	stub.restore();
+describe('rest.attributes', () => {
+  it('must invoke list', () => {
+    const ringbuf = new bunyan.RingBuffer({ limit: 100 });
+    const log = bunyan.createLogger({ name: 'log', stream: ringbuf });
+    const stub = sinon.stub(REST.prototype, '_list').callsFake((uri, cb) => {
+      assert.equal(uri, 'attribute', 'default uri');
+      cb();
     });
+
+    const fake = sinon.fake();
+    const rest = new REST({ log });
+    assert.doesNotThrow(() => {
+      rest.attributes(fake);
+    });
+    assert(fake.calledOnce, 'callback invoked');
+    stub.restore();
+  });
 });
