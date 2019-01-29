@@ -861,6 +861,7 @@ class REST_FS extends REST {
 
   async workflow(id, obj, cb) {
     if (!this.options.local || !id || typeof id === 'object' || cb) {
+      // yuck. probably wrong.
       return super.workflow(id, obj, cb);
     }
 
@@ -981,7 +982,7 @@ class REST_FS extends REST {
     }
   }
 
-  bundle_workflow(id_workflow, filepath, cb, progressCb) {
+  async bundle_workflow(id_workflow, filepath, progressCb) {
     // clean out target folder?
     // download tarball including workflow json
     // allocate install_token with STS credentials

@@ -21,7 +21,6 @@ describe('rest-fs.bundle_workflow', () => {
   });
 
   it('must invoke pipe with options', () => {
-    const fake = sinon.fake();
     const progress = sinon.fake();
     const stub = sinon.stub(utils, 'pipe').callsFake((uri, filepath, options, progressCb) => {
       assert.deepEqual(options, rest.options, 'options passed');
@@ -32,7 +31,7 @@ describe('rest-fs.bundle_workflow', () => {
     });
 
     assert.doesNotThrow(() => {
-      rest.bundle_workflow('1234', '/path/to/1234', fake, progress);
+      rest.bundle_workflow('1234', '/path/to/1234', progress);
     });
 
     assert(progress.calledTwice, 'progress callback invoked');
