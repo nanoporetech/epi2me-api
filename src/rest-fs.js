@@ -30,7 +30,8 @@ export default class REST_FS extends REST {
 
   async workflow(id, obj, cb) {
     if (!this.options.local || !id || typeof id === 'object' || cb) {
-      return this.super.workflow(id, obj, cb);
+      // yuck. probably wrong.
+      return super.workflow(id, obj, cb);
     }
 
     const WORKFLOW_DIR = path.join(this.options.url, 'workflows');
