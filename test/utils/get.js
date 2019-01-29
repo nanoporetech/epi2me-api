@@ -6,15 +6,16 @@ import utils from '../../src/utils';
 describe('utils.get', () => {
   let stub1;
   let stub2;
-
   beforeEach(() => {
-    stub1 = sinon.stub(axios, 'get').resolves('data');
-    stub2 = sinon.stub(utils, 'responseHandler').callsFake(res => res);
+    stub1 = sinon.stub(axios, 'get').resolves({ data: '{"data":"data"}' });
+    sinon.stub(utils, 'version').callsFake(() => {
+      return '3.0.0';
+    });
   });
 
   afterEach(() => {
     stub1.restore();
-    stub2.restore();
+    utils.version.restore();
   });
 
   it('should invoke get', async () => {
@@ -23,7 +24,7 @@ describe('utils.get', () => {
       url: 'http://epi2me.test',
     });
 
-    assert.equal(data, 'data');
+    assert.deepEqual(data, { data: 'data' });
 
     assert.deepEqual(stub1.args[0], [
       'http://epi2me.test/entity/123',
@@ -34,8 +35,8 @@ describe('utils.get', () => {
           Accept: 'application/json',
           'Content-Type': 'application/json',
           'X-EPI2ME-ApiKey': 'foo',
-          'X-EPI2ME-Client': '',
-          'X-EPI2ME-Version': '0',
+          'X-EPI2ME-Client': 'api',
+          'X-EPI2ME-Version': '3.0.0',
         },
       },
     ]);
@@ -48,7 +49,7 @@ describe('utils.get', () => {
       url: 'http://epi2me.test',
     });
 
-    assert.equal(data, 'data');
+    assert.deepEqual(data, { data: 'data' });
 
     assert.deepEqual(stub1.args[0], [
       'https://epi2me.internal/entity/123',
@@ -59,8 +60,8 @@ describe('utils.get', () => {
           Accept: 'application/json',
           'Content-Type': 'application/json',
           'X-EPI2ME-ApiKey': 'foo',
-          'X-EPI2ME-Client': '',
-          'X-EPI2ME-Version': '0',
+          'X-EPI2ME-Client': 'api',
+          'X-EPI2ME-Version': '3.0.0',
         },
       },
     ]);
@@ -73,7 +74,7 @@ describe('utils.get', () => {
       url: 'http://epi2me.test',
     });
 
-    assert.equal(data, 'data');
+    assert.deepEqual(data, { data: 'data' });
 
     assert.deepEqual(stub1.args[0], [
       'http://epi2me.test/entity/123',
@@ -85,8 +86,8 @@ describe('utils.get', () => {
           Accept: 'application/json',
           'Content-Type': 'application/json',
           'X-EPI2ME-ApiKey': 'foo',
-          'X-EPI2ME-Client': '',
-          'X-EPI2ME-Version': '0',
+          'X-EPI2ME-Client': 'api',
+          'X-EPI2ME-Version': '3.0.0',
         },
       },
     ]);

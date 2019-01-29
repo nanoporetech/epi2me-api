@@ -4,21 +4,21 @@ import assert from 'assert';
 import sinon from 'sinon';
 import utils from '../../src/utils';
 
-describe('utils._headers', () => {
+describe('utils.headers', () => {
   let stub;
+  let clock;
   beforeEach(() => {
-    stub = sinon.stub(utils, '_sign').callsFake();
+    clock = sinon.useFakeTimers();
   });
   afterEach(() => {
-    stub.restore();
-    sinon.resetHistory();
+    clock.restore();
   });
 
   it('should create empty headers if none set', () => {
     const req = {};
 
-    utils._headers(req, { user_agent: 'EPI2ME Test', agent_version: '0.0.1' });
-    assert(stub.calledOnce);
+    utils.headers(req, { user_agent: 'EPI2ME Test', agent_version: '0.0.1' });
+
     assert.deepEqual(req.headers, {
       Accept: 'application/json',
       'Content-Type': 'application/json',
@@ -29,8 +29,8 @@ describe('utils._headers', () => {
 
   it('should propagate existing headers', () => {
     const req = { headers: { 'accept-language': 'mt' } };
-    utils._headers(req, { user_agent: 'EPI2ME Test', agent_version: '0.0.1' });
-    assert(stub.calledOnce);
+    utils.headers(req, { user_agent: 'EPI2ME Test', agent_version: '0.0.1' });
+
     assert.deepEqual(req.headers, {
       Accept: 'application/json',
       'Content-Type': 'application/json',
@@ -42,7 +42,8 @@ describe('utils._headers', () => {
 
   it('should override default headers', () => {
     const req = { headers: { Accept: 'application/gzip', 'Accept-Encoding': 'gzip' } };
-    utils._headers(req, { user_agent: 'EPI2ME Test', agent_version: '0.0.1' });
+    utils.headers(req, { user_agent: 'EPI2ME Test', agent_version: '0.0.1' });
+
     assert.deepEqual(req.headers, {
       'Accept-Encoding': 'gzip',
       Accept: 'application/gzip',
@@ -50,32 +51,38 @@ describe('utils._headers', () => {
       'X-EPI2ME-Client': 'EPI2ME Test',
       'X-EPI2ME-Version': '0.0.1',
     });
-    assert(stub.calledOnce);
   });
 
   it('should initialise options', () => {
+    let stub = sinon.stub(utils, 'version').callsFake(() => {
+      return '3.0.0';
+    });
     const req = { headers: { 'accept-language': 'mt' } };
-    utils._headers(req);
+    utils.headers(req);
     assert.deepEqual(req.headers, {
       Accept: 'application/json',
       'Content-Type': 'application/json',
-      'X-EPI2ME-Client': '',
-      'X-EPI2ME-Version': '0',
+      'X-EPI2ME-Client': 'api',
+      'X-EPI2ME-Version': '3.0.0',
       'accept-language': 'mt',
     });
-    assert(stub.calledOnce);
+    stub.restore();
   });
 
   it('should not sign if requested', () => {
+    let stub = sinon.stub(utils, 'version').callsFake(() => {
+      return '3.0.0';
+    });
     const req = { headers: { 'accept-language': 'mt' } };
-    utils._headers(req, { _signing: false });
+    utils.headers(req, { _signing: false });
     assert.deepEqual(req.headers, {
       Accept: 'application/json',
       'Content-Type': 'application/json',
-      'X-EPI2ME-Client': '',
-      'X-EPI2ME-Version': '0',
+      'X-EPI2ME-Client': 'api',
+      'X-EPI2ME-Version': '3.0.0',
       'accept-language': 'mt',
     });
-    assert(stub.notCalled);
+    //    assert(stub.notCalled);
+    stub.restore();
   });
 });

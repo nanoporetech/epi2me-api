@@ -27,7 +27,7 @@ utils.pipe = async (uri, filepath, options, progressCb) => {
     },
   };
 
-  utils._headers(req, options);
+  utils.headers(req, options);
 
   if (options.proxy) {
     req.proxy = options.proxy;
