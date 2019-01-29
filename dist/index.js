@@ -523,7 +523,6 @@ class REST {
   async workflows(cb) {
     try {
       const data = await this.list('workflow');
-      this.log.info(data);
       return cb ? cb(null, data) : Promise.resolve(data);
     } catch (err) {
       return cb ? cb(err) : Promise.reject(err);
