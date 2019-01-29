@@ -1,7 +1,7 @@
 import sinon from 'sinon';
 import assert from 'assert';
 import bunyan from 'bunyan';
-import * as utils from '../../src/utils';
+import utils from '../../src/utils';
 import REST from '../../src/rest';
 
 describe('rest.ami_image', () => {

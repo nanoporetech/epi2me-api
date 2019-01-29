@@ -6,6 +6,7 @@
   "description": "API for communicating with the EPI2ME website(s)",
   "private": true,
   "main": "dist/index.js",
+  "module": "dist/index.es.js",
   "dependencies": {
     "@types/axios": "^0.14.0",
     "aws-sdk": "2.392.0",
@@ -22,7 +23,8 @@
     "@babel/preset-env": "^7.3.1",
     "@babel/register": "^7.0.0",
     "@types/bunyan": "^1.8.4",
-    "@types/terser-webpack-plugin": "^1.2.0",
+    "@types/rollup": "^0.54.0",
+    "@types/rollup-plugin-json": "^3.0.1",
     "babel-eslint": "^10.0.1",
     "babel-loader": "^8.0.5",
     "bunyan": "^1.8.12",
@@ -42,11 +44,16 @@
     "prettier": "^1.16.0",
     "prettier-eslint": "^8.8.2",
     "proxyquire": "2.1.0",
+    "rollup": "^1.1.2",
+    "rollup-plugin-analyzer": "^3.0.0",
+    "rollup-plugin-cpy": "^1.1.0",
+    "rollup-plugin-eslint": "^5.0.0",
+    "rollup-plugin-json": "^3.1.0",
+    "rollup-plugin-license": "^0.8.1",
+    "rollup-plugin-terser": "^4.0.3",
     "sinon": "7.2.3",
     "terser-webpack-plugin": "^1.2.1",
     "tmp": "0.0.33",
-    "webpack": "^4.29.0",
-    "webpack-cli": "^3.2.1",
     "xunit-file": "*"
   },
   "browserslist": [
@@ -75,7 +82,9 @@
     "clean": "yarn clean:build && yarn clean:dist",
     "test": "yarn deps && yarn lint && mocha --recursive --require @babel/register test",
     "cover": "yarn deps && yarn lint && yarn nyc --reporter=html --reporter=text mocha --recursive --require @babel/register test",
-    "build": "yarn clean:build && yarn webpack --config ./config/webpack.config.build.js",
-    "build:dist": "yarn clean:dist && yarn webpack-cli --config ./config/webpack.config.dist.js"
+    "build": "yarn build:dist",
+    "rollup:build": "rollup -c",
+    "rollup:watch": "rollup -cw",
+    "build:dist": "yarn clean:dist && yarn rollup:build"
   }
 }

@@ -1,1 +1,1 @@
-export { default, version, EPI2ME, REST } from './epi2me';
+export { default } from './epi2me';

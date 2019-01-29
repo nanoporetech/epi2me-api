@@ -6,7 +6,7 @@ import fs from 'fs-extra';
 import bunyan from 'bunyan';
 import { merge } from 'lodash';
 import REST from '../../src/rest';
-import * as utils from '../../src/utils';
+import utils from '../../src/utils';
 
 describe('rest.workflow', () => {
   let stubs;

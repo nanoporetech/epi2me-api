@@ -15,10 +15,9 @@ import utils from './utils-fs';
 import _REST from './rest-fs';
 import defaults from './default_options.json';
 
-export const REST = _REST;
-export const version = require('../package.json').version;
+const VERSION = require('../package.json').version;
 
-export class EPI2ME {
+export default class EPI2ME {
   constructor(OptString) {
     let opts;
     if (typeof OptString === 'string' || (typeof OptString === 'object' && OptString.constructor === String)) {
@@ -1362,4 +1361,5 @@ export class EPI2ME {
   }
 }
 
-export default EPI2ME;
+EPI2ME.version = VERSION;
+EPI2ME.REST = _REST;

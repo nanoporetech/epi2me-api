@@ -5,7 +5,7 @@ import tmp from 'tmp';
 import fs from 'fs-extra';
 import path from 'path';
 import REST from '../../src/rest';
-import * as utils from '../../src/utils';
+import utils from '../../src/utils';
 
 describe('rest.workflow_instances', () => {
   let ringbuf, rest, stubs, log;

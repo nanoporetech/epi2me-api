@@ -1,6 +1,6 @@
 import os from 'os';
 import { merge, filter } from 'lodash';
-import { get, post, put } from './utils';
+import utils from './utils';
 
 export default class REST {
   constructor(options) {
@@ -10,11 +10,12 @@ export default class REST {
       //            delete options.log;
     }
     this.options = options;
+    Object.keys(utils);
   }
 
   async list(entity) {
     try {
-      const json = await get(entity, this.options);
+      const json = await utils.get(entity, this.options);
       const entityName = entity.match(/^[a-z_]+/i)[0]; // dataset?foo=bar => dataset
       return Promise.resolve(json[`${entityName}s`]);
     } catch (err) {
@@ -25,7 +26,7 @@ export default class REST {
 
   async read(entity, id) {
     try {
-      const json = await get(`${entity}/${id}`, this.options);
+      const json = await utils.get(`${entity}/${id}`, this.options);
       return Promise.resolve(json);
     } catch (e) {
       this.log.error('read', e);
@@ -40,7 +41,7 @@ export default class REST {
       data = { accounts: [{ id_user_account: 'none', number: 'NONE', name: 'None' }] }; // fake user with accounts
     } else {
       try {
-        data = await get('user', this.options);
+        data = await utils.get('user', this.options);
       } catch (err) {
         return cb ? cb(err) : Promise.reject(err);
       }
@@ -50,7 +51,7 @@ export default class REST {
 
   async instance_token(id, cb) {
     try {
-      const data = await post('token', { id_workflow_instance: id }, merge({ legacy_form: true }, this.options));
+      const data = await utils.post('token', { id_workflow_instance: id }, merge({ legacy_form: true }, this.options));
       return cb ? cb(null, data) : Promise.resolve(data);
     } catch (err) {
       return cb ? cb(err) : Promise.reject(err);
@@ -59,7 +60,7 @@ export default class REST {
 
   async install_token(id, cb) {
     try {
-      const data = await post('token/install', { id_workflow: id }, merge({ legacy_form: true }, this.options));
+      const data = await utils.post('token/install', { id_workflow: id }, merge({ legacy_form: true }, this.options));
       return cb ? cb(null, data) : Promise.resolve(data);
     } catch (err) {
       return cb ? cb(err) : Promise.reject(err);
@@ -105,7 +106,7 @@ export default class REST {
     if (cb) {
       // three args: update object
       try {
-        const update = await put('ami_image', id, obj, this.options);
+        const update = await utils.put('ami_image', id, obj, this.options);
         return cb ? cb(null, update) : Promise.resolve(update);
       } catch (err) {
         return cb ? cb(err) : Promise.reject(err);
@@ -117,7 +118,7 @@ export default class REST {
       cb = obj;
       obj = id;
       try {
-        const create = await post('ami_image', obj, this.options);
+        const create = await utils.post('ami_image', obj, this.options);
         return cb ? cb(null, create) : Promise.resolve(create);
       } catch (err) {
         return cb ? cb(err) : Promise.reject(err);
@@ -174,7 +175,7 @@ export default class REST {
     if (action === 'update') {
       // three args: update object: (123, {...}, func)
       try {
-        const update = await put('workflow', id, obj, merge({ legacy_form: true }, this.options));
+        const update = await utils.put('workflow', id, obj, merge({ legacy_form: true }, this.options));
         return cb ? cb(null, update) : Promise.resolve(update);
       } catch (err) {
         return cb ? cb(err) : Promise.reject(err);
@@ -185,7 +186,7 @@ export default class REST {
       // two args: create object: ({...}, func)
 
       try {
-        const create = await post('workflow', obj, merge({ legacy_form: true }, this.options));
+        const create = await utils.post('workflow', obj, merge({ legacy_form: true }, this.options));
         return cb ? cb(null, create) : Promise.resolve(create);
       } catch (err) {
         return cb ? cb(err) : Promise.reject(err);
@@ -215,7 +216,7 @@ export default class REST {
     merge(workflow, { params: {} });
 
     try {
-      const workflowConfig = await get(`workflow/config/${id}`, this.options);
+      const workflowConfig = await utils.get(`workflow/config/${id}`, this.options);
       if (workflowConfig.error) {
         throw new Error(workflowConfig.error);
       }
@@ -235,7 +236,7 @@ export default class REST {
             const uri = param.values.source.replace('{{EPI2ME_HOST}}', '');
 
             try {
-              const workflowParam = await get(uri, this.options); // e.g. {datasets:[...]} from the /dataset.json list response
+              const workflowParam = await utils.get(uri, this.options); // e.g. {datasets:[...]} from the /dataset.json list response
               const dataRoot = workflowParam[param.values.data_root]; // e.g. [{dataset},{dataset}]
 
               if (dataRoot) {
@@ -264,11 +265,11 @@ export default class REST {
   }
 
   start_workflow(config, cb) {
-    return post('workflow_instance', config, merge({ legacy_form: true }, this.options), cb);
+    return utils.post('workflow_instance', config, merge({ legacy_form: true }, this.options), cb);
   }
 
   stop_workflow(instance_id, cb) {
-    return put('workflow_instance/stop', instance_id, null, merge({ legacy_form: true }, this.options), cb);
+    return utils.put('workflow_instance/stop', instance_id, null, merge({ legacy_form: true }, this.options), cb);
   }
 
   async workflow_instances(cb, query) {
@@ -280,7 +281,7 @@ export default class REST {
 
     if (query && query.run_id) {
       try {
-        const json = await get(
+        const json = await utils.get(
           `workflow_instance/wi?show=all&columns[0][name]=run_id;columns[0][searchable]=true;columns[0][search][regex]=true;columns[0][search][value]=${
             query.run_id
           };`,
@@ -317,12 +318,12 @@ export default class REST {
   }
 
   workflow_config(id, cb) {
-    return get(`workflow/config/${id}`, this.options, cb);
+    return utils.get(`workflow/config/${id}`, this.options, cb);
   }
 
   async register(code, cb) {
     try {
-      const obj = await put(
+      const obj = await utils.put(
         'reg',
         code,
         {
@@ -381,7 +382,7 @@ export default class REST {
   async fetchContent(url, cb) {
     const options = merge({ skip_url_mangle: true }, this.options);
     try {
-      const result = await get(url, options);
+      const result = await utils.get(url, options);
       return cb ? cb(null, result) : Promise.resolve(result);
     } catch (err) {
       return cb ? cb(err) : Promise.reject(err);

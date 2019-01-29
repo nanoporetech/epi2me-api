@@ -2,7 +2,7 @@ import sinon from 'sinon';
 import assert from 'assert';
 import bunyan from 'bunyan';
 import REST from '../../src/rest';
-import * as utils from '../../src/utils';
+import utils from '../../src/utils';
 
 describe('rest.instance_token', () => {
   let log, rest;

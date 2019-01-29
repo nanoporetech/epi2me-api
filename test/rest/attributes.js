@@ -1,8 +1,7 @@
+import sinon from 'sinon';
+import assert from 'assert';
+import bunyan from 'bunyan';
 import REST from '../../src/rest';
-
-const sinon = require('sinon');
-const assert = require('assert');
-const bunyan = require('bunyan');
 
 describe('rest.attributes', () => {
   it('must invoke list', () => {

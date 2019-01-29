@@ -3,7 +3,7 @@ import assert from 'assert';
 import bunyan from 'bunyan';
 import os from 'os';
 import REST from '../../src/rest';
-import * as utils from '../../src/utils';
+import utils from '../../src/utils';
 
 describe('rest.register', () => {
   let ringbuf, log, stubs, rest;
