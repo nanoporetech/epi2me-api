@@ -199,8 +199,6 @@ utils._responsehandler = (r, cb) => {
         msg = 'Please check your network connection and try again.';
       }
 
-      // console.error(new Error(msg));
-
       // cb({ error: msg });
       reject(new Error(msg));
     }
@@ -220,7 +218,7 @@ utils._responsehandler = (r, cb) => {
   })
     .catch(error => {
       if (cb) {
-        cb(error, {});
+        cb({ error: error.message }, {});
       }
       return Promise.reject(error);
     })
