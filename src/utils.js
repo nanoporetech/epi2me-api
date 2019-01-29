@@ -12,6 +12,8 @@ import { version as VERSION } from '../package.json';
 
 const utils = {};
 
+axios.defaults.validateStatus = status => status <= 504; // Reject only if the status code is greater than or equal to 500
+
 utils._headers = (req, options) => {
   // common headers required for everything
   if (!options) {
@@ -103,12 +105,7 @@ utils._get = async (uri, options, cb) => {
     req.proxy = options.proxy;
   }
 
-  try {
-    const res = await axios.get(req.uri, req);
-    utils._responsehandler(res, cb);
-  } catch (res_e) {
-    return cb(res_e, {});
-  }
+  return axios.get(req.uri, req).then(response => utils._responsehandler(response, cb));
 };
 
 utils._post = async (uri, obj, options, cb) => {
@@ -143,12 +140,7 @@ utils._post = async (uri, obj, options, cb) => {
     req.proxy = options.proxy;
   }
 
-  try {
-    const res = await axios.post(req.uri, req);
-    utils._responsehandler(res, cb);
-  } catch (res_e) {
-    return cb(res_e, {});
-  }
+  return axios.post(req.uri, req).then(response => utils._responsehandler(response, cb));
 };
 
 utils._put = async (uri, id, obj, options, cb) => {
@@ -172,54 +164,65 @@ utils._put = async (uri, id, obj, options, cb) => {
     req.proxy = options.proxy;
   }
 
-  try {
-    const res = await axios.put(req.uri, req);
-    return utils._responsehandler(res, cb);
-  } catch (res_e) {
-    return cb(res_e, {});
-  }
+  return axios.put(req.uri, req).then(response => utils._responsehandler(response, cb));
 };
 
 utils._responsehandler = (r, cb) => {
-  let json;
-  if (!cb) {
-    throw new Error('callback must be specified');
-  }
-
-  let body = r ? r.data : '';
   let JsonError;
-  try {
-    body = body.replace(/[^]*\n\n/, ''); // why doesn't request always parse headers? Content-type with charset?
-    json = JSON.parse(body);
-  } catch (err) {
-    JsonError = err;
+  let { data } = r;
+  if (data === undefined) {
+    data = { error: 'No response: please check your network connection and try again.' };
   }
 
-  if (r && r.statusCode >= 400) {
-    let msg = `Network error ${r.statusCode}`;
-    if (json && json.error) {
-      msg = json.error;
-    } else if (JsonError) {
-      //   msg = JsonError;
+  if (typeof data === 'string') {
+    try {
+      data = data.replace(/[^]*\n\n/, ''); // why doesn't request always parse headers? Content-type with charset?
+      data = JSON.parse(data);
+    } catch (err) {
+      JsonError = err;
+    }
+  }
+  return new Promise((resolve, reject) => {
+    if (r && r.status >= 400) {
+      let msg = `Network error ${r.status}`;
+      if (data && data.error) {
+        msg = data.error;
+      }
+
+      if (r.status === 504) {
+        // always override 504 with something custom
+        msg = 'Please check your network connection and try again.';
+      }
+
+      // cb({ error: msg });
+      reject(new Error(msg));
     }
 
-    if (r.statusCode === 504) {
-      // always override 504 with something custom
-      msg = 'Please check your network connection and try again.';
+    if (JsonError) {
+      // cb({ error: JsonError }, {});
+      reject(new Error(JsonError));
     }
 
-    return cb({ error: msg });
-  }
+    if (data.error) {
+      // cb({ error: data.error }, {});
+      reject(new Error(data.error));
+    }
 
-  if (JsonError) {
-    return cb({ error: JsonError }, {});
-  }
-
-  if (json.error) {
-    return cb({ error: json.error }, {});
-  }
-
-  return cb(null, json);
+    // cb(null, data);
+    resolve(data);
+  })
+    .catch(error => {
+      if (cb) {
+        cb({ error: error.message }, {});
+      }
+      return Promise.reject(error);
+    })
+    .then(data => {
+      if (cb) {
+        cb(null, data);
+      }
+      return Promise.resolve(data);
+    });
 };
 
 export const _get = utils._get;
