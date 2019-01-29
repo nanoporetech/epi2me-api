@@ -8,225 +8,224 @@
 import axios from 'axios';
 import crypto from 'crypto';
 
-import { version as VERSION } from '../package.json';
-
-const utils = {};
-
 axios.defaults.validateStatus = status => status <= 504; // Reject only if the status code is greater than or equal to 500
+let instance;
 
-utils._headers = (req, options) => {
-  // common headers required for everything
-  if (!options) {
-    options = {};
-  }
+const utils = (function() {
+  return instance !== undefined
+    ? instance
+    : {
+        _sign: (req, options) => {
+          // common headers required for everything
+          if (!req.headers) {
+            req.headers = {};
+          }
 
-  req.headers = Object.assign(
-    {},
-    {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-      'X-EPI2ME-Client': options.user_agent || '', // new world order
-      'X-EPI2ME-Version': options.agent_version || '0', // new world order
-    },
-    req.headers,
-  );
+          if (!options) {
+            options = {};
+          }
 
-  if (options._signing !== false) {
-    utils._sign(req, options);
-  }
-};
+          req.headers['X-EPI2ME-ApiKey'] = options.apikey; // better than a logged CGI parameter
 
-utils._sign = (req, options) => {
-  // common headers required for everything
-  if (!req.headers) {
-    req.headers = {};
-  }
+          if (!options.apisecret) {
+            return;
+          }
 
-  if (!options) {
-    options = {};
-  }
+          // timestamp mitigates replay attack outside a tolerance window determined by the server
+          req.headers['X-EPI2ME-SignatureDate'] = new Date().toISOString();
 
-  req.headers['X-EPI2ME-ApiKey'] = options.apikey; // better than a logged CGI parameter
+          if (req.uri.match(/^https:/)) {
+            // MC-6412 - signing generated with https://...:443 but validated with https://...
+            req.uri = req.uri.replace(/:443/, '');
+          }
 
-  if (!options.apisecret) {
-    return;
-  }
+          if (req.uri.match(/^http:/)) {
+            // MC-6412 - signing generated with https://...:443 but validated with https://...
+            req.uri = req.uri.replace(/:80/, '');
+          }
 
-  // timestamp mitigates replay attack outside a tolerance window determined by the server
-  req.headers['X-EPI2ME-SignatureDate'] = new Date().toISOString();
+          const message = [
+            req.uri,
 
-  if (req.uri.match(/^https:/)) {
-    // MC-6412 - signing generated with https://...:443 but validated with https://...
-    req.uri = req.uri.replace(/:443/, '');
-  }
+            Object.keys(req.headers)
+              .sort()
+              .filter(o => o.match(/^x-epi2me/i))
+              .map(o => `${o}:${req.headers[o]}`)
+              .join('\n'),
+          ].join('\n');
 
-  if (req.uri.match(/^http:/)) {
-    // MC-6412 - signing generated with https://...:443 but validated with https://...
-    req.uri = req.uri.replace(/:80/, '');
-  }
+          const digest = crypto
+            .createHmac('sha1', options.apisecret)
+            .update(message)
+            .digest('hex');
+          req.headers['X-EPI2ME-SignatureV0'] = digest;
+        },
 
-  const message = [
-    req.uri,
+        _headers: (req, options) => {
+          // common headers required for everything
+          if (!options) {
+            options = {};
+          }
 
-    Object.keys(req.headers)
-      .sort()
-      .filter(o => o.match(/^x-epi2me/i))
-      .map(o => `${o}:${req.headers[o]}`)
-      .join('\n'),
-  ].join('\n');
+          req.headers = Object.assign(
+            {},
+            {
+              Accept: 'application/json',
+              'Content-Type': 'application/json',
+              'X-EPI2ME-Client': options.user_agent || '', // new world order
+              'X-EPI2ME-Version': options.agent_version || '0', // new world order
+            },
+            req.headers,
+          );
 
-  const digest = crypto
-    .createHmac('sha1', options.apisecret)
-    .update(message)
-    .digest('hex');
-  req.headers['X-EPI2ME-SignatureV0'] = digest;
-};
+          if (options._signing !== false) {
+            utils._sign(req, options);
+          }
+        },
 
-utils._get = async (uri, options, cb) => {
-  // do something to get/set data in epi2me
-  let call;
+        _responsehandler: (r, cb) => {
+          let JsonError;
+          let { data } = r;
+          if (data === undefined) {
+            data = { error: 'No response: please check your network connection and try again.' };
+          }
 
-  let srv = options.url;
+          if (typeof data === 'string') {
+            try {
+              data = data.replace(/[^]*\n\n/, ''); // why doesn't request always parse headers? Content-type with charset?
+              data = JSON.parse(data);
+            } catch (err) {
+              JsonError = err;
+            }
+          }
+          return new Promise((resolve, reject) => {
+            if (r && r.status >= 400) {
+              let msg = `Network error ${r.status}`;
+              if (data && data.error) {
+                msg = data.error;
+              }
 
-  if (!options.skip_url_mangle) {
-    uri = `/${uri}`; // + ".json";
-    srv = srv.replace(/\/+$/, ''); // clip trailing slashes
-    uri = uri.replace(/\/+/g, '/'); // clip multiple slashes
-    call = srv + uri;
-  } else {
-    call = uri;
-  }
+              if (r.status === 504) {
+                // always override 504 with something custom
+                msg = 'Please check your network connection and try again.';
+              }
 
-  const req = { uri: call, gzip: true };
+              // cb({ error: msg });
+              reject(new Error(msg));
+            }
 
-  utils._headers(req, options);
+            if (JsonError) {
+              // cb({ error: JsonError }, {});
+              reject(new Error(JsonError));
+            }
 
-  if (options.proxy) {
-    req.proxy = options.proxy;
-  }
+            if (data.error) {
+              // cb({ error: data.error }, {});
+              reject(new Error(data.error));
+            }
 
-  return axios.get(req.uri, req).then(response => utils._responsehandler(response, cb));
-};
+            // cb(null, data);
+            resolve(data);
+          })
+            .catch(error => {
+              if (cb) {
+                cb({ error: error.message }, {});
+              }
+              return Promise.reject(error);
+            })
+            .then(data => {
+              if (cb) {
+                cb(null, data);
+              }
+              return Promise.resolve(data);
+            });
+        },
 
-utils._post = async (uri, obj, options, cb) => {
-  let srv = options.url;
-  srv = srv.replace(/\/+$/, ''); // clip trailing slashes
-  uri = uri.replace(/\/+/g, '/'); // clip multiple slashes
-  const call = `${srv}/${uri}`;
+        _get: async (uri, options, cb) => {
+          // do something to get/set data in epi2me
+          let call;
 
-  const req = {
-    uri: call,
-    gzip: true,
-    body: obj ? JSON.stringify(obj) : {},
-  };
+          let srv = options.url;
 
-  if (options.legacy_form) {
-    // include legacy form parameters
-    const form = {};
-    form.json = JSON.stringify(obj);
+          if (!options.skip_url_mangle) {
+            uri = `/${uri}`; // + ".json";
+            srv = srv.replace(/\/+$/, ''); // clip trailing slashes
+            uri = uri.replace(/\/+/g, '/'); // clip multiple slashes
+            call = srv + uri;
+          } else {
+            call = uri;
+          }
 
-    if (obj && typeof obj === 'object') {
-      Object.keys(obj).forEach(attr => {
-        form[attr] = obj[attr];
-      });
-    } // garbage
+          const req = { uri: call, gzip: true };
 
-    req.form = form;
-  }
+          utils._headers(req, options);
 
-  utils._headers(req, options);
+          if (options.proxy) {
+            req.proxy = options.proxy;
+          }
 
-  if (options.proxy) {
-    req.proxy = options.proxy;
-  }
+          return axios.get(req.uri, req).then(response => utils._responsehandler(response, cb));
+        },
 
-  return axios.post(req.uri, req).then(response => utils._responsehandler(response, cb));
-};
+        _post: async (uri, obj, options, cb) => {
+          let srv = options.url;
+          srv = srv.replace(/\/+$/, ''); // clip trailing slashes
+          uri = uri.replace(/\/+/g, '/'); // clip multiple slashes
+          const call = `${srv}/${uri}`;
 
-utils._put = async (uri, id, obj, options, cb) => {
-  let srv = options.url;
-  srv = srv.replace(/\/+$/, ''); // clip trailing slashes
-  uri = uri.replace(/\/+/g, '/'); // clip multiple slashes
-  const call = `${srv}/${uri}/${id}`;
-  const req = {
-    uri: call,
-    gzip: true,
-    body: obj ? JSON.stringify(obj) : {},
-  };
+          const req = {
+            uri: call,
+            gzip: true,
+            body: obj ? JSON.stringify(obj) : {},
+          };
 
-  if (options.legacy_form) {
-    // include legacy form parameters
-    req.form = { json: JSON.stringify(obj) };
-  }
-  utils._headers(req, options);
+          if (options.legacy_form) {
+            // include legacy form parameters
+            const form = {};
+            form.json = JSON.stringify(obj);
 
-  if (options.proxy) {
-    req.proxy = options.proxy;
-  }
+            if (obj && typeof obj === 'object') {
+              Object.keys(obj).forEach(attr => {
+                form[attr] = obj[attr];
+              });
+            } // garbage
 
-  return axios.put(req.uri, req).then(response => utils._responsehandler(response, cb));
-};
+            req.form = form;
+          }
 
-utils._responsehandler = (r, cb) => {
-  let JsonError;
-  let { data } = r;
-  if (data === undefined) {
-    data = { error: 'No response: please check your network connection and try again.' };
-  }
+          utils._headers(req, options);
 
-  if (typeof data === 'string') {
-    try {
-      data = data.replace(/[^]*\n\n/, ''); // why doesn't request always parse headers? Content-type with charset?
-      data = JSON.parse(data);
-    } catch (err) {
-      JsonError = err;
-    }
-  }
-  return new Promise((resolve, reject) => {
-    if (r && r.status >= 400) {
-      let msg = `Network error ${r.status}`;
-      if (data && data.error) {
-        msg = data.error;
-      }
+          if (options.proxy) {
+            req.proxy = options.proxy;
+          }
 
-      if (r.status === 504) {
-        // always override 504 with something custom
-        msg = 'Please check your network connection and try again.';
-      }
+          return axios.post(req.uri, req).then(response => utils._responsehandler(response, cb));
+        },
 
-      // cb({ error: msg });
-      reject(new Error(msg));
-    }
+        _put: async (uri, id, obj, options, cb) => {
+          let srv = options.url;
+          srv = srv.replace(/\/+$/, ''); // clip trailing slashes
+          uri = uri.replace(/\/+/g, '/'); // clip multiple slashes
+          const call = `${srv}/${uri}/${id}`;
+          const req = {
+            uri: call,
+            gzip: true,
+            body: obj ? JSON.stringify(obj) : {},
+          };
 
-    if (JsonError) {
-      // cb({ error: JsonError }, {});
-      reject(new Error(JsonError));
-    }
+          if (options.legacy_form) {
+            // include legacy form parameters
+            req.form = { json: JSON.stringify(obj) };
+          }
+          utils._headers(req, options);
 
-    if (data.error) {
-      // cb({ error: data.error }, {});
-      reject(new Error(data.error));
-    }
+          if (options.proxy) {
+            req.proxy = options.proxy;
+          }
 
-    // cb(null, data);
-    resolve(data);
-  })
-    .catch(error => {
-      if (cb) {
-        cb({ error: error.message }, {});
-      }
-      return Promise.reject(error);
-    })
-    .then(data => {
-      if (cb) {
-        cb(null, data);
-      }
-      return Promise.resolve(data);
-    });
-};
+          return axios.put(req.uri, req).then(response => utils._responsehandler(response, cb));
+        },
+      };
+})();
 
-export const _get = utils._get;
-export const _put = utils._put;
-export const _post = utils._post;
-export const version = VERSION;
 export default utils;

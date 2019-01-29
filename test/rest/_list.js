@@ -1,5 +1,5 @@
+import utils from '../../src/utils';
 import REST from '../../src/rest';
-import * as utils from '../../src/utils';
 
 const sinon = require('sinon');
 const assert = require('assert');

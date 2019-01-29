@@ -18,224 +18,225 @@ import crypto from 'crypto';
  *
  */
 
-const utils = {};
-
 axios.defaults.validateStatus = status => status <= 504; // Reject only if the status code is greater than or equal to 500
+let instance;
 
-utils._headers = (req, options) => {
-  // common headers required for everything
-  if (!options) {
-    options = {};
-  }
+const utils = (function() {
+  return instance !== undefined
+    ? instance
+    : {
+        _sign: (req, options) => {
+          // common headers required for everything
+          if (!req.headers) {
+            req.headers = {};
+          }
 
-  req.headers = Object.assign(
-    {},
-    {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-      'X-EPI2ME-Client': options.user_agent || '', // new world order
-      'X-EPI2ME-Version': options.agent_version || '0', // new world order
-    },
-    req.headers,
-  );
+          if (!options) {
+            options = {};
+          }
 
-  if (options._signing !== false) {
-    utils._sign(req, options);
-  }
-};
+          req.headers['X-EPI2ME-ApiKey'] = options.apikey; // better than a logged CGI parameter
 
-utils._sign = (req, options) => {
-  // common headers required for everything
-  if (!req.headers) {
-    req.headers = {};
-  }
+          if (!options.apisecret) {
+            return;
+          }
 
-  if (!options) {
-    options = {};
-  }
+          // timestamp mitigates replay attack outside a tolerance window determined by the server
+          req.headers['X-EPI2ME-SignatureDate'] = new Date().toISOString();
 
-  req.headers['X-EPI2ME-ApiKey'] = options.apikey; // better than a logged CGI parameter
+          if (req.uri.match(/^https:/)) {
+            // MC-6412 - signing generated with https://...:443 but validated with https://...
+            req.uri = req.uri.replace(/:443/, '');
+          }
 
-  if (!options.apisecret) {
-    return;
-  }
+          if (req.uri.match(/^http:/)) {
+            // MC-6412 - signing generated with https://...:443 but validated with https://...
+            req.uri = req.uri.replace(/:80/, '');
+          }
 
-  // timestamp mitigates replay attack outside a tolerance window determined by the server
-  req.headers['X-EPI2ME-SignatureDate'] = new Date().toISOString();
+          const message = [
+            req.uri,
 
-  if (req.uri.match(/^https:/)) {
-    // MC-6412 - signing generated with https://...:443 but validated with https://...
-    req.uri = req.uri.replace(/:443/, '');
-  }
+            Object.keys(req.headers)
+              .sort()
+              .filter(o => o.match(/^x-epi2me/i))
+              .map(o => `${o}:${req.headers[o]}`)
+              .join('\n'),
+          ].join('\n');
 
-  if (req.uri.match(/^http:/)) {
-    // MC-6412 - signing generated with https://...:443 but validated with https://...
-    req.uri = req.uri.replace(/:80/, '');
-  }
+          const digest = crypto
+            .createHmac('sha1', options.apisecret)
+            .update(message)
+            .digest('hex');
+          req.headers['X-EPI2ME-SignatureV0'] = digest;
+        },
 
-  const message = [
-    req.uri,
+        _headers: (req, options) => {
+          // common headers required for everything
+          if (!options) {
+            options = {};
+          }
 
-    Object.keys(req.headers)
-      .sort()
-      .filter(o => o.match(/^x-epi2me/i))
-      .map(o => `${o}:${req.headers[o]}`)
-      .join('\n'),
-  ].join('\n');
+          req.headers = Object.assign(
+            {},
+            {
+              Accept: 'application/json',
+              'Content-Type': 'application/json',
+              'X-EPI2ME-Client': options.user_agent || '', // new world order
+              'X-EPI2ME-Version': options.agent_version || '0', // new world order
+            },
+            req.headers,
+          );
 
-  const digest = crypto
-    .createHmac('sha1', options.apisecret)
-    .update(message)
-    .digest('hex');
-  req.headers['X-EPI2ME-SignatureV0'] = digest;
-};
+          if (options._signing !== false) {
+            utils._sign(req, options);
+          }
+        },
 
-utils._get = async (uri, options, cb) => {
-  // do something to get/set data in epi2me
-  let call;
+        _responsehandler: (r, cb) => {
+          let JsonError;
+          let { data } = r;
+          if (data === undefined) {
+            data = { error: 'No response: please check your network connection and try again.' };
+          }
 
-  let srv = options.url;
+          if (typeof data === 'string') {
+            try {
+              data = data.replace(/[^]*\n\n/, ''); // why doesn't request always parse headers? Content-type with charset?
+              data = JSON.parse(data);
+            } catch (err) {
+              JsonError = err;
+            }
+          }
+          return new Promise((resolve, reject) => {
+            if (r && r.status >= 400) {
+              let msg = `Network error ${r.status}`;
+              if (data && data.error) {
+                msg = data.error;
+              }
 
-  if (!options.skip_url_mangle) {
-    uri = `/${uri}`; // + ".json";
-    srv = srv.replace(/\/+$/, ''); // clip trailing slashes
-    uri = uri.replace(/\/+/g, '/'); // clip multiple slashes
-    call = srv + uri;
-  } else {
-    call = uri;
-  }
+              if (r.status === 504) {
+                // always override 504 with something custom
+                msg = 'Please check your network connection and try again.';
+              }
 
-  const req = { uri: call, gzip: true };
+              // cb({ error: msg });
+              reject(new Error(msg));
+            }
 
-  utils._headers(req, options);
+            if (JsonError) {
+              // cb({ error: JsonError }, {});
+              reject(new Error(JsonError));
+            }
 
-  if (options.proxy) {
-    req.proxy = options.proxy;
-  }
+            if (data.error) {
+              // cb({ error: data.error }, {});
+              reject(new Error(data.error));
+            }
 
-  return axios.get(req.uri, req).then(response => utils._responsehandler(response, cb));
-};
+            // cb(null, data);
+            resolve(data);
+          })
+            .catch(error => {
+              if (cb) {
+                cb({ error: error.message }, {});
+              }
+              return Promise.reject(error);
+            })
+            .then(data => {
+              if (cb) {
+                cb(null, data);
+              }
+              return Promise.resolve(data);
+            });
+        },
 
-utils._post = async (uri, obj, options, cb) => {
-  let srv = options.url;
-  srv = srv.replace(/\/+$/, ''); // clip trailing slashes
-  uri = uri.replace(/\/+/g, '/'); // clip multiple slashes
-  const call = `${srv}/${uri}`;
+        _get: async (uri, options, cb) => {
+          // do something to get/set data in epi2me
+          let call;
 
-  const req = {
-    uri: call,
-    gzip: true,
-    body: obj ? JSON.stringify(obj) : {},
-  };
+          let srv = options.url;
 
-  if (options.legacy_form) {
-    // include legacy form parameters
-    const form = {};
-    form.json = JSON.stringify(obj);
+          if (!options.skip_url_mangle) {
+            uri = `/${uri}`; // + ".json";
+            srv = srv.replace(/\/+$/, ''); // clip trailing slashes
+            uri = uri.replace(/\/+/g, '/'); // clip multiple slashes
+            call = srv + uri;
+          } else {
+            call = uri;
+          }
 
-    if (obj && typeof obj === 'object') {
-      Object.keys(obj).forEach(attr => {
-        form[attr] = obj[attr];
-      });
-    } // garbage
+          const req = { uri: call, gzip: true };
 
-    req.form = form;
-  }
+          utils._headers(req, options);
 
-  utils._headers(req, options);
+          if (options.proxy) {
+            req.proxy = options.proxy;
+          }
 
-  if (options.proxy) {
-    req.proxy = options.proxy;
-  }
+          return axios.get(req.uri, req).then(response => utils._responsehandler(response, cb));
+        },
 
-  return axios.post(req.uri, req).then(response => utils._responsehandler(response, cb));
-};
+        _post: async (uri, obj, options, cb) => {
+          let srv = options.url;
+          srv = srv.replace(/\/+$/, ''); // clip trailing slashes
+          uri = uri.replace(/\/+/g, '/'); // clip multiple slashes
+          const call = `${srv}/${uri}`;
 
-utils._put = async (uri, id, obj, options, cb) => {
-  let srv = options.url;
-  srv = srv.replace(/\/+$/, ''); // clip trailing slashes
-  uri = uri.replace(/\/+/g, '/'); // clip multiple slashes
-  const call = `${srv}/${uri}/${id}`;
-  const req = {
-    uri: call,
-    gzip: true,
-    body: obj ? JSON.stringify(obj) : {},
-  };
+          const req = {
+            uri: call,
+            gzip: true,
+            body: obj ? JSON.stringify(obj) : {},
+          };
 
-  if (options.legacy_form) {
-    // include legacy form parameters
-    req.form = { json: JSON.stringify(obj) };
-  }
-  utils._headers(req, options);
+          if (options.legacy_form) {
+            // include legacy form parameters
+            const form = {};
+            form.json = JSON.stringify(obj);
 
-  if (options.proxy) {
-    req.proxy = options.proxy;
-  }
+            if (obj && typeof obj === 'object') {
+              Object.keys(obj).forEach(attr => {
+                form[attr] = obj[attr];
+              });
+            } // garbage
 
-  return axios.put(req.uri, req).then(response => utils._responsehandler(response, cb));
-};
+            req.form = form;
+          }
 
-utils._responsehandler = (r, cb) => {
-  let JsonError;
-  let { data } = r;
-  if (data === undefined) {
-    data = { error: 'No response: please check your network connection and try again.' };
-  }
+          utils._headers(req, options);
 
-  if (typeof data === 'string') {
-    try {
-      data = data.replace(/[^]*\n\n/, ''); // why doesn't request always parse headers? Content-type with charset?
-      data = JSON.parse(data);
-    } catch (err) {
-      JsonError = err;
-    }
-  }
-  return new Promise((resolve, reject) => {
-    if (r && r.status >= 400) {
-      let msg = `Network error ${r.status}`;
-      if (data && data.error) {
-        msg = data.error;
-      }
+          if (options.proxy) {
+            req.proxy = options.proxy;
+          }
 
-      if (r.status === 504) {
-        // always override 504 with something custom
-        msg = 'Please check your network connection and try again.';
-      }
+          return axios.post(req.uri, req).then(response => utils._responsehandler(response, cb));
+        },
 
-      // cb({ error: msg });
-      reject(new Error(msg));
-    }
+        _put: async (uri, id, obj, options, cb) => {
+          let srv = options.url;
+          srv = srv.replace(/\/+$/, ''); // clip trailing slashes
+          uri = uri.replace(/\/+/g, '/'); // clip multiple slashes
+          const call = `${srv}/${uri}/${id}`;
+          const req = {
+            uri: call,
+            gzip: true,
+            body: obj ? JSON.stringify(obj) : {},
+          };
 
-    if (JsonError) {
-      // cb({ error: JsonError }, {});
-      reject(new Error(JsonError));
-    }
+          if (options.legacy_form) {
+            // include legacy form parameters
+            req.form = { json: JSON.stringify(obj) };
+          }
+          utils._headers(req, options);
 
-    if (data.error) {
-      // cb({ error: data.error }, {});
-      reject(new Error(data.error));
-    }
+          if (options.proxy) {
+            req.proxy = options.proxy;
+          }
 
-    // cb(null, data);
-    resolve(data);
-  })
-    .catch(error => {
-      if (cb) {
-        cb({ error: error.message }, {});
-      }
-      return Promise.reject(error);
-    })
-    .then(data => {
-      if (cb) {
-        cb(null, data);
-      }
-      return Promise.resolve(data);
-    });
-};
-
-const _get = utils._get;
-const _put = utils._put;
-const _post = utils._post;
+          return axios.put(req.uri, req).then(response => utils._responsehandler(response, cb));
+        },
+      };
+})();
 
 /*
  * Copyright (c) 2018 Metrichor Ltd.
@@ -244,10 +245,9 @@ const _post = utils._post;
  *
  */
 
-const utils$1 = utils;
 const targetBatchSize = 4000;
 
-utils$1._pipe = async (uri, filepath, options, cb, progressCb) => {
+utils._pipe = async (uri, filepath, options, cb, progressCb) => {
   let srv = options.url;
   uri = `/${uri}`; // note no forced extension for piped requests
   srv = srv.replace(/\/+$/, ''); // clip trailing slashes
@@ -262,7 +262,7 @@ utils$1._pipe = async (uri, filepath, options, cb, progressCb) => {
     },
   };
 
-  utils$1._headers(req, options);
+  utils._headers(req, options);
 
   if (options.proxy) {
     req.proxy = options.proxy;
@@ -297,7 +297,7 @@ utils$1._pipe = async (uri, filepath, options, cb, progressCb) => {
   cb(err);
 };
 
-utils$1.countFileReads = filePath =>
+utils.countFileReads = filePath =>
   new Promise((resolve, reject) => {
     const LINES_PER_READ = 4;
     let lineCount = 1;
@@ -317,7 +317,7 @@ utils$1.countFileReads = filePath =>
 
 // this isn't good... wtf:
 // make async!
-utils$1.findSuitableBatchIn = folder => {
+utils.findSuitableBatchIn = folder => {
   // For downloads without the folder split
   // Look inside `folder` and return any batch with a free slot.
   // if no suitable batches, create one and return that.
@@ -344,9 +344,9 @@ utils$1.findSuitableBatchIn = folder => {
 };
 
 let IdCounter = 0;
-utils$1.getFileID = () => `FILE_${++IdCounter}`;
+utils.getFileID = () => `FILE_${++IdCounter}`;
 
-utils$1.lsFolder = (dir, ignore, filetype, rootDir = '') =>
+utils.lsFolder = (dir, ignore, filetype, rootDir = '') =>
   fs.readdir(dir).then(ls => {
     if (ignore) {
       ls = ls.filter(ignore);
@@ -369,7 +369,7 @@ utils$1.lsFolder = (dir, ignore, filetype, rootDir = '') =>
             name: parsed.base,
             path: path.join(dir, entry),
             size: stats.size,
-            id: utils$1.getFileID(),
+            id: utils.getFileID(),
           };
 
           const batch = dir
@@ -397,7 +397,7 @@ utils$1.lsFolder = (dir, ignore, filetype, rootDir = '') =>
       .catch(err => Promise.reject(new Error(`error listing folder ${err}`)));
   });
 
-utils$1.loadInputFiles = ({ inputFolder, outputFolder, uploadedFolder, filetype }, uploaded = []) =>
+utils.loadInputFiles = ({ inputFolder, outputFolder, uploadedFolder, filetype }, uploaded = []) =>
   /**
    * Entry point for new .fast5 / .fastq files.
    *  - Scan the input folder files
@@ -431,7 +431,7 @@ utils$1.loadInputFiles = ({ inputFolder, outputFolder, uploadedFolder, filetype 
         return;
       }
 
-      utils$1
+      utils
         .lsFolder(batchFolders.splice(0, 1)[0], inputFilter, filetype, inputFolder)
         .then(({ files, folders }) => {
           // Keep iterating though batch folders until one with files is found
@@ -466,7 +466,7 @@ class REST {
   }
 
   _list(entity, cb) {
-    return _get(entity, this.options, (e, json) => {
+    return utils._get(entity, this.options, (e, json) => {
       if (e) {
         this.log.error('_list', e.error || e);
         cb(e.error || e);
@@ -479,23 +479,23 @@ class REST {
   }
 
   _read(entity, id, cb) {
-    return _get(`${entity}/${id}`, this.options, cb);
+    return utils._get(`${entity}/${id}`, this.options, cb);
   }
 
   user(cb) {
     if (this.options.local) {
       return cb(null, { accounts: [{ id_user_account: 'none', number: 'NONE', name: 'None' }] }); // fake user with accounts
     }
-    return _get('user', this.options, cb);
+    return utils._get('user', this.options, cb);
   }
 
   instance_token(id, cb) {
     /* should this be passed a hint at what the token is for? */
-    return _post('token', { id_workflow_instance: id }, merge({ legacy_form: true }, this.options), cb);
+    return utils._post('token', { id_workflow_instance: id }, merge({ legacy_form: true }, this.options), cb);
   }
 
   install_token(id, cb) {
-    return _post('token/install', { id_workflow: id }, merge({ legacy_form: true }, this.options), cb);
+    return utils._post('token/install', { id_workflow: id }, merge({ legacy_form: true }, this.options), cb);
   }
 
   attributes(cb) {
@@ -523,13 +523,13 @@ class REST {
 
     if (cb) {
       // three args: update object
-      return _put('ami_image', id, obj, this.options, cb);
+      return utils._put('ami_image', id, obj, this.options, cb);
     }
 
     if (id && typeof id === 'object') {
       cb = obj;
       obj = id;
-      return _post('ami_image', obj, this.options, cb);
+      return utils._post('ami_image', obj, this.options, cb);
     }
 
     // two args: get object
@@ -545,14 +545,14 @@ class REST {
   workflow(id, obj, cb) {
     if (cb) {
       // three args: update object: (123, {...}, func)
-      return _put('workflow', id, obj, merge({ legacy_form: true }, this.options), cb);
+      return utils._put('workflow', id, obj, merge({ legacy_form: true }, this.options), cb);
     }
 
     if (id && typeof id === 'object') {
       // two args: create object: ({...}, func)
       cb = obj;
       obj = id;
-      return _post('workflow', obj, merge({ legacy_form: true }, this.options), cb);
+      return utils._post('workflow', obj, merge({ legacy_form: true }, this.options), cb);
     }
 
     // two args: get object: (123, func)
@@ -587,7 +587,7 @@ class REST {
       promises.push(
         new Promise((resolve, reject) => {
           const uri = `workflow/config/${id}`;
-          _get(uri, this.options, (err, resp) => {
+          utils._get(uri, this.options, (err, resp) => {
             if (err) {
               this.log.error(`failed to fetch ${uri}`);
               reject(err);
@@ -608,7 +608,7 @@ class REST {
             new Promise((resolve, reject) => {
               const uri = param.values.source.replace('{{EPI2ME_HOST}}', '');
 
-              _get(uri, this.options, (err, resp) => {
+              utils._get(uri, this.options, (err, resp) => {
                 if (err) {
                   this.log.error(`failed to fetch ${uri}`);
                   reject(err);
@@ -638,16 +638,16 @@ class REST {
   }
 
   start_workflow(config, cb) {
-    return _post('workflow_instance', config, merge({ legacy_form: true }, this.options), cb);
+    return utils._post('workflow_instance', config, merge({ legacy_form: true }, this.options), cb);
   }
 
   stop_workflow(instance_id, cb) {
-    return _put('workflow_instance/stop', instance_id, null, merge({ legacy_form: true }, this.options), cb);
+    return utils._put('workflow_instance/stop', instance_id, null, merge({ legacy_form: true }, this.options), cb);
   }
 
   workflow_instances(cb, query) {
     if (query && query.run_id) {
-      return _get(
+      return utils._get(
         `workflow_instance/wi?show=all&columns[0][name]=run_id;columns[0][searchable]=true;columns[0][search][regex]=true;columns[0][search][value]=${
           query.run_id
         };`,
@@ -673,11 +673,11 @@ class REST {
   }
 
   workflow_config(id, cb) {
-    return _get(`workflow/config/${id}`, this.options, cb);
+    return utils._get(`workflow/config/${id}`, this.options, cb);
   }
 
   register(code, cb) {
-    return _put(
+    return utils._put(
       'reg',
       code,
       {
@@ -714,7 +714,7 @@ class REST {
 
   fetchContent(url, cb) {
     const options = merge({ skip_url_mangle: true }, this.options);
-    _get(url, options, cb);
+    utils._get(url, options, cb);
   }
 }
 
@@ -848,7 +848,7 @@ class REST_FS extends REST {
     // download tarball including workflow json
     // allocate install_token with STS credentials
     // initialise coastguard to perform ECR docker pull
-    return utils$1._pipe(`workflow/bundle/${id_workflow}.tar.gz`, filepath, this.options, cb, progressCb);
+    return utils._pipe(`workflow/bundle/${id_workflow}.tar.gz`, filepath, this.options, cb, progressCb);
   }
 }
 
@@ -1332,7 +1332,7 @@ class EPI2ME {
       this.log.debug(`loadUploadFiles: ${remaining} batches in the inputBatchQueue`);
       this._dirScanInProgress = true;
       this.log.debug('scanning input folder for new files');
-      utils$1
+      utils
         .loadInputFiles(this.config.options, this.log)
         .then(async files => {
           this._dirScanInProgress = false;
@@ -1446,7 +1446,7 @@ class EPI2ME {
           }
 
           statP.push(
-            utils$1
+            utils
               .countFileReads(file.path)
               .then(count => {
                 file.readCount = count;
@@ -1717,7 +1717,7 @@ class EPI2ME {
     if (this.config.options.filetype === '.fast5') {
       // MC-5240: .fast5 files always need to be batched
       // eg: HIGH_QUALITY/CLASSIFIED/ALIGNED/BATCH-1
-      folder = utils$1.findSuitableBatchIn(folder);
+      folder = utils.findSuitableBatchIn(folder);
     }
 
     fs.mkdirpSync(folder);
@@ -1876,7 +1876,7 @@ class EPI2ME {
             }
           } else {
             try {
-              const stats = await utils$1.getFileSize(outputFile);
+              const stats = await utils.getFileSize(outputFile);
               this._stats.download.totalSize += stats.size || 0;
               logStats();
             } catch (err) {

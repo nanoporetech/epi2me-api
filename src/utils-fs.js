@@ -8,9 +8,8 @@ import axios from 'axios';
 import fs from 'fs-extra';
 import path from 'path';
 import { isString, isArray } from 'lodash';
-import _utils from './utils';
+import utils from './utils';
 
-const utils = _utils;
 const targetBatchSize = 4000;
 
 utils._pipe = async (uri, filepath, options, cb, progressCb) => {
@@ -220,8 +219,5 @@ utils.loadInputFiles = ({ inputFolder, outputFolder, uploadedFolder, filetype },
     next(); // start first iteration
   });
 
-export const _get = utils._get;
-export const _put = utils._put;
-export const _post = utils._post;
 export default utils;
 module.exports.version = require('../package.json').version;

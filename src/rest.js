@@ -1,7 +1,7 @@
 import os from 'os';
 import path from 'path';
 import { merge, filter } from 'lodash';
-import { _get, _post, _put } from './utils';
+import utils from './utils';
 
 export default class REST {
   constructor(options) {
@@ -11,10 +11,11 @@ export default class REST {
       //            delete options.log;
     }
     this.options = options;
+    Object.keys(utils);
   }
 
   _list(entity, cb) {
-    return _get(entity, this.options, (e, json) => {
+    return utils._get(entity, this.options, (e, json) => {
       if (e) {
         this.log.error('_list', e.error || e);
         cb(e.error || e);
@@ -27,23 +28,23 @@ export default class REST {
   }
 
   _read(entity, id, cb) {
-    return _get(`${entity}/${id}`, this.options, cb);
+    return utils._get(`${entity}/${id}`, this.options, cb);
   }
 
   user(cb) {
     if (this.options.local) {
       return cb(null, { accounts: [{ id_user_account: 'none', number: 'NONE', name: 'None' }] }); // fake user with accounts
     }
-    return _get('user', this.options, cb);
+    return utils._get('user', this.options, cb);
   }
 
   instance_token(id, cb) {
     /* should this be passed a hint at what the token is for? */
-    return _post('token', { id_workflow_instance: id }, merge({ legacy_form: true }, this.options), cb);
+    return utils._post('token', { id_workflow_instance: id }, merge({ legacy_form: true }, this.options), cb);
   }
 
   install_token(id, cb) {
-    return _post('token/install', { id_workflow: id }, merge({ legacy_form: true }, this.options), cb);
+    return utils._post('token/install', { id_workflow: id }, merge({ legacy_form: true }, this.options), cb);
   }
 
   attributes(cb) {
@@ -71,13 +72,13 @@ export default class REST {
 
     if (cb) {
       // three args: update object
-      return _put('ami_image', id, obj, this.options, cb);
+      return utils._put('ami_image', id, obj, this.options, cb);
     }
 
     if (id && typeof id === 'object') {
       cb = obj;
       obj = id;
-      return _post('ami_image', obj, this.options, cb);
+      return utils._post('ami_image', obj, this.options, cb);
     }
 
     // two args: get object
@@ -93,14 +94,14 @@ export default class REST {
   workflow(id, obj, cb) {
     if (cb) {
       // three args: update object: (123, {...}, func)
-      return _put('workflow', id, obj, merge({ legacy_form: true }, this.options), cb);
+      return utils._put('workflow', id, obj, merge({ legacy_form: true }, this.options), cb);
     }
 
     if (id && typeof id === 'object') {
       // two args: create object: ({...}, func)
       cb = obj;
       obj = id;
-      return _post('workflow', obj, merge({ legacy_form: true }, this.options), cb);
+      return utils._post('workflow', obj, merge({ legacy_form: true }, this.options), cb);
     }
 
     // two args: get object: (123, func)
@@ -135,7 +136,7 @@ export default class REST {
       promises.push(
         new Promise((resolve, reject) => {
           const uri = `workflow/config/${id}`;
-          _get(uri, this.options, (err, resp) => {
+          utils._get(uri, this.options, (err, resp) => {
             if (err) {
               this.log.error(`failed to fetch ${uri}`);
               reject(err);
@@ -156,7 +157,7 @@ export default class REST {
             new Promise((resolve, reject) => {
               const uri = param.values.source.replace('{{EPI2ME_HOST}}', '');
 
-              _get(uri, this.options, (err, resp) => {
+              utils._get(uri, this.options, (err, resp) => {
                 if (err) {
                   this.log.error(`failed to fetch ${uri}`);
                   reject(err);
@@ -186,16 +187,16 @@ export default class REST {
   }
 
   start_workflow(config, cb) {
-    return _post('workflow_instance', config, merge({ legacy_form: true }, this.options), cb);
+    return utils._post('workflow_instance', config, merge({ legacy_form: true }, this.options), cb);
   }
 
   stop_workflow(instance_id, cb) {
-    return _put('workflow_instance/stop', instance_id, null, merge({ legacy_form: true }, this.options), cb);
+    return utils._put('workflow_instance/stop', instance_id, null, merge({ legacy_form: true }, this.options), cb);
   }
 
   workflow_instances(cb, query) {
     if (query && query.run_id) {
-      return _get(
+      return utils._get(
         `workflow_instance/wi?show=all&columns[0][name]=run_id;columns[0][searchable]=true;columns[0][search][regex]=true;columns[0][search][value]=${
           query.run_id
         };`,
@@ -221,11 +222,11 @@ export default class REST {
   }
 
   workflow_config(id, cb) {
-    return _get(`workflow/config/${id}`, this.options, cb);
+    return utils._get(`workflow/config/${id}`, this.options, cb);
   }
 
   register(code, cb) {
-    return _put(
+    return utils._put(
       'reg',
       code,
       {
@@ -262,6 +263,6 @@ export default class REST {
 
   fetchContent(url, cb) {
     const options = merge({ skip_url_mangle: true }, this.options);
-    _get(url, options, cb);
+    utils._get(url, options, cb);
   }
 }
