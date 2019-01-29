@@ -7,7 +7,7 @@ describe('utils.get', () => {
   let stub1;
   let stub2;
   beforeEach(() => {
-    stub1 = sinon.stub(axios, 'get').resolves({ data: '{"data":"data"}' });
+    stub1 = sinon.stub(axios, 'get').resolves({ data: { data: 'data' } });
     sinon.stub(utils, 'version').callsFake(() => {
       return '3.0.0';
     });

@@ -65,19 +65,15 @@ const utils = (function magic() {
       req.headers['X-EPI2ME-SignatureV0'] = digest;
     },
     responseHandler: async r => {
-      let json;
-      let body = r ? r.data : '';
+      const json = r ? r.data : null;
 
-      try {
-        body = body.replace(/[^]*\n\n/, ''); // why doesn't request always parse headers? Content-type with charset?
-        json = JSON.parse(body);
-      } catch (err) {
-        return Promise.reject(err);
+      if (!json) {
+        return Promise.reject(new Error('unexpected non-json response'));
       }
 
       if (r && r.status >= 400) {
         let msg = `Network error ${r.status}`;
-        if (json && json.error) {
+        if (json.error) {
           msg = json.error;
         }
 
@@ -150,7 +146,7 @@ const utils = (function magic() {
       } catch (err) {
         return Promise.reject(err);
       }
-      return internal.responseHandler(res);
+      return internal.responseHandler(res, options);
     },
 
     post: async (uri, obj, options) => {
@@ -191,7 +187,7 @@ const utils = (function magic() {
       } catch (err) {
         return Promise.reject(err);
       }
-      return internal.responseHandler(res);
+      return internal.responseHandler(res, options);
     },
 
     put: async (uri, id, obj, options) => {
@@ -222,7 +218,7 @@ const utils = (function magic() {
       } catch (err) {
         return Promise.reject(err);
       }
-      return internal.responseHandler(res);
+      return internal.responseHandler(res, options);
     },
   };
 })();

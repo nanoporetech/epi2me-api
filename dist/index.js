@@ -23,33 +23,13 @@ var crypto = _interopDefault(require('crypto'));
  *
  */
 
+const VERSION = require('../package.json').version;
+
 axios.defaults.validateStatus = status => status <= 504; // Reject only if the status code is greater than or equal to 500
 
 const utils = (function magic() {
-  return {
-    _headers: (req, options) => {
-      // common headers required for everything
-      if (!options) {
-        options = {};
-      }
-
-      req.headers = Object.assign(
-        {},
-        {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-          'X-EPI2ME-Client': options.user_agent || '', // new world order
-          'X-EPI2ME-Version': options.agent_version || '0', // new world order
-        },
-        req.headers,
-      );
-
-      if (options._signing !== false) {
-        utils._sign(req, options);
-      }
-    },
-
-    _sign: (req, options) => {
+  const internal = {
+    sign: (req, options) => {
       // common headers required for everything
       if (!req.headers) {
         req.headers = {};
@@ -59,9 +39,14 @@ const utils = (function magic() {
         options = {};
       }
 
+      if (!options.apikey) {
+        // cannot sign without apikey
+        return;
+      }
       req.headers['X-EPI2ME-ApiKey'] = options.apikey; // better than a logged CGI parameter
 
       if (!options.apisecret) {
+        // cannot sign without apisecret
         return;
       }
 
@@ -94,6 +79,58 @@ const utils = (function magic() {
         .digest('hex');
       req.headers['X-EPI2ME-SignatureV0'] = digest;
     },
+    responseHandler: async r => {
+      const json = r ? r.data : null;
+
+      if (!json) {
+        return Promise.reject(new Error('unexpected non-json response'));
+      }
+
+      if (r && r.status >= 400) {
+        let msg = `Network error ${r.status}`;
+        if (json.error) {
+          msg = json.error;
+        }
+
+        if (r.status === 504) {
+          // always override 504 with something custom
+          msg = 'Please check your network connection and try again.';
+        }
+
+        return Promise.reject(new Error(msg));
+      }
+
+      if (json.error) {
+        return Promise.reject(new Error(json.error));
+      }
+
+      return Promise.resolve(json);
+    },
+  };
+
+  return {
+    version: () => VERSION,
+    headers: (req, options) => {
+      // common headers required for everything
+      if (!options) {
+        options = {};
+      }
+
+      req.headers = Object.assign(
+        {},
+        {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          'X-EPI2ME-Client': options.user_agent || 'api', // new world order
+          'X-EPI2ME-Version': options.agent_version || utils.version(), // new world order
+        },
+        req.headers,
+      );
+
+      if (options._signing !== false) {
+        internal.sign(req, options);
+      }
+    },
 
     get: async (uri, options) => {
       // do something to get/set data in epi2me
@@ -112,22 +149,19 @@ const utils = (function magic() {
 
       const req = { uri: call, gzip: true };
 
-      utils._headers(req, options);
+      utils.headers(req, options);
 
       if (options.proxy) {
         req.proxy = options.proxy;
       }
 
-      const p = new Promise(async (resolve, reject) => {
-        try {
-          const res = await axios.get(req.uri, req);
-          const obj = await utils.responseHandler(res);
-          resolve(obj);
-        } catch (requestErr) {
-          reject(requestErr);
-        }
-      });
-      return p;
+      let res;
+      try {
+        res = await axios.get(req.uri, req);
+      } catch (err) {
+        return Promise.reject(err);
+      }
+      return internal.responseHandler(res, options);
     },
 
     post: async (uri, obj, options) => {
@@ -156,23 +190,19 @@ const utils = (function magic() {
         req.form = form;
       }
 
-      utils._headers(req, options);
+      utils.headers(req, options);
 
       if (options.proxy) {
         req.proxy = options.proxy;
       }
 
-      const p = new Promise(async (resolve, reject) => {
-        try {
-          const res = await axios.post(req.uri, req);
-          const json = utils.responseHandler(res);
-          resolve(json);
-        } catch (requestErr) {
-          reject(requestErr);
-        }
-      });
-
-      return p;
+      let res;
+      try {
+        res = await axios.post(req.uri, req);
+      } catch (err) {
+        return Promise.reject(err);
+      }
+      return internal.responseHandler(res, options);
     },
 
     put: async (uri, id, obj, options) => {
@@ -190,55 +220,20 @@ const utils = (function magic() {
         // include legacy form parameters
         req.form = { json: JSON.stringify(obj) };
       }
-      utils._headers(req, options);
+
+      utils.headers(req, options);
 
       if (options.proxy) {
         req.proxy = options.proxy;
       }
 
-      const p = new Promise(async (resolve, reject) => {
-        try {
-          const res = await axios.put(req.uri, req);
-          const data = utils.responseHandler(res);
-          resolve(data);
-        } catch (requestErr) {
-          reject(requestErr);
-        }
-      });
-
-      return p;
-    },
-
-    responseHandler: async r => {
-      let json;
-      let body = r ? r.data : '';
-
+      let res;
       try {
-        body = body.replace(/[^]*\n\n/, ''); // why doesn't request always parse headers? Content-type with charset?
-        json = JSON.parse(body);
+        res = await axios.put(req.uri, req);
       } catch (err) {
         return Promise.reject(err);
       }
-
-      if (r && r.status >= 400) {
-        let msg = `Network error ${r.status}`;
-        if (json && json.error) {
-          msg = json.error;
-        }
-
-        if (r.status === 504) {
-          // always override 504 with something custom
-          msg = 'Please check your network connection and try again.';
-        }
-
-        return Promise.reject(new Error(msg));
-      }
-
-      if (json.error) {
-        return Promise.reject(new Error(json.error));
-      }
-
-      return Promise.resolve(json);
+      return internal.responseHandler(res, options);
     },
   };
 })();
@@ -267,7 +262,7 @@ utils.pipe = async (uri, filepath, options, progressCb) => {
     },
   };
 
-  utils._headers(req, options);
+  utils.headers(req, options);
 
   if (options.proxy) {
     req.proxy = options.proxy;
@@ -528,6 +523,7 @@ class REST {
   async workflows(cb) {
     try {
       const data = await this.list('workflow');
+      this.log.info(data);
       return cb ? cb(null, data) : Promise.resolve(data);
     } catch (err) {
       return cb ? cb(err) : Promise.reject(err);
@@ -1052,7 +1048,7 @@ var defaults = {
  *
  */
 
-const VERSION = require('../package.json').version;
+const VERSION$1 = require('../package.json').version;
 
 class EPI2ME {
   constructor(OptString) {
@@ -2387,7 +2383,7 @@ class EPI2ME {
   }
 }
 
-EPI2ME.version = VERSION;
+EPI2ME.version = VERSION$1;
 EPI2ME.REST = REST_FS;
 
 module.exports = EPI2ME;

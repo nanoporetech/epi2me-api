@@ -9,7 +9,7 @@ describe('utils.post', () => {
   let stub2;
 
   beforeEach(() => {
-    stub1 = sinon.stub(axios, 'post').resolves({ data: '{"data":"data"}' });
+    stub1 = sinon.stub(axios, 'post').resolves({ data: { data: 'data' } });
     sinon.stub(utils, 'version').callsFake(() => {
       return '3.0.0';
     });
