@@ -80,7 +80,7 @@ utils._sign = (req, options) => {
   req.headers['X-EPI2ME-SignatureV0'] = digest;
 };
 
-utils._get = async (uri, options, cb) => {
+utils.get = async (uri, options) => {
   // do something to get/set data in epi2me
   let call;
 
@@ -103,15 +103,19 @@ utils._get = async (uri, options, cb) => {
     req.proxy = options.proxy;
   }
 
-  try {
-    const res = await axios.get(req.uri, req);
-    utils._responsehandler(res, cb);
-  } catch (res_e) {
-    return cb(res_e, {});
-  }
+  const p = new Promise(async (resolve, reject) => {
+    try {
+      const res = await axios.get(req.uri, req);
+      const obj = await utils.responseHandler(res);
+      resolve(obj);
+    } catch (requestErr) {
+      reject(requestErr);
+    }
+  });
+  return p;
 };
 
-utils._post = async (uri, obj, options, cb) => {
+utils.post = async (uri, obj, options) => {
   let srv = options.url;
   srv = srv.replace(/\/+$/, ''); // clip trailing slashes
   uri = uri.replace(/\/+/g, '/'); // clip multiple slashes
@@ -143,15 +147,20 @@ utils._post = async (uri, obj, options, cb) => {
     req.proxy = options.proxy;
   }
 
-  try {
-    const res = await axios.post(req.uri, req);
-    utils._responsehandler(res, cb);
-  } catch (res_e) {
-    return cb(res_e, {});
-  }
+  const p = new Promise(async (resolve, reject) => {
+    try {
+      const res = await axios.post(req.uri, req);
+      const json = utils.responseHandler(res);
+      resolve(json);
+    } catch (requestErr) {
+      reject(requestErr);
+    }
+  });
+
+  return p;
 };
 
-utils._put = async (uri, id, obj, options, cb) => {
+utils.put = async (uri, id, obj, options) => {
   let srv = options.url;
   srv = srv.replace(/\/+$/, ''); // clip trailing slashes
   uri = uri.replace(/\/+/g, '/'); // clip multiple slashes
@@ -172,35 +181,34 @@ utils._put = async (uri, id, obj, options, cb) => {
     req.proxy = options.proxy;
   }
 
-  try {
-    const res = await axios.put(req.uri, req);
-    return utils._responsehandler(res, cb);
-  } catch (res_e) {
-    return cb(res_e, {});
-  }
+  const p = new Promise(async (resolve, reject) => {
+    try {
+      const res = await axios.put(req.uri, req);
+      const data = utils.responseHandler(res);
+      resolve(data);
+    } catch (requestErr) {
+      reject(requestErr);
+    }
+  });
+
+  return p;
 };
 
-utils._responsehandler = (r, cb) => {
+utils.responseHandler = async r => {
   let json;
-  if (!cb) {
-    throw new Error('callback must be specified');
-  }
-
   let body = r ? r.data : '';
-  let JsonError;
+
   try {
     body = body.replace(/[^]*\n\n/, ''); // why doesn't request always parse headers? Content-type with charset?
     json = JSON.parse(body);
   } catch (err) {
-    JsonError = err;
+    return Promise.reject(err);
   }
 
   if (r && r.statusCode >= 400) {
     let msg = `Network error ${r.statusCode}`;
     if (json && json.error) {
       msg = json.error;
-    } else if (JsonError) {
-      //   msg = JsonError;
     }
 
     if (r.statusCode === 504) {
@@ -208,22 +216,18 @@ utils._responsehandler = (r, cb) => {
       msg = 'Please check your network connection and try again.';
     }
 
-    return cb({ error: msg });
-  }
-
-  if (JsonError) {
-    return cb({ error: JsonError }, {});
+    return Promise.reject(new Error(msg));
   }
 
   if (json.error) {
-    return cb({ error: json.error }, {});
+    return Promise.reject(new Error(json.error));
   }
 
-  return cb(null, json);
+  return Promise.resolve(json);
 };
 
-export const _get = utils._get;
-export const _put = utils._put;
-export const _post = utils._post;
+export const get = utils.get;
+export const put = utils.put;
+export const post = utils.post;
 export const version = VERSION;
 export default utils;

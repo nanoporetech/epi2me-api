@@ -24,44 +24,40 @@ describe('rest-fs.workflow_instances', () => {
     });
   });
 
-  it('must invoke list', () => {
+  it('must invoke list', async () => {
     const rest = new REST({ log });
-    const stub = sinon.stub(rest, '_list').callsFake((uri, cb) => {
-      assert.equal(uri, 'workflow_instance', 'default uri');
-      cb();
-    });
+    const stub = sinon.stub(rest, 'list').resolves();
     stubs.push(stub);
 
     const fake = sinon.fake();
-    assert.doesNotThrow(() => {
-      rest.workflow_instances(fake);
-    });
+    try {
+      await rest.workflow_instances(fake);
+    } catch (err) {
+      assert.fail(err);
+    }
     assert(fake.calledOnce, 'callback invoked');
   });
 
-  it('must invoke get with query', () => {
-    const stub = sinon.stub(utils, '_get').callsFake((uri, options, cb) => {
-      assert.equal(
-        uri,
-        'workflow_instance/wi?show=all&columns[0][name]=run_id;columns[0][searchable]=true;columns[0][search][regex]=true;columns[0][search][value]=abcdefabcdef;',
-        'query uri',
-      );
-      cb(null, { data: [{ id_ins: 1, id_flo: 2, run_id: 'abcdefabcdef', desc: 'test wf 2', rev: '0.0.1' }] });
-    });
+  it('must invoke get with query', async () => {
+    const stub = sinon
+      .stub(utils, 'get')
+      .resolves({ data: [{ id_ins: 1, id_flo: 2, run_id: 'abcdefabcdef', desc: 'test wf 2', rev: '0.0.1' }] });
     stubs.push(stub);
 
     const fake = sinon.fake();
     const rest = new REST({ log });
-    assert.doesNotThrow(() => {
-      rest.workflow_instances(fake, { run_id: 'abcdefabcdef' });
-    });
+    try {
+      await rest.workflow_instances(fake, { run_id: 'abcdefabcdef' });
+    } catch (err) {
+      assert.fail(err);
+    }
     assert(fake.calledOnce, 'callback invoked');
     sinon.assert.calledWith(fake, null, [
       { id_workflow_instance: 1, id_workflow: 2, run_id: 'abcdefabcdef', description: 'test wf 2', rev: '0.0.1' },
     ]);
   });
 
-  it('must list from filesystem', () => {
+  it('must list from filesystem', async () => {
     const dir = tmp.dirSync({ unsafeCleanup: true }).name;
 
     fs.mkdirpSync(path.join(dir, 'instances', '2018-09-10T14-31-04.751Z'));
@@ -76,46 +72,43 @@ describe('rest-fs.workflow_instances', () => {
     const rest = new REST({ log, local: true, url: dir });
     const fake = sinon.fake();
 
-    new Promise((accept, reject) => {
-      rest.workflow_instances((err, data) => {
-        if (err) reject(fake(err));
-        accept(fake(null, data));
-      });
-    }).then(() => {
-      sinon.assert.calledOnce(fake);
-      sinon.assert.calledWith(fake, null, [
-        {
-          description: 'test flow',
-          filename: `${dir}/instances/2018-09-10T14-29-48.061Z/workflow.json`,
-          id_workflow: 34567,
-          id_workflow_instance: '2018-09-10T14-29-48.061Z',
-          rev: '12.34',
-        },
-        {
-          description: 'test flow',
-          filename: `${dir}/instances/2018-09-10T14-31-04.751Z/workflow.json`,
-          id_workflow: 34567,
-          id_workflow_instance: '2018-09-10T14-31-04.751Z',
-          rev: '12.34',
-        },
-        {
-          description: '-',
-          filename: `${dir}/instances/2018-10-02T12-25-48.061Z/workflow.json`,
-          id_workflow: '-',
-          id_workflow_instance: '2018-10-02T12-25-48.061Z',
-          rev: '0.0',
-        },
-      ]);
-    });
+    let data = await rest.workflow_instances(fake);
+
+    sinon.assert.calledOnce(fake);
+    sinon.assert.calledWith(fake, null, [
+      {
+        description: 'test flow',
+        filename: `${dir}/instances/2018-09-10T14-29-48.061Z/workflow.json`,
+        id_workflow: 34567,
+        id_workflow_instance: '2018-09-10T14-29-48.061Z',
+        rev: '12.34',
+      },
+      {
+        description: 'test flow',
+        filename: `${dir}/instances/2018-09-10T14-31-04.751Z/workflow.json`,
+        id_workflow: 34567,
+        id_workflow_instance: '2018-09-10T14-31-04.751Z',
+        rev: '12.34',
+      },
+      {
+        description: '-',
+        filename: `${dir}/instances/2018-10-02T12-25-48.061Z/workflow.json`,
+        id_workflow: '-',
+        id_workflow_instance: '2018-10-02T12-25-48.061Z',
+        rev: '0.0',
+      },
+    ]);
   });
 
-  it('must bail when local with query', () => {
-    const fake = sinon.fake();
+  it('must bail when local with query', async () => {
     const rest = new REST({ log, local: true });
-    assert.doesNotThrow(() => {
-      rest.workflow_instances(fake, 'a query');
-    });
-    assert(fake.calledOnce, 'callback invoked');
-    assert(fake.firstCall.args[0] instanceof Error);
+    let err;
+    try {
+      await rest.workflow_instances('a query');
+    } catch (e) {
+      err = e;
+    }
+
+    assert(err instanceof Error);
   });
 });

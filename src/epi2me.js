@@ -148,7 +148,7 @@ export class EPI2ME {
   async session() {
     /* MC-1848 all session requests are serialised through that.sessionQueue to avoid multiple overlapping requests */
     if (this.sessioning) {
-      return; /* Throttle to n=1: bail out if there's already a job queued */
+      return Promise.resolve(); // resolve or reject? Throttle to n=1: bail out if there's already a job queued
     }
 
     if (!this._stats.sts_expiration || (this._stats.sts_expiration && this._stats.sts_expiration <= Date.now())) {
@@ -167,12 +167,12 @@ export class EPI2ME {
       }
     }
 
-    return Promise.resolve();
+    Promise.resolve();
   }
 
   async fetchInstanceToken() {
     if (!this.config.instance.id_workflow_instance) {
-      throw new Error('must specify id_workflow_instance');
+      return Promise.reject(new Error('must specify id_workflow_instance'));
     }
 
     if (this._stats.sts_expiration && this._stats.sts_expiration > Date.now()) {
@@ -182,35 +182,27 @@ export class EPI2ME {
 
     this.log.debug('new instance token needed');
 
-    const p = new Promise(resolve => {
-      this.REST.instance_token(this.config.instance.id_workflow_instance, (tokenError, token) => {
-        if (tokenError) {
-          this.log.warn(`failed to fetch instance token: ${tokenError.error}` ? tokenError.error : tokenError);
-          setTimeout(
-            resolve,
-            1000 * this.config.options.waitTokenError,
-          ); /* delay this one 30 secs so we don't hammer the website */
-          return;
-        }
+    try {
+      const token = await this.REST.instance_token(this.config.instance.id_workflow_instance);
+      this.log.debug(`allocated new instance token expiring at ${token.expiration}`);
+      this._stats.sts_expiration = new Date(token.expiration).getTime() - 60 * this.config.options.sessionGrace; // refresh token x mins before it expires
+      // "classic" token mode no longer supported
 
-        this.log.debug(`allocated new instance token expiring at ${token.expiration}`);
-        this._stats.sts_expiration = new Date(token.expiration).getTime() - 60 * this.config.options.sessionGrace; // refresh token x mins before it expires
-        // "classic" token mode no longer supported
+      if (this.config.options.proxy) {
+        AWS.config.update({
+          httpOptions: { agent: proxy(this.config.options.proxy, true) },
+        });
+      }
 
-        if (this.config.options.proxy) {
-          AWS.config.update({
-            httpOptions: { agent: proxy(this.config.options.proxy, true) },
-          });
-        }
+      // MC-5418 - This needs to be done before the process starts uploading messages!
+      AWS.config.update(this.config.instance.awssettings);
+      AWS.config.update(token);
+    } catch (err) {
+      this.log.warn(`failed to fetch instance token: ${String(err)}`);
 
-        // MC-5418 - This needs to be done before the process starts uploading messages!
-        AWS.config.update(this.config.instance.awssettings);
-        AWS.config.update(token);
-        resolve();
-      });
-    });
-
-    return p;
+      /* todo: delay promise resolution so we don't hammer the website */
+    }
+    return Promise.resolve();
   }
 
   async sessionedS3() {

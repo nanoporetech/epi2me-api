@@ -13,7 +13,7 @@ import _utils from './utils';
 const utils = _utils;
 const targetBatchSize = 4000;
 
-utils._pipe = async (uri, filepath, options, cb, progressCb) => {
+utils.pipe = async (uri, filepath, options, progressCb) => {
   let srv = options.url;
   uri = `/${uri}`; // note no forced extension for piped requests
   srv = srv.replace(/\/+$/, ''); // clip trailing slashes
@@ -52,20 +52,12 @@ utils._pipe = async (uri, filepath, options, cb, progressCb) => {
     }
   });
 
-  let err;
-  try {
-    await p;
-  } catch (e) {
-    err = e;
-  }
-
-  // call back in either success or failure case
-  cb(err);
+  return p;
 };
 
 utils.countFileReads = filePath =>
   new Promise((resolve, reject) => {
-    const LINES_PER_READ = 4;
+    const linesPerRead = 4;
     let lineCount = 1;
     let idx;
     fs.createReadStream(filePath)
@@ -77,7 +69,7 @@ utils.countFileReads = filePath =>
           lineCount++;
         } while (idx !== -1);
       })
-      .on('end', () => resolve(Math.floor(lineCount / LINES_PER_READ)))
+      .on('end', () => resolve(Math.floor(lineCount / linesPerRead)))
       .on('error', reject);
   });
 
@@ -220,8 +212,8 @@ utils.loadInputFiles = ({ inputFolder, outputFolder, uploadedFolder, filetype },
     next(); // start first iteration
   });
 
-export const _get = utils._get;
-export const _put = utils._put;
-export const _post = utils._post;
+export const get = utils.get;
+export const put = utils.put;
+export const post = utils.post;
 export default utils;
 module.exports.version = require('../package.json').version;

@@ -14,17 +14,18 @@ describe('rest.workflow', () => {
     return new REST(merge({ log }, opts));
   };
 
-  it('must invoke list with options', () => {
+  it('must invoke list with options', async () => {
     const rest = restFactory();
-    const stub = sinon.stub(rest, '_list').callsFake((uri, cb) => {
-      assert.equal(uri, 'workflow', 'url passed');
-      cb();
-    });
+    const stub = sinon.stub(rest, 'list').resolves([]);
 
     const fake = sinon.fake();
-    assert.doesNotThrow(() => {
-      rest.workflows(fake);
-    });
-    assert(fake.calledOnce, 'callback invoked');
+    try {
+      await rest.workflows(fake);
+    } catch (e) {
+      assert.fail(e);
+    }
+    assert(fake.called, 'callback invoked');
+    assert.deepEqual(stub.lastCall.args[0], 'workflow', 'list-request args');
+    assert.deepEqual(fake.lastCall.args, [null, []], 'callback data');
   });
 });

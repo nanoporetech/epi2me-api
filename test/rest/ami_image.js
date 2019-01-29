@@ -26,15 +26,10 @@ describe('rest.ami_image', () => {
 
   it('should update an ami_image', () => {
     const data = { aws_id: 'ami-12345', name: 'mon ami', description: 'foo bar baz', id_region: 1, is_active: 1 };
-    const stub = sinon.stub(utils, '_put').callsFake((uri, id, obj, options, cb) => {
-      assert.equal(id, 'ami-12345');
-      assert.equal(uri, 'ami_image');
-      assert.deepEqual(obj, data);
-      cb(null, { status: 'success' });
-    });
+    const stub = sinon.stub(utils, 'put').resolves({ status: 'success' });
 
-    assert.doesNotThrow(() => {
-      client.ami_image('ami-12345', data, (err, obj) => {
+    assert.doesNotThrow(async () => {
+      await client.ami_image('ami-12345', data, (err, obj) => {
         assert.equal(err, null, 'no error reported');
         assert.deepEqual(obj, { status: 'success' });
       });
@@ -45,14 +40,10 @@ describe('rest.ami_image', () => {
 
   it('should create an ami_image', () => {
     const data = { aws_id: 'ami-12345', name: 'mon ami', description: 'foo bar baz', id_region: 1, is_active: 1 };
-    const stub = sinon.stub(utils, '_post').callsFake((uri, obj, options, cb) => {
-      assert.equal(uri, 'ami_image');
-      assert.deepEqual(obj, data);
-      cb(null, { status: 'success' });
-    });
+    const stub = sinon.stub(utils, 'post').resolves({ status: 'success' });
 
-    assert.doesNotThrow(() => {
-      client.ami_image(data, (err, obj) => {
+    assert.doesNotThrow(async () => {
+      await client.ami_image(data, (err, obj) => {
         assert.equal(err, null, 'no error reported');
         assert.deepEqual(obj, { status: 'success' });
       });
@@ -63,14 +54,10 @@ describe('rest.ami_image', () => {
 
   it('should read an ami_image', () => {
     const data = { aws_id: 'ami-12345', name: 'mon ami', description: 'foo bar baz', id_region: 1, is_active: 1 };
-    const stub = sinon.stub(client, '_read').callsFake((uri, id, cb) => {
-      assert.equal(uri, 'ami_image');
-      assert.equal(id, 'ami-12345');
-      cb(null, data);
-    });
+    const stub = sinon.stub(client, 'read').resolves(data);
 
-    assert.doesNotThrow(() => {
-      client.ami_image('ami-12345', (err, obj) => {
+    assert.doesNotThrow(async () => {
+      await client.ami_image('ami-12345', (err, obj) => {
         assert.equal(err, null, 'no error reported');
         assert.deepEqual(obj, data);
       });
@@ -81,14 +68,11 @@ describe('rest.ami_image', () => {
 
   it('should bail without an id', () => {
     const data = { aws_id: 'ami-12345', name: 'mon ami', description: 'foo bar baz', id_region: 1, is_active: 1 };
-    const stub = sinon.stub(client, '_read').callsFake((uri, id, cb) => {
-      assert.equal(uri, 'ami_image');
-      cb(null, data);
-    });
+    const stub = sinon.stub(client, 'read').resolves(data);
 
     const fake = sinon.fake();
-    assert.doesNotThrow(() => {
-      client.ami_image(null, fake);
+    assert.doesNotThrow(async () => {
+      await client.ami_image(null, fake);
     });
     assert(fake.calledOnce, 'callback invoked');
     assert(fake.firstCall.args[0] instanceof Error);

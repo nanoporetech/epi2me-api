@@ -23,19 +23,18 @@ describe('rest-fs.bundle_workflow', () => {
   it('must invoke pipe with options', () => {
     const fake = sinon.fake();
     const progress = sinon.fake();
-    const stub = sinon.stub(utils, '_pipe').callsFake((uri, filepath, options, cb, progressCb) => {
+    const stub = sinon.stub(utils, 'pipe').callsFake((uri, filepath, options, progressCb) => {
       assert.deepEqual(options, rest.options, 'options passed');
       assert.equal(uri, 'workflow/bundle/1234.tar.gz', 'url passed');
       progressCb(0.5);
       progressCb(1);
-      cb();
+      return Promise.resolve();
     });
 
     assert.doesNotThrow(() => {
       rest.bundle_workflow('1234', '/path/to/1234', fake, progress);
     });
 
-    assert(fake.calledOnce, 'callback invoked');
     assert(progress.calledTwice, 'progress callback invoked');
     stub.restore();
   });

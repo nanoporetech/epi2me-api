@@ -8,7 +8,7 @@ describe('rest.attributes', () => {
   it('must invoke list', () => {
     const ringbuf = new bunyan.RingBuffer({ limit: 100 });
     const log = bunyan.createLogger({ name: 'log', stream: ringbuf });
-    const stub = sinon.stub(REST.prototype, '_list').callsFake((uri, cb) => {
+    const stub = sinon.stub(REST.prototype, 'list').callsFake((uri, cb) => {
       assert.equal(uri, 'attribute', 'default uri');
       cb();
     });

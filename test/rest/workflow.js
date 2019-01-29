@@ -9,196 +9,241 @@ import REST from '../../src/rest';
 import * as utils from '../../src/utils';
 
 describe('rest.workflow', () => {
+  let stubs;
+  beforeEach(() => {
+    stubs = [];
+  });
+  afterEach(() => {
+    stubs.forEach(s => {
+      s.restore();
+    });
+  });
   const restFactory = opts => {
     const ringbuf = new bunyan.RingBuffer({ limit: 100 });
     const log = bunyan.createLogger({ name: 'log', stream: ringbuf });
     return new REST(merge({ log }, opts));
   };
 
-  it('must invoke put with options', () => {
+  it('must invoke put with options and callback', async () => {
     const fake = sinon.fake();
     const rest = restFactory({ url: 'http://metrichor.local:8080' });
-    const stub = sinon.stub(utils, '_put').callsFake((uri, id, obj, options, cb) => {
-      assert.deepEqual(id, '12345', 'id passed');
-      assert.deepEqual(obj, { description: 'a workflow', rev: '1.0' }, 'object passed');
-      assert.deepEqual(
-        options,
-        { log: rest.log, url: 'http://metrichor.local:8080', legacy_form: true },
-        'options passed',
-      );
-      assert.equal(uri, 'workflow', 'url passed');
-      cb();
-    });
+    const stub = sinon.stub(utils, 'put').resolves();
+    stubs.push(stub);
 
-    assert.doesNotThrow(() => {
-      rest.workflow('12345', { description: 'a workflow', rev: '1.0' }, fake);
-    });
+    try {
+      await rest.workflow('12345', { description: 'a workflow', rev: '1.0' }, fake);
+    } catch (err) {
+      console.log('ERR', err);
+      assert.fail(err);
+    }
     assert(fake.calledOnce, 'callback invoked');
-    stub.restore();
   });
 
-  it('must invoke post with options', () => {
+  it('must invoke post with options', async () => {
     const fake = sinon.fake();
     const rest = restFactory({ url: 'http://metrichor.local:8080' });
-    const stub = sinon.stub(utils, '_post').callsFake((uri, obj, options, cb) => {
-      assert.deepEqual(obj, { description: 'a workflow', rev: '1.0' }, 'object passed');
-      assert.deepEqual(
-        options,
-        { log: rest.log, url: 'http://metrichor.local:8080', legacy_form: true },
-        'options passed',
-      );
-      assert.equal(uri, 'workflow', 'url passed');
-      cb();
-    });
+    const stub = sinon.stub(utils, 'post').resolves();
+    stubs.push(stub);
 
-    assert.doesNotThrow(() => {
-      rest.workflow({ description: 'a workflow', rev: '1.0' }, fake);
-    });
+    try {
+      await rest.workflow({ description: 'a workflow', rev: '1.0' }, fake);
+    } catch (err) {
+      assert.fail(err);
+    }
     assert(fake.calledOnce, 'callback invoked');
-    stub.restore();
   });
 
-  it('must throw if missing id', () => {
-    const stub = sinon.stub(utils, '_put').callsFake((uri, id, obj, options, cb) => {
-      cb();
-    });
+  it('must throw if missing id', async () => {
+    const stub = sinon.stub(utils, 'put').resolves();
+    stubs.push(stub);
 
     const fake = sinon.fake();
     const rest = restFactory({ url: 'http://metrichor.local:8080' });
-    assert.doesNotThrow(() => {
-      rest.workflow(null, fake);
-    });
+
+    try {
+      await rest.workflow(null, fake);
+    } catch (err) {
+      assert.fail(err);
+    }
     assert(fake.calledOnce, 'callback invoked');
     assert(fake.firstCall.args[0] instanceof Error);
-    stub.restore();
   });
 
-  it('must invoke read workflow from filesystem', () => {
-    const dir = tmp.dirSync({ unsafeCleanup: true }).name;
-
-    fs.mkdirpSync(path.join(dir, 'workflows', '12345'));
-    fs.writeFileSync(
-      path.join(dir, 'workflows', '12345', 'workflow.json'),
-      JSON.stringify({ id_workflow: 12345, name: 'test', description: 'test workflow 12345' }),
-    );
-
-    const fake = sinon.fake();
-    const rest = restFactory({ url: dir, local: true });
-    assert.doesNotThrow(() => {
-      rest.workflow('12345', fake);
+  it('must invoke get then fetch config with workflow missing params and callback', async () => {
+    const fake = sinon.fake((err, data) => {
+      assert.deepEqual(data, { description: 'a workflow', id_workflow: 12345, params: {} });
     });
+    const rest = restFactory({ url: 'http://metrichor.local:8080' });
+    const stub1 = sinon.stub(rest, 'read').resolves({ id_workflow: 12345, description: 'a workflow' });
+    const stub2 = sinon.stub(utils, 'get').resolves({});
+    stubs.push(stub1);
+    stubs.push(stub2);
+
+    try {
+      await rest.workflow('12345', fake);
+    } catch (err) {
+      assert.fail(err);
+    }
     assert(fake.calledOnce, 'callback invoked');
-    sinon.assert.calledWith(fake, null, { id_workflow: 12345, name: 'test', description: 'test workflow 12345' });
   });
 
-  it('must catch a read-workflow exception from filesystem', () => {
-    const stub = sinon.stub(fs, 'readFileSync').callsFake(filename => {
-      throw new Error('no such file or directory');
-    });
+  it('must invoke get then fetch config with workflow missing params and promise', async () => {
+    const rest = restFactory({ url: 'http://metrichor.local:8080' });
+    const stub1 = sinon.stub(rest, 'read').resolves({ id_workflow: 12345, description: 'a workflow' });
+    const stub2 = sinon.stub(utils, 'get').resolves({});
+    stubs.push(stub1);
+    stubs.push(stub2);
 
+    try {
+      let data = await rest.workflow('12345');
+      assert.deepEqual(data, { description: 'a workflow', id_workflow: 12345, params: {} });
+    } catch (err) {
+      assert.fail(err);
+    }
+  });
+
+  it('must invoke get then fetch config with null workflow', async () => {
     const fake = sinon.fake();
-    const rest = restFactory({ url: '/path/to/', local: true });
+    const rest = restFactory({ url: 'http://metrichor.local:8080' });
+    const stub1 = sinon.stub(rest, 'read').resolves({});
+    const stub2 = sinon.stub(utils, 'get').resolves({});
+    stubs.push(stub1);
+    stubs.push(stub2);
 
-    assert.doesNotThrow(() => {
-      rest.workflow('12345', fake);
-    });
-    assert(fake.calledOnce, 'callback invoked');
-    assert(fake.firstCall.args[0] instanceof Error);
-    stub.restore();
+    try {
+      const data = await rest.workflow('12345');
+      assert.deepEqual(data, { params: {} });
+    } catch (err) {
+      assert.fail(err);
+    }
   });
 
-  it('must invoke get then fetch config with workflow missing params', () => {
-    const stub1 = sinon.stub(REST.prototype, '_read').callsFake((uri, id, cb) => {
-      assert.deepEqual(id, '12345', 'id passed');
-      assert.equal(uri, 'workflow', 'url passed');
-      cb(null, { id_workflow: 12345, description: 'a workflow' });
-    });
-
-    const stub2 = sinon.stub(utils, '_get').callsFake((uri, options, cb) => {
-      if (uri === 'workflow/config/12345') {
-        return cb(null, {});
-      }
-      throw new Error(`unhandled test url${uri}`);
-    });
-
+  it('must invoke get then fetch config with workflow including params', async () => {
     const fake = sinon.fake();
     const rest = restFactory({ url: 'http://metrichor.local:8080' });
 
-    new Promise((accept, reject) => {
-      rest.workflow('12345', (err, data) => {
-        if (err) reject(fake(err));
-        accept(fake(null, data));
-      });
-    }).then(() => {
-      assert(fake.calledOnce, 'callback invoked');
-      sinon.assert.calledWith(fake, null, { description: 'a workflow', id_workflow: 12345, params: {} });
-    });
-
-    stub1.restore();
-    stub2.restore();
-  });
-
-  it('must invoke get then fetch config with null workflow', () => {
-    const stub1 = sinon.stub(REST.prototype, '_read').callsFake((uri, id, cb) => {
+    const stub1 = sinon.stub(rest, 'read').callsFake((uri, id) => {
       assert.deepEqual(id, '12345', 'id passed');
       assert.equal(uri, 'workflow', 'url passed');
-      cb(null, null); // null workflow
-    });
-
-    const stub2 = sinon.stub(utils, '_get').callsFake((uri, options, cb) => {
-      if (uri === 'workflow/config/12345') {
-        return cb(null, {});
-      }
-      throw new Error(`unhandled test url${uri}`);
-    });
-
-    const fake = sinon.fake();
-    const rest = restFactory({ url: 'http://metrichor.local:8080' });
-
-    new Promise((accept, reject) => {
-      rest.workflow('12345', (err, data) => {
-        if (err) reject(fake(err));
-        accept(fake(null, data));
-      });
-    }).then(() => {
-      assert(fake.calledOnce, 'callback invoked');
-      sinon.assert.calledWith(fake, null, { params: {} });
-    }); // catch block after this seems ineffective - even asserting(false) doesn't make the test fail
-
-    stub1.restore();
-    stub2.restore();
-  });
-
-  it('must invoke get then fetch config with workflow including params', () => {
-    const stub1 = sinon.stub(REST.prototype, '_read').callsFake((uri, id, cb) => {
-      assert.deepEqual(id, '12345', 'id passed');
-      assert.equal(uri, 'workflow', 'url passed');
-      cb(null, {
+      return Promise.resolve({
         id_workflow: 12345,
         description: 'a workflow',
         params: [
           {
             widget: 'ajax_dropdown',
             values: {
-              data_root: 'data_root',
-              source: 'test_params',
-              items: { label_key: 'label_key', value_key: 'value_key' },
+              data_root: 'datasets',
+              source: '{{EPI2ME_HOST}}/dataset.json?reference_only=1&apikey={{EPI2ME_API_KEY}}',
+              items: { label_key: 'name', value_key: 'prefix' },
             },
           },
         ],
       });
     });
 
-    const stub2 = sinon.stub(utils, '_get').callsFake((uri, options, cb) => {
+    const stub2 = sinon.stub(utils, 'get').callsFake((uri, options) => {
       if (uri === 'workflow/config/12345') {
-        return cb(null, {});
+        return Promise.resolve({});
       }
-      if (uri === 'test_params') {
-        return cb(null, {
-          data_root: [
-            { label_key: 'foo', value_key: 1 },
-            { label_key: 'bar', value_key: 2 },
-            { label_key: 'baz', value_key: 3 },
+      if (uri === '/dataset.json?reference_only=1&apikey={{EPI2ME_API_KEY}}') {
+        return Promise.resolve({
+          datasets: [
+            {
+              name: 'gB2_AD169',
+              uuid: '9A470148-23C6-11E9-BAE2-A6A75D9A848C',
+              is_shared: true,
+              id_account: '358529159',
+              component_id: '1',
+              is_reference_dataset: true,
+              id_workflow_instance: '190127',
+              last_modified: '2019-01-29 13:05:51',
+              id_user: '8630',
+              prefix: '5525461A-23C6-11E9-8C3C-B2A75D9A848C/8630/190127/component-1',
+              source: '5525461A-23C6-11E9-8C3C-B2A75D9A848C/8630/190127/component-0/gB2_AD169.fasta',
+              id_dataset: '13970',
+              data_fields: 'epi2me:category,epi2me:max_files,epi2me:max_size,project',
+              id_dataset_status: '1',
+              size: '134493',
+              created: '2019-01-29 13:05:51',
+              attributes: {
+                'epi2me:max_files': [
+                  {
+                    value: '1',
+                    id_attribute_value: '48077',
+                  },
+                ],
+                'epi2me:max_size': [
+                  {
+                    id_attribute_value: '48080',
+                    value: '2000000000',
+                  },
+                ],
+                'epi2me:category': [
+                  {
+                    value: 'reference',
+                    id_attribute_value: '48078',
+                  },
+                  {
+                    id_attribute_value: '48079',
+                    value: 'storage',
+                  },
+                ],
+              },
+              dataset_status: {
+                status_label: 'Active',
+                status_value: 'active',
+              },
+              summary: null,
+              is_consented_human: null,
+            },
+            {
+              id_dataset: '13953',
+              data_fields: 'epi2me:category,epi2me:max_files,epi2me:max_size,project',
+              id_dataset_status: '1',
+              size: '155876',
+              created: '2019-01-25 14:55:21',
+              attributes: {
+                'epi2me:category': [
+                  {
+                    value: 'reference',
+                    id_attribute_value: '47916',
+                  },
+                  {
+                    value: 'storage',
+                    id_attribute_value: '47917',
+                  },
+                ],
+                'epi2me:max_files': [
+                  {
+                    value: '1',
+                    id_attribute_value: '47914',
+                  },
+                ],
+                'epi2me:max_size': [
+                  {
+                    value: '2000000000',
+                    id_attribute_value: '47915',
+                  },
+                ],
+              },
+              dataset_status: {
+                status_value: 'active',
+                status_label: 'Active',
+              },
+              summary: null,
+              is_consented_human: null,
+              name: 'mRNA_refU_seq_5023_A',
+              is_shared: true,
+              uuid: '3D19787E-20B1-11E9-9E0E-CF0C4630A969',
+              id_account: '358529672',
+              component_id: '1',
+              is_reference_dataset: true,
+              last_modified: '2019-01-25 14:55:21',
+              id_workflow_instance: '189956',
+              id_user: '9454',
+              prefix: '0B56A078-20B1-11E9-A2B6-B2699F7EF595/9454/189956/component-1',
+              source: '0B56A078-20B1-11E9-A2B6-B2699F7EF595/9454/189956/component-0/5023_A.fasta',
+            },
           ],
         });
       }
@@ -206,37 +251,44 @@ describe('rest.workflow', () => {
       throw new Error(`unhandled test url${uri}`);
     });
 
-    const fake = sinon.fake();
-    const rest = restFactory({ url: 'http://metrichor.local:8080' });
+    stubs.push(stub1);
+    stubs.push(stub2);
 
-    new Promise((accept, reject) => {
-      rest.workflow('12345', (err, data) => {
-        if (err) reject(fake(err));
-        accept(fake(null, data));
-      });
-    }).then(() => {
-      assert(fake.calledOnce, 'callback invoked');
-      sinon.assert.calledWith(fake, null, {
+    try {
+      const data = await rest.workflow('12345');
+      assert.deepEqual(data, {
         description: 'a workflow',
         id_workflow: 12345,
         params: [
           {
-            values: [{ label: 'foo', value: 1 }, { label: 'bar', value: 2 }, { label: 'baz', value: 3 }],
+            values: [
+              {
+                label: 'gB2_AD169',
+                value: '5525461A-23C6-11E9-8C3C-B2A75D9A848C/8630/190127/component-1',
+              },
+              {
+                label: 'mRNA_refU_seq_5023_A',
+                value: '0B56A078-20B1-11E9-A2B6-B2699F7EF595/9454/189956/component-1',
+              },
+            ],
+
             widget: 'ajax_dropdown',
           },
         ],
       });
-    });
-
-    stub1.restore();
-    stub2.restore();
+    } catch (err) {
+      assert.fail(err);
+    }
   });
 
-  it('must invoke get then fetch config with workflow including params and skip handling of data_root', () => {
-    const stub1 = sinon.stub(REST.prototype, '_read').callsFake((uri, id, cb) => {
+  it('must invoke get then fetch config with workflow including params and skip handling of data_root', async () => {
+    const fake = sinon.fake();
+    const rest = restFactory({ url: 'http://metrichor.local:8080' });
+
+    const stub1 = sinon.stub(REST.prototype, 'read').callsFake((uri, id) => {
       assert.deepEqual(id, '12345', 'id passed');
       assert.equal(uri, 'workflow', 'url passed');
-      cb(null, {
+      return Promise.resolve({
         id_workflow: 12345,
         description: 'a workflow',
         params: [
@@ -248,12 +300,12 @@ describe('rest.workflow', () => {
       });
     });
 
-    const stub2 = sinon.stub(utils, '_get').callsFake((uri, options, cb) => {
+    const stub2 = sinon.stub(utils, 'get').callsFake((uri, options) => {
       if (uri === 'workflow/config/12345') {
-        return cb(null, {});
+        return Promise.resolve({});
       }
       if (uri === 'test_params') {
-        return cb(null, {
+        return Promise.resolve({
           data_root: [
             { label_key: 'foo', value_key: 1 },
             { label_key: 'bar', value_key: 2 },
@@ -264,18 +316,12 @@ describe('rest.workflow', () => {
 
       throw new Error(`unhandled test url${uri}`);
     });
+    stubs.push(stub1);
+    stubs.push(stub2);
 
-    const fake = sinon.fake();
-    const rest = restFactory({ url: 'http://metrichor.local:8080' });
-
-    new Promise((accept, reject) => {
-      rest.workflow('12345', (err, data) => {
-        if (err) reject(fake(err));
-        accept(fake(null, data));
-      });
-    }).then(() => {
-      assert(fake.calledOnce, 'callback invoked');
-      sinon.assert.calledWith(fake, null, {
+    try {
+      let data = await rest.workflow('12345');
+      assert.deepEqual(data, {
         description: 'a workflow',
         id_workflow: 12345,
         params: [
@@ -288,17 +334,19 @@ describe('rest.workflow', () => {
           },
         ],
       });
-    });
-
-    stub1.restore();
-    stub2.restore();
+    } catch (err) {
+      assert.fail(err);
+    }
   });
 
   it('must handle failure during config fetch', async () => {
-    const stub1 = sinon.stub(REST.prototype, '_read').callsFake((uri, id, cb) => {
+    const fake = sinon.fake();
+    const rest = restFactory({ url: 'http://metrichor.local:8080' });
+
+    const stub1 = sinon.stub(rest, 'read').callsFake((uri, id) => {
       assert.deepEqual(id, '12345', 'id passed');
       assert.equal(uri, 'workflow', 'url passed');
-      cb(null, {
+      return Promise.resolve({
         id_workflow: 12345,
         description: 'a workflow',
         params: [
@@ -314,12 +362,12 @@ describe('rest.workflow', () => {
       });
     });
 
-    const stub2 = sinon.stub(utils, '_get').callsFake((uri, options, cb) => {
+    const stub2 = sinon.stub(utils, 'get').callsFake((uri, options) => {
       if (uri === 'workflow/config/12345') {
-        return cb({ error: 'forbidden' });
+        return Promise.reject(new Error('forbidden'));
       }
       if (uri === 'test_params') {
-        return cb(null, {
+        return Promise.resolve({
           data_root: [
             { label_key: 'foo', value_key: 1 },
             { label_key: 'bar', value_key: 2 },
@@ -330,32 +378,25 @@ describe('rest.workflow', () => {
 
       throw new Error(`unhandled test url${uri}`);
     });
-
-    const fake = sinon.fake();
-    const rest = restFactory({ url: 'http://metrichor.local:8080' });
-
-    const p = new Promise(resolve => {
-      rest.workflow('12345', (err, data) => {
-        assert.deepEqual(err, { error: 'forbidden' }, 'error message');
-        resolve();
-      });
-    });
+    stubs.push(stub1);
+    stubs.push(stub2);
 
     try {
-      await p;
-    } catch (e) {
-      assert.fail(e);
+      await rest.workflow('12345');
+      assert.fail('unexpected success');
+    } catch (err) {
+      assert(String(err).match('forbidden'));
     }
-
-    stub1.restore();
-    stub2.restore();
   });
 
   it('must handle failure during parameter fetch', async () => {
-    const stub1 = sinon.stub(REST.prototype, '_read').callsFake((uri, id, cb) => {
+    const fake = sinon.fake();
+    const rest = restFactory({ url: 'http://metrichor.local:8080' });
+
+    const stub1 = sinon.stub(rest, 'read').callsFake((uri, id) => {
       assert.deepEqual(id, '12345', 'id passed');
       assert.equal(uri, 'workflow', 'url passed');
-      cb(null, {
+      return Promise.resolve({
         id_workflow: 12345,
         description: 'a workflow',
         params: [
@@ -371,35 +412,24 @@ describe('rest.workflow', () => {
       });
     });
 
-    const stub2 = sinon.stub(utils, '_get').callsFake((uri, options, cb) => {
+    const stub2 = sinon.stub(utils, 'get').callsFake((uri, options) => {
       if (uri === 'workflow/config/12345') {
-        return cb(null, {});
+        return Promise.resolve({});
       }
       if (uri === 'test_params') {
-        return cb({ error: 'forbidden' });
+        return Promise.reject(new Error('forbidden'));
       }
 
       throw new Error(`unhandled test url${uri}`);
     });
-
-    const fake = sinon.fake();
-    const rest = restFactory({ url: 'http://metrichor.local:8080' });
-
-    const p = new Promise((resolve, reject) => {
-      rest.workflow('12345', (err, data) => {
-        assert.deepEqual(err, { error: 'forbidden' });
-
-        resolve();
-      });
-    });
+    stubs.push(stub1);
+    stubs.push(stub2);
 
     try {
-      await p;
-    } catch (e) {
-      assert.fail(e);
+      let data = await rest.workflow('12345');
+      assert.fail('unexpected success');
+    } catch (err) {
+      assert(String(err).match(/forbidden/));
     }
-
-    stub1.restore();
-    stub2.restore();
   });
 });

@@ -1,5 +1,5 @@
 const path = require('path');
-const fs = require('fs');
+const fs = require('fs-extra');
 const url = require('url');
 
 // Make sure any symlinks in the project folder are resolved:
@@ -20,7 +20,7 @@ function ensureSlash(inputPath, needsSlash) {
   return inputPath;
 }
 
-const getPublicUrl = appPackageJson => envPublicUrl || require(appPackageJson).homepage;
+const getPublicUrl = appPackageJson => envPublicUrl || JSON.parse(fs.readFileSync(appPackageJson)).homepage;
 
 // We use `PUBLIC_URL` environment variable or "homepage" field to infer
 // "public path" at which the app is served.

@@ -1,27 +1,51 @@
+import sinon from 'sinon';
+import assert from 'assert';
+import bunyan from 'bunyan';
+import os from 'os';
 import REST from '../../src/rest';
 import * as utils from '../../src/utils';
 
-const sinon = require('sinon');
-const assert = require('assert');
-const bunyan = require('bunyan');
-
 describe('rest.register', () => {
-  it('must invoke post with details', () => {
-    const ringbuf = new bunyan.RingBuffer({ limit: 100 });
-    const log = bunyan.createLogger({ name: 'log', stream: ringbuf });
-    const stub = sinon.stub(utils, '_put').callsFake((type, code, payload, options, cb) => {
-      assert.equal(type, 'reg', 'type passed');
-      assert.equal(code, 'abcdefg', 'code passed');
-      assert.ok(payload.description.match(/^\S+@\S+$/), 'payload description');
-      assert.equal(options._signing, false, 'signing off');
-      cb();
+  let ringbuf, log, stubs, rest;
+  beforeEach(() => {
+    ringbuf = new bunyan.RingBuffer({ limit: 100 });
+    log = bunyan.createLogger({ name: 'log', stream: ringbuf });
+    rest = new REST({ log });
+    stubs = [];
+  });
+
+  afterEach(() => {
+    stubs.forEach(s => {
+      s.restore();
     });
+  });
+
+  it('must invoke post with details', async () => {
+    const stub = sinon.stub(utils, 'put').resolves({});
+    stubs.push(stub);
+    stubs.push(
+      sinon.stub(os, 'userInfo').callsFake(() => {
+        return { username: 'testuser' };
+      }),
+    );
+    stubs.push(
+      sinon.stub(os, 'hostname').callsFake(() => {
+        return 'testhost';
+      }),
+    );
     const fake = sinon.fake();
-    const rest = new REST({ log });
-    assert.doesNotThrow(() => {
-      rest.register('abcdefg', fake);
-    });
-    assert(fake.calledOnce, 'callback invoked');
-    stub.restore();
+
+    try {
+      await rest.register('abcdefg', fake);
+    } catch (e) {
+      assert.fail(e);
+    }
+
+    //    assert(fake.calledOnce, 'callback invoked');
+    assert.deepEqual(
+      stub.lastCall.args,
+      ['reg', 'abcdefg', { description: 'testuser@testhost' }, { log, _signing: false, legacy_form: true }],
+      'put args',
+    );
   });
 });

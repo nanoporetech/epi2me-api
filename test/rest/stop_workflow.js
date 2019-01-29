@@ -9,7 +9,7 @@ describe('rest.stop_workflow', () => {
   it('must invoke put with details', () => {
     const ringbuf = new bunyan.RingBuffer({ limit: 100 });
     const log = bunyan.createLogger({ name: 'log', stream: ringbuf });
-    const stub = sinon.stub(utils, '_put').callsFake((uri, id, payload, options, cb) => {
+    const stub = sinon.stub(utils, 'put').callsFake((uri, id, payload, options, cb) => {
       assert.equal(uri, 'workflow_instance/stop', 'type passed');
       assert.equal(id, 123456, 'id passed');
       assert.equal(payload, null, 'payload passed');

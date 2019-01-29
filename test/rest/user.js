@@ -9,7 +9,7 @@ describe('rest.user', () => {
   it('must invoke get with options', () => {
     const ringbuf = new bunyan.RingBuffer({ limit: 100 });
     const log = bunyan.createLogger({ name: 'log', stream: ringbuf });
-    const stub = sinon.stub(utils, '_get').callsFake((uri, options, cb) => {
+    const stub = sinon.stub(utils, 'get').callsFake((uri, options, cb) => {
       assert.deepEqual(options, { log }, 'options passed');
       assert.equal(uri, 'user', 'url passed');
       cb();
@@ -27,7 +27,7 @@ describe('rest.user', () => {
   it('must yield fake local user', () => {
     const ringbuf = new bunyan.RingBuffer({ limit: 100 });
     const log = bunyan.createLogger({ name: 'log', stream: ringbuf });
-    const stub = sinon.stub(utils, '_get').callsFake((uri, options, cb) => {
+    const stub = sinon.stub(utils, 'get').callsFake((uri, options, cb) => {
       assert.deepEqual(options, { log }, 'options passed');
       assert.equal(uri, 'user', 'url passed');
       cb();

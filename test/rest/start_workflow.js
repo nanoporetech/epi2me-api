@@ -14,7 +14,7 @@ describe('epi2me.start_workflow', () => {
   });
 
   it('should start a workflow_instance', () => {
-    const stub = sinon.stub(utils, '_post').callsFake((uri, obj, options, cb) => {
+    const stub = sinon.stub(utils, 'post').callsFake((uri, obj, options, cb) => {
       assert.equal(uri, 'workflow_instance');
       assert.equal(options.apikey, 'FooBar02');
       assert.equal(obj.id_workflow, 'test');

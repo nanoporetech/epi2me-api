@@ -1,27 +1,57 @@
+import sinon from 'sinon';
+import assert from 'assert';
+import bunyan from 'bunyan';
 import REST from '../../src/rest';
 import * as utils from '../../src/utils';
 
-const sinon = require('sinon');
-const assert = require('assert');
-const bunyan = require('bunyan');
+describe('rest.instance_token', () => {
+  let log, rest;
 
-describe('rest.install_token', () => {
-  it('must invoke post with options', () => {
+  beforeEach(() => {
     const ringbuf = new bunyan.RingBuffer({ limit: 100 });
-    const log = bunyan.createLogger({ name: 'log', stream: ringbuf });
-    const stub = sinon.stub(utils, '_post').callsFake((uri, obj, options, cb) => {
-      assert.deepEqual(obj, { id_workflow: '1234' }, 'obj passed');
-      assert.deepEqual(options, { log, legacy_form: true }, 'options passed');
-      assert.equal(uri, 'token/install', 'url passed');
-      cb();
+    log = bunyan.createLogger({ name: 'log', stream: ringbuf });
+    rest = new REST({
+      log: log,
     });
+  });
 
+  it('must invoke post with options', async () => {
+    const stub = sinon.stub(utils, 'post').resolves({ data: 'some data' });
     const fake = sinon.fake();
-    const rest = new REST({ log });
-    assert.doesNotThrow(() => {
-      rest.install_token('1234', fake);
-    });
-    assert(fake.calledOnce, 'callback invoked');
+
+    try {
+      await rest.install_token('12345', fake);
+    } catch (e) {
+      assert.fail(e);
+    }
+
+    assert.deepEqual(
+      stub.args[0],
+      [
+        'token/install',
+        { id_workflow: '12345' },
+        {
+          legacy_form: true,
+          log: log,
+        },
+      ],
+      'post args',
+    );
+    assert.deepEqual(fake.lastCall.args, [null, { data: 'some data' }], 'callback args');
+    stub.restore();
+  });
+
+  it('must handle error', async () => {
+    const stub = sinon.stub(utils, 'post').rejects(new Error('token fail'));
+    const fake = sinon.fake();
+
+    try {
+      await rest.install_token('12345', fake);
+    } catch (e) {
+      assert.fail(e);
+    }
+
+    assert(String(fake.lastCall.args[0]).match(/token fail/), 'expected error');
     stub.restore();
   });
 });
