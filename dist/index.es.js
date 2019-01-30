@@ -2,7 +2,7 @@
  * Copyright Metrichor Ltd. (An Oxford Nanopore Technologies Company) 2019
  */
 
-import _, { merge, isString, isArray, filter } from 'lodash';
+import { merge, isString, isArray, filter, every, isFunction, defaults, chain } from 'lodash';
 import AWS from 'aws-sdk';
 import fs from 'fs-extra';
 import os, { EOL } from 'os';
@@ -11,14 +11,14 @@ import proxy from 'proxy-agent';
 import axios from 'axios';
 import crypto from 'crypto';
 
+var version = "2.58.1";
+
 /*
  * Copyright (c) 2018 Metrichor Ltd.
  * Author: ahurst
  * When: 2016-05-17
  *
  */
-
-const VERSION = require('../package.json').version;
 
 axios.defaults.validateStatus = status => status <= 504; // Reject only if the status code is greater than or equal to 500
 
@@ -104,7 +104,7 @@ const utils = (function magic() {
   };
 
   return {
-    version: () => VERSION,
+    version: version,
     headers: (req, optionsIn) => {
       // common headers required for everything
       let options = optionsIn;
@@ -117,7 +117,7 @@ const utils = (function magic() {
           Accept: 'application/json',
           'Content-Type': 'application/json',
           'X-EPI2ME-Client': options.user_agent || 'api', // new world order
-          'X-EPI2ME-Version': options.agent_version || utils.version(), // new world order
+          'X-EPI2ME-Version': options.agent_version || utils.version, // new world order
         },
         req.headers,
       );
@@ -446,7 +446,6 @@ utils.loadInputFiles = ({ inputFolder, outputFolder, uploadedFolder, filetype },
 
     next(); // start first iteration
   });
-module.exports.version = require('../package.json').version;
 
 class REST {
   constructor(options) {
@@ -1074,7 +1073,7 @@ var downloadMode = "data+telemetry";
 var deleteOnComplete = "off";
 var filetype = ".fastq";
 var signing = true;
-var defaults = {
+var DEFAULTS = {
 	local: local,
 	url: url,
 	user_agent: user_agent,
@@ -1106,8 +1105,6 @@ var defaults = {
  *
  */
 
-const VERSION$1 = require('../package.json').version;
-
 class EPI2ME {
   constructor(OptString) {
     let opts;
@@ -1118,7 +1115,7 @@ class EPI2ME {
     }
 
     if (opts.log) {
-      if (_.every([opts.log.info, opts.log.warn, opts.log.error], _.isFunction)) {
+      if (every([opts.log.info, opts.log.warn, opts.log.error], isFunction)) {
         this.log = opts.log;
       } else {
         throw new Error('expected log object to have "error", "debug", "info" and "warn" methods');
@@ -1162,7 +1159,7 @@ class EPI2ME {
     // if (opts.filter === 'on') defaults.downloadPoolSize = 5;
 
     this.config = {
-      options: _.defaults(opts, defaults),
+      options: defaults(opts, DEFAULTS),
       instance: {
         id_workflow_instance: opts.id_workflow_instance,
         inputQueueName: null,
@@ -1190,7 +1187,7 @@ class EPI2ME {
       this.skipTo = path.join(this.config.options.inputFolder, 'skip');
     }
 
-    this.REST = new REST_FS(_.merge({}, { log: this.log }, this.config.options));
+    this.REST = new REST_FS(merge({}, { log: this.log }, this.config.options));
   }
 
   async stop_everything(cb) {
@@ -1544,7 +1541,7 @@ class EPI2ME {
     let settings = {};
     let msg;
 
-    if (!_.isArray(files) || !files.length) return;
+    if (!isArray(files) || !files.length) return;
 
     if ('workflow' in this.config) {
       if ('workflow_attributes' in this.config.workflow) {
@@ -2057,7 +2054,7 @@ class EPI2ME {
             try {
               const stats = await fs.stat(outputFile);
               this.downloadedFileSizes[outputFile] = stats.size || 0;
-              this.states.download.totalSize = _.chain(this.downloadedFileSizes)
+              this.states.download.totalSize = chain(this.downloadedFileSizes)
                 .values()
                 .sum()
                 .value();
@@ -2433,7 +2430,7 @@ class EPI2ME {
   }
 }
 
-EPI2ME.version = VERSION$1;
+EPI2ME.version = utils.version;
 EPI2ME.REST = REST_FS;
 
 export default EPI2ME;

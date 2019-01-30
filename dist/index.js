@@ -6,8 +6,7 @@
 
 function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
 
-var _ = require('lodash');
-var ___default = _interopDefault(_);
+var lodash = require('lodash');
 var AWS = _interopDefault(require('aws-sdk'));
 var fs = _interopDefault(require('fs-extra'));
 var os = require('os');
@@ -17,14 +16,14 @@ var proxy = _interopDefault(require('proxy-agent'));
 var axios = _interopDefault(require('axios'));
 var crypto = _interopDefault(require('crypto'));
 
+var version = "2.58.1";
+
 /*
  * Copyright (c) 2018 Metrichor Ltd.
  * Author: ahurst
  * When: 2016-05-17
  *
  */
-
-const VERSION = require('../package.json').version;
 
 axios.defaults.validateStatus = status => status <= 504; // Reject only if the status code is greater than or equal to 500
 
@@ -110,7 +109,7 @@ const utils = (function magic() {
   };
 
   return {
-    version: () => VERSION,
+    version: version,
     headers: (req, optionsIn) => {
       // common headers required for everything
       let options = optionsIn;
@@ -118,12 +117,12 @@ const utils = (function magic() {
         options = {};
       }
 
-      req.headers = _.merge(
+      req.headers = lodash.merge(
         {
           Accept: 'application/json',
           'Content-Type': 'application/json',
           'X-EPI2ME-Client': options.user_agent || 'api', // new world order
-          'X-EPI2ME-Version': options.agent_version || utils.version(), // new world order
+          'X-EPI2ME-Version': options.agent_version || utils.version, // new world order
         },
         req.headers,
       );
@@ -375,7 +374,7 @@ utils.lsFolder = (dir, ignore, filetype, rootDir = '') =>
             .replace(rootDir, '')
             .replace('\\', '')
             .replace('/', '');
-          if (_.isString(batch) && batch.length) fileObject.batch = batch;
+          if (lodash.isString(batch) && batch.length) fileObject.batch = batch;
           files.push(fileObject);
           return Promise.resolve();
         }
@@ -418,7 +417,7 @@ utils.loadInputFiles = ({ inputFolder, outputFolder, uploadedFolder, filetype },
         (uploadedFolder && basename === path.basename(uploadedFolder)) ||
         (outputFolder && basename === path.basename(outputFolder)) ||
         basename === 'tmp' ||
-        (_.isArray(uploaded) && uploaded.indexOf(path.posix.basename(file)) > -1)
+        (lodash.isArray(uploaded) && uploaded.indexOf(path.posix.basename(file)) > -1)
       );
     };
 
@@ -452,7 +451,6 @@ utils.loadInputFiles = ({ inputFolder, outputFolder, uploadedFolder, filetype },
 
     next(); // start first iteration
   });
-module.exports.version = require('../package.json').version;
 
 class REST {
   constructor(options) {
@@ -502,7 +500,7 @@ class REST {
 
   async instance_token(id, cb) {
     try {
-      const data = await utils.post('token', { id_workflow_instance: id }, _.merge({ legacy_form: true }, this.options));
+      const data = await utils.post('token', { id_workflow_instance: id }, lodash.merge({ legacy_form: true }, this.options));
       return cb ? cb(null, data) : Promise.resolve(data);
     } catch (err) {
       return cb ? cb(err) : Promise.reject(err);
@@ -511,7 +509,7 @@ class REST {
 
   async install_token(id, cb) {
     try {
-      const data = await utils.post('token/install', { id_workflow: id }, _.merge({ legacy_form: true }, this.options));
+      const data = await utils.post('token/install', { id_workflow: id }, lodash.merge({ legacy_form: true }, this.options));
       return cb ? cb(null, data) : Promise.resolve(data);
     } catch (err) {
       return cb ? cb(err) : Promise.reject(err);
@@ -655,7 +653,7 @@ class REST {
     if (action === 'update') {
       // three args: update object: (123, {...}, func)
       try {
-        const update = await utils.put('workflow', id, obj, _.merge({ legacy_form: true }, this.options));
+        const update = await utils.put('workflow', id, obj, lodash.merge({ legacy_form: true }, this.options));
         return cb ? cb(null, update) : Promise.resolve(update);
       } catch (err) {
         return cb ? cb(err) : Promise.reject(err);
@@ -666,7 +664,7 @@ class REST {
       // two args: create object: ({...}, func)
 
       try {
-        const create = await utils.post('workflow', obj, _.merge({ legacy_form: true }, this.options));
+        const create = await utils.post('workflow', obj, lodash.merge({ legacy_form: true }, this.options));
         return cb ? cb(null, create) : Promise.resolve(create);
       } catch (err) {
         return cb ? cb(err) : Promise.reject(err);
@@ -686,28 +684,28 @@ class REST {
       if (struct.error) {
         throw new Error(struct.error);
       }
-      _.merge(workflow, struct);
+      lodash.merge(workflow, struct);
     } catch (err) {
       this.log.error(`${id}: error fetching workflow ${String(err)}`);
       return cb ? cb(err) : Promise.reject(err);
     }
 
     // placeholder
-    _.merge(workflow, { params: {} });
+    lodash.merge(workflow, { params: {} });
 
     try {
       const workflowConfig = await utils.get(`workflow/config/${id}`, this.options);
       if (workflowConfig.error) {
         throw new Error(workflowConfig.error);
       }
-      _.merge(workflow, workflowConfig);
+      lodash.merge(workflow, workflowConfig);
     } catch (err) {
       this.log.error(`${id}: error fetching workflow config ${String(err)}`);
       return cb ? cb(err) : Promise.reject(err);
     }
 
     // MC-6483 - fetch ajax options for "AJAX drop down widget"
-    const toFetch = _.filter(workflow.params, { widget: 'ajax_dropdown' });
+    const toFetch = lodash.filter(workflow.params, { widget: 'ajax_dropdown' });
 
     const promises = [
       ...toFetch.map((iterObj, i) => {
@@ -745,7 +743,7 @@ class REST {
   }
 
   start_workflow(config, cb) {
-    return utils.post('workflow_instance', config, _.merge({ legacy_form: true }, this.options), cb);
+    return utils.post('workflow_instance', config, lodash.merge({ legacy_form: true }, this.options), cb);
   }
 
   stop_workflow(idWorkflowInstance, cb) {
@@ -753,7 +751,7 @@ class REST {
       'workflow_instance/stop',
       idWorkflowInstance,
       null,
-      _.merge({ legacy_form: true }, this.options),
+      lodash.merge({ legacy_form: true }, this.options),
       cb,
     );
   }
@@ -820,7 +818,7 @@ class REST {
         {
           description: `${os__default.userInfo().username}@${os__default.hostname()}`,
         },
-        _.merge({ signing: false, legacy_form: true }, this.options),
+        lodash.merge({ signing: false, legacy_form: true }, this.options),
       );
       return cb ? cb(null, obj) : Promise.resolve(obj);
     } catch (err) {
@@ -876,7 +874,7 @@ class REST {
   }
 
   async fetchContent(url, cb) {
-    const options = _.merge({ skip_url_mangle: true }, this.options);
+    const options = lodash.merge({ skip_url_mangle: true }, this.options);
     try {
       const result = await utils.get(url, options);
       return cb ? cb(null, result) : Promise.resolve(result);
@@ -1080,7 +1078,7 @@ var downloadMode = "data+telemetry";
 var deleteOnComplete = "off";
 var filetype = ".fastq";
 var signing = true;
-var defaults = {
+var DEFAULTS = {
 	local: local,
 	url: url,
 	user_agent: user_agent,
@@ -1112,8 +1110,6 @@ var defaults = {
  *
  */
 
-const VERSION$1 = require('../package.json').version;
-
 class EPI2ME {
   constructor(OptString) {
     let opts;
@@ -1124,7 +1120,7 @@ class EPI2ME {
     }
 
     if (opts.log) {
-      if (___default.every([opts.log.info, opts.log.warn, opts.log.error], ___default.isFunction)) {
+      if (lodash.every([opts.log.info, opts.log.warn, opts.log.error], lodash.isFunction)) {
         this.log = opts.log;
       } else {
         throw new Error('expected log object to have "error", "debug", "info" and "warn" methods');
@@ -1168,7 +1164,7 @@ class EPI2ME {
     // if (opts.filter === 'on') defaults.downloadPoolSize = 5;
 
     this.config = {
-      options: ___default.defaults(opts, defaults),
+      options: lodash.defaults(opts, DEFAULTS),
       instance: {
         id_workflow_instance: opts.id_workflow_instance,
         inputQueueName: null,
@@ -1196,7 +1192,7 @@ class EPI2ME {
       this.skipTo = path.join(this.config.options.inputFolder, 'skip');
     }
 
-    this.REST = new REST_FS(___default.merge({}, { log: this.log }, this.config.options));
+    this.REST = new REST_FS(lodash.merge({}, { log: this.log }, this.config.options));
   }
 
   async stop_everything(cb) {
@@ -1550,7 +1546,7 @@ class EPI2ME {
     let settings = {};
     let msg;
 
-    if (!___default.isArray(files) || !files.length) return;
+    if (!lodash.isArray(files) || !files.length) return;
 
     if ('workflow' in this.config) {
       if ('workflow_attributes' in this.config.workflow) {
@@ -2063,7 +2059,7 @@ class EPI2ME {
             try {
               const stats = await fs.stat(outputFile);
               this.downloadedFileSizes[outputFile] = stats.size || 0;
-              this.states.download.totalSize = ___default.chain(this.downloadedFileSizes)
+              this.states.download.totalSize = lodash.chain(this.downloadedFileSizes)
                 .values()
                 .sum()
                 .value();
@@ -2439,7 +2435,7 @@ class EPI2ME {
   }
 }
 
-EPI2ME.version = VERSION$1;
+EPI2ME.version = utils.version;
 EPI2ME.REST = REST_FS;
 
 module.exports = EPI2ME;
