@@ -4,22 +4,25 @@ import axios from 'axios';
 import utils from '../../src/utils';
 
 describe('utils.put', () => {
-  let stub1;
-  let stub2;
+  let stubs;
 
   beforeEach(() => {
-    stub1 = sinon.stub(axios, 'put').resolves({ data: { data: 'data' } });
-    sinon.stub(utils, 'version').callsFake(() => {
-      return '3.0.0';
-    });
+    stubs = [];
+    stubs.push(
+      sinon.stub(utils, 'version').callsFake(() => {
+        return '3.0.0';
+      }),
+    );
   });
 
   afterEach(() => {
-    stub1.restore();
-    utils.version.restore();
+    stubs.forEach(s => {
+      s.restore();
+    });
   });
 
   it('should invoke put', async () => {
+    stubs.push(sinon.stub(axios, 'put').resolves({ data: { data: 'data' } }));
     const req = {};
 
     let data = await utils.put(
@@ -35,7 +38,7 @@ describe('utils.put', () => {
     );
 
     assert.deepEqual(data, { data: 'data' });
-    assert.deepEqual(stub1.args[0], [
+    assert.deepEqual(axios.put.args[0], [
       'http://epi2me.test/entity/123',
       {
         uri: 'http://epi2me.test/entity/123',
@@ -53,6 +56,7 @@ describe('utils.put', () => {
   });
 
   it('should invoke put with legacy form params', async () => {
+    stubs.push(sinon.stub(axios, 'put').resolves({ data: { data: 'data' } }));
     const req = {};
 
     let data = await utils.put(
@@ -70,7 +74,7 @@ describe('utils.put', () => {
 
     assert.deepEqual(data, { data: 'data' });
 
-    assert.deepEqual(stub1.args[0], [
+    assert.deepEqual(axios.put.args[0], [
       'http://epi2me.test/entity/123',
       {
         uri: 'http://epi2me.test/entity/123',
@@ -89,6 +93,7 @@ describe('utils.put', () => {
   });
 
   it('should invoke put with proxy', async () => {
+    stubs.push(sinon.stub(axios, 'put').resolves({ data: { data: 'data' } }));
     const req = {};
 
     let data = await utils.put(
@@ -106,7 +111,7 @@ describe('utils.put', () => {
 
     assert.deepEqual(data, { data: 'data' });
 
-    assert.deepEqual(stub1.args[0], [
+    assert.deepEqual(axios.put.args[0], [
       'http://epi2me.test/entity/123',
       {
         uri: 'http://epi2me.test/entity/123',
@@ -122,5 +127,27 @@ describe('utils.put', () => {
         },
       },
     ]);
+  });
+
+  it('should handle put exception', async () => {
+    stubs.push(sinon.stub(axios, 'put').rejects(new Error('request failed')));
+    const req = {};
+
+    try {
+      let data = await utils.put(
+        'entity',
+        123,
+        {
+          name: 'test entity',
+        },
+        {
+          apikey: 'foo',
+          url: 'http://epi2me.test',
+        },
+      );
+      assert.fail('unexpected success');
+    } catch (err) {
+      assert(String(err).match(/request failed/), 'expected error message');
+    }
   });
 });

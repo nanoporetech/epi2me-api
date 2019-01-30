@@ -5,22 +5,25 @@ import axios from 'axios';
 import utils from '../../src/utils';
 
 describe('utils.post', () => {
-  let stub1;
-  let stub2;
+  let stubs;
 
   beforeEach(() => {
-    stub1 = sinon.stub(axios, 'post').resolves({ data: { data: 'data' } });
-    sinon.stub(utils, 'version').callsFake(() => {
-      return '3.0.0';
-    });
+    stubs = [];
+    stubs.push(
+      sinon.stub(utils, 'version').callsFake(() => {
+        return '3.0.0';
+      }),
+    );
   });
 
   afterEach(() => {
-    stub1.restore();
-    utils.version.restore();
+    stubs.forEach(s => {
+      s.restore();
+    });
   });
 
   it('should invoke post', async () => {
+    stubs.push(sinon.stub(axios, 'post').resolves({ data: { data: 'data' } }));
     let data = await utils.post(
       'entity',
       {
@@ -35,7 +38,7 @@ describe('utils.post', () => {
 
     assert.deepEqual(data, { data: 'data' });
 
-    assert.deepEqual(stub1.args[0], [
+    assert.deepEqual(axios.post.args[0], [
       'http://epi2me.test/entity',
       {
         uri: 'http://epi2me.test/entity',
@@ -53,6 +56,7 @@ describe('utils.post', () => {
   });
 
   it('should invoke post with legacy form params', async () => {
+    stubs.push(sinon.stub(axios, 'post').resolves({ data: { data: 'data' } }));
     let data = await utils.post(
       'entity',
       {
@@ -68,7 +72,7 @@ describe('utils.post', () => {
 
     assert.deepEqual(data, { data: 'data' });
 
-    assert.deepEqual(stub1.args[0], [
+    assert.deepEqual(axios.post.args[0], [
       'http://epi2me.test/entity',
       {
         uri: 'http://epi2me.test/entity',
@@ -87,6 +91,7 @@ describe('utils.post', () => {
   });
 
   it('should invoke post with proxy', async () => {
+    stubs.push(sinon.stub(axios, 'post').resolves({ data: { data: 'data' } }));
     let data = await utils.post(
       'entity',
       {
@@ -101,7 +106,7 @@ describe('utils.post', () => {
     );
     assert.deepEqual(data, { data: 'data' });
 
-    assert.deepEqual(stub1.args[0], [
+    assert.deepEqual(axios.post.args[0], [
       'http://epi2me.test/entity',
       {
         uri: 'http://epi2me.test/entity',
@@ -117,5 +122,27 @@ describe('utils.post', () => {
         },
       },
     ]);
+  });
+
+  it('should handle post exception', async () => {
+    stubs.push(sinon.stub(axios, 'post').rejects(new Error('request failed')));
+    const req = {};
+
+    try {
+      let data = await utils.post(
+        'entity',
+        {
+          id_entity: 123,
+          name: 'test entity',
+        },
+        {
+          apikey: 'foo',
+          url: 'http://epi2me.test',
+        },
+      );
+      assert.fail('unexpected success');
+    } catch (err) {
+      assert(String(err).match(/request failed/), 'expected error message');
+    }
   });
 });

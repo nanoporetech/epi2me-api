@@ -4,21 +4,25 @@ import axios from 'axios';
 import utils from '../../src/utils';
 
 describe('utils.get', () => {
-  let stub1;
-  let stub2;
+  let stubs;
+
   beforeEach(() => {
-    stub1 = sinon.stub(axios, 'get').resolves({ data: { data: 'data' } });
-    sinon.stub(utils, 'version').callsFake(() => {
-      return '3.0.0';
-    });
+    stubs = [];
+    stubs.push(
+      sinon.stub(utils, 'version').callsFake(() => {
+        return '3.0.0';
+      }),
+    );
   });
 
   afterEach(() => {
-    stub1.restore();
-    utils.version.restore();
+    stubs.forEach(s => {
+      s.restore();
+    });
   });
 
   it('should invoke get', async () => {
+    stubs.push(sinon.stub(axios, 'get').resolves({ data: { data: 'data' } }));
     let data = await utils.get('entity/123', {
       apikey: 'foo',
       url: 'http://epi2me.test',
@@ -26,7 +30,7 @@ describe('utils.get', () => {
 
     assert.deepEqual(data, { data: 'data' });
 
-    assert.deepEqual(stub1.args[0], [
+    assert.deepEqual(axios.get.args[0], [
       'http://epi2me.test/entity/123',
       {
         uri: 'http://epi2me.test/entity/123',
@@ -43,6 +47,7 @@ describe('utils.get', () => {
   });
 
   it('should invoke get without url mangling', async () => {
+    stubs.push(sinon.stub(axios, 'get').resolves({ data: { data: 'data' } }));
     let data = await utils.get('https://epi2me.internal/entity/123', {
       skip_url_mangle: true,
       apikey: 'foo',
@@ -51,7 +56,7 @@ describe('utils.get', () => {
 
     assert.deepEqual(data, { data: 'data' });
 
-    assert.deepEqual(stub1.args[0], [
+    assert.deepEqual(axios.get.args[0], [
       'https://epi2me.internal/entity/123',
       {
         uri: 'https://epi2me.internal/entity/123',
@@ -68,6 +73,7 @@ describe('utils.get', () => {
   });
 
   it('should invoke get with proxy', async () => {
+    stubs.push(sinon.stub(axios, 'get').resolves({ data: { data: 'data' } }));
     let data = await utils.get('entity/123', {
       proxy: 'http://proxy.internal:3128/',
       apikey: 'foo',
@@ -76,7 +82,7 @@ describe('utils.get', () => {
 
     assert.deepEqual(data, { data: 'data' });
 
-    assert.deepEqual(stub1.args[0], [
+    assert.deepEqual(axios.get.args[0], [
       'http://epi2me.test/entity/123',
       {
         uri: 'http://epi2me.test/entity/123',
@@ -91,5 +97,18 @@ describe('utils.get', () => {
         },
       },
     ]);
+  });
+
+  it('should handle request failure', async () => {
+    stubs.push(sinon.stub(axios, 'get').rejects(new Error('request failed')));
+    try {
+      let data = await utils.get('entity/123', {
+        apikey: 'foo',
+        url: 'http://epi2me.test',
+      });
+      assert.fail('unexpected success');
+    } catch (err) {
+      assert(String(err).match(/request failed/), 'expected error message');
+    }
   });
 });
