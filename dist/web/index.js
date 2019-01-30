@@ -111,8 +111,7 @@ const utils = (function magic() {
         options = {};
       }
 
-      req.headers = Object.assign(
-        {},
+      req.headers = lodash.merge(
         {
           Accept: 'application/json',
           'Content-Type': 'application/json',

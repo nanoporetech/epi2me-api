@@ -107,8 +107,7 @@ const utils = (function magic() {
         options = {};
       }
 
-      req.headers = Object.assign(
-        {},
+      req.headers = merge(
         {
           Accept: 'application/json',
           'Content-Type': 'application/json',

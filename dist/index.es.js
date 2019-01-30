@@ -2,7 +2,7 @@
  * Copyright Metrichor Ltd. (An Oxford Nanopore Technologies Company) 2019
  */
 
-import _, { isString, isArray, merge, filter } from 'lodash';
+import _, { merge, isString, isArray, filter } from 'lodash';
 import AWS from 'aws-sdk';
 import fs from 'fs-extra';
 import os from 'os';
@@ -111,8 +111,7 @@ const utils = (function magic() {
         options = {};
       }
 
-      req.headers = Object.assign(
-        {},
+      req.headers = merge(
         {
           Accept: 'application/json',
           'Content-Type': 'application/json',
