@@ -291,10 +291,10 @@ utils.countFileReads = filePath =>
     fs.createReadStream(filePath)
       .on('data', buffer => {
         idx = -1;
-        lineCount--;
+        lineCount -= 1;
         do {
           idx = buffer.indexOf(10, idx + 1);
-          lineCount++;
+          lineCount += 1;
         } while (idx !== -1);
       })
       .on('end', () => resolve(Math.floor(lineCount / linesPerRead)))
@@ -330,10 +330,14 @@ utils.findSuitableBatchIn = folder => {
 };
 
 let IdCounter = 0;
-utils.getFileID = () => `FILE_${++IdCounter}`;
+utils.getFileID = () => {
+  IdCounter += 1;
+  return `FILE_${IdCounter}`;
+};
 
 utils.lsFolder = (dir, ignore, filetype, rootDir = '') =>
-  fs.readdir(dir).then(ls => {
+  fs.readdir(dir).then(filesIn => {
+    let ls = filesIn;
     if (ignore) {
       ls = ls.filter(ignore);
     }
@@ -871,15 +875,18 @@ class REST_FS extends REST {
     }
   }
 
-  async workflow_instances(cb, query) {
+  async workflow_instances(first, second) {
     if (!this.options.local) {
-      return super.workflow_instances(cb, query);
+      return super.workflow_instances(first, second);
     }
-
-    if (cb && !(cb instanceof Function) && query === undefined) {
+    let cb;
+    let query;
+    if (first && !(first instanceof Function) && second === undefined) {
       // no second argument and first argument is not a callback
-      query = cb;
-      cb = null;
+      query = first;
+    } else {
+      cb = first;
+      query = second;
     }
 
     if (query) {
@@ -916,15 +923,19 @@ class REST_FS extends REST {
     }
   }
 
-  async datasets(cb, query) {
+  async datasets(first, second) {
     if (!this.options.local) {
-      return super.datasets(cb, query);
+      return super.datasets(first, second);
     }
+    let cb;
+    let query;
 
-    if (cb && !(cb instanceof Function) && query === undefined) {
+    if (first && !(first instanceof Function) && second === undefined) {
       // no second argument and first argument is not a callback
-      query = cb;
-      cb = null;
+      query = first;
+    } else {
+      cb = first;
+      query = second;
     }
 
     if (!query) {
@@ -944,31 +955,34 @@ class REST_FS extends REST {
       let data = await fs.readdir(DATASET_DIR);
       data = data.filter(id => fs.statSync(path.join(DATASET_DIR, id)).isDirectory());
 
-      let idDataset = 1;
-      data = data.sort().map(id => ({
-        is_reference_dataset: true,
-        summary: null,
-        dataset_status: {
-          status_label: 'Active',
-          status_value: 'active',
-        },
-        size: 0,
-        prefix: id,
-        id_workflow_instance: null,
-        id_account: null,
-        is_consented_human: null,
-        data_fields: null,
-        component_id: null,
-        uuid: id,
-        is_shared: false,
-        id_dataset: idDataset++,
-        id_user: null,
-        last_modified: null,
-        created: null,
-        name: id,
-        source: id,
-        attributes: null,
-      }));
+      let idDataset = 0;
+      data = data.sort().map(id => {
+        idDataset += 1;
+        return {
+          is_reference_dataset: true,
+          summary: null,
+          dataset_status: {
+            status_label: 'Active',
+            status_value: 'active',
+          },
+          size: 0,
+          prefix: id,
+          id_workflow_instance: null,
+          id_account: null,
+          is_consented_human: null,
+          data_fields: null,
+          component_id: null,
+          uuid: id,
+          is_shared: false,
+          id_dataset: idDataset,
+          id_user: null,
+          last_modified: null,
+          created: null,
+          name: id,
+          source: id,
+          attributes: null,
+        };
+      });
       return cb ? cb(null, data) : Promise.resolve(data);
     } catch (err) {
       this.log.warn(err);
@@ -976,13 +990,13 @@ class REST_FS extends REST {
     }
   }
 
-  async bundle_workflow(id_workflow, filepath, progressCb) {
+  async bundle_workflow(idWorkflow, filepath, progressCb) {
     // clean out target folder?
     // download tarball including workflow json
     // allocate install_token with STS credentials
     // initialise coastguard to perform ECR docker pull
     return utils.pipe(
-      `workflow/bundle/${id_workflow}.tar.gz`,
+      `workflow/bundle/${idWorkflow}.tar.gz`,
       filepath,
       this.options,
       progressCb,

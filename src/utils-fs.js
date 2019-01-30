@@ -62,10 +62,10 @@ utils.countFileReads = filePath =>
     fs.createReadStream(filePath)
       .on('data', buffer => {
         idx = -1;
-        lineCount--;
+        lineCount -= 1;
         do {
           idx = buffer.indexOf(10, idx + 1);
-          lineCount++;
+          lineCount += 1;
         } while (idx !== -1);
       })
       .on('end', () => resolve(Math.floor(lineCount / linesPerRead)))
@@ -101,10 +101,14 @@ utils.findSuitableBatchIn = folder => {
 };
 
 let IdCounter = 0;
-utils.getFileID = () => `FILE_${++IdCounter}`;
+utils.getFileID = () => {
+  IdCounter += 1;
+  return `FILE_${IdCounter}`;
+};
 
 utils.lsFolder = (dir, ignore, filetype, rootDir = '') =>
-  fs.readdir(dir).then(ls => {
+  fs.readdir(dir).then(filesIn => {
+    let ls = filesIn;
     if (ignore) {
       ls = ls.filter(ignore);
     }
