@@ -69,7 +69,7 @@ describe('epi2me-api.processMessage', () => {
     const stub = sinon.stub(client, 'sessionedS3').callsFake(() => 's3 object');
 
     const stub2 = sinon
-      .stub(client, '_initiateDownloadStream')
+      .stub(client, 'initiateDownloadStream')
       .callsFake((s3, messageBody, message, outputFile, completeCb) => {
         completeCb();
       });
@@ -111,7 +111,7 @@ describe('epi2me-api.processMessage', () => {
     const stub = sinon.stub(client, 'sessionedS3').callsFake(() => 's3 object');
 
     const stub2 = sinon
-      .stub(client, '_initiateDownloadStream')
+      .stub(client, 'initiateDownloadStream')
       .callsFake((s3, messageBody, message, outputFile, completeCb) => {
         completeCb();
       });
@@ -148,7 +148,7 @@ describe('epi2me-api.processMessage', () => {
     const stub = sinon.stub(client, 'sessionedS3').callsFake(() => 's3 object');
 
     const stub2 = sinon
-      .stub(client, '_initiateDownloadStream')
+      .stub(client, 'initiateDownloadStream')
       .callsFake((s3, messageBody, message, outputFile, completeCb) => {
         completeCb();
       });
@@ -191,7 +191,7 @@ describe('epi2me-api.processMessage', () => {
     const stub = sinon.stub(client, 'sessionedS3').callsFake(() => 's3 object');
 
     const stub2 = sinon
-      .stub(client, '_initiateDownloadStream')
+      .stub(client, 'initiateDownloadStream')
       .callsFake((s3, messageBody, message, outputFile, completeCb) => {
         completeCb();
       });
@@ -236,7 +236,7 @@ describe('epi2me-api.processMessage', () => {
     const stub = sinon.stub(client, 'sessionedS3').callsFake(() => 's3 object');
 
     const stub2 = sinon
-      .stub(client, '_initiateDownloadStream')
+      .stub(client, 'initiateDownloadStream')
       .callsFake((s3, messageBody, message, outputFile, completeCb) => {
         completeCb();
       });
@@ -394,7 +394,7 @@ describe('epi2me-api.processMessage', () => {
     assert.equal(
       stub2.args[0][3],
       path.join(tmpDir.name, 'PASS/fastq_runid_738d663ef9214e590fb4806bf5aed784b941fd48_1.fastq.bam'),
-      '_initiateDownloadStream argument',
+      'initiateDownloadStream argument',
     );
     assert.equal(stub3.args[0][0], path.join(tmpDir.name, 'PASS'), 'mkdirpSync argument');
     tmpDir.removeCallback();

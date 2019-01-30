@@ -34,14 +34,14 @@ describe('session fetchInstanceToken method', () => {
 
   it('should call if sts_expiration expired', async () => {
     const stub = sinon.stub(client, 'fetchInstanceToken').resolves();
-    client._stats.sts_expiration = 1;
+    client.states.sts_expiration = 1;
     await client.session();
     assert(stub.calledOnce);
   });
 
   it('should not call if sts_expiration in the future', async () => {
     const stub = sinon.stub(client, 'fetchInstanceToken').resolves();
-    client._stats.sts_expiration = 1000 + Date.now();
+    client.states.sts_expiration = 1000 + Date.now();
     await client.session();
     assert(stub.notCalled);
   });
@@ -49,7 +49,7 @@ describe('session fetchInstanceToken method', () => {
   it('should resolve ok if sts_expiration in the future', async () => {
     const stub = sinon.stub(client, 'fetchInstanceToken').resolves();
 
-    client._stats.sts_expiration = 1000 + Date.now();
+    client.states.sts_expiration = 1000 + Date.now();
 
     try {
       await client.session();
@@ -63,7 +63,7 @@ describe('session fetchInstanceToken method', () => {
   it('should fire callback if sts_expiration expired', async () => {
     const stub = sinon.stub(client, 'fetchInstanceToken').resolves();
 
-    client._stats.sts_expiration = 1;
+    client.states.sts_expiration = 1;
 
     try {
       await client.session();
@@ -76,7 +76,7 @@ describe('session fetchInstanceToken method', () => {
   it('should resolve ok if sts_expiration expired, passing error', async () => {
     const stub = sinon.stub(client, 'fetchInstanceToken').rejects(new Error('fetchInstanceToken failed'));
 
-    client._stats.sts_expiration = 1;
+    client.states.sts_expiration = 1;
 
     let err;
     try {

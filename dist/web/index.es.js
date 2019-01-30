@@ -315,7 +315,8 @@ class REST {
 
   async ami_images(cb) {
     if (this.options.local) {
-      return cb(new Error('ami_images unsupported in local mode'));
+      const err = new Error('ami_images unsupported in local mode');
+      return cb ? cb(err) : Promise.reject(err);
     }
 
     try {
@@ -326,12 +327,44 @@ class REST {
     }
   }
 
-  async ami_image(id, obj, cb) {
-    if (this.options.local) {
-      return cb(new Error('ami_image unsupported in local mode'));
+  async ami_image(first, second, third) {
+    let id;
+    let obj;
+    let cb;
+    let action;
+    if (first && second && third instanceof Function) {
+      // update with callback
+      id = first;
+      obj = second;
+      cb = third;
+      action = 'update';
+    } else if (first && second instanceof Object && !(second instanceof Function)) {
+      // update with promise
+      id = first;
+      obj = second;
+      action = 'update';
+    } else if (first instanceof Object && second instanceof Function) {
+      // create with callback
+      obj = first;
+      cb = second;
+      action = 'create';
+    } else if (first instanceof Object && !second) {
+      // create with promise
+      obj = first;
+      action = 'create';
+    } else {
+      // read with callback or promise
+      action = 'read';
+      id = first;
+      cb = second instanceof Function ? second : null;
     }
 
-    if (cb) {
+    if (this.options.local) {
+      const err = new Error('ami_image unsupported in local mode');
+      return cb ? cb(err) : Promise.reject(err);
+    }
+
+    if (action === 'update') {
       // three args: update object
       try {
         const update = await utils.put('ami_image', id, obj, this.options);
@@ -341,10 +374,8 @@ class REST {
       }
     }
 
-    if (id && typeof id === 'object') {
+    if (action === 'create') {
       // two args: create
-      cb = obj;
-      obj = id;
       try {
         const create = await utils.post('ami_image', obj, this.options);
         return cb ? cb(null, create) : Promise.resolve(create);
@@ -353,11 +384,9 @@ class REST {
       }
     }
 
-    // two args: get object
-    cb = obj;
-
     if (!id) {
-      return cb(new Error('no id_ami_image specified'));
+      const err = new Error('no id_ami_image specified');
+      return cb ? cb(err) : Promise.reject(err);
     }
 
     try {
@@ -458,29 +487,29 @@ class REST {
     const toFetch = filter(workflow.params, { widget: 'ajax_dropdown' });
 
     const promises = [
-      ...toFetch.map(
-        param =>
-          new Promise(async (resolve, reject) => {
-            const uri = param.values.source.replace('{{EPI2ME_HOST}}', '');
+      ...toFetch.map((iterObj, i) => {
+        const param = toFetch[i]; // so we can explicitly reassign to the iterator without eslint complaints
+        return new Promise(async (resolve, reject) => {
+          const uri = param.values.source.replace('{{EPI2ME_HOST}}', '');
 
-            try {
-              const workflowParam = await utils.get(uri, this.options); // e.g. {datasets:[...]} from the /dataset.json list response
-              const dataRoot = workflowParam[param.values.data_root]; // e.g. [{dataset},{dataset}]
+          try {
+            const workflowParam = await utils.get(uri, this.options); // e.g. {datasets:[...]} from the /dataset.json list response
+            const dataRoot = workflowParam[param.values.data_root]; // e.g. [{dataset},{dataset}]
 
-              if (dataRoot) {
-                param.values = dataRoot.map(o => ({
-                  // does this really end up back in workflow object?
-                  label: o[param.values.items.label_key],
-                  value: o[param.values.items.value_key],
-                }));
-              }
-              return resolve();
-            } catch (err) {
-              this.log.error(`failed to fetch ${uri}`);
-              return reject(err);
+            if (dataRoot) {
+              param.values = dataRoot.map(o => ({
+                // does this really end up back in workflow object?
+                label: o[param.values.items.label_key],
+                value: o[param.values.items.value_key],
+              }));
             }
-          }),
-      ),
+            return resolve();
+          } catch (err) {
+            this.log.error(`failed to fetch ${uri}`);
+            return reject(err);
+          }
+        });
+      }),
     ];
 
     try {
@@ -496,15 +525,26 @@ class REST {
     return utils.post('workflow_instance', config, merge({ legacy_form: true }, this.options), cb);
   }
 
-  stop_workflow(instance_id, cb) {
-    return utils.put('workflow_instance/stop', instance_id, null, merge({ legacy_form: true }, this.options), cb);
+  stop_workflow(idWorkflowInstance, cb) {
+    return utils.put(
+      'workflow_instance/stop',
+      idWorkflowInstance,
+      null,
+      merge({ legacy_form: true }, this.options),
+      cb,
+    );
   }
 
-  async workflow_instances(cb, query) {
-    if (cb && !(cb instanceof Function) && query === undefined) {
+  async workflow_instances(first, second) {
+    let cb;
+    let query;
+
+    if (first && !(first instanceof Function) && second === undefined) {
       // no second argument and first argument is not a callback
-      query = cb;
-      cb = null;
+      query = first;
+    } else {
+      cb = first;
+      query = second;
     }
 
     if (query && query.run_id) {
@@ -565,11 +605,16 @@ class REST {
     }
   }
 
-  async datasets(cb, query) {
-    if (cb && !(cb instanceof Function) && query === undefined) {
+  async datasets(first, second) {
+    let cb;
+    let query;
+
+    if (first && !(first instanceof Function) && second === undefined) {
       // no second argument and first argument is not a callback
-      query = cb;
-      cb = null;
+      query = first;
+    } else {
+      cb = first;
+      query = second;
     }
 
     if (!query) {

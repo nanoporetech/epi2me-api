@@ -50,7 +50,7 @@ export default class EPI2ME {
       };
     }
 
-    this._stats = {
+    this.states = {
       upload: {
         success: 0,
         failure: {},
@@ -77,7 +77,7 @@ export default class EPI2ME {
         inputQueueName: null,
         outputQueueName: null,
         outputQueueURL: null,
-        _discoverQueueCache: {},
+        discoverQueueCache: {},
         bucket: null,
         bucketFolder: null,
         remote_addr: null,
@@ -105,22 +105,22 @@ export default class EPI2ME {
   async stop_everything(cb) {
     this.log.debug('stopping watchers');
 
-    if (this._downloadCheckInterval) {
-      this.log.debug('clearing _downloadCheckInterval interval');
-      clearInterval(this._downloadCheckInterval);
-      this._downloadCheckInterval = null;
+    if (this.downloadCheckInterval) {
+      this.log.debug('clearing downloadCheckInterval interval');
+      clearInterval(this.downloadCheckInterval);
+      this.downloadCheckInterval = null;
     }
 
-    if (this._stateCheckInterval) {
+    if (this.stateCheckInterval) {
       this.log.debug('clearing stateCheckInterval interval');
-      clearInterval(this._stateCheckInterval);
-      this._stateCheckInterval = null;
+      clearInterval(this.stateCheckInterval);
+      this.stateCheckInterval = null;
     }
 
-    if (this._fileCheckInterval) {
-      this.log.debug('clearing _fileCheckInterval interval');
-      clearInterval(this._fileCheckInterval);
-      this._fileCheckInterval = null;
+    if (this.fileCheckInterval) {
+      this.log.debug('clearing fileCheckInterval interval');
+      clearInterval(this.fileCheckInterval);
+      this.fileCheckInterval = null;
     }
 
     if (this.uploadWorkerPool) {
@@ -150,7 +150,7 @@ export default class EPI2ME {
       return Promise.resolve(); // resolve or reject? Throttle to n=1: bail out if there's already a job queued
     }
 
-    if (!this._stats.sts_expiration || (this._stats.sts_expiration && this._stats.sts_expiration <= Date.now())) {
+    if (!this.states.sts_expiration || (this.states.sts_expiration && this.states.sts_expiration <= Date.now())) {
       /* Ignore if session is still valid */
 
       /* queue a request for a new session token and hope it comes back in under this.config.options.sessionGrace time */
@@ -174,7 +174,7 @@ export default class EPI2ME {
       return Promise.reject(new Error('must specify id_workflow_instance'));
     }
 
-    if (this._stats.sts_expiration && this._stats.sts_expiration > Date.now()) {
+    if (this.states.sts_expiration && this.states.sts_expiration > Date.now()) {
       /* escape if session is still valid */
       return Promise.resolve();
     }
@@ -184,7 +184,7 @@ export default class EPI2ME {
     try {
       const token = await this.REST.instance_token(this.config.instance.id_workflow_instance);
       this.log.debug(`allocated new instance token expiring at ${token.expiration}`);
-      this._stats.sts_expiration = new Date(token.expiration).getTime() - 60 * this.config.options.sessionGrace; // refresh token x mins before it expires
+      this.states.sts_expiration = new Date(token.expiration).getTime() - 60 * this.config.options.sessionGrace; // refresh token x mins before it expires
       // "classic" token mode no longer supported
 
       if (this.config.options.proxy) {
@@ -319,17 +319,17 @@ export default class EPI2ME {
       }
     });
 
-    this._uploadedFiles = []; // container for files that have been successfully uploaded, but failed to move
+    this.uploadedFiles = []; // container for files that have been successfully uploaded, but failed to move
     if (autoStartCb) autoStartCb(null, this.config.instance);
 
     // MC-2068 - Don't use an interval.
-    this._downloadCheckInterval = setInterval(
+    this.downloadCheckInterval = setInterval(
       this.loadAvailableDownloadMessages.bind(this),
       this.config.options.downloadCheckInterval * 1000,
     );
 
     // MC-1795 - stop workflow when instance has been stopped remotely
-    this._stateCheckInterval = setInterval(() => {
+    this.stateCheckInterval = setInterval(() => {
       this.REST.workflow_instance(this.config.instance.id_workflow_instance, (instanceError, instanceObj) => {
         if (instanceError) {
           this.log.warn(
@@ -353,10 +353,7 @@ export default class EPI2ME {
 
     // MC-5418: ensure that the session has been established before starting the upload
     this.loadUploadFiles(); // Trigger once at workflow instance start
-    this._fileCheckInterval = setInterval(
-      this.loadUploadFiles.bind(this),
-      this.config.options.fileCheckInterval * 1000,
-    );
+    this.fileCheckInterval = setInterval(this.loadUploadFiles.bind(this), this.config.options.fileCheckInterval * 1000);
     return Promise.resolve();
   }
 
@@ -366,7 +363,7 @@ export default class EPI2ME {
       const len = await this.queueLength(queueURL);
 
       if (len !== undefined && len !== null) {
-        this._stats.download.queueLength = len;
+        this.states.download.queueLength = len;
 
         if (len > 0) {
           /* only process downloads if there are downloads to process */
@@ -378,8 +375,8 @@ export default class EPI2ME {
       this.log.debug('no downloads available');
     } catch (err) {
       this.log.warn(err);
-      if (!this._stats.download.failure) this._stats.download.failure = {};
-      this._stats.download.failure[err] = this._stats.download.failure[err] ? this._stats.download.failure[err] + 1 : 1;
+      if (!this.states.download.failure) this.states.download.failure = {};
+      this.states.download.failure[err] = this.states.download.failure[err] ? this.states.download.failure[err] + 1 : 1;
     }
 
     return Promise.resolve();
@@ -411,8 +408,8 @@ export default class EPI2ME {
         .promise();
     } catch (receiveMessageException) {
       this.log.error(`receiveMessage exception: ${String(receiveMessageException)}`);
-      this._stats.download.failure[receiveMessageException] = this._stats.download.failure[receiveMessageException]
-        ? this._stats.download.failure[receiveMessageException] + 1
+      this.states.download.failure[receiveMessageException] = this.states.download.failure[receiveMessageException]
+        ? this.states.download.failure[receiveMessageException] + 1
         : 1;
       return Promise.reject(receiveMessageException);
     }
@@ -433,82 +430,78 @@ export default class EPI2ME {
     const remaining = this.inputBatchQueue ? this.inputBatchQueue.remaining : 0;
 
     // if remaining > 0, there are still files in the inputBatchQueue
-    if (!this._dirScanInProgress && remaining === 0) {
+    if (!this.dirScanInProgress && remaining === 0) {
       this.log.debug(`loadUploadFiles: ${remaining} batches in the inputBatchQueue`);
-      this._dirScanInProgress = true;
+      this.dirScanInProgress = true;
       this.log.debug('scanning input folder for new files');
       utils
         .loadInputFiles(this.config.options, this.log)
         .then(async files => {
-          this._dirScanInProgress = false;
+          this.dirScanInProgress = false;
           await this.enqueueUploadFiles(files);
         })
         .catch(err => {
-          this._dirScanInProgress = false;
+          this.dirScanInProgress = false;
           this.log.error(err);
         });
     }
   }
 
-  enqueueUploadFiles(files) {
+  async enqueueUploadFiles(files) {
     let maxFiles = 0;
-
     let maxFileSize = 0;
-
     let settings = {};
-
     let msg;
-
-    let attrs = {};
 
     if (!_.isArray(files) || !files.length) return;
 
-    if (this.config.hasOwnProperty('workflow')) {
-      if (this.config.workflow.hasOwnProperty('workflow_attributes')) {
+    if ('workflow' in this.config) {
+      if ('workflow_attributes' in this.config.workflow) {
         // started from GUI agent
         settings = this.config.workflow.workflow_attributes;
-      } else {
+      } else if ('attributes' in this.config.workflow) {
         // started from CLI
-        if (this.config.workflow.hasOwnProperty('attributes')) {
-          attrs = this.config.workflow.attributes;
-          if (attrs.hasOwnProperty('epi2me:max_size')) {
-            settings.max_size = parseInt(attrs['epi2me:max_size'], 10);
-          }
-          if (attrs.hasOwnProperty('epi2me:max_files')) {
-            settings.max_files = parseInt(attrs['epi2me:max_files'], 10);
-          }
-          if (attrs.hasOwnProperty('epi2me:category')) {
-            const epi2me_category = attrs['epi2me:category'];
-            if (epi2me_category.includes('storage')) {
-              settings.requires_storage = true;
-            }
+        const { attributes: attrs } = this.config.workflow.attributes;
+
+        if ('epi2me:max_size' in attrs) {
+          settings.max_size = parseInt(attrs['epi2me:max_size'], 10);
+        }
+
+        if ('epi2me:max_files' in attrs) {
+          settings.max_files = parseInt(attrs['epi2me:max_files'], 10);
+        }
+
+        if ('epi2me:category' in attrs) {
+          const epi2me_category = attrs['epi2me:category'];
+          if (epi2me_category.includes('storage')) {
+            settings.requires_storage = true;
           }
         }
       }
     }
-    if (settings.hasOwnProperty('requires_storage')) {
+    if ('requires_storage' in settings) {
       if (settings.requires_storage) {
-        if (!this.config.workflow.hasOwnProperty('storage_account')) {
+        if (!('storage_account' in this.config.workflow)) {
           msg = 'ERROR: Workflow requires storage enabled. Please provide a valid storage account [ --storage ].';
           this.log.error(msg);
-          this._stats.warnings.push(msg);
+          this.states.warnings.push(msg);
           return;
         }
       }
     }
 
-    if (settings.hasOwnProperty('max_size')) {
+    if ('max_size' in settings) {
       maxFileSize = parseInt(settings.max_size, 10);
     }
 
-    if (settings.hasOwnProperty('max_files')) {
+    if ('max_files' in settings) {
       maxFiles = parseInt(settings.max_files, 10);
       if (files.length > maxFiles) {
         msg = `ERROR: ${
           files.length
         } files found. Workflow can only accept ${maxFiles}. Please move the extra files away.`;
         this.log.error(msg);
-        this._stats.warnings.push(msg);
+        this.states.warnings.push(msg);
         return;
       }
     }
@@ -517,8 +510,8 @@ export default class EPI2ME {
     this.inputBatchQueue = [];
     this.inputBatchQueue.remaining = 0;
 
-    this._stats.upload.filesCount = this._stats.upload.filesCount
-      ? this._stats.upload.filesCount + files.length
+    this.states.upload.filesCount = this.states.upload.filesCount
+      ? this.states.upload.filesCount + files.length
       : files.length;
 
     if (this.config.options.filetype === '.fastq' || this.config.options.filetype === '.fq') {
@@ -527,25 +520,28 @@ export default class EPI2ME {
         const statP = [];
         this.log.debug('enqueueUploadFiles.countFileReads: counting FASTQ reads per file');
 
-        files.forEach(file => {
-          if (maxFiles && this._stats.upload.filesCount > maxFiles) {
+        files.forEach(fileIn => {
+          const file = fileIn;
+
+          if (maxFiles && this.states.upload.filesCount > maxFiles) {
             msg = `Maximum ${maxFiles} file(s) already uploaded. Moving ${file.name} into skip folder`;
             this.log.error(msg);
-            this._stats.warnings.push(msg);
-            this._stats.upload.filesCount -= 1;
+            this.states.warnings.push(msg);
+            this.states.upload.filesCount -= 1;
             file.skip = 'SKIP_TOO_MANY';
             uploadWorkerPool.push(this.uploadJob(file));
             return;
           }
+
           if (maxFileSize && file.size > maxFileSize) {
             msg = `${file.name} is over ${maxFileSize
               .toString()
               .replace(/\B(?=(\d{3})+(?!\d))/g, ',')}. Moving into skip folder`;
             file.skip = 'SKIP_TOO_BIG';
-            this._stats.upload.filesCount -= 1;
+            this.states.upload.filesCount -= 1;
 
             this.log.error(msg);
-            this._stats.warnings.push(msg);
+            this.states.warnings.push(msg);
             uploadWorkerPool.push(this.uploadJob(file));
             return;
           }
@@ -555,9 +551,9 @@ export default class EPI2ME {
               .countFileReads(file.path)
               .then(count => {
                 file.readCount = count;
-                this._stats.upload.enqueued += count;
-                this._stats.upload.readsCount = this._stats.upload.readsCount
-                  ? this._stats.upload.readsCount + count
+                this.states.upload.enqueued += count;
+                this.states.upload.readsCount = this.states.upload.readsCount
+                  ? this.states.upload.readsCount + count
                   : count;
                 uploadWorkerPool.push(this.uploadJob(file));
               })
@@ -568,7 +564,7 @@ export default class EPI2ME {
         });
 
         await Promise.all(statP).then(async () => {
-          this.log.debug(`enqueueUploadFiles.enqueued: ${this._stats.upload.enqueued}`);
+          this.log.debug(`enqueueUploadFiles.enqueued: ${this.states.upload.enqueued}`);
           await Promise.all(uploadWorkerPool).catch(err => {
             this.log.error(`uploadWorkerPool (fastq) exception ${String(err)}`);
           });
@@ -577,21 +573,23 @@ export default class EPI2ME {
       });
       this.inputBatchQueue.remaining += 1;
     } else {
-      this._stats.upload.enqueued += files.length;
-      this.inputBatchQueue = files.map(item => {
-        if (maxFiles && this._stats.upload.filesCount > maxFiles) {
+      this.states.upload.enqueued += files.length;
+      this.inputBatchQueue = files.map(itemIn => {
+        const item = itemIn;
+
+        if (maxFiles && this.states.upload.filesCount > maxFiles) {
           msg = `Maximum ${maxFiles} file(s) already uploaded. Moving ${item.name} into skip folder`;
           this.log.error(msg);
-          this._stats.warnings.push(msg);
-          this._stats.upload.filesCount -= 1;
+          this.states.warnings.push(msg);
+          this.states.upload.filesCount -= 1;
           item.skip = 'SKIP_TOO_MANY';
         } else if (maxFileSize && item.size > maxFileSize) {
           msg = `${item.name} is over ${maxFileSize
             .toString()
             .replace(/\B(?=(\d{3})+(?!\d))/g, ',')}. Moving into skip folder`;
           this.log.error(msg);
-          this._stats.warnings.push(msg);
-          this._stats.upload.filesCount -= 1;
+          this.states.warnings.push(msg);
+          this.states.upload.filesCount -= 1;
           item.skip = 'SKIP_TOO_BIG';
         }
 
@@ -603,14 +601,13 @@ export default class EPI2ME {
     }
 
     // should this await Promise.all() ?
-    return Promise.all(this.inputBatchQueue)
-      .then(() => {
-        this.log.info('inputBatchQueue slot released. trigger loadUploadFiles');
-        return this.loadUploadFiles(); // immediately load more files
-      })
-      .catch(err => {
-        this.log.error(`enqueueUploadFiles exception ${String(err)}`);
-      });
+    try {
+      await Promise.all(this.inputBatchQueue);
+      this.log.info('inputBatchQueue slot released. trigger loadUploadFiles');
+      this.loadUploadFiles(); // immediately load more files
+    } catch (err) {
+      this.log.error(`enqueueUploadFiles exception ${String(err)}`);
+    }
   }
 
   async uploadJob(file) {
@@ -621,12 +618,12 @@ export default class EPI2ME {
       this.log.error(`${file.id} could not stringify fileObject!`);
     } // ignore
 
-    if (file.hasOwnProperty('skip')) {
+    if ('skip' in file) {
       const readCount = file.readCount || 1;
-      this._stats.upload.enqueued = this._stats.upload.enqueued - readCount;
-      this._stats.upload.queueLength = this._stats.upload.queueLength ? this._stats.upload.queueLength - readCount : 0;
+      this.states.upload.enqueued = this.states.upload.enqueued - readCount;
+      this.states.upload.queueLength = this.states.upload.queueLength ? this.states.upload.queueLength - readCount : 0;
       try {
-        await this._moveFile(file, 'skip');
+        await this.moveFile(file, 'skip');
       } catch (e) {
         return Promise.reject(e);
       }
@@ -634,32 +631,32 @@ export default class EPI2ME {
     }
 
     const p = new Promise(resolve => {
-      this.uploadHandler(file, (errorMsg, file) => {
+      this.uploadHandler(file, (errorMsg, file2) => {
         if (errorMsg) {
-          this.log.info(`${file.id} done, but failed: ${String(errorMsg)}`);
+          this.log.info(`${file2.id} done, but failed: ${String(errorMsg)}`);
         } else {
-          this.log.info(`${file.id} completely done. releasing uploadWorkerPool queue slot`);
+          this.log.info(`${file2.id} completely done. releasing uploadWorkerPool queue slot`);
         }
 
         resolve(); // Release uploadWorkerPool queue slot
 
-        const readCount = file.readCount || 1;
-        this._stats.upload.enqueued = this._stats.upload.enqueued - readCount;
+        const readCount = file2.readCount || 1;
+        this.states.upload.enqueued = this.states.upload.enqueued - readCount;
 
         if (errorMsg) {
           this.log.error(`uploadHandler ${errorMsg}`);
-          if (!this._stats.upload.failure) {
-            this._stats.upload.failure = {};
+          if (!this.states.upload.failure) {
+            this.states.upload.failure = {};
           }
 
-          this._stats.upload.failure[errorMsg] = this._stats.upload.failure[errorMsg]
-            ? this._stats.upload.failure[errorMsg] + 1
+          this.states.upload.failure[errorMsg] = this.states.upload.failure[errorMsg]
+            ? this.states.upload.failure[errorMsg] + 1
             : 1;
         } else {
-          this._stats.upload.queueLength = this._stats.upload.queueLength
-            ? this._stats.upload.queueLength - readCount
+          this.states.upload.queueLength = this.states.upload.queueLength
+            ? this.states.upload.queueLength - readCount
             : 0;
-          this._stats.upload.success = this._stats.upload.success ? this._stats.upload.success + readCount : readCount;
+          this.states.upload.success = this.states.upload.success ? this.states.upload.success + readCount : readCount;
         }
       });
     });
@@ -703,7 +700,7 @@ export default class EPI2ME {
     });
 
     this.log.info(`downloader queued ${receiveMessages.Messages.length} files for download`);
-    return Promise.all(this.downloadWorkerPool); // would awaiting here control parallelism better?
+    return Promise.all(this.downloadWorkerPool); // does awaiting here control parallelism better?
   }
 
   async deleteMessage(message) {
@@ -718,13 +715,13 @@ export default class EPI2ME {
         .promise();
     } catch (error) {
       this.log.error(`deleteMessage exception: ${String(error)}`);
-      this._stats.download.failure[error] = this._stats.download.failure[error]
-        ? this._stats.download.failure[error] + 1
+      this.states.download.failure[error] = this.states.download.failure[error]
+        ? this.states.download.failure[error] + 1
         : 1;
     }
   }
 
-  processMessage(message, completeCb) {
+  async processMessage(message, completeCb) {
     let messageBody;
     let folder;
     let s3;
@@ -764,36 +761,34 @@ export default class EPI2ME {
 
     /* MC-405 telemetry log to file */
     if (messageBody.telemetry) {
-      const telemetry = messageBody.telemetry;
+      const { telemetry } = messageBody;
+
       if (telemetry.tm_path) {
-        this.sessionedS3().getObject(
-          {
-            Bucket: messageBody.bucket,
-            Key: telemetry.tm_path,
-          },
-          (err, data) => {
-            if (err) {
-              this.log.error(`Could not fetch telemetry JSON: ${err.message}`);
-              writeTelemetry(telemetry);
-            } else {
-              telemetry.batch = data.Body.toString('utf-8')
-                .split('\n')
-                .filter(d => d && d.length > 0)
-                .map(row => {
-                  try {
-                    return JSON.parse(row);
-                  } catch (e) {
-                    this.log.error(`Telemetry Batch JSON Parse error: ${e.message}`);
-                    return row;
-                  }
-                });
-              writeTelemetry(telemetry);
-            }
-          },
-        );
-      } else {
-        writeTelemetry(telemetry);
+        try {
+          const data = await this.sessionedS3()
+            .getObject({
+              Bucket: messageBody.bucket,
+              Key: telemetry.tm_path,
+            })
+            .promise();
+
+          telemetry.batch = data.Body.toString('utf-8')
+            .split('\n')
+            .filter(d => d && d.length > 0)
+            .map(row => {
+              try {
+                return JSON.parse(row);
+              } catch (e) {
+                this.log.error(`Telemetry Batch JSON Parse error: ${e.message}`);
+                return row;
+              }
+            });
+        } catch (err) {
+          this.log.error(`Could not fetch telemetry JSON: ${err.message}`);
+        }
       }
+
+      writeTelemetry(telemetry);
     }
 
     if (!messageBody.path) {
@@ -833,7 +828,7 @@ export default class EPI2ME {
       this.log.info(`downloading ${messageBody.path} to ${outputFile}`);
 
       s3 = this.sessionedS3();
-      this._initiateDownloadStream(s3, messageBody, message, outputFile, completeCb);
+      this.initiateDownloadStream(s3, messageBody, message, outputFile, completeCb);
     } else if (this.config.options.downloadMode === 'telemetry') {
       /* skip download - only interested in telemetry */
       this.deleteMessage(message);
@@ -843,8 +838,8 @@ export default class EPI2ME {
           ? messageBody.telemetry.batch_summary.reads_num
           : 1;
 
-      this._stats.download.success = this._stats.download.success
-        ? this._stats.download.success + readCount
+      this.states.download.success = this.states.download.success
+        ? this.states.download.success + readCount
         : readCount; // hmm. not exactly "download", these
 
       /* must signal completion */
@@ -852,7 +847,7 @@ export default class EPI2ME {
     }
   }
 
-  _initiateDownloadStream(s3, messageBody, message, outputFile, completeCb) {
+  initiateDownloadStream(s3, messageBody, message, outputFile, completeCb) {
     let file;
     let transferTimeout;
     let visibilityInterval;
@@ -883,9 +878,9 @@ export default class EPI2ME {
     };
 
     const onStreamError = () => {
-      if (!file._networkStreamError) {
+      if (!file.networkStreamError) {
         try {
-          file._networkStreamError = 1; /* MC-1953 - signal the file end of the pipe this the network end of the pipe failed */
+          file.networkStreamError = 1; /* MC-1953 - signal the file end of the pipe this the network end of the pipe failed */
           file.close();
           deleteFile();
           if (rs.destroy) {
@@ -923,7 +918,7 @@ export default class EPI2ME {
 
       /* track request/response bytes expected
             req.on('httpHeaders', (status, headers, response) => {
-                this._stats.download.totalBytes += parseInt(headers['content-length']);
+                this.states.download.totalBytes += parseInt(headers['content-length']);
             });
             */
 
@@ -944,7 +939,7 @@ export default class EPI2ME {
     });
 
     file.on('finish', async () => {
-      if (!file._networkStreamError) {
+      if (!file.networkStreamError) {
         // SUCCESS
         this.log.debug(`downloaded ${outputFile}`);
 
@@ -953,34 +948,34 @@ export default class EPI2ME {
             ? messageBody.telemetry.batch_summary.reads_num
             : 1;
 
-        if (!this._stats.download.success) {
-          this._stats.download.success = readCount;
+        if (!this.states.download.success) {
+          this.states.download.success = readCount;
         } else {
-          this._stats.download.success += readCount;
+          this.states.download.success += readCount;
         }
 
         // MC-1993 - store total size of downloaded files
         try {
           const stats = await fs.stat(outputFile);
-          this._stats.download.totalSize += stats.size;
+          this.states.download.totalSize += stats.size;
         } catch (err) {
           this.log.warn(`failed to stat file: ${String(err)}`);
         }
 
         try {
           const logStats = () => {
-            this.log.info(`Uploads: ${JSON.stringify(this._stats.upload)}`);
-            this.log.info(`Downloads: ${JSON.stringify(this._stats.download)}`);
+            this.log.info(`Uploads: ${JSON.stringify(this.states.upload)}`);
+            this.log.info(`Downloads: ${JSON.stringify(this.states.download)}`);
           };
 
           if (this.config.options.filetype === '.fastq' || this.config.options.filetype === '.fq') {
             // files may be appended, so can't increment the totalSize
-            if (!this._downloadedFileSizes) this._downloadedFileSizes = {};
+            if (!this.downloadedFileSizes) this.downloadedFileSizes = {};
 
             try {
               const stats = await fs.stat(outputFile);
-              this._downloadedFileSizes[outputFile] = stats.size || 0;
-              this._stats.download.totalSize = _.chain(this._downloadedFileSizes)
+              this.downloadedFileSizes[outputFile] = stats.size || 0;
+              this.states.download.totalSize = _.chain(this.downloadedFileSizes)
                 .values()
                 .sum()
                 .value();
@@ -991,7 +986,7 @@ export default class EPI2ME {
           } else {
             try {
               const stats = await utils.getFileSize(outputFile);
-              this._stats.download.totalSize += stats.size || 0;
+              this.states.download.totalSize += stats.size || 0;
               logStats();
             } catch (err) {
               this.log.error(`finish, getFileSize (other) ${String(err)}`);
@@ -1000,10 +995,10 @@ export default class EPI2ME {
 
           // MC-2540 : if there is some postprocessing to do( e.g fastq extraction) - call the dataCallback
           // dataCallback might depend on the exit_status ( e.g. fastq can only be extracted from successful reads )
-          const exit_status =
+          const exitStatus =
             messageBody.telemetry && messageBody.telemetry.json ? messageBody.telemetry.json.exit_status : false;
-          if (exit_status && this.config.options.dataCb) {
-            this.config.options.dataCb(outputFile, exit_status);
+          if (exitStatus && this.config.options.dataCb) {
+            this.config.options.dataCb(outputFile, exitStatus);
           }
         } catch (err) {
           this.log.warn(`failed to fs.stat file: ${err}`);
@@ -1082,15 +1077,10 @@ export default class EPI2ME {
     const s3 = this.sessionedS3();
 
     let rs;
-
     const batch = file.batch || '';
-
     const fileId = path.join(this.config.options.inputFolder, batch, file.name);
-
     const objectId = `${this.config.instance.bucketFolder}/component-0/${file.name}/${file.name}`;
-
     let timeoutHandle;
-
     let completed = false;
 
     const done = err => {
@@ -1174,8 +1164,8 @@ export default class EPI2ME {
   }
 
   async discoverQueue(queueName) {
-    if (this.config.instance._discoverQueueCache[queueName]) {
-      return this.config.instance._discoverQueueCache[queueName];
+    if (this.config.instance.discoverQueueCache[queueName]) {
+      return this.config.instance.discoverQueueCache[queueName];
     }
 
     this.log.debug(`discovering queue for ${queueName}`);
@@ -1185,12 +1175,12 @@ export default class EPI2ME {
       const getQueue = await sqs.getQueueUrl({ QueueName: queueName }).promise();
 
       this.log.debug(`found queue ${getQueue.QueueUrl}`);
-      this.config.instance._discoverQueueCache[queueName] = getQueue.QueueUrl;
+      this.config.instance.discoverQueueCache[queueName] = getQueue.QueueUrl;
 
       return getQueue.QueueUrl;
     } catch (e) {
       this.log.error(`failed to find queue for ${queueName}: ${String(e)}`);
-      return Promise.reject(`failed to find queue for ${queueName}: ${String(e)}`);
+      return Promise.reject(e);
     }
   }
 
@@ -1265,7 +1255,7 @@ export default class EPI2ME {
     this.log.info(`${file.id} SQS message sent. Move to uploaded`);
 
     try {
-      await this._moveFile(file, 'upload');
+      await this.moveFile(file, 'upload');
     } catch (e) {
       return Promise.reject(e);
     }
@@ -1273,7 +1263,7 @@ export default class EPI2ME {
     // success
   }
 
-  async _moveFile(file, type) {
+  async moveFile(file, type) {
     const moveTo = type === 'upload' ? this.uploadTo : this.skipTo;
     const fileName = file.name;
     const fileBatch = file.batch || '';
@@ -1287,9 +1277,9 @@ export default class EPI2ME {
       this.log.debug(`${file.id}: ${type} and mv done`);
 
       if (type === 'upload') {
-        this._stats.upload.totalSize += file.size;
+        this.states.upload.totalSize += file.size;
       }
-      this._uploadedFiles.push(fileName); // flag as uploaded to prevent multiple uploads
+      this.uploadedFiles.push(fileName); // flag as uploaded to prevent multiple uploads
     } catch (moveError) {
       this.log.debug(`${file.id} ${type} move error: ${String(moveError)}`);
 
@@ -1306,26 +1296,25 @@ export default class EPI2ME {
   async queueLength(queueURL) {
     if (!queueURL) return;
 
-    const sqs = this.sessionedSQS();
-    const queuename = queueURL.match(/([\w\-_]+)$/)[0];
-    this.log.debug(`querying queue length of ${queuename}`);
+    const queueName = queueURL.match(/([\w\-_]+)$/)[0];
+    this.log.debug(`querying queue length of ${queueName}`);
 
     try {
-      const attrs = await sqs
+      const attrs = await this.sessionedSQS()
         .getQueueAttributes({
           QueueUrl: queueURL,
           AttributeNames: ['ApproximateNumberOfMessages'],
         })
         .promise();
 
-      if (attrs && attrs.Attributes && attrs.Attributes.hasOwnProperty('ApproximateNumberOfMessages')) {
+      if (attrs && attrs.Attributes && 'ApproximateNumberOfMessages' in attrs.Attributes) {
         let len = attrs.Attributes.ApproximateNumberOfMessages;
-        len = isNaN(len) ? 0 : parseInt(len, 10);
-        return len;
+        len = parseInt(len, 10) || 0;
+        return Promise.resolve(len);
       }
-    } catch (getQueueAttrException) {
-      this.log.error(`error in getQueueAttributes ${String(getQueueAttrException)}`);
-      return Promise.reject(getQueueAttrException);
+    } catch (err) {
+      this.log.error(`error in getQueueAttributes ${String(err)}`);
+      return Promise.reject(err);
     }
   }
 
@@ -1338,7 +1327,7 @@ export default class EPI2ME {
   }
 
   attr(key, value) {
-    if (this.config.options.hasOwnProperty(key)) {
+    if (key in this.config.options) {
       if (value) {
         this.config.options[key] = value;
       } else {
@@ -1351,15 +1340,14 @@ export default class EPI2ME {
   }
 
   stats(key) {
-    if (this._stats[key]) {
-      this._stats[key].queueLength = isNaN(this._stats[key].queueLength) ? 0 : this._stats[key].queueLength; // a little housekeeping
+    if (this.states[key]) {
+      this.states[key].queueLength = parseInt(this.states[key].queueLength, 10) || 0; // a little housekeeping
       // 'total' is the most up-to-date measure of the total number of reads to be uploaded
-      if (key === 'upload' && this._uploadedFiles && this._stats.upload) {
-        this._stats.upload.total =
-          this._uploadedFiles.length + this._stats.upload.enqueued + this._stats.upload.success;
+      if (key === 'upload' && this.uploadedFiles && this.states.upload) {
+        this.states.upload.total = this.uploadedFiles.length + this.states.upload.enqueued + this.states.upload.success;
       }
     }
-    return this._stats[key];
+    return this.states[key];
   }
 }
 

@@ -40,7 +40,7 @@ describe('epi2me.discoverQueue', () => {
 
   it('discovers with cache hit', async () => {
     const client = clientFactory();
-    client.config.instance._discoverQueueCache.my_queue = 'https://my.cloud/queues/my_queue';
+    client.config.instance.discoverQueueCache.my_queue = 'https://my.cloud/queues/my_queue';
 
     sinon.stub(client, 'sessionedSQS').callsFake(() => ({
       getQueueUrl: () => ({

@@ -99,7 +99,7 @@ describe('epi2me.uploadComplete', () => {
       };
     });
 
-    let moveFile = sinon.stub(client, '_moveFile').callsFake((file, type) => {
+    let moveFile = sinon.stub(client, 'moveFile').callsFake((file, type) => {
       assert.deepEqual(file, { id: 'my-file' }, 'object metadata');
       return Promise.resolve();
     });
@@ -124,7 +124,7 @@ describe('epi2me.uploadComplete', () => {
     });
     sinon.stub(sqs, 'sendMessage').resolves();
 
-    let moveFile = sinon.stub(client, '_moveFile').resolves();
+    let moveFile = sinon.stub(client, 'moveFile').resolves();
 
     client.config.instance.chain = {}; // components undefined
 
@@ -177,7 +177,7 @@ describe('epi2me.uploadComplete', () => {
       };
     });
 
-    let moveFile = sinon.stub(client, '_moveFile').resolves();
+    let moveFile = sinon.stub(client, 'moveFile').resolves();
 
     client.config.instance.chain = { components: [], targetComponentId: 1 };
     client.config.instance.key_id = 'data-secret';
@@ -226,7 +226,7 @@ describe('epi2me.uploadComplete', () => {
       };
     });
 
-    let moveFile = sinon.stub(client, '_moveFile').resolves();
+    let moveFile = sinon.stub(client, 'moveFile').resolves();
 
     client.config.instance.chain = { components: [], targetComponentId: 1 };
     client.config.instance.key_id = 'data-secret';
@@ -263,7 +263,7 @@ describe('epi2me.uploadComplete', () => {
         },
       };
     });
-    let moveFile = sinon.stub(client, '_moveFile').resolves();
+    let moveFile = sinon.stub(client, 'moveFile').resolves();
 
     client.uploadMessageQueue = 'upload-q';
     client.downloadMessageQueue = 'download-q';

@@ -33,8 +33,8 @@ describe('epi2me.queueLength', () => {
     try {
       const len = await client.queueLength(queueUrl);
       assert.equal(len, 10, 'expected length');
-    } catch (e) {
-      assert.fail(e);
+    } catch (err) {
+      assert.fail(err);
     }
   });
 
@@ -48,13 +48,11 @@ describe('epi2me.queueLength', () => {
       };
     });
 
-    let err;
     try {
-      await client.queueLength(queueUrl);
-    } catch (e) {
-      err = e;
+      const len = await client.queueLength(queueUrl);
+      assert.fail('unexpected success');
+    } catch (err) {
+      assert(String(err).match(/getQueueAttributes failure/), 'error propagated');
     }
-
-    assert(String(err).match(/getQueueAttributes failure/), 'error propagated');
   });
 });

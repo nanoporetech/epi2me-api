@@ -8,7 +8,7 @@ import utils from '../../src/utils';
 import EPI2ME from '../../src/epi2me';
 
 // MC-1304 - test download streams
-describe('epi2me._initiateDownloadStream', () => {
+describe('epi2me.initiateDownloadStream', () => {
   let tmpfile;
   let tmpdir;
   let writeStream;
@@ -71,7 +71,7 @@ describe('epi2me._initiateDownloadStream', () => {
     const s3 = s3Mock(() => {
       throw 'Error';
     });
-    client._initiateDownloadStream(s3, {}, {}, tmpfile.name, () => {
+    client.initiateDownloadStream(s3, {}, {}, tmpfile.name, () => {
       assert(client.log.error.calledOnce, 'should log error message');
       done();
     });
@@ -91,14 +91,14 @@ describe('epi2me._initiateDownloadStream', () => {
                 return readStream;
             });
 
-//		client._stats.download.success = 1; // required for recent min(download,upload) fudge?
-        client._initiateDownloadStream(s3, {}, msg, tmpfile.name, () => {
+//		client.states.download.success = 1; // required for recent min(download,upload) fudge?
+        client.initiateDownloadStream(s3, {}, msg, tmpfile.name, () => {
 //                    assert.equal(readStream.destroyed, true, "should destroy the read stream"); // fails on node > 2.2.1
 //                    assert(client.deleteMessage.calledWith(msg), "should delete sqs message on success"); // fails on node > 2.2.1
 	    console.log(client.log);
             assert(client.log.error.notCalled, "should not throw exception");
             assert(client.log.warn.notCalled, "should not throw warning");
-            //assert.equal(client._stats.download.success, 1, "should count as download success");
+            //assert.equal(client.states.download.success, 1, "should count as download success");
             done();
         });
     });
@@ -121,14 +121,14 @@ describe('epi2me._initiateDownloadStream', () => {
 
     filename = path.join(tmpdir.name, 'tmpfile.txt');
 
-    client._initiateDownloadStream(s3, {}, {}, filename, () => {
+    client.initiateDownloadStream(s3, {}, {}, filename, () => {
       // assert.equal(readStream.destroyed, true, "should destroy the read stream"); // fails on node > 2.2.1
       assert(client.deleteMessage.notCalled, 'should not delete sqs message on error');
-      assert.equal(client._stats.download.success, 0, 'should not count as download success on error');
+      assert.equal(client.states.download.success, 0, 'should not count as download success on error');
       done();
     });
 
-    assert.equal(client._stats.download.success, 0);
+    assert.equal(client.states.download.success, 0);
   });
 
   it('should handle write stream errors', done => {
@@ -146,10 +146,10 @@ describe('epi2me._initiateDownloadStream', () => {
 
     filename = path.join(tmpdir.name, 'tmpfile2.txt');
 
-    client._initiateDownloadStream(s3, {}, {}, filename, () => {
+    client.initiateDownloadStream(s3, {}, {}, filename, () => {
       // assert.equal(readStream.destroyed, true, "should destroy the read stream"); // fails on node > 2.2.1
       assert(client.deleteMessage.notCalled, 'should not delete sqs message on error');
-      assert.equal(client._stats.download.success, 0, 'should not count as download success on error');
+      assert.equal(client.states.download.success, 0, 'should not count as download success on error');
       done();
     });
 
@@ -162,7 +162,7 @@ describe('epi2me._initiateDownloadStream', () => {
     const client = clientFactory({});
 
     assert.doesNotThrow(() => {
-      client._initiateDownloadStream(s3Mock(() => {}), {}, {}, null, done);
+      client.initiateDownloadStream(s3Mock(() => {}), {}, {}, null, done);
     });
   });
 
@@ -185,10 +185,10 @@ describe('epi2me._initiateDownloadStream', () => {
 
     filename = path.join(tmpdir.name, 'tmpfile.txt');
 
-    client._initiateDownloadStream(s3, {}, {}, filename, () => {
+    client.initiateDownloadStream(s3, {}, {}, filename, () => {
       // assert(readStream.destroyed, "should destroy the read stream"); // fails on node > 2.2.1
       assert(client.deleteMessage.notCalled, 'should not delete sqs message on error');
-      assert.equal(client._stats.download.success, 0, 'should not count as download success on error');
+      assert.equal(client.states.download.success, 0, 'should not count as download success on error');
       done();
     });
   });
