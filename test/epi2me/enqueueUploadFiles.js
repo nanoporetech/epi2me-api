@@ -1,11 +1,6 @@
 import assert from 'assert';
 import sinon from 'sinon';
-import bunyan from 'bunyan';
-import fs from 'fs-extra';
-import tmp from 'tmp';
-import path from 'path';
 import { merge } from 'lodash';
-import AWS from 'aws-sdk';
 import EPI2ME from '../../src/epi2me';
 
 describe('epi2me.enqueueUploadFiles', () => {
@@ -39,20 +34,24 @@ describe('epi2me.enqueueUploadFiles', () => {
     error = sinon.stub();
   });
 
-  it('should bail if arg is not an array', () => {
+  it('should bail if arg is not an array', async () => {
     const client = clientFactory();
-    assert.doesNotThrow(() => {
-      const result = client.enqueueUploadFiles({});
+    try {
+      const result = await client.enqueueUploadFiles({});
       assert.equal(result, undefined); // hate tests like this
-    });
+    } catch (err) {
+      assert.fail(err);
+    }
   });
 
-  it('should bail if array is empty', () => {
+  it('should bail if array is empty', async () => {
     const client = clientFactory();
-    assert.doesNotThrow(() => {
-      const result = client.enqueueUploadFiles([]);
+    try {
+      const result = await client.enqueueUploadFiles([]);
       assert.equal(result, undefined); // still hate tests like this
-    });
+    } catch (err) {
+      assert.fail(err);
+    }
   });
 
   it('should process', async () => {

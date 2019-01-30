@@ -139,7 +139,7 @@ describe('epi2me.deleteMessage', () => {
     }
 
     assert.ok(deleteMessage.notCalled, 'sqs.deleteMessage is not invoked if queue discovery fails');
-    assert.equal(client._stats.download.failure['could not connect'], 1, 'failure type counter set');
+    assert.equal(client.states.download.failure['could not connect'], 1, 'failure type counter set');
   });
 
   it('should invoke sqs.deleteMessage with discovery failure and counter increment', async () => {
@@ -154,7 +154,7 @@ describe('epi2me.deleteMessage', () => {
     const discoverQueue = sinon.stub(client, 'discoverQueue').rejects('could not connect');
     const deleteMessage = sinon.stub();
 
-    client._stats.download.failure['could not connect'] = 7;
+    client.states.download.failure['could not connect'] = 7;
 
     try {
       await client.deleteMessage({ message: 'test message', ReceiptHandle: 'abcd-1234' });
@@ -163,6 +163,6 @@ describe('epi2me.deleteMessage', () => {
     }
 
     assert.ok(deleteMessage.notCalled, 'sqs.deleteMessage is not invoked if queue discovery fails');
-    assert.equal(client._stats.download.failure['could not connect'], 8, 'failure type counter incremented');
+    assert.equal(client.states.download.failure['could not connect'], 8, 'failure type counter incremented');
   });
 });

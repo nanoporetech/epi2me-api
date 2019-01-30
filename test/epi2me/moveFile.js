@@ -8,7 +8,7 @@ import { merge } from 'lodash';
 import AWS from 'aws-sdk';
 import EPI2ME from '../../src/epi2me';
 
-describe('epi2me._moveFile', () => {
+describe('epi2me.moveFile', () => {
   let debug;
   let info;
   let warn;
@@ -45,8 +45,8 @@ describe('epi2me._moveFile', () => {
     let client = clientFactory({
       inputFolder: workingDir,
     });
-    client._uploadedFiles = [];
-    client._stats.upload.totalSize = 0;
+    client.uploadedFiles = [];
+    client.states.upload.totalSize = 0;
 
     let mkdirp = sinon.stub(fs, 'mkdirp').rejects(new Error('mkdirp failed'));
     let file = {
@@ -59,7 +59,7 @@ describe('epi2me._moveFile', () => {
 
     let err;
     try {
-      await client._moveFile(file, 'upload');
+      await client.moveFile(file, 'upload');
     } catch (e) {
       err = e;
     }
@@ -75,8 +75,8 @@ describe('epi2me._moveFile', () => {
     let client = clientFactory({
       inputFolder: workingDir,
     });
-    client._uploadedFiles = [];
-    client._stats.upload.totalSize = 0;
+    client.uploadedFiles = [];
+    client.states.upload.totalSize = 0;
 
     let remove = sinon.stub(fs, 'remove').rejects(new Error('failed to remove'));
     let mkdirp = sinon.stub(fs, 'mkdirp').rejects(new Error('mkdirp failed'));
@@ -91,7 +91,7 @@ describe('epi2me._moveFile', () => {
 
     let err;
     try {
-      await client._moveFile(file, 'upload');
+      await client.moveFile(file, 'upload');
     } catch (e) {
       err = e;
     }
@@ -112,8 +112,8 @@ describe('epi2me._moveFile', () => {
     let client = clientFactory({
       inputFolder: workingDir,
     });
-    client._uploadedFiles = [];
-    client._stats.upload.totalSize = 0;
+    client.uploadedFiles = [];
+    client.states.upload.totalSize = 0;
 
     fs.mkdirpSync(path.join(workingDir, 'batchB')); // source folder present
     fs.mkdirpSync(path.join(workingDir, 'uploaded', 'batchB')); // target folder present
@@ -128,7 +128,7 @@ describe('epi2me._moveFile', () => {
 
     let err;
     try {
-      await client._moveFile(file, 'upload');
+      await client.moveFile(file, 'upload');
     } catch (e) {
       err = e;
     }
@@ -142,8 +142,8 @@ describe('epi2me._moveFile', () => {
     let client = clientFactory({
       inputFolder: workingDir,
     });
-    client._uploadedFiles = [];
-    client._stats.upload.totalSize = 0;
+    client.uploadedFiles = [];
+    client.states.upload.totalSize = 0;
 
     fs.mkdirpSync(path.join(workingDir, 'batchB')); // source folder present
     fs.mkdirpSync(path.join(workingDir, 'uploaded', 'batchB')); // target folder present
@@ -159,7 +159,7 @@ describe('epi2me._moveFile', () => {
 
     let err;
     try {
-      await client._moveFile(file, 'upload');
+      await client.moveFile(file, 'upload');
     } catch (e) {
       err = e;
     }

@@ -50,7 +50,7 @@ describe('epi2me.fetchInstanceToken', () => {
 
     try {
       const fake = sinon.fake();
-      client._stats.sts_expiration = 10000 + Date.now();
+      client.states.sts_expiration = 10000 + Date.now();
       await client.fetchInstanceToken();
     } catch (e) {
       assert.fail(e);
@@ -65,7 +65,7 @@ describe('epi2me.fetchInstanceToken', () => {
     });
 
     const stub = sinon.stub(client.REST, 'instance_token').resolves();
-    client._stats.sts_expiration = Date.now() - 10000; // expired
+    client.states.sts_expiration = Date.now() - 10000; // expired
     try {
       await client.fetchInstanceToken();
       assert(stub.calledOnce, 'callback fired if expired');
@@ -81,7 +81,7 @@ describe('epi2me.fetchInstanceToken', () => {
 
     const stub = sinon.stub(client.REST, 'instance_token').rejects(new Error('token error'));
 
-    client._stats.sts_expiration = Date.now() - 10000; // expired
+    client.states.sts_expiration = Date.now() - 10000; // expired
     try {
       await client.fetchInstanceToken();
       assert(stub.calledOnce, 'callback fired if expired');
@@ -101,7 +101,7 @@ describe('epi2me.fetchInstanceToken', () => {
     const stub = sinon.stub(client.REST, 'instance_token').resolves(token);
     const stub2 = sinon.stub(AWS.config, 'update').callsFake();
 
-    client._stats.sts_expiration = Date.now() - 10000; // expired
+    client.states.sts_expiration = Date.now() - 10000; // expired
     try {
       await client.fetchInstanceToken();
     } catch (err) {
@@ -124,7 +124,7 @@ describe('epi2me.fetchInstanceToken', () => {
     };
     const stub = sinon.stub(client.REST, 'instance_token').resolves(token);
     const stub2 = sinon.stub(AWS.config, 'update').callsFake();
-    client._stats.sts_expiration = Date.now() - 10000; // expired
+    client.states.sts_expiration = Date.now() - 10000; // expired
 
     try {
       await client.fetchInstanceToken();

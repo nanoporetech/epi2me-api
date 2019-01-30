@@ -14,7 +14,7 @@ describe('epi2me.stop_everything', () => {
       client = new EPI2ME();
       sinon.stub(client.REST, 'stop_workflow').callsFake();
 
-      client._downloadCheckInterval = setInterval(() => {}, 100);
+      client.downloadCheckInterval = setInterval(() => {}, 100);
     });
 
     assert.doesNotThrow(
@@ -37,7 +37,7 @@ describe('epi2me.stop_everything', () => {
       client = new EPI2ME();
       sinon.stub(client.REST, 'stop_workflow').callsFake();
 
-      client._stateCheckInterval = setInterval(() => {}, 100);
+      client.stateCheckInterval = setInterval(() => {}, 100);
     });
 
     assert.doesNotThrow(
@@ -60,9 +60,9 @@ describe('epi2me.stop_everything', () => {
       client = new EPI2ME();
       sinon.stub(client.REST, 'stop_workflow').callsFake();
 
-      client._downloadCheckInterval = setInterval(() => {}, 100);
-      client._stateCheckInterval = setInterval(() => {}, 100);
-      client._fileCheckInterval = setInterval(() => {}, 100);
+      client.downloadCheckInterval = setInterval(() => {}, 100);
+      client.stateCheckInterval = setInterval(() => {}, 100);
+      client.fileCheckInterval = setInterval(() => {}, 100);
     });
 
     assert.doesNotThrow(
@@ -88,9 +88,9 @@ describe('epi2me.stop_everything', () => {
             sinon.stub(client.REST, "stop_workflow").callsFake();
             client.uploadWorkerPool = { "drain": uploadDrain };
             
-            client._downloadCheckInterval = setInterval(() => {}, 100);
-            client._stateCheckInterval    = setInterval(() => {}, 100);
-            client._fileCheckInterval     = setInterval(() => {}, 100);
+            client.downloadCheckInterval = setInterval(() => {}, 100);
+            client.stateCheckInterval    = setInterval(() => {}, 100);
+            client.fileCheckInterval     = setInterval(() => {}, 100);
         });
         
         assert.doesNotThrow(() => {
@@ -114,9 +114,9 @@ describe('epi2me.stop_everything', () => {
       sinon.stub(client.REST, 'stop_workflow').callsFake();
       client.downloadWorkerPool = { drain: downloadDrain };
 
-      client._downloadCheckInterval = setInterval(() => {}, 100);
-      client._stateCheckInterval = setInterval(() => {}, 100);
-      client._fileCheckInterval = setInterval(() => {}, 100);
+      client.downloadCheckInterval = setInterval(() => {}, 100);
+      client.stateCheckInterval = setInterval(() => {}, 100);
+      client.fileCheckInterval = setInterval(() => {}, 100);
     });
 
     assert.doesNotThrow(

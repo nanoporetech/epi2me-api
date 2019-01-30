@@ -26,7 +26,7 @@ describe('epi2me.uploadJob', () => {
   it('should handle bad file object', () => {
     const client = clientFactory();
 
-    sinon.stub(client, '_moveFile');
+    sinon.stub(client, 'moveFile');
     sinon.stub(client, 'uploadHandler');
 
     assert.doesNotThrow(() => {
@@ -41,12 +41,12 @@ describe('epi2me.uploadJob', () => {
   it('should handle file object with skip and no readCount', async () => {
     const client = clientFactory();
 
-    sinon.stub(client, '_moveFile').callsFake((file, cb) => {
+    sinon.stub(client, 'moveFile').callsFake((file, cb) => {
       assert.deepEqual(file, { skip: true });
       return Promise.resolve();
     });
     sinon.stub(client, 'uploadHandler');
-    client._stats.upload.enqueued = 10;
+    client.states.upload.enqueued = 10;
 
     try {
       const x = { skip: true };
@@ -55,20 +55,20 @@ describe('epi2me.uploadJob', () => {
       assert.fail(e);
     }
 
-    assert(client._moveFile.calledOnce);
-    assert.equal(client._stats.upload.enqueued, 9);
-    assert.equal(client._stats.upload.queueLength, 0);
+    assert(client.moveFile.calledOnce);
+    assert.equal(client.states.upload.enqueued, 9);
+    assert.equal(client.states.upload.queueLength, 0);
   });
 
   it('should handle file object with skip and readCount', async () => {
     const client = clientFactory();
 
-    sinon.stub(client, '_moveFile').callsFake(file => {
+    sinon.stub(client, 'moveFile').callsFake(file => {
       assert.deepEqual(file, { skip: true, readCount: 5 });
       return Promise.resolve();
     });
     sinon.stub(client, 'uploadHandler');
-    client._stats.upload.enqueued = 10;
+    client.states.upload.enqueued = 10;
 
     try {
       const x = { skip: true, readCount: 5 };
@@ -77,21 +77,21 @@ describe('epi2me.uploadJob', () => {
       assert.fail(e);
     }
 
-    assert(client._moveFile.calledOnce);
-    assert.equal(client._stats.upload.enqueued, 5);
-    assert.equal(client._stats.upload.queueLength, 0);
+    assert(client.moveFile.calledOnce);
+    assert.equal(client.states.upload.enqueued, 5);
+    assert.equal(client.states.upload.queueLength, 0);
   });
 
   it('should handle file object with skip and queueLength', async () => {
     const client = clientFactory();
 
-    sinon.stub(client, '_moveFile').callsFake(file => {
+    sinon.stub(client, 'moveFile').callsFake(file => {
       assert.deepEqual(file, { skip: true, readCount: 5 });
       return Promise.resolve();
     });
     sinon.stub(client, 'uploadHandler');
-    client._stats.upload.enqueued = 10;
-    client._stats.upload.queueLength = 10;
+    client.states.upload.enqueued = 10;
+    client.states.upload.queueLength = 10;
 
     try {
       const x = { skip: true, readCount: 5 };
@@ -100,9 +100,9 @@ describe('epi2me.uploadJob', () => {
       assert.fail(e);
     }
 
-    assert(client._moveFile.calledOnce);
-    assert.equal(client._stats.upload.enqueued, 5);
-    assert.equal(client._stats.upload.queueLength, 5);
+    assert(client.moveFile.calledOnce);
+    assert.equal(client.states.upload.enqueued, 5);
+    assert.equal(client.states.upload.queueLength, 5);
   });
 
   it('should handle callback with error and no tally', async () => {
@@ -112,7 +112,7 @@ describe('epi2me.uploadJob', () => {
     sinon.stub(client, 'uploadHandler').callsFake((file, callback) => {
       callback(new Error('uploadHandler failed'), file);
     });
-    delete client._stats.upload.failure;
+    delete client.states.upload.failure;
 
     let err;
     try {
@@ -134,7 +134,7 @@ describe('epi2me.uploadJob', () => {
     sinon.stub(client, 'uploadHandler').callsFake((file, callback) => {
       callback(new Error('uploadHandler failed'), file);
     });
-    client._stats.upload.failure = {}; // empty error tally
+    client.states.upload.failure = {}; // empty error tally
 
     try {
       const x = { id: 72 };
@@ -145,7 +145,7 @@ describe('epi2me.uploadJob', () => {
     }
 
     assert(client.log.info.args[1][0].match(/uploadHandler failed/), 'error message propagated');
-    assert.deepEqual(client._stats.upload.failure, { 'Error: uploadHandler failed': 1 }, 'error counted');
+    assert.deepEqual(client.states.upload.failure, { 'Error: uploadHandler failed': 1 }, 'error counted');
 
     clock.restore();
   });
@@ -157,7 +157,7 @@ describe('epi2me.uploadJob', () => {
     sinon.stub(client, 'uploadHandler').callsFake((file, callback) => {
       callback(new Error('uploadHandler failed'), file);
     });
-    client._stats.upload.failure = { 'Error: uploadHandler failed': 7 }; // empty error tally
+    client.states.upload.failure = { 'Error: uploadHandler failed': 7 }; // empty error tally
 
     try {
       const x = { id: 72 };
@@ -168,7 +168,7 @@ describe('epi2me.uploadJob', () => {
     }
 
     assert(client.log.info.args[1][0].match(/uploadHandler failed/), 'error message propagated');
-    assert.deepEqual(client._stats.upload.failure, { 'Error: uploadHandler failed': 8 }, 'error counted');
+    assert.deepEqual(client.states.upload.failure, { 'Error: uploadHandler failed': 8 }, 'error counted');
 
     clock.restore();
   });
@@ -202,8 +202,8 @@ describe('epi2me.uploadJob', () => {
       callback(null, file);
     });
 
-    client._stats.upload.queueLength = 8192;
-    client._stats.upload.success = 25;
+    client.states.upload.queueLength = 8192;
+    client.states.upload.success = 25;
 
     try {
       const x = { id: 72, readCount: 4096 };
@@ -215,7 +215,7 @@ describe('epi2me.uploadJob', () => {
 
     assert(client.log.info.args[1][0].match(/completely done/), 'completion info message');
     assert.deepEqual(
-      client._stats,
+      client.states,
       {
         download: {
           fail: 0,
