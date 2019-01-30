@@ -5,7 +5,7 @@
 import _, { merge, isString, isArray, filter } from 'lodash';
 import AWS from 'aws-sdk';
 import fs from 'fs-extra';
-import os from 'os';
+import os, { EOL } from 'os';
 import path from 'path';
 import proxy from 'proxy-agent';
 import axios from 'axios';
@@ -24,12 +24,12 @@ axios.defaults.validateStatus = status => status <= 504; // Reject only if the s
 
 const utils = (function magic() {
   const internal = {
-    sign: (req, options) => {
+    sign: (req, optionsIn) => {
       // common headers required for everything
       if (!req.headers) {
         req.headers = {};
       }
-
+      let options = optionsIn;
       if (!options) {
         options = {};
       }
@@ -105,8 +105,9 @@ const utils = (function magic() {
 
   return {
     version: () => VERSION,
-    headers: (req, options) => {
+    headers: (req, optionsIn) => {
       // common headers required for everything
+      let options = optionsIn;
       if (!options) {
         options = {};
       }
@@ -121,17 +122,19 @@ const utils = (function magic() {
         req.headers,
       );
 
-      if (options._signing !== false) {
+      if (!('signing' in options) || options.signing) {
+        // if not present: sign
+        // if present and true: sign
         internal.sign(req, options);
       }
     },
 
-    get: async (uri, options) => {
+    get: async (uriIn, options) => {
       // do something to get/set data in epi2me
       let call;
 
       let srv = options.url;
-
+      let uri = uriIn;
       if (!options.skip_url_mangle) {
         uri = `/${uri}`; // + ".json";
         srv = srv.replace(/\/+$/, ''); // clip trailing slashes
@@ -158,10 +161,10 @@ const utils = (function magic() {
       return internal.responseHandler(res, options);
     },
 
-    post: async (uri, obj, options) => {
+    post: async (uriIn, obj, options) => {
       let srv = options.url;
       srv = srv.replace(/\/+$/, ''); // clip trailing slashes
-      uri = uri.replace(/\/+/g, '/'); // clip multiple slashes
+      const uri = uriIn.replace(/\/+/g, '/'); // clip multiple slashes
       const call = `${srv}/${uri}`;
 
       const req = {
@@ -199,10 +202,10 @@ const utils = (function magic() {
       return internal.responseHandler(res, options);
     },
 
-    put: async (uri, id, obj, options) => {
+    put: async (uriIn, id, obj, options) => {
       let srv = options.url;
       srv = srv.replace(/\/+$/, ''); // clip trailing slashes
-      uri = uri.replace(/\/+/g, '/'); // clip multiple slashes
+      const uri = uriIn.replace(/\/+/g, '/'); // clip multiple slashes
       const call = `${srv}/${uri}/${id}`;
       const req = {
         uri: call,
@@ -241,9 +244,9 @@ const utils = (function magic() {
 
 const targetBatchSize = 4000;
 
-utils.pipe = async (uri, filepath, options, progressCb) => {
+utils.pipe = async (uriIn, filepath, options, progressCb) => {
   let srv = options.url;
-  uri = `/${uri}`; // note no forced extension for piped requests
+  let uri = `/${uriIn}`; // note no forced extension for piped requests
   srv = srv.replace(/\/+$/, ''); // clip trailing slashes
   uri = uri.replace(/\/+/g, '/'); // clip multiple slashes
   const call = srv + uri;
@@ -771,7 +774,7 @@ class REST {
         {
           description: `${os.userInfo().username}@${os.hostname()}`,
         },
-        merge({ _signing: false, legacy_form: true }, this.options),
+        merge({ signing: false, legacy_form: true }, this.options),
       );
       return cb ? cb(null, obj) : Promise.resolve(obj);
     } catch (err) {
@@ -1025,6 +1028,7 @@ var filterByChannel = "off";
 var downloadMode = "data+telemetry";
 var deleteOnComplete = "off";
 var filetype = ".fastq";
+var signing = true;
 var defaults = {
 	local: local,
 	url: url,
@@ -1046,7 +1050,8 @@ var defaults = {
 	filterByChannel: filterByChannel,
 	downloadMode: downloadMode,
 	deleteOnComplete: deleteOnComplete,
-	filetype: filetype
+	filetype: filetype,
+	signing: signing
 };
 
 /*
@@ -1176,10 +1181,10 @@ class EPI2ME {
       this.downloadWorkerPool = null;
     }
 
-    const id_workflow_instance = this.config.instance.id_workflow_instance;
-    if (id_workflow_instance) {
-      this.REST.stop_workflow(id_workflow_instance, () => {
-        this.log.info(`workflow instance ${id_workflow_instance} stopped`);
+    const { id_workflow_instance: idWorkflowInstance } = this.config.instance;
+    if (idWorkflowInstance) {
+      this.REST.stop_workflow(idWorkflowInstance, () => {
+        this.log.info(`workflow instance ${idWorkflowInstance} stopped`);
         if (cb) cb(this);
       });
     } else if (cb) cb(this);
@@ -1206,6 +1211,8 @@ class EPI2ME {
         return Promise.reject(err);
       }
     }
+
+    return Promise.resolve();
   }
 
   async fetchInstanceToken() {
@@ -1410,7 +1417,7 @@ class EPI2ME {
         if (len > 0) {
           /* only process downloads if there are downloads to process */
           this.log.debug(`downloads available: ${len}`);
-          return await this.downloadAvailable();
+          return this.downloadAvailable();
         }
       }
 
@@ -1420,6 +1427,8 @@ class EPI2ME {
       if (!this._stats.download.failure) this._stats.download.failure = {};
       this._stats.download.failure[err] = this._stats.download.failure[err] ? this._stats.download.failure[err] + 1 : 1;
     }
+
+    return Promise.resolve();
   }
 
   async downloadAvailable() {
@@ -1610,9 +1619,9 @@ class EPI2ME {
             this.log.error(`uploadWorkerPool (fastq) exception ${String(err)}`);
           });
         });
-        this.inputBatchQueue.remaining--;
+        this.inputBatchQueue.remaining -= 1;
       });
-      this.inputBatchQueue.remaining++;
+      this.inputBatchQueue.remaining += 1;
     } else {
       this._stats.upload.enqueued += files.length;
       this.inputBatchQueue = files.map(item => {
@@ -1633,10 +1642,10 @@ class EPI2ME {
         }
 
         return this.uploadJob(item).then(() => {
-          this.inputBatchQueue.remaining--;
+          this.inputBatchQueue.remaining -= 1;
         }); // Promise
       });
-      this.inputBatchQueue.remaining++;
+      this.inputBatchQueue.remaining += 1;
     }
 
     // should this await Promise.all() ?
@@ -1724,18 +1733,18 @@ class EPI2ME {
         const timeoutHandle = setTimeout(() => {
           clearTimeout(timeoutHandle);
           this.log.error(`this.downloadWorkerPool timeoutHandle. Clearing queue slot for message: ${message.Body}`);
-          this.downloadWorkerPool.remaining--;
+          this.downloadWorkerPool.remaining -= 1;
           reject();
         }, (60 + this.config.options.downloadTimeout) * 1000);
 
         this.processMessage(message, () => {
-          this.downloadWorkerPool.remaining--;
+          this.downloadWorkerPool.remaining -= 1;
           clearTimeout(timeoutHandle);
           resolve();
         });
       });
 
-      this.downloadWorkerPool.remaining++;
+      this.downloadWorkerPool.remaining += 1;
       this.downloadWorkerPool.push(p);
     });
 
@@ -1769,7 +1778,7 @@ class EPI2ME {
 
     const writeTelemetry = telemetry => {
       try {
-        this.telemetryLogStream.write(JSON.stringify(telemetry) + os.EOL);
+        this.telemetryLogStream.write(JSON.stringify(telemetry) + EOL);
       } catch (telemetryWriteErr) {
         this.log.error(`error writing telemetry: ${telemetryWriteErr}`);
       }
