@@ -7,6 +7,7 @@
 
 import axios from 'axios';
 import crypto from 'crypto';
+import { merge } from 'lodash';
 
 const VERSION = require('../package.json').version;
 
@@ -101,8 +102,7 @@ const utils = (function magic() {
         options = {};
       }
 
-      req.headers = Object.assign(
-        {},
+      req.headers = merge(
         {
           Accept: 'application/json',
           'Content-Type': 'application/json',
