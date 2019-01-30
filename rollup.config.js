@@ -1,6 +1,7 @@
 import json from 'rollup-plugin-json';
 import { eslint } from 'rollup-plugin-eslint';
 import analyze from 'rollup-plugin-analyzer';
+import generatePackageJson from 'rollup-plugin-generate-package-json';
 // import { terser } from 'rollup-plugin-terser';
 import copy from 'rollup-plugin-cpy';
 import license from 'rollup-plugin-license';
@@ -74,6 +75,14 @@ const epi2meFull = {
         verbose: true,
       },
     }),
+    generatePackageJson({
+      outputFolder: 'dist',
+      baseContents: {
+        name: pkg.name,
+        private: true,
+        version: pkg.verbose,
+      },
+    }),
   ],
 };
 
@@ -90,7 +99,17 @@ const epi2meWeb = {
     },
   ],
   external,
-  plugins,
+  plugins: [
+    ...plugins,
+    generatePackageJson({
+      outputFolder: 'dist/web',
+      baseContents: {
+        name: pkg.name,
+        private: true,
+        version: pkg.verbose,
+      },
+    }),
+  ],
 };
 
 export default [epi2meFull, epi2meWeb];
