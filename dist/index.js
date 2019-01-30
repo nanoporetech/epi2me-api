@@ -452,14 +452,81 @@ utils.loadInputFiles = ({ inputFolder, outputFolder, uploadedFolder, filetype },
     next(); // start first iteration
   });
 
+var local = false;
+var url = "https://epi2me.nanoporetech.com";
+var user_agent = "EPI2ME API";
+var region = "eu-west-1";
+var retention = "on";
+var sessionGrace = 5;
+var sortInputFiles = false;
+var uploadTimeout = 1200;
+var downloadTimeout = 1200;
+var fileCheckInterval = 5;
+var downloadCheckInterval = 3;
+var stateCheckInterval = 60;
+var inFlightDelay = 600;
+var waitTimeSeconds = 20;
+var waitTokenError = 30;
+var downloadPoolSize = 1;
+var filter = "on";
+var filterByChannel = "off";
+var downloadMode = "data+telemetry";
+var deleteOnComplete = "off";
+var filetype = ".fastq";
+var signing = true;
+var DEFAULTS = {
+	local: local,
+	url: url,
+	user_agent: user_agent,
+	region: region,
+	retention: retention,
+	sessionGrace: sessionGrace,
+	sortInputFiles: sortInputFiles,
+	uploadTimeout: uploadTimeout,
+	downloadTimeout: downloadTimeout,
+	fileCheckInterval: fileCheckInterval,
+	downloadCheckInterval: downloadCheckInterval,
+	stateCheckInterval: stateCheckInterval,
+	inFlightDelay: inFlightDelay,
+	waitTimeSeconds: waitTimeSeconds,
+	waitTokenError: waitTokenError,
+	downloadPoolSize: downloadPoolSize,
+	filter: filter,
+	filterByChannel: filterByChannel,
+	downloadMode: downloadMode,
+	deleteOnComplete: deleteOnComplete,
+	filetype: filetype,
+	signing: signing
+};
+
 class REST {
   constructor(options) {
     // {log, ...options}) {
-    if (options.log) {
-      this.log = options.log;
-      //            delete options.log;
+    this.options = lodash.assign({ agent_version: utils.version, local, url, user_agent }, options);
+    const { log } = this.options;
+    if (log) {
+      if (lodash.every([log.info, log.warn, log.error], lodash.isFunction)) {
+        this.log = log;
+      } else {
+        throw new Error('expected log object to have "error", "debug", "info" and "warn" methods');
+      }
+    } else {
+      this.log = {
+        info: msg => {
+          console.info(`[${new Date().toISOString()}] INFO: ${msg}`);
+        },
+        debug: msg => {
+          // eslint-disable-next-line
+          console.debug(`[${new Date().toISOString()}] DEBUG: ${msg}`);
+        },
+        warn: msg => {
+          console.warn(`[${new Date().toISOString()}] WARN: ${msg}`);
+        },
+        error: msg => {
+          console.error(`[${new Date().toISOString()}] ERROR: ${msg}`);
+        },
+      };
     }
-    this.options = options;
   }
 
   async list(entity) {
@@ -500,7 +567,11 @@ class REST {
 
   async instance_token(id, cb) {
     try {
-      const data = await utils.post('token', { id_workflow_instance: id }, lodash.merge({ legacy_form: true }, this.options));
+      const data = await utils.post(
+        'token',
+        { id_workflow_instance: id },
+        lodash.assign({}, this.options, { legacy_form: true }),
+      );
       return cb ? cb(null, data) : Promise.resolve(data);
     } catch (err) {
       return cb ? cb(err) : Promise.reject(err);
@@ -509,7 +580,11 @@ class REST {
 
   async install_token(id, cb) {
     try {
-      const data = await utils.post('token/install', { id_workflow: id }, lodash.merge({ legacy_form: true }, this.options));
+      const data = await utils.post(
+        'token/install',
+        { id_workflow: id },
+        lodash.assign({}, this.options, { legacy_form: true }),
+      );
       return cb ? cb(null, data) : Promise.resolve(data);
     } catch (err) {
       return cb ? cb(err) : Promise.reject(err);
@@ -653,7 +728,7 @@ class REST {
     if (action === 'update') {
       // three args: update object: (123, {...}, func)
       try {
-        const update = await utils.put('workflow', id, obj, lodash.merge({ legacy_form: true }, this.options));
+        const update = await utils.put('workflow', id, obj, lodash.assign({}, this.options, { legacy_form: true }));
         return cb ? cb(null, update) : Promise.resolve(update);
       } catch (err) {
         return cb ? cb(err) : Promise.reject(err);
@@ -664,7 +739,7 @@ class REST {
       // two args: create object: ({...}, func)
 
       try {
-        const create = await utils.post('workflow', obj, lodash.merge({ legacy_form: true }, this.options));
+        const create = await utils.post('workflow', obj, lodash.assign({}, this.options, { legacy_form: true }));
         return cb ? cb(null, create) : Promise.resolve(create);
       } catch (err) {
         return cb ? cb(err) : Promise.reject(err);
@@ -743,7 +818,7 @@ class REST {
   }
 
   start_workflow(config, cb) {
-    return utils.post('workflow_instance', config, lodash.merge({ legacy_form: true }, this.options), cb);
+    return utils.post('workflow_instance', config, lodash.assign({}, this.options, { legacy_form: true }), cb);
   }
 
   stop_workflow(idWorkflowInstance, cb) {
@@ -751,7 +826,7 @@ class REST {
       'workflow_instance/stop',
       idWorkflowInstance,
       null,
-      lodash.merge({ legacy_form: true }, this.options),
+      lodash.assign({}, this.options, { legacy_form: true }),
       cb,
     );
   }
@@ -818,7 +893,7 @@ class REST {
         {
           description: `${os__default.userInfo().username}@${os__default.hostname()}`,
         },
-        lodash.merge({ signing: false, legacy_form: true }, this.options),
+        lodash.assign({}, this.options, { signing: false, legacy_form: true }),
       );
       return cb ? cb(null, obj) : Promise.resolve(obj);
     } catch (err) {
@@ -873,10 +948,10 @@ class REST {
     }
   }
 
-  async fetchContent(url, cb) {
-    const options = lodash.merge({ skip_url_mangle: true }, this.options);
+  async fetchContent(url$$1, cb) {
+    const options = lodash.assign({}, this.options, { skip_url_mangle: true });
     try {
-      const result = await utils.get(url, options);
+      const result = await utils.get(url$$1, options);
       return cb ? cb(null, result) : Promise.resolve(result);
     } catch (err) {
       return cb ? cb(err) : Promise.reject(err);
@@ -1055,53 +1130,6 @@ class REST_FS extends REST {
     );
   }
 }
-
-var local = false;
-var url = "https://epi2me.nanoporetech.com";
-var user_agent = "EPI2ME API";
-var region = "eu-west-1";
-var retention = "on";
-var sessionGrace = 5;
-var sortInputFiles = false;
-var uploadTimeout = 1200;
-var downloadTimeout = 1200;
-var fileCheckInterval = 5;
-var downloadCheckInterval = 3;
-var stateCheckInterval = 60;
-var inFlightDelay = 600;
-var waitTimeSeconds = 20;
-var waitTokenError = 30;
-var downloadPoolSize = 1;
-var filter = "on";
-var filterByChannel = "off";
-var downloadMode = "data+telemetry";
-var deleteOnComplete = "off";
-var filetype = ".fastq";
-var signing = true;
-var DEFAULTS = {
-	local: local,
-	url: url,
-	user_agent: user_agent,
-	region: region,
-	retention: retention,
-	sessionGrace: sessionGrace,
-	sortInputFiles: sortInputFiles,
-	uploadTimeout: uploadTimeout,
-	downloadTimeout: downloadTimeout,
-	fileCheckInterval: fileCheckInterval,
-	downloadCheckInterval: downloadCheckInterval,
-	stateCheckInterval: stateCheckInterval,
-	inFlightDelay: inFlightDelay,
-	waitTimeSeconds: waitTimeSeconds,
-	waitTokenError: waitTokenError,
-	downloadPoolSize: downloadPoolSize,
-	filter: filter,
-	filterByChannel: filterByChannel,
-	downloadMode: downloadMode,
-	deleteOnComplete: deleteOnComplete,
-	filetype: filetype,
-	signing: signing
-};
 
 /*
  * Copyright (c) 2018 Metrichor Ltd.
@@ -2378,7 +2406,7 @@ class EPI2ME {
   }
 
   async queueLength(queueURL) {
-    if (!queueURL) return;
+    if (!queueURL) return Promise.resolve();
 
     const queueName = queueURL.match(/([\w\-_]+)$/)[0];
     this.log.debug(`querying queue length of ${queueName}`);
@@ -2400,6 +2428,7 @@ class EPI2ME {
       this.log.error(`error in getQueueAttributes ${String(err)}`);
       return Promise.reject(err);
     }
+    return Promise.resolve();
   }
 
   url() {
