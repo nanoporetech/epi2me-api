@@ -216,4 +216,3 @@ utils.loadInputFiles = ({ inputFolder, outputFolder, uploadedFolder, filetype },
   });
 
 export default utils;
-module.exports.version = require('../package.json').version;
