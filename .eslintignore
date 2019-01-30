@@ -1,0 +1,17 @@
+node_modules
+.vscode
+.DS_Store
+.env
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+assets*/**
+
+queue-async-safe
+node_modules
+coverage
+build
+dist
+lib
+lib.1
+test

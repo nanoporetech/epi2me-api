@@ -1,0 +1,9 @@
+{
+  "window.title": "${dirty} ${activeEditorMedium}${separator}${rootName}",
+  "editor.formatOnSave": true,
+  "[javascript]": {
+    "editor.formatOnSave": true
+  },
+  "eslint.autoFixOnSave": true,
+  "eslint.alwaysShowStatus": true
+}
