@@ -4,15 +4,15 @@ import axios from 'axios';
 import utils from '../../src/utils';
 
 describe('utils.get', () => {
-  let stubs;
+  let stubs = [];
+  const versionBackup = `${utils.version}`;
 
-  beforeEach(() => {
-    stubs = [];
-    stubs.push(
-      sinon.stub(utils, 'version').callsFake(() => {
-        return '3.0.0';
-      }),
-    );
+  before(() => {
+    utils.version = '3.0.0';
+  });
+
+  after(() => {
+    utils.version = versionBackup;
   });
 
   afterEach(() => {

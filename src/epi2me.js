@@ -15,8 +15,6 @@ import utils from './utils-fs';
 import _REST from './rest-fs';
 import DEFAULTS from './default_options.json';
 
-const VERSION = utils.version();
-
 export default class EPI2ME {
   constructor(OptString) {
     let opts;
@@ -1351,5 +1349,5 @@ export default class EPI2ME {
   }
 }
 
-EPI2ME.version = VERSION;
+EPI2ME.version = utils.version;
 EPI2ME.REST = _REST;
