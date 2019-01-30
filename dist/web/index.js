@@ -4,14 +4,16 @@
 
 'use strict';
 
-function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
+function _interopDefault(ex) {
+  return ex && typeof ex === 'object' && 'default' in ex ? ex['default'] : ex;
+}
 
 var os = _interopDefault(require('os'));
 var lodash = require('lodash');
 var axios = _interopDefault(require('axios'));
 var crypto = _interopDefault(require('crypto'));
 
-var version = "2.58.1";
+var version = '2.58.1';
 
 /*
  * Copyright (c) 2018 Metrichor Ltd.
@@ -283,7 +285,11 @@ class REST {
 
   async instance_token(id, cb) {
     try {
-      const data = await utils.post('token', { id_workflow_instance: id }, lodash.merge({ legacy_form: true }, this.options));
+      const data = await utils.post(
+        'token',
+        { id_workflow_instance: id },
+        lodash.merge({ legacy_form: true }, this.options),
+      );
       return cb ? cb(null, data) : Promise.resolve(data);
     } catch (err) {
       return cb ? cb(err) : Promise.reject(err);
@@ -292,7 +298,11 @@ class REST {
 
   async install_token(id, cb) {
     try {
-      const data = await utils.post('token/install', { id_workflow: id }, lodash.merge({ legacy_form: true }, this.options));
+      const data = await utils.post(
+        'token/install',
+        { id_workflow: id },
+        lodash.merge({ legacy_form: true }, this.options),
+      );
       return cb ? cb(null, data) : Promise.resolve(data);
     } catch (err) {
       return cb ? cb(err) : Promise.reject(err);
