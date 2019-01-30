@@ -44,7 +44,7 @@ describe('rest.register', () => {
     //    assert(fake.calledOnce, 'callback invoked');
     assert.deepEqual(
       stub.lastCall.args,
-      ['reg', 'abcdefg', { description: 'testuser@testhost' }, { log, _signing: false, legacy_form: true }],
+      ['reg', 'abcdefg', { description: 'testuser@testhost' }, { log, signing: false, legacy_form: true }],
       'put args',
     );
   });

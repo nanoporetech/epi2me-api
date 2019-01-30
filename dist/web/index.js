@@ -24,12 +24,12 @@ axios.defaults.validateStatus = status => status <= 504; // Reject only if the s
 
 const utils = (function magic() {
   const internal = {
-    sign: (req, options) => {
+    sign: (req, optionsIn) => {
       // common headers required for everything
       if (!req.headers) {
         req.headers = {};
       }
-
+      let options = optionsIn;
       if (!options) {
         options = {};
       }
@@ -105,8 +105,9 @@ const utils = (function magic() {
 
   return {
     version: () => VERSION,
-    headers: (req, options) => {
+    headers: (req, optionsIn) => {
       // common headers required for everything
+      let options = optionsIn;
       if (!options) {
         options = {};
       }
@@ -121,17 +122,19 @@ const utils = (function magic() {
         req.headers,
       );
 
-      if (options._signing !== false) {
+      if (!('signing' in options) || options.signing) {
+        // if not present: sign
+        // if present and true: sign
         internal.sign(req, options);
       }
     },
 
-    get: async (uri, options) => {
+    get: async (uriIn, options) => {
       // do something to get/set data in epi2me
       let call;
 
       let srv = options.url;
-
+      let uri = uriIn;
       if (!options.skip_url_mangle) {
         uri = `/${uri}`; // + ".json";
         srv = srv.replace(/\/+$/, ''); // clip trailing slashes
@@ -158,10 +161,10 @@ const utils = (function magic() {
       return internal.responseHandler(res, options);
     },
 
-    post: async (uri, obj, options) => {
+    post: async (uriIn, obj, options) => {
       let srv = options.url;
       srv = srv.replace(/\/+$/, ''); // clip trailing slashes
-      uri = uri.replace(/\/+/g, '/'); // clip multiple slashes
+      const uri = uriIn.replace(/\/+/g, '/'); // clip multiple slashes
       const call = `${srv}/${uri}`;
 
       const req = {
@@ -199,10 +202,10 @@ const utils = (function magic() {
       return internal.responseHandler(res, options);
     },
 
-    put: async (uri, id, obj, options) => {
+    put: async (uriIn, id, obj, options) => {
       let srv = options.url;
       srv = srv.replace(/\/+$/, ''); // clip trailing slashes
-      uri = uri.replace(/\/+/g, '/'); // clip multiple slashes
+      const uri = uriIn.replace(/\/+/g, '/'); // clip multiple slashes
       const call = `${srv}/${uri}/${id}`;
       const req = {
         uri: call,
@@ -558,7 +561,7 @@ class REST {
         {
           description: `${os.userInfo().username}@${os.hostname()}`,
         },
-        lodash.merge({ _signing: false, legacy_form: true }, this.options),
+        lodash.merge({ signing: false, legacy_form: true }, this.options),
       );
       return cb ? cb(null, obj) : Promise.resolve(obj);
     } catch (err) {
