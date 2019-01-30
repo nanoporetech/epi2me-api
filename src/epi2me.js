@@ -5,7 +5,7 @@
  *
  */
 
-import _ from 'lodash';
+import { every, isFunction, defaults, merge, isArray, chain } from 'lodash';
 import AWS from 'aws-sdk';
 import fs from 'fs-extra'; /* MC-565 handle EMFILE & EXDIR gracefully; use Promises */
 import { EOL } from 'os';
@@ -13,7 +13,7 @@ import path from 'path';
 import proxy from 'proxy-agent';
 import utils from './utils-fs';
 import _REST from './rest-fs';
-import defaults from './default_options.json';
+import DEFAULTS from './default_options.json';
 
 const VERSION = utils.version();
 
@@ -27,7 +27,7 @@ export default class EPI2ME {
     }
 
     if (opts.log) {
-      if (_.every([opts.log.info, opts.log.warn, opts.log.error], _.isFunction)) {
+      if (every([opts.log.info, opts.log.warn, opts.log.error], isFunction)) {
         this.log = opts.log;
       } else {
         throw new Error('expected log object to have "error", "debug", "info" and "warn" methods');
@@ -71,7 +71,7 @@ export default class EPI2ME {
     // if (opts.filter === 'on') defaults.downloadPoolSize = 5;
 
     this.config = {
-      options: _.defaults(opts, defaults),
+      options: defaults(opts, DEFAULTS),
       instance: {
         id_workflow_instance: opts.id_workflow_instance,
         inputQueueName: null,
@@ -99,7 +99,7 @@ export default class EPI2ME {
       this.skipTo = path.join(this.config.options.inputFolder, 'skip');
     }
 
-    this.REST = new _REST(_.merge({}, { log: this.log }, this.config.options));
+    this.REST = new _REST(merge({}, { log: this.log }, this.config.options));
   }
 
   async stop_everything(cb) {
@@ -461,7 +461,7 @@ export default class EPI2ME {
 
     let attrs = {};
 
-    if (!_.isArray(files) || !files.length) return;
+    if (!isArray(files) || !files.length) return;
 
     if (this.config.hasOwnProperty('workflow')) {
       if (this.config.workflow.hasOwnProperty('workflow_attributes')) {
@@ -980,7 +980,7 @@ export default class EPI2ME {
             try {
               const stats = await fs.stat(outputFile);
               this._downloadedFileSizes[outputFile] = stats.size || 0;
-              this._stats.download.totalSize = _.chain(this._downloadedFileSizes)
+              this._stats.download.totalSize = chain(this._downloadedFileSizes)
                 .values()
                 .sum()
                 .value();
