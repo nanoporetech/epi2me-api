@@ -11,14 +11,14 @@ var lodash = require('lodash');
 var axios = _interopDefault(require('axios'));
 var crypto = _interopDefault(require('crypto'));
 
+var version = "2.58.1";
+
 /*
  * Copyright (c) 2018 Metrichor Ltd.
  * Author: ahurst
  * When: 2016-05-17
  *
  */
-
-const VERSION = require('../package.json').version;
 
 axios.defaults.validateStatus = status => status <= 504; // Reject only if the status code is greater than or equal to 500
 
@@ -104,7 +104,7 @@ const utils = (function magic() {
   };
 
   return {
-    version: () => VERSION,
+    version: () => version,
     headers: (req, optionsIn) => {
       // common headers required for everything
       let options = optionsIn;
@@ -117,7 +117,7 @@ const utils = (function magic() {
           Accept: 'application/json',
           'Content-Type': 'application/json',
           'X-EPI2ME-Client': options.user_agent || 'api', // new world order
-          'X-EPI2ME-Version': options.agent_version || utils.version(), // new world order
+          'X-EPI2ME-Version': options.agent_version || utils.version() || version, // new world order
         },
         req.headers,
       );

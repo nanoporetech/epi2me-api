@@ -9,7 +9,7 @@ import axios from 'axios';
 import crypto from 'crypto';
 import { merge } from 'lodash';
 
-const VERSION = require('../package.json').version;
+import { version as VERSION } from '../package.json';
 
 axios.defaults.validateStatus = status => status <= 504; // Reject only if the status code is greater than or equal to 500
 
@@ -108,7 +108,7 @@ const utils = (function magic() {
           Accept: 'application/json',
           'Content-Type': 'application/json',
           'X-EPI2ME-Client': options.user_agent || 'api', // new world order
-          'X-EPI2ME-Version': options.agent_version || utils.version(), // new world order
+          'X-EPI2ME-Version': options.agent_version || utils.version() || VERSION, // new world order
         },
         req.headers,
       );
