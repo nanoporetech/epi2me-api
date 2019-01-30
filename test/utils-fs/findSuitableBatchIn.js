@@ -16,24 +16,29 @@ describe('utils-fs.findSuitablebatchIn', () => {
 
   it('should create new if none found', async () => {
     const dir = tmp.dirSync().name;
-    assert.equal(utils.findSuitableBatchIn(dir), path.join(dir, 'batch_0'), 'new batch');
+    assert.equal(await utils.findSuitableBatchIn(dir), path.join(dir, 'batch_0'), 'new batch');
   });
 
   it('should create new if none matching', async () => {
     const dir = tmp.dirSync().name;
     fs.mkdirpSync(path.join(dir, 'random_other'));
-    assert.equal(utils.findSuitableBatchIn(dir), path.join(dir, 'batch_0'), 'new batch');
+    assert.equal(await utils.findSuitableBatchIn(dir), path.join(dir, 'batch_0'), 'new batch');
   });
 
   it('should create new if latest is full', async () => {
     const dir = tmp.dirSync().name;
-    fs.mkdirpSync(path.join(dir, 'batch_0'));
+    const batchDir = path.join(dir, 'batch_0');
+    await fs.mkdirp(batchDir);
+
+    let p = [];
     for (let i = 0; i <= 4000; i++) {
-      // const targetBatchSize
-      fs.writeFileSync(path.join(dir, 'batch_0', `file${i}.fast5`));
+      p.push(fs.writeFile(path.join(batchDir, `file${i}.fast5`), 'data'));
     }
+    await Promise.all(p);
+
     clock.tick(1000);
-    assert.equal(utils.findSuitableBatchIn(dir), path.join(dir, 'batch_1000'), 'new batch');
+    const folder = await utils.findSuitableBatchIn(dir);
+    assert.equal(folder, path.join(dir, 'batch_1000'), 'new batch');
   });
 
   it('should return latest if free', async () => {
@@ -42,9 +47,9 @@ describe('utils-fs.findSuitablebatchIn', () => {
     fs.mkdirpSync(path.join(dir, 'batch_1000'));
     for (let i = 0; i <= 1000; i++) {
       // const targetBatchSize
-      fs.writeFileSync(path.join(dir, 'batch_1000', `file${i}.fast5`));
+      fs.writeFileSync(path.join(dir, 'batch_1000', `file${i}.fast5`), 'data');
     }
     clock.tick(1000);
-    assert.equal(utils.findSuitableBatchIn(dir), path.join(dir, 'batch_1000'), 'new batch');
+    assert.equal(await utils.findSuitableBatchIn(dir), path.join(dir, 'batch_1000'), 'new batch');
   });
 });

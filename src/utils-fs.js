@@ -74,20 +74,20 @@ utils.countFileReads = filePath =>
 
 // this isn't good... wtf:
 // make async!
-utils.findSuitableBatchIn = folder => {
+utils.findSuitableBatchIn = async folder => {
   // For downloads without the folder split
   // Look inside `folder` and return any batch with a free slot.
   // if no suitable batches, create one and return that.
-  fs.mkdirpSync(folder);
+  await fs.mkdirp(folder);
   const prefix = 'batch_';
-  const createBatch = () => {
+  const createBatch = async () => {
     const batchName = `${prefix}${Date.now()}`;
     const newBatchPath = path.join(folder, batchName);
-    fs.mkdirpSync(newBatchPath);
-    return newBatchPath;
+    return fs.mkdirp(newBatchPath);
   };
 
-  const batches = fs.readdirSync(folder).filter(d => d.slice(0, prefix.length) === prefix);
+  let batches = await fs.readdir(folder);
+  batches = batches.filter(d => d.slice(0, prefix.length) === prefix);
 
   if (!batches || !batches.length) {
     return createBatch();
