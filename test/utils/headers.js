@@ -54,9 +54,8 @@ describe('utils.headers', () => {
   });
 
   it('should initialise options', () => {
-    let stub = sinon.stub(utils, 'version').callsFake(() => {
-      return '3.0.0';
-    });
+    const versionBackup = `${utils.version}`;
+    utils.version = '3.0.0';
     const req = { headers: { 'accept-language': 'mt' } };
     utils.headers(req);
     assert.deepEqual(req.headers, {
@@ -66,13 +65,12 @@ describe('utils.headers', () => {
       'X-EPI2ME-Version': '3.0.0',
       'accept-language': 'mt',
     });
-    stub.restore();
+    utils.version = versionBackup;
   });
 
   it('should not sign if requested', () => {
-    let stub = sinon.stub(utils, 'version').callsFake(() => {
-      return '3.0.0';
-    });
+    const versionBackup = `${utils.version}`;
+    utils.version = '3.0.0';
     const req = { headers: { 'accept-language': 'mt' } };
     utils.headers(req, { signing: false });
     assert.deepEqual(req.headers, {
@@ -83,6 +81,6 @@ describe('utils.headers', () => {
       'accept-language': 'mt',
     });
     //    assert(stub.notCalled);
-    stub.restore();
+    utils.version = versionBackup;
   });
 });

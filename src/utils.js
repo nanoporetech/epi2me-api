@@ -95,7 +95,7 @@ const utils = (function magic() {
   };
 
   return {
-    version: () => VERSION,
+    version: VERSION,
     headers: (req, optionsIn) => {
       // common headers required for everything
       let options = optionsIn;
@@ -108,7 +108,7 @@ const utils = (function magic() {
           Accept: 'application/json',
           'Content-Type': 'application/json',
           'X-EPI2ME-Client': options.user_agent || 'api', // new world order
-          'X-EPI2ME-Version': options.agent_version || utils.version() || VERSION, // new world order
+          'X-EPI2ME-Version': options.agent_version || utils.version, // new world order
         },
         req.headers,
       );
