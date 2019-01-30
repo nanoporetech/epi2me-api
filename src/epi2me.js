@@ -8,7 +8,7 @@
 import _ from 'lodash';
 import AWS from 'aws-sdk';
 import fs from 'fs-extra'; /* MC-565 handle EMFILE & EXDIR gracefully; use Promises */
-import os from 'os';
+import { EOL } from 'os';
 import path from 'path';
 import proxy from 'proxy-agent';
 import utils from './utils-fs';
@@ -135,10 +135,10 @@ export default class EPI2ME {
       this.downloadWorkerPool = null;
     }
 
-    const id_workflow_instance = this.config.instance.id_workflow_instance;
-    if (id_workflow_instance) {
-      this.REST.stop_workflow(id_workflow_instance, () => {
-        this.log.info(`workflow instance ${id_workflow_instance} stopped`);
+    const { id_workflow_instance: idWorkflowInstance } = this.config.instance;
+    if (idWorkflowInstance) {
+      this.REST.stop_workflow(idWorkflowInstance, () => {
+        this.log.info(`workflow instance ${idWorkflowInstance} stopped`);
         if (cb) cb(this);
       });
     } else if (cb) cb(this);
@@ -166,7 +166,7 @@ export default class EPI2ME {
       }
     }
 
-    Promise.resolve();
+    return Promise.resolve();
   }
 
   async fetchInstanceToken() {
@@ -371,7 +371,7 @@ export default class EPI2ME {
         if (len > 0) {
           /* only process downloads if there are downloads to process */
           this.log.debug(`downloads available: ${len}`);
-          return await this.downloadAvailable();
+          return this.downloadAvailable();
         }
       }
 
@@ -381,6 +381,8 @@ export default class EPI2ME {
       if (!this._stats.download.failure) this._stats.download.failure = {};
       this._stats.download.failure[err] = this._stats.download.failure[err] ? this._stats.download.failure[err] + 1 : 1;
     }
+
+    return Promise.resolve();
   }
 
   async downloadAvailable() {
@@ -571,9 +573,9 @@ export default class EPI2ME {
             this.log.error(`uploadWorkerPool (fastq) exception ${String(err)}`);
           });
         });
-        this.inputBatchQueue.remaining--;
+        this.inputBatchQueue.remaining -= 1;
       });
-      this.inputBatchQueue.remaining++;
+      this.inputBatchQueue.remaining += 1;
     } else {
       this._stats.upload.enqueued += files.length;
       this.inputBatchQueue = files.map(item => {
@@ -594,10 +596,10 @@ export default class EPI2ME {
         }
 
         return this.uploadJob(item).then(() => {
-          this.inputBatchQueue.remaining--;
+          this.inputBatchQueue.remaining -= 1;
         }); // Promise
       });
-      this.inputBatchQueue.remaining++;
+      this.inputBatchQueue.remaining += 1;
     }
 
     // should this await Promise.all() ?
@@ -685,18 +687,18 @@ export default class EPI2ME {
         const timeoutHandle = setTimeout(() => {
           clearTimeout(timeoutHandle);
           this.log.error(`this.downloadWorkerPool timeoutHandle. Clearing queue slot for message: ${message.Body}`);
-          this.downloadWorkerPool.remaining--;
+          this.downloadWorkerPool.remaining -= 1;
           reject();
         }, (60 + this.config.options.downloadTimeout) * 1000);
 
         this.processMessage(message, () => {
-          this.downloadWorkerPool.remaining--;
+          this.downloadWorkerPool.remaining -= 1;
           clearTimeout(timeoutHandle);
           resolve();
         });
       });
 
-      this.downloadWorkerPool.remaining++;
+      this.downloadWorkerPool.remaining += 1;
       this.downloadWorkerPool.push(p);
     });
 
@@ -730,7 +732,7 @@ export default class EPI2ME {
 
     const writeTelemetry = telemetry => {
       try {
-        this.telemetryLogStream.write(JSON.stringify(telemetry) + os.EOL);
+        this.telemetryLogStream.write(JSON.stringify(telemetry) + EOL);
       } catch (telemetryWriteErr) {
         this.log.error(`error writing telemetry: ${telemetryWriteErr}`);
       }

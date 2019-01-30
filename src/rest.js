@@ -329,7 +329,7 @@ export default class REST {
         {
           description: `${os.userInfo().username}@${os.hostname()}`,
         },
-        merge({ _signing: false, legacy_form: true }, this.options),
+        merge({ signing: false, legacy_form: true }, this.options),
       );
       return cb ? cb(null, obj) : Promise.resolve(obj);
     } catch (err) {

@@ -74,7 +74,7 @@ describe('utils.headers', () => {
       return '3.0.0';
     });
     const req = { headers: { 'accept-language': 'mt' } };
-    utils.headers(req, { _signing: false });
+    utils.headers(req, { signing: false });
     assert.deepEqual(req.headers, {
       Accept: 'application/json',
       'Content-Type': 'application/json',

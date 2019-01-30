@@ -12,9 +12,9 @@ import utils from './utils';
 
 const targetBatchSize = 4000;
 
-utils.pipe = async (uri, filepath, options, progressCb) => {
+utils.pipe = async (uriIn, filepath, options, progressCb) => {
   let srv = options.url;
-  uri = `/${uri}`; // note no forced extension for piped requests
+  let uri = `/${uriIn}`; // note no forced extension for piped requests
   srv = srv.replace(/\/+$/, ''); // clip trailing slashes
   uri = uri.replace(/\/+/g, '/'); // clip multiple slashes
   const call = srv + uri;
