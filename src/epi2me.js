@@ -15,7 +15,7 @@ import utils from './utils-fs';
 import _REST from './rest-fs';
 import defaults from './default_options.json';
 
-const VERSION = require('../package.json').version;
+const VERSION = utils.version();
 
 export default class EPI2ME {
   constructor(OptString) {
