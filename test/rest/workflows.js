@@ -1,9 +1,6 @@
-import fs from 'fs-extra';
 import sinon from 'sinon';
 import assert from 'assert';
 import bunyan from 'bunyan';
-import tmp from 'tmp';
-import path from 'path';
 import { merge } from 'lodash';
 import REST from '../../src/rest';
 

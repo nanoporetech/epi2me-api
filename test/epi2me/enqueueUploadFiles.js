@@ -8,7 +8,6 @@ describe('epi2me.enqueueUploadFiles', () => {
   let info;
   let warn;
   let error;
-  const type = 'upload';
 
   const clientFactory = opts =>
     new EPI2ME(
@@ -77,7 +76,7 @@ describe('epi2me.enqueueUploadFiles', () => {
         requires_storage: true,
       },
     };
-    const loadUploadFiles = sinon.stub(client, 'loadUploadFiles').callsFake();
+    sinon.stub(client, 'loadUploadFiles').callsFake();
     sinon.stub(client, 'uploadJob').resolves();
 
     try {

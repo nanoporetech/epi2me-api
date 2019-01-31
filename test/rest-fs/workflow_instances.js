@@ -1,12 +1,11 @@
+import sinon from 'sinon';
+import assert from 'assert';
+import tmp from 'tmp';
+import bunyan from 'bunyan';
+import fs from 'fs-extra';
+import path from 'path';
 import REST from '../../src/rest-fs';
 import utils from '../../src/utils';
-
-const sinon = require('sinon');
-const assert = require('assert');
-const bunyan = require('bunyan');
-const tmp = require('tmp');
-const fs = require('fs-extra');
-const path = require('path');
 
 describe('rest-fs.workflow_instances', () => {
   let ringbuf;
@@ -72,7 +71,7 @@ describe('rest-fs.workflow_instances', () => {
     const rest = new REST({ log, local: true, url: dir });
     const fake = sinon.fake();
 
-    let data = await rest.workflow_instances(fake);
+    await rest.workflow_instances(fake);
 
     sinon.assert.calledOnce(fake);
     sinon.assert.calledWith(fake, null, [

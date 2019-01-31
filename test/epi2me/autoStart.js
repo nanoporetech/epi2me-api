@@ -18,11 +18,11 @@ const EPI2ME = proxyquire('../../src/epi2me', {
 describe('epi2me.autoStart', () => {
   function newApi(error, instance) {
     const client = new EPI2ME();
-    client.REST.start_workflow = function(id, cb) {
+    client.REST.start_workflow = (id, cb) => {
       cb(error, instance);
     };
 
-    client.autoConfigure = function(id, cb) {
+    client.autoConfigure = (id, cb) => {
       cb();
     };
 

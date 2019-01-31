@@ -1,7 +1,6 @@
 import assert from 'assert';
 import sinon from 'sinon';
 import tmp from 'tmp';
-import fs from 'fs-extra';
 import path from 'path';
 import axios from 'axios';
 import { PassThrough } from 'stream';
@@ -9,7 +8,7 @@ import utils from '../../src/utils-fs';
 
 describe('utils-fs.pipe', () => {
   it('should pipe without progress (and with proxy)', () => {
-    //const spy = sinon.spy(utils, '_headers');
+    // const spy = sinon.spy(utils, '_headers');
     const mockResponse = `{"data": 123}`;
     const mockStream = new PassThrough();
 
@@ -33,7 +32,7 @@ describe('utils-fs.pipe', () => {
         { url: 'http://epi2me.local', proxy: 'http://proxy.local:3128/' },
       );
     });
-    /*assert.ok(utils._headers.calledOnce, 'headers added');
+    /* assert.ok(utils._headers.calledOnce, 'headers added');
     assert.deepEqual(utils._headers.args[0], [
       {
         uri: 'http://epi2me.local/bundle/magic',
@@ -52,7 +51,7 @@ describe('utils-fs.pipe', () => {
       { url: 'http://epi2me.local', proxy: 'http://proxy.local:3128/' },
     ]);
     //	assert.ok(cb.calledOnce, "callback fired"); // why doesn't this fire? the stream has ended...
-    spy.restore();*/
+    spy.restore(); */
     stub.restore();
   });
 
@@ -104,7 +103,7 @@ describe('utils-fs.pipe', () => {
     ]);
     // assert.ok(cb.calledOnce, "callback fired"); // why doesn't this fire? the stream has ended...
     // assert.ok(progressCb.calledOnce, "progress fired"); // why doesn't this fire? the stream has ended...
-    spy.restore();*/
+    spy.restore(); */
     stub.restore();
   });
 });

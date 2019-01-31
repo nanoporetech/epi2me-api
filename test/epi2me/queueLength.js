@@ -1,6 +1,5 @@
 import assert from 'assert';
 import sinon from 'sinon';
-import bunyan from 'bunyan';
 import AWS from 'aws-sdk';
 import EPI2ME from '../../src/epi2me';
 
@@ -49,7 +48,7 @@ describe('epi2me.queueLength', () => {
     });
 
     try {
-      const len = await client.queueLength(queueUrl);
+      await client.queueLength(queueUrl);
       assert.fail('unexpected success');
     } catch (err) {
       assert(String(err).match(/getQueueAttributes failure/), 'error propagated');

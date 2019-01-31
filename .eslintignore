@@ -12,6 +12,3 @@ node_modules
 coverage
 build
 dist
-lib
-lib.1
-test

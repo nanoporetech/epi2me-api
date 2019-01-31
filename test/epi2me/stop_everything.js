@@ -1,9 +1,6 @@
+import assert from 'assert';
+import sinon from 'sinon';
 import EPI2ME from '../../src/epi2me';
-
-import REST from '../../src/rest';
-
-const assert = require('assert');
-const sinon = require('sinon');
 
 describe('epi2me.stop_everything', () => {
   it('should clear download interval', done => {
@@ -80,25 +77,25 @@ describe('epi2me.stop_everything', () => {
     it('should drain upload worker', (done) => {
         let client;
         const clock = sinon.useFakeTimers();
-        
+
         let uploadDrain = sinon.fake();
-        
+
         assert.doesNotThrow(() => {
             client = new EPI2ME();
             sinon.stub(client.REST, "stop_workflow").callsFake();
             client.uploadWorkerPool = { "drain": uploadDrain };
-            
+
             client.downloadCheckInterval = setInterval(() => {}, 100);
             client.stateCheckInterval    = setInterval(() => {}, 100);
             client.fileCheckInterval     = setInterval(() => {}, 100);
         });
-        
+
         assert.doesNotThrow(() => {
             client.stop_everything();
         }, Error, 'client obtained');
-        
+
         sinon.assert.calledOnce(uploadDrain); // upload drain requested
-        
+
         clock.restore();
         done();
     });

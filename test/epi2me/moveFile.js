@@ -1,11 +1,9 @@
 import assert from 'assert';
 import sinon from 'sinon';
-import bunyan from 'bunyan';
 import fs from 'fs-extra';
 import tmp from 'tmp';
 import path from 'path';
 import { merge } from 'lodash';
-import AWS from 'aws-sdk';
 import EPI2ME from '../../src/epi2me';
 
 describe('epi2me.moveFile', () => {
@@ -13,7 +11,6 @@ describe('epi2me.moveFile', () => {
   let info;
   let warn;
   let error;
-  let type = 'upload';
 
   const clientFactory = opts =>
     new EPI2ME(
@@ -21,10 +18,10 @@ describe('epi2me.moveFile', () => {
         {
           url: 'https://epi2me-test.local',
           log: {
-            debug: debug,
-            info: info,
-            warn: warn,
-            error: error,
+            debug,
+            info,
+            warn,
+            error,
           },
         },
         opts,
@@ -42,14 +39,14 @@ describe('epi2me.moveFile', () => {
   it('should handle mkdirp error without unlink error', async () => {
     const workingDir = tmp.dirSync().name;
     fs.mkdirpSync(path.join(workingDir, 'uploaded'));
-    let client = clientFactory({
+    const client = clientFactory({
       inputFolder: workingDir,
     });
     client.uploadedFiles = [];
     client.states.upload.totalSize = 0;
 
-    let mkdirp = sinon.stub(fs, 'mkdirp').rejects(new Error('mkdirp failed'));
-    let file = {
+    const mkdirp = sinon.stub(fs, 'mkdirp').rejects(new Error('mkdirp failed'));
+    const file = {
       id: 'my-file',
       size: 10,
       name: 'fileA.fq',
@@ -72,16 +69,16 @@ describe('epi2me.moveFile', () => {
   it('should handle mkdirp error with unlink error', async () => {
     const workingDir = tmp.dirSync().name;
     fs.mkdirpSync(path.join(workingDir, 'uploaded'));
-    let client = clientFactory({
+    const client = clientFactory({
       inputFolder: workingDir,
     });
     client.uploadedFiles = [];
     client.states.upload.totalSize = 0;
 
-    let remove = sinon.stub(fs, 'remove').rejects(new Error('failed to remove'));
-    let mkdirp = sinon.stub(fs, 'mkdirp').rejects(new Error('mkdirp failed'));
+    const remove = sinon.stub(fs, 'remove').rejects(new Error('failed to remove'));
+    const mkdirp = sinon.stub(fs, 'mkdirp').rejects(new Error('mkdirp failed'));
 
-    let file = {
+    const file = {
       id: 'my-file',
       size: 10,
       name: 'fileA.fq',
@@ -107,9 +104,9 @@ describe('epi2me.moveFile', () => {
   });
 
   it('should handle no mkdirp error with move error', async () => {
-    let workingDir = tmp.dirSync().name;
+    const workingDir = tmp.dirSync().name;
     fs.mkdirpSync(path.join(workingDir, 'uploaded'));
-    let client = clientFactory({
+    const client = clientFactory({
       inputFolder: workingDir,
     });
     client.uploadedFiles = [];
@@ -118,7 +115,7 @@ describe('epi2me.moveFile', () => {
     fs.mkdirpSync(path.join(workingDir, 'batchB')); // source folder present
     fs.mkdirpSync(path.join(workingDir, 'uploaded', 'batchB')); // target folder present
 
-    let file = {
+    const file = {
       id: 'my-file',
       size: 10,
       name: 'fileA.fq',
@@ -139,7 +136,7 @@ describe('epi2me.moveFile', () => {
   it('should handle no mkdirp error and no move error', async () => {
     const workingDir = tmp.dirSync().name;
     fs.mkdirpSync(path.join(workingDir, 'uploaded'));
-    let client = clientFactory({
+    const client = clientFactory({
       inputFolder: workingDir,
     });
     client.uploadedFiles = [];
@@ -149,7 +146,7 @@ describe('epi2me.moveFile', () => {
     fs.mkdirpSync(path.join(workingDir, 'uploaded', 'batchB')); // target folder present
     fs.writeFileSync(path.join(workingDir, 'batchB', 'fileA.fq')); // source file present
 
-    let file = {
+    const file = {
       id: 'my-file',
       size: 10,
       name: 'fileA.fq',

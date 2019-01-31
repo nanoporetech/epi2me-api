@@ -1,8 +1,5 @@
 import assert from 'assert';
 import sinon from 'sinon';
-import path from 'path';
-import tmp from 'tmp';
-import fs from 'fs-extra';
 import EPI2ME from '../../src/epi2me';
 
 describe('session fetchInstanceToken method', () => {

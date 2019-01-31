@@ -27,9 +27,8 @@ describe('utils.put', () => {
 
   it('should invoke put', async () => {
     stubs.push(sinon.stub(axios, 'put').resolves({ data: { data: 'data' } }));
-    const req = {};
 
-    let data = await utils.put(
+    const data = await utils.put(
       'entity',
       123,
       {
@@ -61,9 +60,8 @@ describe('utils.put', () => {
 
   it('should invoke put with legacy form params', async () => {
     stubs.push(sinon.stub(axios, 'put').resolves({ data: { data: 'data' } }));
-    const req = {};
 
-    let data = await utils.put(
+    const data = await utils.put(
       'entity',
       123,
       {
@@ -98,9 +96,8 @@ describe('utils.put', () => {
 
   it('should invoke put with proxy', async () => {
     stubs.push(sinon.stub(axios, 'put').resolves({ data: { data: 'data' } }));
-    const req = {};
 
-    let data = await utils.put(
+    const data = await utils.put(
       'entity',
       123,
       {
@@ -135,10 +132,9 @@ describe('utils.put', () => {
 
   it('should handle put exception', async () => {
     stubs.push(sinon.stub(axios, 'put').rejects(new Error('request failed')));
-    const req = {};
 
     try {
-      let data = await utils.put(
+      await utils.put(
         'entity',
         123,
         {

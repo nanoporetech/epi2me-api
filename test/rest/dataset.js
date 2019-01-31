@@ -5,7 +5,9 @@ import tmp from 'tmp';
 import REST from '../../src/rest';
 
 describe('rest.dataset', () => {
-  let rest, log, ringbuf;
+  let rest;
+  let log;
+  let ringbuf;
 
   beforeEach(() => {
     ringbuf = new bunyan.RingBuffer({ limit: 100 });

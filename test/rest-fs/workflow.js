@@ -6,7 +6,6 @@ import fs from 'fs-extra';
 import bunyan from 'bunyan';
 import { merge } from 'lodash';
 import REST from '../../src/rest-fs';
-import * as utils from '../../src/utils';
 
 describe('rest.workflow', () => {
   const restFactory = opts => {
@@ -26,7 +25,7 @@ describe('rest.workflow', () => {
 
     const rest = restFactory({ url: dir });
     try {
-      let data = await rest.workflow('12345');
+      const data = await rest.workflow('12345');
       assert.deepEqual(data, { id_workflow: 12345, name: 'test', description: 'test workflow 12345' });
     } catch (err) {
       assert.fail(err);

@@ -1,8 +1,5 @@
 import sinon from 'sinon';
 import assert from 'assert';
-import tmp from 'tmp';
-import path from 'path';
-import fs from 'fs-extra';
 import bunyan from 'bunyan';
 import { merge } from 'lodash';
 import REST from '../../src/rest';
@@ -33,7 +30,6 @@ describe('rest.workflow', () => {
     try {
       await rest.workflow('12345', { description: 'a workflow', rev: '1.0' }, fake);
     } catch (err) {
-      console.log('ERR', err);
       assert.fail(err);
     }
     assert(fake.calledOnce, 'callback invoked');
@@ -95,7 +91,7 @@ describe('rest.workflow', () => {
     stubs.push(stub2);
 
     try {
-      let data = await rest.workflow('12345');
+      const data = await rest.workflow('12345');
       assert.deepEqual(data, { description: 'a workflow', id_workflow: 12345, params: {} });
     } catch (err) {
       assert.fail(err);
@@ -103,7 +99,6 @@ describe('rest.workflow', () => {
   });
 
   it('must invoke get then fetch config with null workflow', async () => {
-    const fake = sinon.fake();
     const rest = restFactory({ url: 'http://metrichor.local:8080' });
     const stub1 = sinon.stub(rest, 'read').resolves({});
     const stub2 = sinon.stub(utils, 'get').resolves({});
@@ -119,7 +114,6 @@ describe('rest.workflow', () => {
   });
 
   it('must invoke get then fetch config with workflow including params', async () => {
-    const fake = sinon.fake();
     const rest = restFactory({ url: 'http://metrichor.local:8080' });
 
     const stub1 = sinon.stub(rest, 'read').callsFake((uri, id) => {
@@ -141,7 +135,7 @@ describe('rest.workflow', () => {
       });
     });
 
-    const stub2 = sinon.stub(utils, 'get').callsFake((uri, options) => {
+    const stub2 = sinon.stub(utils, 'get').callsFake(uri => {
       if (uri === 'workflow/config/12345') {
         return Promise.resolve({});
       }
@@ -282,7 +276,6 @@ describe('rest.workflow', () => {
   });
 
   it('must invoke get then fetch config with workflow including params and skip handling of data_root', async () => {
-    const fake = sinon.fake();
     const rest = restFactory({ url: 'http://metrichor.local:8080' });
 
     const stub1 = sinon.stub(REST.prototype, 'read').callsFake((uri, id) => {
@@ -300,7 +293,7 @@ describe('rest.workflow', () => {
       });
     });
 
-    const stub2 = sinon.stub(utils, 'get').callsFake((uri, options) => {
+    const stub2 = sinon.stub(utils, 'get').callsFake(uri => {
       if (uri === 'workflow/config/12345') {
         return Promise.resolve({});
       }
@@ -320,7 +313,7 @@ describe('rest.workflow', () => {
     stubs.push(stub2);
 
     try {
-      let data = await rest.workflow('12345');
+      const data = await rest.workflow('12345');
       assert.deepEqual(data, {
         description: 'a workflow',
         id_workflow: 12345,
@@ -340,7 +333,6 @@ describe('rest.workflow', () => {
   });
 
   it('must handle failure during config fetch', async () => {
-    const fake = sinon.fake();
     const rest = restFactory({ url: 'http://metrichor.local:8080' });
 
     const stub1 = sinon.stub(rest, 'read').callsFake((uri, id) => {
@@ -362,7 +354,7 @@ describe('rest.workflow', () => {
       });
     });
 
-    const stub2 = sinon.stub(utils, 'get').callsFake((uri, options) => {
+    const stub2 = sinon.stub(utils, 'get').callsFake(uri => {
       if (uri === 'workflow/config/12345') {
         return Promise.reject(new Error('forbidden'));
       }
@@ -390,7 +382,6 @@ describe('rest.workflow', () => {
   });
 
   it('must handle failure during parameter fetch', async () => {
-    const fake = sinon.fake();
     const rest = restFactory({ url: 'http://metrichor.local:8080' });
 
     const stub1 = sinon.stub(rest, 'read').callsFake((uri, id) => {
@@ -412,7 +403,7 @@ describe('rest.workflow', () => {
       });
     });
 
-    const stub2 = sinon.stub(utils, 'get').callsFake((uri, options) => {
+    const stub2 = sinon.stub(utils, 'get').callsFake(uri => {
       if (uri === 'workflow/config/12345') {
         return Promise.resolve({});
       }
@@ -426,7 +417,7 @@ describe('rest.workflow', () => {
     stubs.push(stub2);
 
     try {
-      let data = await rest.workflow('12345');
+      await rest.workflow('12345');
       assert.fail('unexpected success');
     } catch (err) {
       assert(String(err).match(/forbidden/));

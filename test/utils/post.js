@@ -16,6 +16,10 @@ describe('utils.post', () => {
     utils.version = versionBackup;
   });
 
+  beforeEach(() => {
+    stubs = [];
+  });
+
   afterEach(() => {
     stubs.forEach(s => {
       s.restore();
@@ -24,7 +28,7 @@ describe('utils.post', () => {
 
   it('should invoke post', async () => {
     stubs.push(sinon.stub(axios, 'post').resolves({ data: { data: 'data' } }));
-    let data = await utils.post(
+    const data = await utils.post(
       'entity',
       {
         id_entity: 123,
@@ -57,7 +61,7 @@ describe('utils.post', () => {
 
   it('should invoke post with legacy form params', async () => {
     stubs.push(sinon.stub(axios, 'post').resolves({ data: { data: 'data' } }));
-    let data = await utils.post(
+    const data = await utils.post(
       'entity',
       {
         id_entity: 123,
@@ -92,7 +96,7 @@ describe('utils.post', () => {
 
   it('should invoke post with proxy', async () => {
     stubs.push(sinon.stub(axios, 'post').resolves({ data: { data: 'data' } }));
-    let data = await utils.post(
+    const data = await utils.post(
       'entity',
       {
         id_entity: 123,
@@ -126,10 +130,9 @@ describe('utils.post', () => {
 
   it('should handle post exception', async () => {
     stubs.push(sinon.stub(axios, 'post').rejects(new Error('request failed')));
-    const req = {};
 
     try {
-      let data = await utils.post(
+      await utils.post(
         'entity',
         {
           id_entity: 123,

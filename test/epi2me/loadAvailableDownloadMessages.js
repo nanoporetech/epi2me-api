@@ -1,6 +1,5 @@
 import assert from 'assert';
 import sinon from 'sinon';
-import bunyan from 'bunyan';
 import { merge } from 'lodash';
 import EPI2ME from '../../src/epi2me';
 
@@ -12,7 +11,7 @@ describe('epi2me.loadAvailableDownloadMessages', () => {
         {
           url: 'https://epi2me-test.local',
           log: {
-            debug: debug,
+            debug,
             info: sinon.stub(),
             warn: sinon.stub(),
             error: sinon.stub(),
@@ -27,7 +26,7 @@ describe('epi2me.loadAvailableDownloadMessages', () => {
   });
 
   it('should process undefined messages', async () => {
-    let client = clientFactory();
+    const client = clientFactory();
     sinon.stub(client, 'discoverQueue').resolves('http://queue.url/');
     sinon.stub(client, 'queueLength').resolves(); // undefined
     sinon.stub(client, 'downloadAvailable').callsFake();
@@ -43,7 +42,7 @@ describe('epi2me.loadAvailableDownloadMessages', () => {
   });
 
   it('should process null messages', async () => {
-    let client = clientFactory();
+    const client = clientFactory();
     sinon.stub(client, 'discoverQueue').resolves('http://queue.url/');
     sinon.stub(client, 'queueLength').resolves(null); // null
     sinon.stub(client, 'downloadAvailable').callsFake();
@@ -59,7 +58,7 @@ describe('epi2me.loadAvailableDownloadMessages', () => {
   });
 
   it('should process zero messages', async () => {
-    let client = clientFactory();
+    const client = clientFactory();
     sinon.stub(client, 'discoverQueue').resolves('http://queue.url/');
     sinon.stub(client, 'queueLength').resolves(0); // zero
     sinon.stub(client, 'downloadAvailable').callsFake();
@@ -75,7 +74,7 @@ describe('epi2me.loadAvailableDownloadMessages', () => {
   });
 
   it('should process n messages', async () => {
-    let client = clientFactory();
+    const client = clientFactory();
     sinon.stub(client, 'discoverQueue').resolves('http://queue.url/');
     sinon.stub(client, 'queueLength').resolves(50); // n
     sinon.stub(client, 'downloadAvailable').callsFake();

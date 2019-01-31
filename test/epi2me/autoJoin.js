@@ -1,8 +1,6 @@
+import sinon from 'sinon';
+import assert from 'assert';
 import EPI2ME from '../../src/epi2me';
-
-const assert = require('assert');
-const sinon = require('sinon');
-const bunyan = require('bunyan');
 
 describe('epi2me.autoJoin', () => {
   const stubs = [];

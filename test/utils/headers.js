@@ -5,7 +5,6 @@ import sinon from 'sinon';
 import utils from '../../src/utils';
 
 describe('utils.headers', () => {
-  let stub;
   let clock;
   beforeEach(() => {
     clock = sinon.useFakeTimers();

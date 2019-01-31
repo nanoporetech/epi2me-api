@@ -1,9 +1,6 @@
 import assert from 'assert';
 import sinon from 'sinon';
-import bunyan from 'bunyan';
-import fs from 'fs-extra';
 import { merge } from 'lodash';
-import AWS from 'aws-sdk';
 import EPI2ME from '../../src/epi2me';
 
 describe('epi2me.uploadJob', () => {
@@ -41,7 +38,7 @@ describe('epi2me.uploadJob', () => {
   it('should handle file object with skip and no readCount', async () => {
     const client = clientFactory();
 
-    sinon.stub(client, 'moveFile').callsFake((file, cb) => {
+    sinon.stub(client, 'moveFile').callsFake(file => {
       assert.deepEqual(file, { skip: true });
       return Promise.resolve();
     });
@@ -114,13 +111,12 @@ describe('epi2me.uploadJob', () => {
     });
     delete client.states.upload.failure;
 
-    let err;
     try {
       const x = { id: 72 };
       await client.uploadJob(x);
       clock.tick(1000);
-    } catch (e) {
-      err = e;
+    } catch (err) {
+      // empty
     }
 
     assert(client.log.info.args[1][0].match(/uploadHandler failed/), 'error message propagated');

@@ -5,13 +5,14 @@ import REST from '../../src/rest';
 import utils from '../../src/utils';
 
 describe('rest.instance_token', () => {
-  let log, rest;
+  let log;
+  let rest;
 
   beforeEach(() => {
     const ringbuf = new bunyan.RingBuffer({ limit: 100 });
     log = bunyan.createLogger({ name: 'log', stream: ringbuf });
     rest = new REST({
-      log: log,
+      log,
     });
   });
 
@@ -32,7 +33,7 @@ describe('rest.instance_token', () => {
         { id_workflow_instance: '12345' },
         {
           legacy_form: true,
-          log: log,
+          log,
         },
       ],
       'post args',

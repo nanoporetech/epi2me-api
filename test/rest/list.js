@@ -5,7 +5,10 @@ import REST from '../../src/rest';
 import utils from '../../src/utils';
 
 describe('rest.list', () => {
-  let ringbuf, log, stubs, rest;
+  let ringbuf;
+  let log;
+  let stubs;
+  let rest;
 
   beforeEach(() => {
     ringbuf = new bunyan.RingBuffer({ limit: 100 });
@@ -21,11 +24,11 @@ describe('rest.list', () => {
   });
 
   it('must invoke get with options', async () => {
-    let stub = sinon.stub(utils, 'get').resolves({ things: [{ id_thing: 1, name: 'thing one' }] });
+    const stub = sinon.stub(utils, 'get').resolves({ things: [{ id_thing: 1, name: 'thing one' }] });
     stubs.push(stub);
 
     try {
-      let list = await rest.list('thing');
+      const list = await rest.list('thing');
       assert.deepEqual(list, [{ id_thing: 1, name: 'thing one' }]);
     } catch (e) {
       assert.fail(e);

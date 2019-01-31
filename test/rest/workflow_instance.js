@@ -1,13 +1,13 @@
-import assert, { doesNotReject } from 'assert';
+import assert from 'assert';
 import sinon from 'sinon';
-import utils from '../../src/utils';
 import REST from '../../src/rest';
 
 describe('epi2me.workflow_instance', () => {
-  let client, stubs;
+  let rest;
+  let stubs;
 
   beforeEach(() => {
-    client = new REST({
+    rest = new REST({
       url: 'http://metrichor.local:8080',
       apikey: 'FooBar02',
     });
@@ -20,7 +20,7 @@ describe('epi2me.workflow_instance', () => {
     });
   });
   it('should read a workflow_instance with callback', done => {
-    const stub = sinon.stub(client, 'read').resolves({
+    sinon.stub(rest, 'read').resolves({
       id_workflow_instance: '149',
       state: 'running',
       workflow_filename: 'DNA_Sequencing.js',
@@ -33,7 +33,7 @@ describe('epi2me.workflow_instance', () => {
     });
 
     try {
-      client.workflow_instance(149, (err, obj) => {
+      rest.workflow_instance(149, (err, obj) => {
         assert.equal(err, null, 'no error reported');
         assert.deepEqual(
           obj,
@@ -58,7 +58,7 @@ describe('epi2me.workflow_instance', () => {
   });
 
   it('should read a workflow_instance with promise', async () => {
-    const stub = sinon.stub(client, 'read').resolves({
+    sinon.stub(rest, 'read').resolves({
       id_workflow_instance: '149',
       state: 'running',
       workflow_filename: 'DNA_Sequencing.js',
@@ -71,7 +71,7 @@ describe('epi2me.workflow_instance', () => {
     });
 
     try {
-      let obj = await client.workflow_instance(149);
+      const obj = await rest.workflow_instance(149);
 
       assert.deepEqual(
         obj,

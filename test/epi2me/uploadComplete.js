@@ -1,7 +1,5 @@
 import assert from 'assert';
 import sinon from 'sinon';
-import bunyan from 'bunyan';
-import fs from 'fs-extra';
 import { merge } from 'lodash';
 import AWS from 'aws-sdk';
 import EPI2ME from '../../src/epi2me';
@@ -24,17 +22,13 @@ describe('epi2me.uploadComplete', () => {
     );
 
   it('sqs callback failure should handle error and log warning', async () => {
-    let client = clientFactory();
-    let sqs = new AWS.SQS();
+    const client = clientFactory();
+    const sqs = new AWS.SQS();
 
     sinon.stub(client, 'discoverQueue').resolves('http://my-queue/');
-    sinon.stub(client, 'sessionedSQS').callsFake(() => {
-      return sqs;
-    });
+    sinon.stub(client, 'sessionedSQS').callsFake(() => sqs);
     sinon.stub(sqs, 'sendMessage').callsFake(() => ({
-      promise: () => {
-        return Promise.reject(new Error('uploadComplete failed'));
-      },
+      promise: () => Promise.reject(new Error('uploadComplete failed')),
     }));
 
     try {
@@ -46,17 +40,13 @@ describe('epi2me.uploadComplete', () => {
   });
 
   it('sqs callback exception should handle error and log error', async () => {
-    let client = clientFactory();
-    let sqs = new AWS.SQS();
+    const client = clientFactory();
+    const sqs = new AWS.SQS();
 
     sinon.stub(client, 'discoverQueue').resolves('http://my-queue/');
-    sinon.stub(client, 'sessionedSQS').callsFake(() => {
-      return sqs;
-    });
+    sinon.stub(client, 'sessionedSQS').callsFake(() => sqs);
     sinon.stub(sqs, 'sendMessage').callsFake(() => ({
-      promise: () => {
-        return Promise.reject(new Error('uploadComplete failed'));
-      },
+      promise: () => Promise.reject(new Error('uploadComplete failed')),
     }));
 
     let err;
@@ -70,14 +60,13 @@ describe('epi2me.uploadComplete', () => {
   });
 
   it('sqs callback success should move file and log info', async () => {
-    let client = clientFactory();
-    let sqs = new AWS.SQS();
-    let clock = sinon.useFakeTimers();
+    const client = clientFactory();
+    const sqs = new AWS.SQS();
+    const clock = sinon.useFakeTimers();
 
     sinon.stub(client, 'discoverQueue').resolves('http://my-queue/');
-    sinon.stub(client, 'sessionedSQS').callsFake(() => {
-      return sqs;
-    });
+    sinon.stub(client, 'sessionedSQS').callsFake(() => sqs);
+
     sinon.stub(sqs, 'sendMessage').callsFake(obj => {
       assert.deepEqual(
         JSON.parse(obj.MessageBody),
@@ -93,14 +82,13 @@ describe('epi2me.uploadComplete', () => {
         'uploadComplete payload',
       );
       return {
-        promise: () => {
-          return Promise.resolve();
-        },
+        promise: () => Promise.resolve(),
       };
     });
 
-    let moveFile = sinon.stub(client, 'moveFile').callsFake((file, type) => {
+    sinon.stub(client, 'moveFile').callsFake((file, type) => {
       assert.deepEqual(file, { id: 'my-file' }, 'object metadata');
+      assert.equal(type, 'upload');
       return Promise.resolve();
     });
 
@@ -115,16 +103,13 @@ describe('epi2me.uploadComplete', () => {
   });
 
   it('should handle chain info with exception', async () => {
-    let client = clientFactory();
-    let sqs = new AWS.SQS();
+    const client = clientFactory();
+    const sqs = new AWS.SQS();
 
     sinon.stub(client, 'discoverQueue').resolves('http://my-queue/');
-    sinon.stub(client, 'sessionedSQS').callsFake(() => {
-      return sqs;
-    });
+    sinon.stub(client, 'sessionedSQS').callsFake(() => sqs);
     sinon.stub(sqs, 'sendMessage').resolves();
-
-    let moveFile = sinon.stub(client, 'moveFile').resolves();
+    sinon.stub(client, 'moveFile').resolves();
 
     client.config.instance.chain = {}; // components undefined
 
@@ -140,14 +125,13 @@ describe('epi2me.uploadComplete', () => {
   });
 
   it('should handle & propagate additional metadata', async () => {
-    let clock = sinon.useFakeTimers();
-    let client = clientFactory();
-    let sqs = new AWS.SQS();
+    const clock = sinon.useFakeTimers();
+    const client = clientFactory();
+    const sqs = new AWS.SQS();
 
     sinon.stub(client, 'discoverQueue').resolves('http://my-queue/');
-    sinon.stub(client, 'sessionedSQS').callsFake(() => {
-      return sqs;
-    });
+    sinon.stub(client, 'sessionedSQS').callsFake(() => sqs);
+
     sinon.stub(sqs, 'sendMessage').callsFake(obj => {
       assert.deepEqual(
         JSON.parse(obj.MessageBody),
@@ -171,13 +155,11 @@ describe('epi2me.uploadComplete', () => {
         'uploadComplete payload',
       );
       return {
-        promise: () => {
-          return Promise.resolve();
-        },
+        promise: () => Promise.resolve(),
       };
     });
 
-    let moveFile = sinon.stub(client, 'moveFile').resolves();
+    sinon.stub(client, 'moveFile').resolves();
 
     client.config.instance.chain = { components: [], targetComponentId: 1 };
     client.config.instance.key_id = 'data-secret';
@@ -194,14 +176,13 @@ describe('epi2me.uploadComplete', () => {
   });
 
   it('should handle bad agent_address', async () => {
-    let clock = sinon.useFakeTimers();
-    let client = clientFactory();
-    let sqs = new AWS.SQS();
+    const clock = sinon.useFakeTimers();
+    const client = clientFactory();
+    const sqs = new AWS.SQS();
 
     sinon.stub(client, 'discoverQueue').resolves('http://my-queue/');
-    sinon.stub(client, 'sessionedSQS').callsFake(() => {
-      return sqs;
-    });
+    sinon.stub(client, 'sessionedSQS').callsFake(() => sqs);
+
     sinon.stub(sqs, 'sendMessage').callsFake(obj => {
       assert.deepEqual(
         JSON.parse(obj.MessageBody),
@@ -220,13 +201,11 @@ describe('epi2me.uploadComplete', () => {
         'uploadComplete payload',
       );
       return {
-        promise: () => {
-          return Promise.resolve();
-        },
+        promise: () => Promise.resolve(),
       };
     });
 
-    let moveFile = sinon.stub(client, 'moveFile').resolves();
+    sinon.stub(client, 'moveFile').resolves();
 
     client.config.instance.chain = { components: [], targetComponentId: 1 };
     client.config.instance.key_id = 'data-secret';
@@ -243,14 +222,13 @@ describe('epi2me.uploadComplete', () => {
   });
 
   it('should inject upload & download message queues. is this used?', async () => {
-    let clock = sinon.useFakeTimers();
-    let client = clientFactory();
-    let sqs = new AWS.SQS();
+    const clock = sinon.useFakeTimers();
+    const client = clientFactory();
+    const sqs = new AWS.SQS();
 
     sinon.stub(client, 'discoverQueue').resolves('http://my-queue/');
-    sinon.stub(client, 'sessionedSQS').callsFake(() => {
-      return sqs;
-    });
+    sinon.stub(client, 'sessionedSQS').callsFake(() => sqs);
+
     sinon.stub(sqs, 'sendMessage').callsFake(obj => {
       assert.deepEqual(
         JSON.parse(obj.MessageBody).components,
@@ -258,12 +236,10 @@ describe('epi2me.uploadComplete', () => {
         'uploadComplete replaced component queue names',
       );
       return {
-        promise: () => {
-          return Promise.resolve();
-        },
+        promise: () => Promise.resolve(),
       };
     });
-    let moveFile = sinon.stub(client, 'moveFile').resolves();
+    sinon.stub(client, 'moveFile').resolves();
 
     client.uploadMessageQueue = 'upload-q';
     client.downloadMessageQueue = 'download-q';

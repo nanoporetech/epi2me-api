@@ -7,15 +7,15 @@ import { merge } from 'lodash';
 import EPI2ME from '../../src/epi2me';
 
 describe('epi2me.uploadHandler', () => {
-  let tmpfile = 'tmpfile.txt',
-    stubs;
+  const tmpfile = 'tmpfile.txt';
+  let stubs;
 
   const clientFactory = opts => {
     stubs = [];
 
-    let tmpdir = tmp.dirSync().name;
+    const tmpdir = tmp.dirSync().name;
     fs.writeFile(path.join(tmpdir, tmpfile));
-    let client = new EPI2ME(
+    const client = new EPI2ME(
       merge(
         {
           inputFolder: tmpdir,
@@ -43,7 +43,7 @@ describe('epi2me.uploadHandler', () => {
   });
 
   it('should open readStream', done => {
-    let client = clientFactory();
+    const client = clientFactory();
     stubs.push(
       sinon.stub(client, 'sessionedS3').callsFake(() => ({
         upload: (params, options, cb) => {
@@ -67,8 +67,8 @@ describe('epi2me.uploadHandler', () => {
   });
 
   it('should handle read stream errors', done => {
-    let client = clientFactory();
-    let crso = fs.createReadStream;
+    const client = clientFactory();
+    const crso = fs.createReadStream;
     stubs.push(
       sinon.stub(fs, 'createReadStream').callsFake((...args) => {
         const readStream = crso(...args);
@@ -102,7 +102,7 @@ describe('epi2me.uploadHandler', () => {
   });
 
   it('should handle bad file name - ENOENT', done => {
-    let client = clientFactory();
+    const client = clientFactory();
     assert.doesNotThrow(() => {
       client.uploadHandler({ id: 'my-file', name: 'bad file name' }, msg => {
         assert(typeof msg !== 'undefined', 'failure');
