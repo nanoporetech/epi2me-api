@@ -16,7 +16,7 @@ var proxy = _interopDefault(require('proxy-agent'));
 var axios = _interopDefault(require('axios'));
 var crypto = _interopDefault(require('crypto'));
 
-var version = "2.58.1";
+var version = "3.0.0";
 
 /*
  * Copyright (c) 2018 Metrichor Ltd.

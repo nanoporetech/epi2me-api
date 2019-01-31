@@ -7,7 +7,7 @@ import { merge, assign, every, isFunction, filter } from 'lodash';
 import axios from 'axios';
 import crypto from 'crypto';
 
-var version = "2.58.1";
+var version = "3.0.0";
 
 /*
  * Copyright (c) 2018 Metrichor Ltd.
