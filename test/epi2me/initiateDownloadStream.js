@@ -4,7 +4,6 @@ import path from 'path';
 import tmp from 'tmp';
 import fs from 'fs-extra';
 import { merge } from 'lodash';
-import utils from '../../src/utils';
 import EPI2ME from '../../src/epi2me';
 
 // MC-1304 - test download streams
@@ -52,9 +51,10 @@ describe('epi2me.initiateDownloadStream', () => {
     fs.writeFile(path.join(tmpdir.name, 'tmpfile.txt'), 'dataset', () => {});
 
     writeStream = null;
+    const fscWS = fs.createWriteStream; // original, and best
     stubs.push(
-      sinon.stub(fs, 'createWriteStream').callsFake(() => {
-        writeStream = fs.createWriteStream.apply(this, arguments);
+      sinon.stub(fs, 'createWriteStream').callsFake((...args) => {
+        writeStream = fscWS(...args);
         return writeStream;
       }),
     );
@@ -69,7 +69,7 @@ describe('epi2me.initiateDownloadStream', () => {
   it('should handle s3 error', done => {
     const client = clientFactory({});
     const s3 = s3Mock(() => {
-      throw 'Error';
+      throw new Error('S3 Error');
     });
     client.initiateDownloadStream(s3, {}, {}, tmpfile.name, () => {
       assert(client.log.error.calledOnce, 'should log error message');
@@ -105,21 +105,17 @@ describe('epi2me.initiateDownloadStream', () => {
 */
   it('should handle read stream errors', done => {
     const client = clientFactory({});
-    let readStream;
-    let tmpfile;
-    let s3;
-    let filename;
 
-    s3 = s3Mock(() => {
+    const s3 = s3Mock(() => {
       tmpfile = tmp.fileSync({ prefix: 'prefix-', postfix: '.txt' });
-      readStream = fs.createReadStream(tmpfile.name, err => {});
+      const readStream = fs.createReadStream(tmpfile.name);
       readStream.on('open', () => {
         readStream.emit('error', new Error('Test'));
       });
       return readStream;
     });
 
-    filename = path.join(tmpdir.name, 'tmpfile.txt');
+    const filename = path.join(tmpdir.name, 'tmpfile.txt');
 
     client.initiateDownloadStream(s3, {}, {}, filename, () => {
       // assert.equal(readStream.destroyed, true, "should destroy the read stream"); // fails on node > 2.2.1
@@ -133,18 +129,14 @@ describe('epi2me.initiateDownloadStream', () => {
 
   it('should handle write stream errors', done => {
     const client = clientFactory({});
-    let readStream;
-    let tmpfile;
-    let s3;
-    let filename;
 
-    s3 = s3Mock(() => {
+    const s3 = s3Mock(() => {
       tmpfile = tmp.fileSync({ prefix: 'prefix-', postfix: '.txt' });
-      readStream = fs.createReadStream(tmpfile.name, err => {});
+      const readStream = fs.createReadStream(tmpfile.name);
       return readStream;
     });
 
-    filename = path.join(tmpdir.name, 'tmpfile2.txt');
+    const filename = path.join(tmpdir.name, 'tmpfile2.txt');
 
     client.initiateDownloadStream(s3, {}, {}, filename, () => {
       // assert.equal(readStream.destroyed, true, "should destroy the read stream"); // fails on node > 2.2.1
@@ -169,21 +161,15 @@ describe('epi2me.initiateDownloadStream', () => {
   it('should handle transfer timeout errors', done => {
     const client = clientFactory({ downloadTimeout: 1e-10 }); // effectively zero. Zero would result in default value
 
-    // This test interacts with the other async test
-    let readStream;
-    let tmpfile;
-    let filename;
-    let s3;
-
-    s3 = s3Mock(() => {
+    const s3 = s3Mock(() => {
       tmpfile = tmp.fileSync({ prefix: 'prefix-', postfix: '.txt' });
-      readStream = fs.createReadStream(tmpfile.name, err => {});
+      const readStream = fs.createReadStream(tmpfile.name);
       // Writing random data to file so that the timeout fails before the readstream is done
       fs.writeFileSync(tmpfile.name, new Array(1e5).join('aaa'));
       return readStream;
     });
 
-    filename = path.join(tmpdir.name, 'tmpfile.txt');
+    const filename = path.join(tmpdir.name, 'tmpfile.txt');
 
     client.initiateDownloadStream(s3, {}, {}, filename, () => {
       // assert(readStream.destroyed, "should destroy the read stream"); // fails on node > 2.2.1

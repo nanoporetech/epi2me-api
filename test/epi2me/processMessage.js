@@ -1,6 +1,5 @@
 import assert from 'assert';
 import sinon from 'sinon';
-import bunyan from 'bunyan';
 import tmp from 'tmp';
 import fs from 'fs-extra';
 import path from 'path';
@@ -43,7 +42,7 @@ describe('epi2me-api.processMessage', () => {
   it('should parse message json', done => {
     const client = clientFactory({ downloadMode: 'telemetry' });
 
-    const stub = sinon.stub(client, 'sessionedS3').callsFake(cb => {
+    sinon.stub(client, 'sessionedS3').callsFake(cb => {
       cb('error message'); // hmm. this is invalid!
     });
 
@@ -180,7 +179,7 @@ describe('epi2me-api.processMessage', () => {
     done();
   });
 
-  it('should handle fast5 filetype behaviour', done => {
+  it('should handle fast5 filetype behavior', done => {
     const tmpDir = tmp.dirSync();
     const client = clientFactory({
       filter: 'off',
@@ -197,8 +196,7 @@ describe('epi2me-api.processMessage', () => {
       });
 
     const stub3 = sinon.stub(fs, 'mkdirpSync').callsFake();
-
-    const stub4 = sinon.stub(utils, 'findSuitableBatchIn').callsFake(folder_in => '/folder_out');
+    const stub4 = sinon.stub(utils, 'findSuitableBatchIn').callsFake(() => '/folder_out');
 
     assert.doesNotThrow(() => {
       client.processMessage(

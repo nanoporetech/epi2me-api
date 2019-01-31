@@ -1,14 +1,16 @@
+import sinon from 'sinon';
+import assert from 'assert';
+import bunyan from 'bunyan';
 import REST from '../../src/rest';
 
-const sinon = require('sinon');
-const assert = require('assert');
-const bunyan = require('bunyan');
-
 describe('rest.datasets', () => {
-  let rest, stubs, log, ringbuf;
+  let rest;
+  let stubs;
+  let log;
+  let ringbuf;
   beforeEach(() => {
-    const ringbuf = new bunyan.RingBuffer({ limit: 100 });
-    const log = bunyan.createLogger({ name: 'log', stream: ringbuf });
+    ringbuf = new bunyan.RingBuffer({ limit: 100 });
+    log = bunyan.createLogger({ name: 'log', stream: ringbuf });
     stubs = [];
     rest = new REST({ log });
   });
@@ -20,7 +22,7 @@ describe('rest.datasets', () => {
   });
 
   it('must invoke list with null query', async () => {
-    const stub = sinon.stub(rest, 'list').resolves([]);
+    sinon.stub(rest, 'list').resolves([]);
     const fake = sinon.fake();
 
     try {
@@ -33,7 +35,7 @@ describe('rest.datasets', () => {
   });
 
   it('must invoke list with empty query', async () => {
-    const stub = sinon.stub(rest, 'list').resolves([]);
+    sinon.stub(rest, 'list').resolves([]);
     const fake = sinon.fake();
 
     try {
@@ -45,7 +47,7 @@ describe('rest.datasets', () => {
   });
 
   it('must invoke list with query', async () => {
-    const stub = sinon.stub(rest, 'list').resolves([]);
+    sinon.stub(rest, 'list').resolves([]);
     const fake = sinon.fake();
 
     try {

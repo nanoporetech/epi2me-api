@@ -2,7 +2,6 @@ import assert from 'assert';
 import sinon from 'sinon';
 import { merge } from 'lodash';
 import AWS from 'aws-sdk';
-import REST from '../../src/rest';
 import EPI2ME from '../../src/epi2me';
 
 describe('epi2me.deleteMessage', () => {
@@ -52,13 +51,13 @@ describe('epi2me.deleteMessage', () => {
   it('should invoke sqs.deleteMessage without error', async () => {
     const client = clientFactory();
     const sqs = new AWS.SQS();
-    const sessionedSQS = sinon.stub(client, 'sessionedSQS').callsFake(
+    sinon.stub(client, 'sessionedSQS').callsFake(
       () =>
         // don't do any portal sessioning
         sqs,
     );
 
-    const discoverQueue = sinon.stub(client, 'discoverQueue').resolves('http://my-output-queue.eu-test-1.aws.com');
+    sinon.stub(client, 'discoverQueue').resolves('http://my-output-queue.eu-test-1.aws.com');
     const deleteMessage = sinon.stub(sqs, 'deleteMessage').callsFake(() => ({
       promise: () => Promise.resolve(),
     }));
@@ -79,14 +78,14 @@ describe('epi2me.deleteMessage', () => {
   it('should invoke sqs.deleteMessage with error', async () => {
     const client = clientFactory();
     const sqs = new AWS.SQS();
-    const sessionedSQS = sinon.stub(client, 'sessionedSQS').callsFake(
+    sinon.stub(client, 'sessionedSQS').callsFake(
       () =>
         // don't do any portal sessioning
         sqs,
     );
 
-    const discoverQueue = sinon.stub(client, 'discoverQueue').resolves('http://my-output-queue.eu-test-1.aws.com');
-    const deleteMessage = sinon.stub(sqs, 'deleteMessage').callsFake(() => ({
+    sinon.stub(client, 'discoverQueue').resolves('http://my-output-queue.eu-test-1.aws.com');
+    sinon.stub(sqs, 'deleteMessage').callsFake(() => ({
       promise: () => Promise.reject(new Error('deleteMessage failed')),
     }));
 
@@ -102,14 +101,14 @@ describe('epi2me.deleteMessage', () => {
   it('should invoke sqs.deleteMessage with exception', async () => {
     const client = clientFactory();
     const sqs = new AWS.SQS();
-    const sessionedSQS = sinon.stub(client, 'sessionedSQS').callsFake(
+    sinon.stub(client, 'sessionedSQS').callsFake(
       () =>
         // don't do any portal sessioning
         sqs,
     );
 
-    const discoverQueue = sinon.stub(client, 'discoverQueue').resolves('http://my-output-queue.eu-test-1.aws.com');
-    const deleteMessage = sinon.stub(sqs, 'deleteMessage').throws(new Error('deleteMessage failed'));
+    sinon.stub(client, 'discoverQueue').resolves('http://my-output-queue.eu-test-1.aws.com');
+    sinon.stub(sqs, 'deleteMessage').throws(new Error('deleteMessage failed'));
 
     try {
       await client.deleteMessage({ message: 'test message', ReceiptHandle: 'abcd-1234' });
@@ -123,13 +122,13 @@ describe('epi2me.deleteMessage', () => {
   it('should invoke sqs.deleteMessage with discovery failure and counter set', async () => {
     const client = clientFactory();
     const sqs = new AWS.SQS();
-    const sessionedSQS = sinon.stub(client, 'sessionedSQS').callsFake(
+    sinon.stub(client, 'sessionedSQS').callsFake(
       () =>
         // don't do any portal sessioning
         sqs,
     );
 
-    const discoverQueue = sinon.stub(client, 'discoverQueue').rejects('could not connect');
+    sinon.stub(client, 'discoverQueue').rejects('could not connect');
     const deleteMessage = sinon.stub();
 
     try {
@@ -145,13 +144,13 @@ describe('epi2me.deleteMessage', () => {
   it('should invoke sqs.deleteMessage with discovery failure and counter increment', async () => {
     const client = clientFactory();
     const sqs = new AWS.SQS();
-    const sessionedSQS = sinon.stub(client, 'sessionedSQS').callsFake(
+    sinon.stub(client, 'sessionedSQS').callsFake(
       () =>
         // don't do any portal sessioning
         sqs,
     );
 
-    const discoverQueue = sinon.stub(client, 'discoverQueue').rejects('could not connect');
+    sinon.stub(client, 'discoverQueue').rejects('could not connect');
     const deleteMessage = sinon.stub();
 
     client.states.download.failure['could not connect'] = 7;

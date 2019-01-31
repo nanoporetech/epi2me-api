@@ -5,7 +5,8 @@ import REST from '../../src/rest';
 import utils from '../../src/utils';
 
 describe('rest.instance_token', () => {
-  let log, rest;
+  let log;
+  let rest;
 
   beforeEach(() => {
     const ringbuf = new bunyan.RingBuffer({ limit: 100 });
@@ -30,12 +31,12 @@ describe('rest.instance_token', () => {
           { id_workflow_instance: '12345' },
           {
             legacy_form: true,
-            log: log,
             agent_version: '3.0.0',
             local: false,
             signing: true,
             url: 'https://epi2me.nanoporetech.com',
             user_agent: 'EPI2ME API',
+            log,
           },
         ],
         'post args',
@@ -46,6 +47,26 @@ describe('rest.instance_token', () => {
     } finally {
       stub.restore();
     }
+
+    assert.deepEqual(
+      stub.args[0],
+      [
+        'token',
+        { id_workflow_instance: '12345' },
+        {
+          legacy_form: true,
+          agent_version: '3.0.0',
+          local: false,
+          url: 'https://epi2me.nanoporetech.com',
+          user_agent: 'EPI2ME API',
+          signing: true,
+          log,
+        },
+      ],
+      'post args',
+    );
+    assert.deepEqual(fake.lastCall.args, [null, { data: 'some data' }], 'callback args');
+    stub.restore();
   });
 
   it('must handle error', async () => {

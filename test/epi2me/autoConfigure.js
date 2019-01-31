@@ -5,7 +5,6 @@ import tmp from 'tmp';
 import path from 'path';
 import { merge } from 'lodash';
 import EPI2ME from '../../src/epi2me';
-import REST from '../../src/rest';
 
 describe('epi2me.autoConfigure', () => {
   let clock;
@@ -35,13 +34,13 @@ describe('epi2me.autoConfigure', () => {
 
   it('should require inputFolder', async () => {
     const tmpDir = tmp.dirSync();
-    let client = clientFactory();
+    const client = clientFactory();
 
-    let autoStartCb = sinon.fake();
-    let mkdirp = sinon.stub(fs, 'mkdirp').callsFake((folder, cb) => {
+    const autoStartCb = sinon.fake();
+    const mkdirp = sinon.stub(fs, 'mkdirp').callsFake((folder, cb) => {
       cb();
     });
-    let mkdirpSync = sinon.stub(fs, 'mkdirpSync').callsFake();
+    const mkdirpSync = sinon.stub(fs, 'mkdirpSync').callsFake();
 
     let err;
     try {
@@ -59,15 +58,15 @@ describe('epi2me.autoConfigure', () => {
 
   it('should require outputFolder', async () => {
     const tmpDir = tmp.dirSync();
-    let client = clientFactory({
+    const client = clientFactory({
       inputFolder: path.join(tmpDir.name, 'input'),
     });
 
-    let autoStartCb = sinon.fake();
-    let mkdirp = sinon.stub(fs, 'mkdirp').callsFake((folder, cb) => {
+    const autoStartCb = sinon.fake();
+    const mkdirp = sinon.stub(fs, 'mkdirp').callsFake((folder, cb) => {
       cb();
     });
-    let mkdirpSync = sinon.stub(fs, 'mkdirpSync').callsFake();
+    const mkdirpSync = sinon.stub(fs, 'mkdirpSync').callsFake();
 
     let err;
     try {
@@ -83,16 +82,16 @@ describe('epi2me.autoConfigure', () => {
 
   it('should require inputqueue', async () => {
     const tmpDir = tmp.dirSync();
-    let client = clientFactory({
+    const client = clientFactory({
       inputFolder: path.join(tmpDir.name, 'input'),
       outputFolder: path.join(tmpDir.name, 'output'),
     });
 
-    let autoStartCb = sinon.fake();
-    let mkdirp = sinon.stub(fs, 'mkdirp').callsFake((folder, cb) => {
+    const autoStartCb = sinon.fake();
+    const mkdirp = sinon.stub(fs, 'mkdirp').callsFake((folder, cb) => {
       cb();
     });
-    let mkdirpSync = sinon.stub(fs, 'mkdirpSync').callsFake();
+    const mkdirpSync = sinon.stub(fs, 'mkdirpSync').callsFake();
 
     let err;
     try {

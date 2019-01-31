@@ -30,8 +30,8 @@ describe('utils-fs.findSuitablebatchIn', () => {
     const batchDir = path.join(dir, 'batch_0');
     await fs.mkdirp(batchDir);
 
-    let p = [];
-    for (let i = 0; i <= 4000; i++) {
+    const p = [];
+    for (let i = 0; i <= 4000; i += 1) {
       p.push(fs.writeFile(path.join(batchDir, `file${i}.fast5`), 'data'));
     }
     await Promise.all(p);
@@ -45,7 +45,7 @@ describe('utils-fs.findSuitablebatchIn', () => {
     const dir = tmp.dirSync().name;
     fs.mkdirpSync(path.join(dir, 'batch_0'));
     fs.mkdirpSync(path.join(dir, 'batch_1000'));
-    for (let i = 0; i <= 1000; i++) {
+    for (let i = 0; i <= 1000; i += 1) {
       // const targetBatchSize
       fs.writeFileSync(path.join(dir, 'batch_1000', `file${i}.fast5`), 'data');
     }

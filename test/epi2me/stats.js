@@ -1,17 +1,12 @@
+import assert from 'assert';
 import EPI2ME from '../../src/epi2me';
-
-import REST from '../../src/rest';
-
-const assert = require('assert');
-const sinon = require('sinon');
-const AWS = require('aws-sdk');
 
 describe('epi2me.stats', () => {
   it('should stat', () => {
     const client = new EPI2ME({});
 
     assert.doesNotThrow(() => {
-      const stat = client.stats();
+      client.stats();
     });
   });
 

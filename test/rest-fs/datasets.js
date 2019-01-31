@@ -24,7 +24,7 @@ describe('rest-fs.datasets', () => {
 
   it('must pass through to super if not local', () => {
     rest = new REST({ log });
-    const stub = sinon.stub(RESTSuper.prototype, 'datasets').callsFake((cb, query) => {
+    const stub = sinon.stub(RESTSuper.prototype, 'datasets').callsFake(cb => {
       cb();
     });
     const fake = sinon.fake();

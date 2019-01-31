@@ -1,5 +1,4 @@
 import assert from 'assert';
-import sinon from 'sinon';
 import tmp from 'tmp';
 import fs from 'fs-extra';
 import path from 'path';

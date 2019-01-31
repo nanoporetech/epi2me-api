@@ -1,5 +1,4 @@
 import assert from 'assert';
-import sinon from 'sinon';
 import tmp from 'tmp';
 import fs from 'fs-extra';
 import path from 'path';
@@ -7,21 +6,23 @@ import utils from '../../src/utils-fs';
 
 describe('utils-fs.loadInputFiles', () => {
   let tmpInputDir;
-  let batch_1;
-  let batch_2;
+  let batch1;
+  let batch2;
 
   beforeEach(() => {
     tmpInputDir = tmp.dirSync({ unsafeCleanup: true });
-    batch_1 = path.join(tmpInputDir.name, 'batch_1');
-    batch_2 = path.join(tmpInputDir.name, 'batch_2');
-    fs.mkdirpSync(batch_2);
-    fs.mkdirpSync(batch_1);
+    batch1 = path.join(tmpInputDir.name, 'batch_1');
+    batch2 = path.join(tmpInputDir.name, 'batch_2');
+    fs.mkdirpSync(batch2);
+    fs.mkdirpSync(batch1);
   });
 
   afterEach(() => {
     try {
       tmpInputDir.removeCallback();
-    } catch (e) {} // ignore
+    } catch (ignore) {
+      // ignore
+    }
   });
 
   it('should only load files in batches', async () => {
@@ -37,8 +38,8 @@ describe('utils-fs.loadInputFiles', () => {
      * batch_1/1.fastq              should be picked up
      * batch_2/2.fastq              should be picked up
      */
-    fs.writeFileSync(path.join(batch_1, '1.fastq'), '');
-    fs.writeFileSync(path.join(batch_2, '2.fastq'), '');
+    fs.writeFileSync(path.join(batch1, '1.fastq'), '');
+    fs.writeFileSync(path.join(batch2, '2.fastq'), '');
     fs.writeFileSync(path.join(outputFolder, 'downloaded.fastq'), '');
     fs.writeFileSync(path.join(uploadedFolder, 'uploaded.fastq'), '');
 

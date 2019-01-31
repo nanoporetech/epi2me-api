@@ -1,7 +1,7 @@
-import utils from '../../../src/utils';
 import assert from 'assert';
 import sinon from 'sinon';
 import axios from 'axios';
+import utils from '../../../src/utils';
 
 describe('utils.internal.responseHandler', () => {
   let stubs;
@@ -68,7 +68,7 @@ describe('utils.internal.responseHandler', () => {
   it('should handle 200 content', async () => {
     stubs.push(sinon.stub(axios, 'get').resolves({ status: 200, data: { data: 'all good' } }));
     try {
-      let data = await utils.get('workflow', { url: 'http://epi2me.test' });
+      const data = await utils.get('workflow', { url: 'http://epi2me.test' });
       assert.deepEqual(data, { data: 'all good' });
     } catch (err) {
       assert.fail(err);

@@ -6,7 +6,11 @@ import REST from '../../src/rest';
 import utils from '../../src/utils';
 
 describe('rest.register', () => {
-  let ringbuf, log, stubs, rest;
+  let ringbuf;
+  let log;
+  let stubs;
+  let rest;
+
   beforeEach(() => {
     ringbuf = new bunyan.RingBuffer({ limit: 100 });
     log = bunyan.createLogger({ name: 'log', stream: ringbuf });
@@ -24,15 +28,11 @@ describe('rest.register', () => {
     const stub = sinon.stub(utils, 'put').resolves({});
     stubs.push(stub);
     stubs.push(
-      sinon.stub(os, 'userInfo').callsFake(() => {
-        return { username: 'testuser' };
-      }),
+      sinon.stub(os, 'userInfo').callsFake(() => ({
+        username: 'testuser',
+      })),
     );
-    stubs.push(
-      sinon.stub(os, 'hostname').callsFake(() => {
-        return 'testhost';
-      }),
-    );
+    stubs.push(sinon.stub(os, 'hostname').callsFake(() => 'testhost'));
     const fake = sinon.fake();
 
     try {

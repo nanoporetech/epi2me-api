@@ -1,5 +1,4 @@
 import assert from 'assert';
-import sinon from 'sinon';
 import tmp from 'tmp';
 import fs from 'fs-extra';
 import path from 'path';
@@ -21,7 +20,9 @@ describe('utils-fs.lsFolder', () => {
   afterEach(() => {
     try {
       tmpInputDir.removeCallback();
-    } catch (e) {} // ignore
+    } catch (e) {
+      // empty
+    }
   });
 
   it('should only load files and folders passing the filter', done => {

@@ -15,6 +15,10 @@ describe('utils.get', () => {
     utils.version = versionBackup;
   });
 
+  beforeEach(() => {
+    stubs = [];
+  });
+
   afterEach(() => {
     stubs.forEach(s => {
       s.restore();
@@ -23,7 +27,7 @@ describe('utils.get', () => {
 
   it('should invoke get', async () => {
     stubs.push(sinon.stub(axios, 'get').resolves({ data: { data: 'data' } }));
-    let data = await utils.get('entity/123', {
+    const data = await utils.get('entity/123', {
       apikey: 'foo',
       url: 'http://epi2me.test',
     });
@@ -48,7 +52,7 @@ describe('utils.get', () => {
 
   it('should invoke get without url mangling', async () => {
     stubs.push(sinon.stub(axios, 'get').resolves({ data: { data: 'data' } }));
-    let data = await utils.get('https://epi2me.internal/entity/123', {
+    const data = await utils.get('https://epi2me.internal/entity/123', {
       skip_url_mangle: true,
       apikey: 'foo',
       url: 'http://epi2me.test',
@@ -74,7 +78,7 @@ describe('utils.get', () => {
 
   it('should invoke get with proxy', async () => {
     stubs.push(sinon.stub(axios, 'get').resolves({ data: { data: 'data' } }));
-    let data = await utils.get('entity/123', {
+    const data = await utils.get('entity/123', {
       proxy: 'http://proxy.internal:3128/',
       apikey: 'foo',
       url: 'http://epi2me.test',
@@ -102,7 +106,7 @@ describe('utils.get', () => {
   it('should handle request failure', async () => {
     stubs.push(sinon.stub(axios, 'get').rejects(new Error('request failed')));
     try {
-      let data = await utils.get('entity/123', {
+      await utils.get('entity/123', {
         apikey: 'foo',
         url: 'http://epi2me.test',
       });

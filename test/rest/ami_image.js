@@ -1,6 +1,5 @@
 import sinon from 'sinon';
 import assert from 'assert';
-import bunyan from 'bunyan';
 import utils from '../../src/utils';
 import REST from '../../src/rest';
 
@@ -18,7 +17,7 @@ describe('rest.ami_image', () => {
     client.options.local = true;
     const data = { aws_id: 'ami-12345', name: 'mon ami', description: 'foo bar baz', id_region: 1, is_active: 1 };
     assert.doesNotThrow(() => {
-      client.ami_image('ami-12345', data, (err, obj) => {
+      client.ami_image('ami-12345', data, err => {
         assert.ok(err instanceof Error, 'local-mode unsupported error');
       });
     });

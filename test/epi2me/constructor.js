@@ -1,7 +1,6 @@
+import assert from 'assert';
+import sinon from 'sinon';
 import EPI2ME from '../../src/epi2me';
-
-const assert = require('assert');
-const sinon = require('sinon');
 
 describe('epi2me', () => {
   describe('constructor', () => {
@@ -141,7 +140,6 @@ describe('epi2me', () => {
 
       Object.keys(stubs).forEach(o => {
         stubs[o].restore();
-        console.log('ARGS', o, stubs[o].args[0]);
         assert.ok(stubs[o].args[0][0].match(`hello ${o}`), 'correct log level called with message');
       });
     });

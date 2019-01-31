@@ -4,7 +4,9 @@ import bunyan from 'bunyan';
 import REST from '../../src/rest';
 
 describe('rest.ami_images', () => {
-  let ringbuf, log, stubs;
+  let ringbuf;
+  let log;
+  let stubs;
 
   beforeEach(() => {
     ringbuf = new bunyan.RingBuffer({ limit: 100 });
