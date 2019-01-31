@@ -11,7 +11,7 @@ describe('rest.read', () => {
     ringbuf = new bunyan.RingBuffer({ limit: 100 });
     log = bunyan.createLogger({ name: 'log', stream: ringbuf });
     stubs = [];
-    rest = new REST({ log });
+    rest = new REST({ log, agent_version: '3.0.0' });
   });
 
   afterEach(() => {
@@ -27,10 +27,13 @@ describe('rest.read', () => {
     try {
       let struct = await rest.read('thing', 5);
       assert.deepEqual(struct, { id_thing: 5, name: 'thing five' });
+      assert.deepEqual(stub.lastCall.args, [
+        'thing/5',
+        { log, agent_version: '3.0.0', local: false, url: 'https://epi2me.nanoporetech.com', user_agent: 'EPI2ME API' },
+      ]);
     } catch (e) {
       assert.fail(e);
     }
-    assert.deepEqual(stub.lastCall.args, ['thing/5', { log }]);
   });
 
   it('must catch request failure with structured error', async () => {

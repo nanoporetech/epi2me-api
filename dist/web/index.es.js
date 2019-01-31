@@ -3,7 +3,7 @@
  */
 
 import os from 'os';
-import { merge, filter } from 'lodash';
+import { merge, assign, every, isFunction, filter } from 'lodash';
 import axios from 'axios';
 import crypto from 'crypto';
 
@@ -231,14 +231,38 @@ const utils = (function magic() {
   };
 })();
 
+var local = false;
+var url = "https://epi2me.nanoporetech.com";
+var user_agent = "EPI2ME API";
+
 class REST {
   constructor(options) {
     // {log, ...options}) {
-    if (options.log) {
-      this.log = options.log;
-      //            delete options.log;
+    this.options = assign({ agent_version: utils.version, local, url, user_agent }, options);
+    const { log } = this.options;
+    if (log) {
+      if (every([log.info, log.warn, log.error], isFunction)) {
+        this.log = log;
+      } else {
+        throw new Error('expected log object to have "error", "debug", "info" and "warn" methods');
+      }
+    } else {
+      this.log = {
+        info: msg => {
+          console.info(`[${new Date().toISOString()}] INFO: ${msg}`);
+        },
+        debug: msg => {
+          // eslint-disable-next-line
+          console.debug(`[${new Date().toISOString()}] DEBUG: ${msg}`);
+        },
+        warn: msg => {
+          console.warn(`[${new Date().toISOString()}] WARN: ${msg}`);
+        },
+        error: msg => {
+          console.error(`[${new Date().toISOString()}] ERROR: ${msg}`);
+        },
+      };
     }
-    this.options = options;
   }
 
   async list(entity) {
@@ -279,7 +303,11 @@ class REST {
 
   async instance_token(id, cb) {
     try {
-      const data = await utils.post('token', { id_workflow_instance: id }, merge({ legacy_form: true }, this.options));
+      const data = await utils.post(
+        'token',
+        { id_workflow_instance: id },
+        assign({}, this.options, { legacy_form: true }),
+      );
       return cb ? cb(null, data) : Promise.resolve(data);
     } catch (err) {
       return cb ? cb(err) : Promise.reject(err);
@@ -288,7 +316,11 @@ class REST {
 
   async install_token(id, cb) {
     try {
-      const data = await utils.post('token/install', { id_workflow: id }, merge({ legacy_form: true }, this.options));
+      const data = await utils.post(
+        'token/install',
+        { id_workflow: id },
+        assign({}, this.options, { legacy_form: true }),
+      );
       return cb ? cb(null, data) : Promise.resolve(data);
     } catch (err) {
       return cb ? cb(err) : Promise.reject(err);
@@ -432,7 +464,7 @@ class REST {
     if (action === 'update') {
       // three args: update object: (123, {...}, func)
       try {
-        const update = await utils.put('workflow', id, obj, merge({ legacy_form: true }, this.options));
+        const update = await utils.put('workflow', id, obj, assign({}, this.options, { legacy_form: true }));
         return cb ? cb(null, update) : Promise.resolve(update);
       } catch (err) {
         return cb ? cb(err) : Promise.reject(err);
@@ -443,7 +475,7 @@ class REST {
       // two args: create object: ({...}, func)
 
       try {
-        const create = await utils.post('workflow', obj, merge({ legacy_form: true }, this.options));
+        const create = await utils.post('workflow', obj, assign({}, this.options, { legacy_form: true }));
         return cb ? cb(null, create) : Promise.resolve(create);
       } catch (err) {
         return cb ? cb(err) : Promise.reject(err);
@@ -522,7 +554,7 @@ class REST {
   }
 
   start_workflow(config, cb) {
-    return utils.post('workflow_instance', config, merge({ legacy_form: true }, this.options), cb);
+    return utils.post('workflow_instance', config, assign({}, this.options, { legacy_form: true }), cb);
   }
 
   stop_workflow(idWorkflowInstance, cb) {
@@ -530,7 +562,7 @@ class REST {
       'workflow_instance/stop',
       idWorkflowInstance,
       null,
-      merge({ legacy_form: true }, this.options),
+      assign({}, this.options, { legacy_form: true }),
       cb,
     );
   }
@@ -597,7 +629,7 @@ class REST {
         {
           description: `${os.userInfo().username}@${os.hostname()}`,
         },
-        merge({ signing: false, legacy_form: true }, this.options),
+        assign({}, this.options, { signing: false, legacy_form: true }),
       );
       return cb ? cb(null, obj) : Promise.resolve(obj);
     } catch (err) {
@@ -652,10 +684,10 @@ class REST {
     }
   }
 
-  async fetchContent(url, cb) {
-    const options = merge({ skip_url_mangle: true }, this.options);
+  async fetchContent(url$$1, cb) {
+    const options = assign({}, this.options, { skip_url_mangle: true });
     try {
-      const result = await utils.get(url, options);
+      const result = await utils.get(url$$1, options);
       return cb ? cb(null, result) : Promise.resolve(result);
     } catch (err) {
       return cb ? cb(err) : Promise.reject(err);

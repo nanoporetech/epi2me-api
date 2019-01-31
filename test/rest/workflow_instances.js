@@ -8,18 +8,11 @@ import REST from '../../src/rest';
 import utils from '../../src/utils';
 
 describe('rest.workflow_instances', () => {
-  let ringbuf, rest, stubs, log;
+  let ringbuf, rest, log;
   beforeEach(() => {
     ringbuf = new bunyan.RingBuffer({ limit: 100 });
     log = bunyan.createLogger({ name: 'log', stream: ringbuf });
     rest = new REST({ log });
-    stubs = [];
-  });
-
-  afterEach(() => {
-    stubs.forEach(s => {
-      s.restore();
-    });
   });
 
   it('must invoke list with callback', async () => {
@@ -28,10 +21,12 @@ describe('rest.workflow_instances', () => {
 
     try {
       await rest.workflow_instances(fake);
+      assert(fake.calledOnce, 'callback invoked');
     } catch (err) {
       assert.fail(err);
+    } finally {
+      stub.restore();
     }
-    assert(fake.calledOnce, 'callback invoked');
   });
 
   it('must invoke list with promise', async () => {
@@ -42,6 +37,8 @@ describe('rest.workflow_instances', () => {
       assert.deepEqual(data, [{ id_workflow_instance: '12345' }]);
     } catch (err) {
       assert.fail(err);
+    } finally {
+      stub.restore();
     }
   });
 
@@ -49,23 +46,21 @@ describe('rest.workflow_instances', () => {
     const stub = sinon
       .stub(utils, 'get')
       .resolves({ data: [{ id_ins: 1, id_flo: 2, run_id: 'abcdefabcdef', desc: 'test wf 2', rev: '0.0.1' }] });
-
     try {
       let data = await rest.workflow_instances({ run_id: 'abcdefabcdef' });
       assert.deepEqual(data, [
         // note extra "data" container
         { id_workflow_instance: 1, id_workflow: 2, run_id: 'abcdefabcdef', description: 'test wf 2', rev: '0.0.1' },
       ]);
+      assert.equal(
+        stub.args[0][0],
+        'workflow_instance/wi?show=all&columns[0][name]=run_id;columns[0][searchable]=true;columns[0][search][regex]=true;columns[0][search][value]=abcdefabcdef;',
+        'query uri',
+      );
     } catch (err) {
       assert.fail(err);
+    } finally {
+      stub.restore();
     }
-
-    assert.equal(
-      stub.args[0][0],
-      'workflow_instance/wi?show=all&columns[0][name]=run_id;columns[0][searchable]=true;columns[0][search][regex]=true;columns[0][search][value]=abcdefabcdef;',
-      'query uri',
-    );
-
-    stub.restore();
   });
 });

@@ -4,14 +4,16 @@
 
 'use strict';
 
-function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
+function _interopDefault(ex) {
+  return ex && typeof ex === 'object' && 'default' in ex ? ex['default'] : ex;
+}
 
 var os = _interopDefault(require('os'));
 var lodash = require('lodash');
 var axios = _interopDefault(require('axios'));
 var crypto = _interopDefault(require('crypto'));
 
-var version = "2.58.1";
+var version = '2.58.1';
 
 /*
  * Copyright (c) 2018 Metrichor Ltd.
@@ -235,14 +237,38 @@ const utils = (function magic() {
   };
 })();
 
+var local = false;
+var url = 'https://epi2me.nanoporetech.com';
+var user_agent = 'EPI2ME API';
+
 class REST {
   constructor(options) {
     // {log, ...options}) {
-    if (options.log) {
-      this.log = options.log;
-      //            delete options.log;
+    this.options = lodash.assign({ agent_version: utils.version, local, url, user_agent }, options);
+    const { log } = this.options;
+    if (log) {
+      if (lodash.every([log.info, log.warn, log.error], lodash.isFunction)) {
+        this.log = log;
+      } else {
+        throw new Error('expected log object to have "error", "debug", "info" and "warn" methods');
+      }
+    } else {
+      this.log = {
+        info: msg => {
+          console.info(`[${new Date().toISOString()}] INFO: ${msg}`);
+        },
+        debug: msg => {
+          // eslint-disable-next-line
+          console.debug(`[${new Date().toISOString()}] DEBUG: ${msg}`);
+        },
+        warn: msg => {
+          console.warn(`[${new Date().toISOString()}] WARN: ${msg}`);
+        },
+        error: msg => {
+          console.error(`[${new Date().toISOString()}] ERROR: ${msg}`);
+        },
+      };
     }
-    this.options = options;
   }
 
   async list(entity) {
@@ -283,7 +309,11 @@ class REST {
 
   async instance_token(id, cb) {
     try {
-      const data = await utils.post('token', { id_workflow_instance: id }, lodash.merge({ legacy_form: true }, this.options));
+      const data = await utils.post(
+        'token',
+        { id_workflow_instance: id },
+        lodash.assign({}, this.options, { legacy_form: true }),
+      );
       return cb ? cb(null, data) : Promise.resolve(data);
     } catch (err) {
       return cb ? cb(err) : Promise.reject(err);
@@ -292,7 +322,11 @@ class REST {
 
   async install_token(id, cb) {
     try {
-      const data = await utils.post('token/install', { id_workflow: id }, lodash.merge({ legacy_form: true }, this.options));
+      const data = await utils.post(
+        'token/install',
+        { id_workflow: id },
+        lodash.assign({}, this.options, { legacy_form: true }),
+      );
       return cb ? cb(null, data) : Promise.resolve(data);
     } catch (err) {
       return cb ? cb(err) : Promise.reject(err);
@@ -436,7 +470,7 @@ class REST {
     if (action === 'update') {
       // three args: update object: (123, {...}, func)
       try {
-        const update = await utils.put('workflow', id, obj, lodash.merge({ legacy_form: true }, this.options));
+        const update = await utils.put('workflow', id, obj, lodash.assign({}, this.options, { legacy_form: true }));
         return cb ? cb(null, update) : Promise.resolve(update);
       } catch (err) {
         return cb ? cb(err) : Promise.reject(err);
@@ -447,7 +481,7 @@ class REST {
       // two args: create object: ({...}, func)
 
       try {
-        const create = await utils.post('workflow', obj, lodash.merge({ legacy_form: true }, this.options));
+        const create = await utils.post('workflow', obj, lodash.assign({}, this.options, { legacy_form: true }));
         return cb ? cb(null, create) : Promise.resolve(create);
       } catch (err) {
         return cb ? cb(err) : Promise.reject(err);
@@ -526,7 +560,7 @@ class REST {
   }
 
   start_workflow(config, cb) {
-    return utils.post('workflow_instance', config, lodash.merge({ legacy_form: true }, this.options), cb);
+    return utils.post('workflow_instance', config, lodash.assign({}, this.options, { legacy_form: true }), cb);
   }
 
   stop_workflow(idWorkflowInstance, cb) {
@@ -534,7 +568,7 @@ class REST {
       'workflow_instance/stop',
       idWorkflowInstance,
       null,
-      lodash.merge({ legacy_form: true }, this.options),
+      lodash.assign({}, this.options, { legacy_form: true }),
       cb,
     );
   }
@@ -601,7 +635,7 @@ class REST {
         {
           description: `${os.userInfo().username}@${os.hostname()}`,
         },
-        lodash.merge({ signing: false, legacy_form: true }, this.options),
+        lodash.assign({}, this.options, { signing: false, legacy_form: true }),
       );
       return cb ? cb(null, obj) : Promise.resolve(obj);
     } catch (err) {
@@ -656,10 +690,10 @@ class REST {
     }
   }
 
-  async fetchContent(url, cb) {
-    const options = lodash.merge({ skip_url_mangle: true }, this.options);
+  async fetchContent(url$$1, cb) {
+    const options = lodash.assign({}, this.options, { skip_url_mangle: true });
     try {
-      const result = await utils.get(url, options);
+      const result = await utils.get(url$$1, options);
       return cb ? cb(null, result) : Promise.resolve(result);
     } catch (err) {
       return cb ? cb(err) : Promise.reject(err);
