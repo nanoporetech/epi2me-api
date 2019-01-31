@@ -32,6 +32,7 @@ describe('rest.install_token', () => {
             log: log,
             agent_version: '3.0.0',
             local: false,
+            signing: true,
             url: 'https://epi2me.nanoporetech.com',
             user_agent: 'EPI2ME API',
           },

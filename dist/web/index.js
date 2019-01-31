@@ -4,16 +4,14 @@
 
 'use strict';
 
-function _interopDefault(ex) {
-  return ex && typeof ex === 'object' && 'default' in ex ? ex['default'] : ex;
-}
+function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
 
 var os = _interopDefault(require('os'));
 var lodash = require('lodash');
 var axios = _interopDefault(require('axios'));
 var crypto = _interopDefault(require('crypto'));
 
-var version = '2.58.1';
+var version = "2.58.1";
 
 /*
  * Copyright (c) 2018 Metrichor Ltd.
@@ -155,6 +153,7 @@ const utils = (function magic() {
       }
 
       let res;
+      console.info('AXIOS.OPTIONS', JSON.stringify(req, null, 2));
       try {
         res = await axios.get(req.uri, req);
       } catch (err) {
@@ -238,13 +237,14 @@ const utils = (function magic() {
 })();
 
 var local = false;
-var url = 'https://epi2me.nanoporetech.com';
-var user_agent = 'EPI2ME API';
+var url = "https://epi2me.nanoporetech.com";
+var user_agent = "EPI2ME API";
+var signing = true;
 
 class REST {
   constructor(options) {
     // {log, ...options}) {
-    this.options = lodash.assign({ agent_version: utils.version, local, url, user_agent }, options);
+    this.options = lodash.assign({ agent_version: utils.version, local, url, user_agent, signing }, options);
     const { log } = this.options;
     if (log) {
       if (lodash.every([log.info, log.warn, log.error], lodash.isFunction)) {
