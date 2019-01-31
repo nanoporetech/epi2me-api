@@ -158,7 +158,6 @@ const utils = (function magic() {
       }
 
       let res;
-      console.info('AXIOS.OPTIONS', JSON.stringify(req, null, 2));
       try {
         res = await axios.get(req.uri, req);
       } catch (err) {
