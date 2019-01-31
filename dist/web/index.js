@@ -153,6 +153,7 @@ const utils = (function magic() {
       }
 
       let res;
+      console.info('AXIOS.OPTIONS', JSON.stringify(req, null, 2));
       try {
         res = await axios.get(req.uri, req);
       } catch (err) {
@@ -238,11 +239,12 @@ const utils = (function magic() {
 var local = false;
 var url = "https://epi2me.nanoporetech.com";
 var user_agent = "EPI2ME API";
+var signing = true;
 
 class REST {
   constructor(options) {
     // {log, ...options}) {
-    this.options = lodash.assign({ agent_version: utils.version, local, url, user_agent }, options);
+    this.options = lodash.assign({ agent_version: utils.version, local, url, user_agent, signing }, options);
     const { log } = this.options;
     if (log) {
       if (lodash.every([log.info, log.warn, log.error], lodash.isFunction)) {

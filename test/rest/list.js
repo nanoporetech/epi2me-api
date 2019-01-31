@@ -32,7 +32,14 @@ describe('rest.list', () => {
       assert.deepEqual(list, [{ id_thing: 1, name: 'thing one' }]);
       assert.deepEqual(stub.lastCall.args, [
         'thing',
-        { log, agent_version: '3.0.0', local: false, url: 'https://epi2me.nanoporetech.com', user_agent: 'EPI2ME API' },
+        {
+          log,
+          agent_version: '3.0.0',
+          local: false,
+          signing: true,
+          url: 'https://epi2me.nanoporetech.com',
+          user_agent: 'EPI2ME API',
+        },
       ]);
     } catch (e) {
       assert.fail(e);
