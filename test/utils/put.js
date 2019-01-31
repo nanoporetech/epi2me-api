@@ -43,9 +43,10 @@ describe('utils.put', () => {
     assert.deepEqual(data, { data: 'data' });
     assert.deepEqual(axios.put.args[0], [
       'http://epi2me.test/entity/123',
+      { name: 'test entity' },
       {
-        uri: 'http://epi2me.test/entity/123',
-        body: '{"name":"test entity"}',
+        url: 'http://epi2me.test/entity/123',
+        data: { name: 'test entity' },
         gzip: true,
         headers: {
           Accept: 'application/json',
@@ -58,7 +59,7 @@ describe('utils.put', () => {
     ]);
   });
 
-  it('should invoke put with legacy form params', async () => {
+  it('should invoke put with legacy form params - TO FIX', async () => {
     stubs.push(sinon.stub(axios, 'put').resolves({ data: { data: 'data' } }));
 
     const data = await utils.put(
@@ -78,9 +79,10 @@ describe('utils.put', () => {
 
     assert.deepEqual(axios.put.args[0], [
       'http://epi2me.test/entity/123',
+      { name: 'test entity' },
       {
-        uri: 'http://epi2me.test/entity/123',
-        body: '{"name":"test entity"}',
+        url: 'http://epi2me.test/entity/123',
+        data: { name: 'test entity' },
         form: { json: '{"name":"test entity"}' },
         gzip: true,
         headers: {
@@ -114,9 +116,10 @@ describe('utils.put', () => {
 
     assert.deepEqual(axios.put.args[0], [
       'http://epi2me.test/entity/123',
+      { name: 'test entity' },
       {
-        uri: 'http://epi2me.test/entity/123',
-        body: '{"name":"test entity"}',
+        url: 'http://epi2me.test/entity/123',
+        data: { name: 'test entity' },
         gzip: true,
         proxy: 'http://proxy.internal:3128/',
         headers: {

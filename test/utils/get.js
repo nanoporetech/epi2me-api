@@ -37,7 +37,7 @@ describe('utils.get', () => {
     assert.deepEqual(axios.get.args[0], [
       'http://epi2me.test/entity/123',
       {
-        uri: 'http://epi2me.test/entity/123',
+        url: 'http://epi2me.test/entity/123',
         gzip: true,
         headers: {
           Accept: 'application/json',
@@ -63,7 +63,7 @@ describe('utils.get', () => {
     assert.deepEqual(axios.get.args[0], [
       'https://epi2me.internal/entity/123',
       {
-        uri: 'https://epi2me.internal/entity/123',
+        url: 'https://epi2me.internal/entity/123',
         gzip: true,
         headers: {
           Accept: 'application/json',
@@ -89,7 +89,7 @@ describe('utils.get', () => {
     assert.deepEqual(axios.get.args[0], [
       'http://epi2me.test/entity/123',
       {
-        uri: 'http://epi2me.test/entity/123',
+        url: 'http://epi2me.test/entity/123',
         proxy: 'http://proxy.internal:3128/',
         gzip: true,
         headers: {

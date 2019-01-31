@@ -39,18 +39,18 @@ const utils = (function magic() {
       // timestamp mitigates replay attack outside a tolerance window determined by the server
       req.headers['X-EPI2ME-SignatureDate'] = new Date().toISOString();
 
-      if (req.uri.match(/^https:/)) {
+      if (req.url.match(/^https:/)) {
         // MC-6412 - signing generated with https://...:443 but validated with https://...
-        req.uri = req.uri.replace(/:443/, '');
+        req.url = req.url.replace(/:443/, '');
       }
 
-      if (req.uri.match(/^http:/)) {
+      if (req.url.match(/^http:/)) {
         // MC-6412 - signing generated with https://...:443 but validated with https://...
-        req.uri = req.uri.replace(/:80/, '');
+        req.url = req.url.replace(/:80/, '');
       }
 
       const message = [
-        req.uri,
+        req.url,
 
         Object.keys(req.headers)
           .sort()
@@ -118,6 +118,10 @@ const utils = (function magic() {
         // if present and true: sign
         internal.sign(req, options);
       }
+
+      if (options.proxy) {
+        req.proxy = options.proxy;
+      }
     },
 
     get: async (uriIn, options) => {
@@ -135,18 +139,13 @@ const utils = (function magic() {
         call = uri;
       }
 
-      const req = { uri: call, gzip: true };
+      const req = { url: call, gzip: true };
 
       utils.headers(req, options);
 
-      if (options.proxy) {
-        req.proxy = options.proxy;
-      }
-
       let res;
-      console.info('AXIOS.OPTIONS', JSON.stringify(req, null, 2));
       try {
-        res = await axios.get(req.uri, req);
+        res = await axios.get(req.url, req); // url, headers++
       } catch (err) {
         return Promise.reject(err);
       }
@@ -158,11 +157,10 @@ const utils = (function magic() {
       srv = srv.replace(/\/+$/, ''); // clip trailing slashes
       const uri = uriIn.replace(/\/+/g, '/'); // clip multiple slashes
       const call = `${srv}/${uri}`;
-
       const req = {
-        uri: call,
+        url: call,
         gzip: true,
-        body: obj ? JSON.stringify(obj) : {},
+        data: obj,
       };
 
       if (options.legacy_form) {
@@ -176,18 +174,14 @@ const utils = (function magic() {
           });
         } // garbage
 
-        req.form = form;
+        req.form = form; // FIX THIS: this is no longer in the right place
       }
 
       utils.headers(req, options);
 
-      if (options.proxy) {
-        req.proxy = options.proxy;
-      }
-
       let res;
       try {
-        res = await axios.post(req.uri, req);
+        res = await axios.post(req.url, req.data, req); // url, data, headers++
       } catch (err) {
         return Promise.reject(err);
       }
@@ -200,9 +194,9 @@ const utils = (function magic() {
       const uri = uriIn.replace(/\/+/g, '/'); // clip multiple slashes
       const call = `${srv}/${uri}/${id}`;
       const req = {
-        uri: call,
+        url: call,
         gzip: true,
-        body: obj ? JSON.stringify(obj) : {},
+        data: obj,
       };
 
       if (options.legacy_form) {
@@ -212,13 +206,9 @@ const utils = (function magic() {
 
       utils.headers(req, options);
 
-      if (options.proxy) {
-        req.proxy = options.proxy;
-      }
-
       let res;
       try {
-        res = await axios.put(req.uri, req);
+        res = await axios.put(req.url, req.data, req); // url, data, headers++
       } catch (err) {
         return Promise.reject(err);
       }

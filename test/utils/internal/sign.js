@@ -26,19 +26,19 @@ describe('utils.internal.sign', () => {
   });
 
   it('should generate signature with key and secret', () => {
-    const req = { uri: 'https://epi2me.test/secretdata' };
+    const req = { url: 'https://epi2me.test/secretdata' };
     utils.headers(req, { apikey: 'foo', apisecret: 'bar' });
     assert.equal(req.headers['X-EPI2ME-SignatureV0'], 'f7785001cbf15c047d548886330125bdf879c4e8'); // sensitive to api version
   });
 
   it('should generate signature with key and secret and mangled https default port', () => {
-    const req = { uri: 'https://epi2me.test:443/secretdata' };
+    const req = { url: 'https://epi2me.test:443/secretdata' };
     utils.headers(req, { apikey: 'foo', apisecret: 'bar' });
     assert.equal(req.headers['X-EPI2ME-SignatureV0'], 'f7785001cbf15c047d548886330125bdf879c4e8'); // sensitive to api version
   });
 
   it('should generate signature with key and secret and mangled http default port', () => {
-    const req = { uri: 'http://epi2me.test:80/secretdata' };
+    const req = { url: 'http://epi2me.test:80/secretdata' };
     utils.headers(req, { apikey: 'foo', apisecret: 'bar' });
     assert.equal(req.headers['X-EPI2ME-SignatureV0'], '1842784c4f5e0ee4e6793dd653e3d05583e46f35'); // sensitive to api version
   });

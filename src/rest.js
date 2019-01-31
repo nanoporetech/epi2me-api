@@ -389,13 +389,23 @@ export default class REST {
     return utils.get(`workflow/config/${id}`, this.options, cb);
   }
 
-  async register(code, cb) {
+  async register(code, second, third) {
+    let description;
+    let cb;
+
+    if (second && second instanceof Function) {
+      cb = second;
+    } else {
+      description = second;
+      cb = third;
+    }
+
     try {
       const obj = await utils.put(
         'reg',
         code,
         {
-          description: `${os.userInfo().username}@${os.hostname()}`,
+          description: description || `${os.userInfo().username}@${os.hostname()}`,
         },
         assign({}, this.options, { signing: false, legacy_form: true }),
       );
