@@ -29,7 +29,14 @@ describe('rest.read', () => {
       assert.deepEqual(struct, { id_thing: 5, name: 'thing five' });
       assert.deepEqual(stub.lastCall.args, [
         'thing/5',
-        { log, agent_version: '3.0.0', local: false, url: 'https://epi2me.nanoporetech.com', user_agent: 'EPI2ME API' },
+        {
+          log,
+          agent_version: '3.0.0',
+          local: false,
+          signing: true,
+          url: 'https://epi2me.nanoporetech.com',
+          user_agent: 'EPI2ME API',
+        },
       ]);
     } catch (e) {
       assert.fail(e);

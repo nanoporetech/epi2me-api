@@ -12,7 +12,14 @@ describe('rest.workflow_config', () => {
     const stub = sinon.stub(utils, 'get').callsFake((uri, options, cb) => {
       assert.deepEqual(
         options,
-        { log, agent_version: '3.0.0', local: false, url: 'https://epi2me.nanoporetech.com', user_agent: 'EPI2ME API' },
+        {
+          log,
+          agent_version: '3.0.0',
+          local: false,
+          signing: true,
+          url: 'https://epi2me.nanoporetech.com',
+          user_agent: 'EPI2ME API',
+        },
         'options passed',
       );
       assert.equal(uri, 'workflow/config/1234', 'url passed');

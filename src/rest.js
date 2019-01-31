@@ -1,12 +1,12 @@
 import os from 'os';
 import { merge, filter, assign, every, isFunction } from 'lodash';
 import utils from './utils';
-import { local, url, user_agent } from './default_options.json';
+import { local, url, user_agent, signing } from './default_options.json';
 
 export default class REST {
   constructor(options) {
     // {log, ...options}) {
-    this.options = assign({ agent_version: utils.version, local, url, user_agent }, options);
+    this.options = assign({ agent_version: utils.version, local, url, user_agent, signing }, options);
     const { log } = this.options;
     if (log) {
       if (every([log.info, log.warn, log.error], isFunction)) {
