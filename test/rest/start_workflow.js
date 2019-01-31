@@ -3,7 +3,7 @@ import sinon from 'sinon';
 import utils from '../../src/utils';
 import REST from '../../src/rest';
 
-describe('epi2me.start_workflow', () => {
+describe('rest.start_workflow', () => {
   let client;
 
   beforeEach(() => {

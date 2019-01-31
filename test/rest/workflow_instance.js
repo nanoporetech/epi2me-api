@@ -2,7 +2,7 @@ import assert from 'assert';
 import sinon from 'sinon';
 import REST from '../../src/rest';
 
-describe('epi2me.workflow_instance', () => {
+describe('rest.workflow_instance', () => {
   let rest;
   let stubs;
 

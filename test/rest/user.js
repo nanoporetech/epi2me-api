@@ -26,15 +26,16 @@ describe('rest.user', () => {
 
   it('must yield fake local user', () => {
     const ringbuf = new bunyan.RingBuffer({ limit: 100 });
-    const log = bunyan.createLogger({ name: 'log', stream: ringbuf });
+    const logger = bunyan.createLogger({ name: 'log', stream: ringbuf });
     const stub = sinon.stub(utils, 'get').callsFake((uri, options, cb) => {
-      assert.deepEqual(options, { log }, 'options passed');
+      const { log } = options;
+      assert.equal(logger, log, 'options passed');
       assert.equal(uri, 'user', 'url passed');
       cb();
     });
 
     const fake = sinon.fake();
-    const rest = new REST({ log, local: true });
+    const rest = new REST({ log: logger, local: true });
     assert.doesNotThrow(() => {
       rest.user(fake);
     });

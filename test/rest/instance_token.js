@@ -13,6 +13,7 @@ describe('rest.instance_token', () => {
     log = bunyan.createLogger({ name: 'log', stream: ringbuf });
     rest = new REST({
       log,
+      agent_version: '3.0.0',
     });
   });
 
@@ -22,8 +23,28 @@ describe('rest.instance_token', () => {
 
     try {
       await rest.instance_token('12345', fake);
+
+      assert.deepEqual(
+        stub.args[0],
+        [
+          'token',
+          { id_workflow_instance: '12345' },
+          {
+            legacy_form: true,
+            agent_version: '3.0.0',
+            local: false,
+            url: 'https://epi2me.nanoporetech.com',
+            user_agent: 'EPI2ME API',
+            log,
+          },
+        ],
+        'post args',
+      );
+      assert.deepEqual(fake.lastCall.args, [null, { data: 'some data' }], 'callback args');
     } catch (e) {
       assert.fail(e);
+    } finally {
+      stub.restore();
     }
 
     assert.deepEqual(
@@ -33,6 +54,10 @@ describe('rest.instance_token', () => {
         { id_workflow_instance: '12345' },
         {
           legacy_form: true,
+          agent_version: '3.0.0',
+          local: false,
+          url: 'https://epi2me.nanoporetech.com',
+          user_agent: 'EPI2ME API',
           log,
         },
       ],
@@ -48,11 +73,11 @@ describe('rest.instance_token', () => {
 
     try {
       await rest.instance_token('12345', fake);
+      assert(String(fake.lastCall.args[0]).match(/token fail/), 'expected error');
     } catch (e) {
       assert.fail(e);
+    } finally {
+      stub.restore();
     }
-
-    assert(String(fake.lastCall.args[0]).match(/token fail/), 'expected error');
-    stub.restore();
   });
 });

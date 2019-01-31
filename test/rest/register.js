@@ -14,7 +14,7 @@ describe('rest.register', () => {
   beforeEach(() => {
     ringbuf = new bunyan.RingBuffer({ limit: 100 });
     log = bunyan.createLogger({ name: 'log', stream: ringbuf });
-    rest = new REST({ log });
+    rest = new REST({ log, agent_version: '3.0.0' });
     stubs = [];
   });
 
@@ -37,15 +37,27 @@ describe('rest.register', () => {
 
     try {
       await rest.register('abcdefg', fake);
+      //    assert(fake.calledOnce, 'callback invoked');
+      assert.deepEqual(
+        stub.lastCall.args,
+        [
+          'reg',
+          'abcdefg',
+          { description: 'testuser@testhost' },
+          {
+            log,
+            signing: false,
+            legacy_form: true,
+            agent_version: '3.0.0',
+            local: false,
+            url: 'https://epi2me.nanoporetech.com',
+            user_agent: 'EPI2ME API',
+          },
+        ],
+        'put args',
+      );
     } catch (e) {
       assert.fail(e);
     }
-
-    //    assert(fake.calledOnce, 'callback invoked');
-    assert.deepEqual(
-      stub.lastCall.args,
-      ['reg', 'abcdefg', { description: 'testuser@testhost' }, { log, signing: false, legacy_form: true }],
-      'put args',
-    );
   });
 });

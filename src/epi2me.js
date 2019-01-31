@@ -1292,7 +1292,7 @@ export default class EPI2ME {
   }
 
   async queueLength(queueURL) {
-    if (!queueURL) return;
+    if (!queueURL) return Promise.resolve();
 
     const queueName = queueURL.match(/([\w\-_]+)$/)[0];
     this.log.debug(`querying queue length of ${queueName}`);
@@ -1314,6 +1314,7 @@ export default class EPI2ME {
       this.log.error(`error in getQueueAttributes ${String(err)}`);
       return Promise.reject(err);
     }
+    return Promise.resolve();
   }
 
   url() {

@@ -29,10 +29,10 @@ describe('rest.workflow', () => {
 
     try {
       await rest.workflow('12345', { description: 'a workflow', rev: '1.0' }, fake);
+      assert(fake.calledOnce, 'callback invoked');
     } catch (err) {
       assert.fail(err);
     }
-    assert(fake.calledOnce, 'callback invoked');
   });
 
   it('must invoke post with options', async () => {
@@ -43,10 +43,10 @@ describe('rest.workflow', () => {
 
     try {
       await rest.workflow({ description: 'a workflow', rev: '1.0' }, fake);
+      assert(fake.calledOnce, 'callback invoked');
     } catch (err) {
       assert.fail(err);
     }
-    assert(fake.calledOnce, 'callback invoked');
   });
 
   it('must throw if missing id', async () => {
@@ -58,11 +58,11 @@ describe('rest.workflow', () => {
 
     try {
       await rest.workflow(null, fake);
+      assert(fake.calledOnce, 'callback invoked');
+      assert(fake.firstCall.args[0] instanceof Error);
     } catch (err) {
       assert.fail(err);
     }
-    assert(fake.calledOnce, 'callback invoked');
-    assert(fake.firstCall.args[0] instanceof Error);
   });
 
   it('must invoke get then fetch config with workflow missing params and callback', async () => {
@@ -77,10 +77,10 @@ describe('rest.workflow', () => {
 
     try {
       await rest.workflow('12345', fake);
+      assert(fake.calledOnce, 'callback invoked');
     } catch (err) {
       assert.fail(err);
     }
-    assert(fake.calledOnce, 'callback invoked');
   });
 
   it('must invoke get then fetch config with workflow missing params and promise', async () => {
