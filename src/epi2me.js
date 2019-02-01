@@ -12,6 +12,7 @@ import { EOL } from 'os';
 import path from 'path';
 import proxy from 'proxy-agent';
 import utils from './utils-fs';
+import { deprecatedFunctionWarning } from './utils';
 import _REST from './rest-fs';
 import DEFAULTS from './default_options.json';
 
@@ -100,7 +101,7 @@ export default class EPI2ME {
     this.REST = new _REST(merge({}, { log: this.log }, this.config.options));
   }
 
-  async stop_everything(cb) {
+  async stopEverything(cb) {
     this.log.debug('stopping watchers');
 
     if (this.downloadCheckInterval) {
@@ -140,6 +141,12 @@ export default class EPI2ME {
         if (cb) cb(this);
       });
     } else if (cb) cb(this);
+  }
+
+  // eslint-disable-next-line camelcase
+  async stop_everything(cb) {
+    deprecatedFunctionWarning('stop_everything', 'stopEverything');
+    this.stopEverything(cb);
   }
 
   async session() {
@@ -214,8 +221,8 @@ export default class EPI2ME {
     return new AWS.SQS();
   }
 
-  autoStart(workflow_config, cb) {
-    this.REST.start_workflow(workflow_config, async (workflowError, instance) => {
+  autoStart(workflowConfig, cb) {
+    this.REST.start_workflow(workflowConfig, async (workflowError, instance) => {
       if (workflowError) {
         const msg = `Failed to start workflow: ${
           workflowError && workflowError.error ? workflowError.error : workflowError
@@ -224,7 +231,7 @@ export default class EPI2ME {
         if (cb) cb(msg);
         return;
       }
-      this.config.workflow = JSON.parse(JSON.stringify(workflow_config));
+      this.config.workflow = JSON.parse(JSON.stringify(workflowConfig));
       await this.autoConfigure(instance, cb);
     });
   }
@@ -470,8 +477,8 @@ export default class EPI2ME {
         }
 
         if ('epi2me:category' in attrs) {
-          const epi2me_category = attrs['epi2me:category'];
-          if (epi2me_category.includes('storage')) {
+          const epi2meCategory = attrs['epi2me:category'];
+          if (epi2meCategory.includes('storage')) {
             settings.requires_storage = true;
           }
         }
@@ -738,7 +745,7 @@ export default class EPI2ME {
 
     if (!message) {
       this.log.debug('download.processMessage: empty message');
-      return completeCb();
+      completeCb();
     }
 
     if ('Attributes' in message) {
@@ -754,7 +761,7 @@ export default class EPI2ME {
     } catch (jsonError) {
       this.log.error(`error parsing JSON message.Body from message: ${JSON.stringify(message)} ${String(jsonError)}`);
       this.deleteMessage(message);
-      return completeCb();
+      completeCb();
     }
 
     /* MC-405 telemetry log to file */
@@ -841,7 +848,7 @@ export default class EPI2ME {
         : readCount; // hmm. not exactly "download", these
 
       /* must signal completion */
-      return completeCb();
+      completeCb();
     }
   }
 
@@ -1098,7 +1105,7 @@ export default class EPI2ME {
     try {
       rs = fs.createReadStream(fileId);
     } catch (createReadStreamException) {
-      return done(`createReadStreamException exception${String(createReadStreamException)}`); // close the queue job
+      done(`createReadStreamException exception${String(createReadStreamException)}`); // close the queue job
     }
 
     rs.on('error', readStreamError => {
@@ -1132,14 +1139,13 @@ export default class EPI2ME {
       const managedupload = s3.upload(params, options, async uploadStreamErr => {
         if (uploadStreamErr) {
           this.log.warn(`${file.id} uploadStreamError ${uploadStreamErr}`);
-          return done(`uploadStreamError ${String(uploadStreamErr)}`); // close the queue job
+          done(`uploadStreamError ${String(uploadStreamErr)}`); // close the queue job
         }
         this.log.info(`${file.id} S3 upload complete`);
         try {
           await this.uploadComplete(objectId, file);
         } catch (e) {
           done(e);
-          return Promise.reject(e);
         }
         done();
         rs.close();
@@ -1163,7 +1169,7 @@ export default class EPI2ME {
 
   async discoverQueue(queueName) {
     if (this.config.instance.discoverQueueCache[queueName]) {
-      return this.config.instance.discoverQueueCache[queueName];
+      return Promise.resolve(this.config.instance.discoverQueueCache[queueName]);
     }
 
     this.log.debug(`discovering queue for ${queueName}`);
@@ -1175,7 +1181,7 @@ export default class EPI2ME {
       this.log.debug(`found queue ${getQueue.QueueUrl}`);
       this.config.instance.discoverQueueCache[queueName] = getQueue.QueueUrl;
 
-      return getQueue.QueueUrl;
+      return Promise.resolve(getQueue.QueueUrl);
     } catch (e) {
       this.log.error(`failed to find queue for ${queueName}: ${String(e)}`);
       return Promise.reject(e);
@@ -1254,6 +1260,7 @@ export default class EPI2ME {
 
     try {
       await this.moveFile(file, 'upload');
+      return Promise.resolve();
     } catch (e) {
       return Promise.reject(e);
     }
@@ -1289,6 +1296,7 @@ export default class EPI2ME {
 
       return Promise.reject(moveError);
     }
+    return Promise.resolve();
   }
 
   async queueLength(queueURL) {
