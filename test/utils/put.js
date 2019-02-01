@@ -46,7 +46,6 @@ describe('utils.put', () => {
       { name: 'test entity' },
       {
         url: 'http://epi2me.test/entity/123',
-        data: { name: 'test entity' },
         gzip: true,
         headers: {
           Accept: 'application/json',
@@ -82,7 +81,6 @@ describe('utils.put', () => {
       'json=%7B%22name%22%3A%22test%20entity%22%7D',
       {
         url: 'http://epi2me.test/entity/123',
-        data: 'json=%7B%22name%22%3A%22test%20entity%22%7D',
         gzip: true,
         headers: {
           Accept: 'application/json',
@@ -118,7 +116,6 @@ describe('utils.put', () => {
       { name: 'test entity' },
       {
         url: 'http://epi2me.test/entity/123',
-        data: { name: 'test entity' },
         gzip: true,
         proxy: 'http://proxy.internal:3128/',
         headers: {

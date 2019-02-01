@@ -170,9 +170,12 @@ const utils = (function magic() {
 
       utils.headers(req, options);
 
+      const data = req.data;
+      delete req.data;
+
       let res;
       try {
-        res = await axios.post(req.url, req.data, req); // url, data, headers++
+        res = await axios.post(req.url, data, req); // url, data, headers++
       } catch (err) {
         return Promise.reject(err);
       }
@@ -197,9 +200,12 @@ const utils = (function magic() {
 
       utils.headers(req, options);
 
+      const data = req.data;
+      delete req.data;
+
       let res;
       try {
-        res = await axios.put(req.url, req.data, req); // url, data, headers++
+        res = await axios.put(req.url, data, req); // url, data, headers++
       } catch (err) {
         return Promise.reject(err);
       }

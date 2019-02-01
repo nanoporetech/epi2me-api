@@ -47,7 +47,6 @@ describe('utils.post', () => {
       { id_entity: 123, name: 'test entity' },
       {
         url: 'http://epi2me.test/entity',
-        data: { id_entity: 123, name: 'test entity' },
         gzip: true,
         headers: {
           Accept: 'application/json',
@@ -82,7 +81,6 @@ describe('utils.post', () => {
       'json=%7B%22id_entity%22%3A123%2C%22name%22%3A%22test%20entity%22%7D',
       {
         url: 'http://epi2me.test/entity',
-        data: 'json=%7B%22id_entity%22%3A123%2C%22name%22%3A%22test%20entity%22%7D',
         gzip: true,
         headers: {
           Accept: 'application/json',
@@ -116,7 +114,6 @@ describe('utils.post', () => {
       { id_entity: 123, name: 'test entity' },
       {
         url: 'http://epi2me.test/entity',
-        data: { id_entity: 123, name: 'test entity' },
         gzip: true,
         proxy: 'http://proxy.internal:3128/',
         headers: {
