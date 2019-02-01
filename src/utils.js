@@ -13,6 +13,12 @@ import { version as VERSION } from '../package.json';
 
 axios.defaults.validateStatus = status => status <= 504; // Reject only if the status code is greater than or equal to 500
 
+export const deprecatedFunctionWarning = (fromName, toName) => {
+  console.warn(
+    `DEPRECATION WARNING: '${fromName}' will be removed from future versions of this package. Please rename the function to '${toName}'`,
+  );
+};
+
 const utils = (function magic() {
   const internal = {
     sign: (req, optionsIn) => {
@@ -170,7 +176,7 @@ const utils = (function magic() {
 
       utils.headers(req, options);
 
-      const data = req.data;
+      const { data } = req;
       delete req.data;
 
       let res;
@@ -200,7 +206,7 @@ const utils = (function magic() {
 
       utils.headers(req, options);
 
-      const data = req.data;
+      const { data } = req;
       delete req.data;
 
       let res;

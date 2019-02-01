@@ -2,6 +2,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import REST from './rest';
 import utils from './utils-fs';
+import { deprecatedFunctionWarning } from './utils';
 
 export default class REST_FS extends REST {
   async workflows(cb) {
@@ -44,9 +45,9 @@ export default class REST_FS extends REST {
     }
   }
 
-  async workflow_instances(first, second) {
+  async workflowInstances(first, second) {
     if (!this.options.local) {
-      return super.workflow_instances(first, second);
+      return super.workflowInstances(first, second);
     }
     let cb;
     let query;
@@ -90,6 +91,12 @@ export default class REST_FS extends REST {
     } catch (err) {
       return cb ? cb(err) : Promise.reject(err);
     }
+  }
+
+  // eslint-disable-next-line camelcase
+  async workflow_instances(first, second) {
+    deprecatedFunctionWarning('workflow_instances', 'workflowInstances');
+    return this.workflowInstances(first, second);
   }
 
   async datasets(first, second) {
@@ -159,7 +166,7 @@ export default class REST_FS extends REST {
     }
   }
 
-  async bundle_workflow(idWorkflow, filepath, progressCb) {
+  async bundleWorkflow(idWorkflow, filepath, progressCb) {
     // clean out target folder?
     // download tarball including workflow json
     // allocate install_token with STS credentials
@@ -170,5 +177,11 @@ export default class REST_FS extends REST {
       this.options,
       progressCb,
     );
+  }
+
+  // eslint-disable-next-line camelcase
+  async bundle_workflow(idWorkflow, filepath, progressCb) {
+    deprecatedFunctionWarning('bundle_workflow', 'bundleWorkflow');
+    return this.bundleWorkflow(idWorkflow, filepath, progressCb);
   }
 }
