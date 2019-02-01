@@ -79,11 +79,10 @@ describe('utils.post', () => {
 
     assert.deepEqual(axios.post.args[0], [
       'http://epi2me.test/entity',
-      { id_entity: 123, name: 'test entity' },
+      'json=%7B%22id_entity%22%3A123%2C%22name%22%3A%22test%20entity%22%7D',
       {
         url: 'http://epi2me.test/entity',
-        data: { id_entity: 123, name: 'test entity' },
-        form: { json: '{"id_entity":123,"name":"test entity"}', id_entity: 123, name: 'test entity' },
+        data: 'json=%7B%22id_entity%22%3A123%2C%22name%22%3A%22test%20entity%22%7D',
         gzip: true,
         headers: {
           Accept: 'application/json',

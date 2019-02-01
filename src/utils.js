@@ -165,16 +165,7 @@ const utils = (function magic() {
 
       if (options.legacy_form) {
         // include legacy form parameters
-        const form = {};
-        form.json = JSON.stringify(obj);
-
-        if (obj && typeof obj === 'object') {
-          Object.keys(obj).forEach(attr => {
-            form[attr] = obj[attr];
-          });
-        } // garbage
-
-        req.form = form; // FIX THIS: this is no longer in the right place
+        req.data = `json=${escape(JSON.stringify(obj))}`;
       }
 
       utils.headers(req, options);
@@ -201,7 +192,7 @@ const utils = (function magic() {
 
       if (options.legacy_form) {
         // include legacy form parameters
-        req.form = { json: JSON.stringify(obj) };
+        req.data = `json=${escape(JSON.stringify(obj))}`;
       }
 
       utils.headers(req, options);
