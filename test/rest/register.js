@@ -47,7 +47,6 @@ describe('rest.register', () => {
           {
             log,
             signing: false,
-            legacy_form: true,
             agent_version: '3.0.0',
             local: false,
             url: 'https://epi2me.nanoporetech.com',

@@ -407,7 +407,7 @@ export default class REST {
         {
           description: description || `${os.userInfo().username}@${os.hostname()}`,
         },
-        assign({}, this.options, { signing: false, legacy_form: true }),
+        assign({}, this.options, { signing: false }),
       );
       return cb ? cb(null, obj) : Promise.resolve(obj);
     } catch (err) {
