@@ -18,8 +18,7 @@ export default class REST_FS extends REST {
       data = tmp // ouch
         .filter(id => fs.statSync(path.join(WORKFLOW_DIR, id)).isDirectory())
         .map(id => path.join(WORKFLOW_DIR, id, 'workflow.json'))
-        .map(filepath => fs.readFileSync(filepath))
-        .map(str => JSON.parse(str));
+        .map(filepath => fs.readJsonSync(filepath));
 
       return cb ? cb(null, data) : Promise.resolve(data);
     } catch (e) {
@@ -38,8 +37,7 @@ export default class REST_FS extends REST {
     const filename = path.join(WORKFLOW_DIR, id, 'workflow.json');
 
     try {
-      const workflow = await fs.readFile(filename);
-      const json = JSON.parse(workflow);
+      const json = await fs.readJson(filename);
       return cb ? cb(null, json) : Promise.resolve(json);
     } catch (readWorkflowException) {
       return cb ? cb(readWorkflowException) : Promise.reject(readWorkflowException);
@@ -75,7 +73,7 @@ export default class REST_FS extends REST {
 
         let workflow;
         try {
-          workflow = JSON.parse(fs.readFileSync(filename));
+          workflow = fs.readJsonSync(filename);
         } catch (ignore) {
           workflow = {
             id_workflow: '-',

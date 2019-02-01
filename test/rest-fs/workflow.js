@@ -33,7 +33,7 @@ describe('rest.workflow', () => {
   });
 
   it('must catch a read-workflow exception from filesystem', async () => {
-    const stub = sinon.stub(fs, 'readFileSync').rejects(new Error('no such file or directory'));
+    const stub = sinon.stub(fs, 'readJsonSync').rejects(new Error('no such file or directory'));
     const rest = restFactory({ url: '/path/to/' });
 
     try {
