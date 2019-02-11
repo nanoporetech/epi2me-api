@@ -1,11 +1,10 @@
+import sinon from 'sinon';
+import assert from 'assert';
+import bunyan from 'bunyan';
 import REST from '../../src/rest';
 import utils from '../../src/utils';
 
-const sinon = require('sinon');
-const assert = require('assert');
-const bunyan = require('bunyan');
-
-describe('rest.stop_workflow', () => {
+describe('rest.stopWorkflow', () => {
   it('must invoke put with details', () => {
     const ringbuf = new bunyan.RingBuffer({ limit: 100 });
     const log = bunyan.createLogger({ name: 'log', stream: ringbuf });
@@ -19,7 +18,7 @@ describe('rest.stop_workflow', () => {
     const fake = sinon.fake();
     const rest = new REST({ log });
     assert.doesNotThrow(() => {
-      rest.stop_workflow('123456', fake);
+      rest.stopWorkflow('123456', fake);
     });
     assert(fake.calledOnce, 'callback invoked');
     stub.restore();

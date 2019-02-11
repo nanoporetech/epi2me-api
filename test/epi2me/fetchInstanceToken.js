@@ -62,7 +62,7 @@ describe('epi2me.fetchInstanceToken', () => {
       id_workflow_instance: 5,
     });
 
-    const stub = sinon.stub(client.REST, 'instance_token').resolves();
+    const stub = sinon.stub(client.REST, 'instanceToken').resolves();
     client.states.sts_expiration = Date.now() - 10000; // expired
     try {
       await client.fetchInstanceToken();
@@ -77,7 +77,7 @@ describe('epi2me.fetchInstanceToken', () => {
       id_workflow_instance: 5,
     });
 
-    const stub = sinon.stub(client.REST, 'instance_token').rejects(new Error('token error'));
+    const stub = sinon.stub(client.REST, 'instanceToken').rejects(new Error('token error'));
 
     client.states.sts_expiration = Date.now() - 10000; // expired
     try {
@@ -96,7 +96,7 @@ describe('epi2me.fetchInstanceToken', () => {
     const token = {
       expiration: new Date(),
     };
-    const stub = sinon.stub(client.REST, 'instance_token').resolves(token);
+    const stub = sinon.stub(client.REST, 'instanceToken').resolves(token);
     const stub2 = sinon.stub(AWS.config, 'update').callsFake();
 
     client.states.sts_expiration = Date.now() - 10000; // expired
@@ -120,7 +120,7 @@ describe('epi2me.fetchInstanceToken', () => {
     const token = {
       expiration: new Date(),
     };
-    const stub = sinon.stub(client.REST, 'instance_token').resolves(token);
+    const stub = sinon.stub(client.REST, 'instanceToken').resolves(token);
     const stub2 = sinon.stub(AWS.config, 'update').callsFake();
     client.states.sts_expiration = Date.now() - 10000; // expired
 

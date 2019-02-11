@@ -24,6 +24,17 @@ describe('epi2me-api.processMessage', () => {
       ),
     );
 
+  let stubs;
+  beforeEach(() => {
+    stubs = [];
+  });
+
+  afterEach(() => {
+    stubs.forEach(s => {
+      s.restore();
+    });
+  });
+
   it('should handle bad message json', done => {
     const client = clientFactory({ downloadMode: 'telemetry' });
     const stub = sinon.stub(client, 'deleteMessage').resolves();
@@ -42,9 +53,7 @@ describe('epi2me-api.processMessage', () => {
   it('should parse message json', done => {
     const client = clientFactory({ downloadMode: 'telemetry' });
 
-    sinon.stub(client, 'sessionedS3').callsFake(cb => {
-      cb('error message'); // hmm. this is invalid!
-    });
+    sinon.stub(client, 'sessionedS3').rejects(new Error('error message'));
 
     assert.doesNotThrow(() => {
       client.processMessage(
@@ -58,14 +67,14 @@ describe('epi2me-api.processMessage', () => {
     done();
   });
 
-  it('should not double-prepend drive letters MC-6850', done => {
+  it('should not double-prepend drive letters MC-6850', async () => {
     const tmpDir = tmp.dirSync();
     const client = clientFactory({
       filter: 'on',
       downloadMode: 'data+telemetry',
       outputFolder: tmpDir.name,
     });
-    const stub = sinon.stub(client, 'sessionedS3').callsFake(() => 's3 object');
+    const stub = sinon.stub(client, 'sessionedS3').resolves('s3 object');
 
     const stub2 = sinon
       .stub(client, 'initiateDownloadStream')
@@ -73,10 +82,10 @@ describe('epi2me-api.processMessage', () => {
         completeCb();
       });
 
-    const stub3 = sinon.stub(fs, 'mkdirpSync').callsFake();
+    stubs.push(sinon.stub(fs, 'mkdirpSync').callsFake());
 
-    assert.doesNotThrow(() => {
-      client.processMessage(
+    try {
+      await client.processMessage(
         {
           Body: JSON.stringify({
             path:
@@ -90,24 +99,24 @@ describe('epi2me-api.processMessage', () => {
         },
         () => {},
       );
-    });
+    } catch (err) {
+      assert.fail(err);
+    }
 
     assert.equal(stub2.args[0][3], path.join(tmpDir.name, 'OK/PASS/CLASSIFIED/fastq_runid_shasum_15.fastq'));
     tmpDir.removeCallback();
     stub.restore();
     stub2.restore();
-    stub3.restore();
-    done();
   });
 
-  it('should retain output folder when no telemetry', done => {
+  it('should retain output folder when no telemetry', async () => {
     const tmpDir = tmp.dirSync();
     const client = clientFactory({
       filter: 'on',
       downloadMode: 'data+telemetry',
       outputFolder: tmpDir.name,
     });
-    const stub = sinon.stub(client, 'sessionedS3').callsFake(() => 's3 object');
+    const stub = sinon.stub(client, 'sessionedS3').resolves('s3 object');
 
     const stub2 = sinon
       .stub(client, 'initiateDownloadStream')
@@ -115,10 +124,10 @@ describe('epi2me-api.processMessage', () => {
         completeCb();
       });
 
-    const stub3 = sinon.stub(fs, 'mkdirpSync').callsFake();
+    stubs.push(sinon.stub(fs, 'mkdirpSync').callsFake());
 
-    assert.doesNotThrow(() => {
-      client.processMessage(
+    try {
+      await client.processMessage(
         {
           Body: JSON.stringify({
             path:
@@ -127,17 +136,17 @@ describe('epi2me-api.processMessage', () => {
         },
         () => {},
       );
-    });
+    } catch (err) {
+      assert.fail(err);
+    }
 
     assert.equal(stub2.args[0][3], path.join(tmpDir.name, 'fastq_runid_shasum_15.fastq'));
     tmpDir.removeCallback();
     stub.restore();
     stub2.restore();
-    stub3.restore();
-    done();
   });
 
-  it('should retain output folder when filtering off', done => {
+  it('should retain output folder when filtering off', async () => {
     const tmpDir = tmp.dirSync();
     const client = clientFactory({
       filter: 'off',
@@ -152,10 +161,10 @@ describe('epi2me-api.processMessage', () => {
         completeCb();
       });
 
-    const stub3 = sinon.stub(fs, 'mkdirpSync').callsFake();
+    stubs.push(sinon.stub(fs, 'mkdirpSync').callsFake());
 
-    assert.doesNotThrow(() => {
-      client.processMessage(
+    try {
+      await client.processMessage(
         {
           Body: JSON.stringify({
             path:
@@ -169,17 +178,17 @@ describe('epi2me-api.processMessage', () => {
         },
         () => {},
       );
-    });
+    } catch (err) {
+      assert.fail(err);
+    }
 
     assert.equal(stub2.args[0][3], path.join(tmpDir.name, 'fastq_runid_shasum_15.fastq'));
     tmpDir.removeCallback();
     stub.restore();
     stub2.restore();
-    stub3.restore();
-    done();
   });
 
-  it('should handle fast5 filetype behavior', done => {
+  it('should handle fast5 filetype behavior', async () => {
     const tmpDir = tmp.dirSync();
     const client = clientFactory({
       filter: 'off',
@@ -195,11 +204,11 @@ describe('epi2me-api.processMessage', () => {
         completeCb();
       });
 
-    const stub3 = sinon.stub(fs, 'mkdirpSync').callsFake();
-    const stub4 = sinon.stub(utils, 'findSuitableBatchIn').callsFake(() => '/folder_out');
+    stubs.push(sinon.stub(fs, 'mkdirpSync').callsFake());
+    stubs.push(sinon.stub(utils, 'findSuitableBatchIn').callsFake(() => '/folder_out'));
 
-    assert.doesNotThrow(() => {
-      client.processMessage(
+    try {
+      await client.processMessage(
         {
           Body: JSON.stringify({
             path:
@@ -213,18 +222,17 @@ describe('epi2me-api.processMessage', () => {
         },
         () => {},
       );
-    });
+    } catch (err) {
+      assert.fail(err);
+    }
 
     assert.equal(stub2.args[0][3], path.join('/folder_out', 'fastq_runid_shasum_15.fastq'));
     tmpDir.removeCallback();
     stub.restore();
     stub2.restore();
-    stub3.restore();
-    stub4.restore();
-    done();
   });
 
-  it('should correctly process real-world filter folder MC-6850', done => {
+  it('should correctly process real-world filter folder MC-6850', async () => {
     const tmpDir = tmp.dirSync();
     const client = clientFactory({
       filter: 'on',
@@ -239,10 +247,10 @@ describe('epi2me-api.processMessage', () => {
         completeCb();
       });
 
-    const stub3 = sinon.stub(fs, 'mkdirpSync').callsFake();
+    stubs.push(sinon.stub(fs, 'mkdirpSync').callsFake());
 
-    assert.doesNotThrow(() => {
-      client.processMessage(
+    try {
+      await client.processMessage(
         {
           Body: JSON.stringify({
             key_id: 'a14b0525-cb44-4f5c-8f12-96f858c6f09f',
@@ -387,18 +395,18 @@ describe('epi2me-api.processMessage', () => {
         },
         () => {},
       );
-    });
+    } catch (err) {
+      assert.fail(err);
+    }
 
     assert.equal(
       stub2.args[0][3],
       path.join(tmpDir.name, 'PASS/fastq_runid_738d663ef9214e590fb4806bf5aed784b941fd48_1.fastq.bam'),
       'initiateDownloadStream argument',
     );
-    assert.equal(stub3.args[0][0], path.join(tmpDir.name, 'PASS'), 'mkdirpSync argument');
+    assert.equal(fs.mkdirpSync.args[0][0], path.join(tmpDir.name, 'PASS'), 'mkdirpSync argument');
     tmpDir.removeCallback();
     stub.restore();
     stub2.restore();
-    stub3.restore();
-    done();
   });
 });

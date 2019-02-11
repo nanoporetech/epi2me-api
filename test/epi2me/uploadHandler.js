@@ -42,10 +42,10 @@ describe('epi2me.uploadHandler', () => {
     });
   });
 
-  it('should open readStream', done => {
+  it('should open readStream', async () => {
     const client = clientFactory();
     stubs.push(
-      sinon.stub(client, 'sessionedS3').callsFake(() => ({
+      sinon.stub(client, 'sessionedS3').resolves({
         upload: (params, options, cb) => {
           cb();
           assert(params);
@@ -55,18 +55,19 @@ describe('epi2me.uploadHandler', () => {
             },
           };
         },
-      })),
+      }),
     );
 
     sinon.stub(client, 'uploadComplete').resolves();
 
-    client.uploadHandler({ name: tmpfile }, error => {
-      assert(typeof error === 'undefined', `unexpected error message: ${error}`);
-      done();
-    });
+    try {
+      await client.uploadHandler({ name: tmpfile });
+    } catch (error) {
+      assert.fail(error);
+    }
   });
 
-  it('should handle read stream errors', done => {
+  it('should handle read stream errors', async () => {
     const client = clientFactory();
     const crso = fs.createReadStream;
     stubs.push(
@@ -79,7 +80,7 @@ describe('epi2me.uploadHandler', () => {
       }),
     );
 
-    sinon.stub(client, 'sessionedS3').callsFake(() => ({
+    sinon.stub(client, 'sessionedS3').resolves({
       upload: (params, options, cb) => {
         cb();
         assert(params); // not a very useful test
@@ -89,25 +90,24 @@ describe('epi2me.uploadHandler', () => {
           },
         };
       },
-    }));
+    });
 
     sinon.stub(client, 'uploadComplete').resolves();
 
-    assert.doesNotThrow(() => {
-      client.uploadHandler({ id: 'my-file', name: tmpfile }, error => {
-        assert(String(error).match(/error in upload readstream/), `unexpected error message format: ${error}`);
-        done();
-      });
-    });
+    try {
+      await client.uploadHandler({ id: 'my-file', name: tmpfile });
+      assert.fail('unexpected success');
+    } catch (error) {
+      assert(String(error).match(/error in upload readstream/));
+    }
   });
 
-  it('should handle bad file name - ENOENT', done => {
+  it('should handle bad file name - ENOENT', async () => {
     const client = clientFactory();
-    assert.doesNotThrow(() => {
-      client.uploadHandler({ id: 'my-file', name: 'bad file name' }, msg => {
-        assert(typeof msg !== 'undefined', 'failure');
-        done();
-      });
-    });
+    try {
+      await client.uploadHandler({ id: 'my-file', name: 'bad file name' });
+    } catch (err) {
+      assert(String(err).match(/ENOENT/));
+    }
   });
 });

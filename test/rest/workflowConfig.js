@@ -1,11 +1,10 @@
+import sinon from 'sinon';
+import assert from 'assert';
+import bunyan from 'bunyan';
 import REST from '../../src/rest';
 import utils from '../../src/utils';
 
-const sinon = require('sinon');
-const assert = require('assert');
-const bunyan = require('bunyan');
-
-describe('rest.workflow_config', () => {
+describe('rest.workflowConfig', () => {
   it('must invoke get with options', () => {
     const ringbuf = new bunyan.RingBuffer({ limit: 100 });
     const log = bunyan.createLogger({ name: 'log', stream: ringbuf });
@@ -29,7 +28,7 @@ describe('rest.workflow_config', () => {
     const fake = sinon.fake();
     const rest = new REST({ log, agent_version: '3.0.0' });
     try {
-      rest.workflow_config('1234', fake);
+      rest.workflowConfig('1234', fake);
       assert(fake.calledOnce, 'callback invoked');
     } catch (e) {
       assert.fail(e);

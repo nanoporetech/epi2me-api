@@ -1,22 +1,45 @@
 import assert from 'assert';
 import sinon from 'sinon';
+import tmp from 'tmp';
+import { merge } from 'lodash';
 import EPI2ME from '../../src/epi2me';
 
-describe('epi2me.stop_everything', () => {
+describe('epi2me.stopEverything', () => {
+  const clientFactory = opts => {
+    const tmpdir = tmp.dirSync().name;
+    const client = new EPI2ME(
+      merge(
+        {
+          inputFolder: tmpdir,
+          url: 'https://epi2me-test.local',
+          log: {
+            debug: sinon.stub(),
+            info: sinon.stub(),
+            warn: sinon.stub(),
+            error: sinon.stub(),
+          },
+        },
+        opts,
+      ),
+    );
+
+    return client;
+  };
+
   it('should clear download interval', done => {
     let client;
     const clock = sinon.useFakeTimers();
 
     assert.doesNotThrow(() => {
-      client = new EPI2ME();
-      sinon.stub(client.REST, 'stop_workflow').callsFake();
+      client = clientFactory();
+      sinon.stub(client.REST, 'stopWorkflow').callsFake();
 
       client.downloadCheckInterval = setInterval(() => {}, 100);
     });
 
     assert.doesNotThrow(
       () => {
-        client.stop_everything();
+        client.stopEverything();
       },
       Error,
       'client obtained',
@@ -31,15 +54,15 @@ describe('epi2me.stop_everything', () => {
     const clock = sinon.useFakeTimers();
 
     assert.doesNotThrow(() => {
-      client = new EPI2ME();
-      sinon.stub(client.REST, 'stop_workflow').callsFake();
+      client = clientFactory();
+      sinon.stub(client.REST, 'stopWorkflow').callsFake();
 
       client.stateCheckInterval = setInterval(() => {}, 100);
     });
 
     assert.doesNotThrow(
       () => {
-        client.stop_everything();
+        client.stopEverything();
       },
       Error,
       'client obtained',
@@ -54,8 +77,8 @@ describe('epi2me.stop_everything', () => {
     const clock = sinon.useFakeTimers();
 
     assert.doesNotThrow(() => {
-      client = new EPI2ME();
-      sinon.stub(client.REST, 'stop_workflow').callsFake();
+      client = clientFactory();
+      sinon.stub(client.REST, 'stopWorkflow').callsFake();
 
       client.downloadCheckInterval = setInterval(() => {}, 100);
       client.stateCheckInterval = setInterval(() => {}, 100);
@@ -64,7 +87,7 @@ describe('epi2me.stop_everything', () => {
 
     assert.doesNotThrow(
       () => {
-        client.stop_everything();
+        client.stopEverything();
       },
       Error,
       'client obtained',
@@ -81,8 +104,8 @@ describe('epi2me.stop_everything', () => {
         let uploadDrain = sinon.fake();
 
         assert.doesNotThrow(() => {
-            client = new EPI2ME();
-            sinon.stub(client.REST, "stop_workflow").callsFake();
+            client = clientFactory();
+            sinon.stub(client.REST, "stopWorkflow").callsFake();
             client.uploadWorkerPool = { "drain": uploadDrain };
 
             client.downloadCheckInterval = setInterval(() => {}, 100);
@@ -91,7 +114,7 @@ describe('epi2me.stop_everything', () => {
         });
 
         assert.doesNotThrow(() => {
-            client.stop_everything();
+            client.stopEverything();
         }, Error, 'client obtained');
 
         sinon.assert.calledOnce(uploadDrain); // upload drain requested
@@ -107,8 +130,8 @@ describe('epi2me.stop_everything', () => {
     const downloadDrain = sinon.fake();
 
     assert.doesNotThrow(() => {
-      client = new EPI2ME();
-      sinon.stub(client.REST, 'stop_workflow').callsFake();
+      client = clientFactory();
+      sinon.stub(client.REST, 'stopWorkflow').callsFake();
       client.downloadWorkerPool = { drain: downloadDrain };
 
       client.downloadCheckInterval = setInterval(() => {}, 100);
@@ -118,7 +141,7 @@ describe('epi2me.stop_everything', () => {
 
     assert.doesNotThrow(
       () => {
-        client.stop_everything();
+        client.stopEverything();
       },
       Error,
       'client obtained',
@@ -130,20 +153,20 @@ describe('epi2me.stop_everything', () => {
     done();
   });
 
-  it('should request stop_workflow with callback', done => {
+  it('should request stopWorkflow with callback', done => {
     let client;
     const clock = sinon.useFakeTimers();
 
     let stub1;
     const stub2 = sinon.fake();
     assert.doesNotThrow(() => {
-      client = new EPI2ME({ id_workflow_instance: 12345 });
-      stub1 = sinon.stub(client.REST, 'stop_workflow').callsFake((id, cb) => cb());
+      client = clientFactory({ id_workflow_instance: 12345 });
+      stub1 = sinon.stub(client.REST, 'stopWorkflow').callsFake((id, cb) => cb());
     });
 
     assert.doesNotThrow(
       () => {
-        client.stop_everything(stub2);
+        client.stopEverything(stub2);
       },
       Error,
       'client obtained',
@@ -156,19 +179,19 @@ describe('epi2me.stop_everything', () => {
     done();
   });
 
-  it('should request stop_workflow without callback', done => {
+  it('should request stopWorkflow without callback', done => {
     let client;
     const clock = sinon.useFakeTimers();
 
     let stub1;
     assert.doesNotThrow(() => {
-      client = new EPI2ME({ id_workflow_instance: 12345 });
-      stub1 = sinon.stub(client.REST, 'stop_workflow').callsFake((id, cb) => cb());
+      client = clientFactory({ id_workflow_instance: 12345 });
+      stub1 = sinon.stub(client.REST, 'stopWorkflow').callsFake((id, cb) => (cb ? cb() : Promise.resolve()));
     });
 
     assert.doesNotThrow(
       () => {
-        client.stop_everything();
+        client.stopEverything();
       },
       Error,
       'client obtained',
@@ -186,12 +209,12 @@ describe('epi2me.stop_everything', () => {
 
     const stub2 = sinon.fake();
     assert.doesNotThrow(() => {
-      client = new EPI2ME();
+      client = clientFactory();
     });
 
     assert.doesNotThrow(
       () => {
-        client.stop_everything(stub2);
+        client.stopEverything(stub2);
       },
       Error,
       'client obtained',

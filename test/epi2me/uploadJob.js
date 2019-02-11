@@ -106,9 +106,7 @@ describe('epi2me.uploadJob', () => {
     const clock = sinon.useFakeTimers();
     const client = clientFactory();
 
-    sinon.stub(client, 'uploadHandler').callsFake((file, callback) => {
-      callback(new Error('uploadHandler failed'), file);
-    });
+    sinon.stub(client, 'uploadHandler').rejects(new Error('uploadHandler failed'));
     delete client.states.upload.failure;
 
     try {
@@ -127,9 +125,7 @@ describe('epi2me.uploadJob', () => {
     const clock = sinon.useFakeTimers();
     const client = clientFactory();
 
-    sinon.stub(client, 'uploadHandler').callsFake((file, callback) => {
-      callback(new Error('uploadHandler failed'), file);
-    });
+    sinon.stub(client, 'uploadHandler').rejects(new Error('uploadHandler failed'));
     client.states.upload.failure = {}; // empty error tally
 
     try {
@@ -150,14 +146,12 @@ describe('epi2me.uploadJob', () => {
     const clock = sinon.useFakeTimers();
     const client = clientFactory();
 
-    sinon.stub(client, 'uploadHandler').callsFake((file, callback) => {
-      callback(new Error('uploadHandler failed'), file);
-    });
+    sinon.stub(client, 'uploadHandler').rejects(new Error('uploadHandler failed'));
     client.states.upload.failure = { 'Error: uploadHandler failed': 7 }; // empty error tally
 
     try {
       const x = { id: 72 };
-      client.uploadJob(x);
+      await client.uploadJob(x);
       clock.tick(1000);
     } catch (e) {
       assert.fail(e);
@@ -173,9 +167,7 @@ describe('epi2me.uploadJob', () => {
     const clock = sinon.useFakeTimers();
     const client = clientFactory();
 
-    sinon.stub(client, 'uploadHandler').callsFake((file, callback) => {
-      callback(null, file);
-    });
+    sinon.stub(client, 'uploadHandler').callsFake(file => Promise.resolve(file));
 
     try {
       const x = { id: 72 };
@@ -194,9 +186,7 @@ describe('epi2me.uploadJob', () => {
     const clock = sinon.useFakeTimers();
     const client = clientFactory();
 
-    sinon.stub(client, 'uploadHandler').callsFake((file, callback) => {
-      callback(null, file);
-    });
+    sinon.stub(client, 'uploadHandler').callsFake(file => Promise.resolve(file));
 
     client.states.upload.queueLength = 8192;
     client.states.upload.success = 25;

@@ -4,7 +4,7 @@ import bunyan from 'bunyan';
 import REST from '../../src/rest';
 import utils from '../../src/utils';
 
-describe('rest.workflow_instances', () => {
+describe('rest.workflowInstances', () => {
   let ringbuf;
   let rest;
   let log;
@@ -20,7 +20,7 @@ describe('rest.workflow_instances', () => {
     const fake = sinon.fake();
 
     try {
-      await rest.workflow_instances(fake);
+      await rest.workflowInstances(fake);
       assert(fake.calledOnce, 'callback invoked');
     } catch (err) {
       assert.fail(err);
@@ -31,7 +31,7 @@ describe('rest.workflow_instances', () => {
     sinon.stub(rest, 'list').resolves([{ id_workflow_instance: '12345' }]);
 
     try {
-      const data = await rest.workflow_instances();
+      const data = await rest.workflowInstances();
       assert.deepEqual(data, [{ id_workflow_instance: '12345' }]);
     } catch (err) {
       assert.fail(err);
@@ -43,7 +43,7 @@ describe('rest.workflow_instances', () => {
       .stub(utils, 'get')
       .resolves({ data: [{ id_ins: 1, id_flo: 2, run_id: 'abcdefabcdef', desc: 'test wf 2', rev: '0.0.1' }] });
     try {
-      const data = await rest.workflow_instances({ run_id: 'abcdefabcdef' });
+      const data = await rest.workflowInstances({ run_id: 'abcdefabcdef' });
       assert.deepEqual(data, [
         // note extra "data" container
         { id_workflow_instance: 1, id_workflow: 2, run_id: 'abcdefabcdef', description: 'test wf 2', rev: '0.0.1' },

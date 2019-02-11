@@ -1,3 +1,4 @@
+/* eslint no-console: ["error", { allow: ["log", "info", "debug", "warn", "error"] }] */
 /*
  * Copyright (c) 2018 Metrichor Ltd.
  * Author: rpettett
@@ -136,11 +137,17 @@ export default class EPI2ME {
 
     const { id_workflow_instance: idWorkflowInstance } = this.config.instance;
     if (idWorkflowInstance) {
-      this.REST.stop_workflow(idWorkflowInstance, () => {
-        this.log.info(`workflow instance ${idWorkflowInstance} stopped`);
-        if (cb) cb(this);
-      });
-    } else if (cb) cb(this);
+      try {
+        await this.REST.stopWorkflow(idWorkflowInstance);
+      } catch (stopException) {
+        this.log.error(`Error stopping instance: ${String(stopException)}`);
+        return cb ? cb(stopException) : Promise.reject(stopException);
+      }
+
+      this.log.info(`workflow instance ${idWorkflowInstance} stopped`);
+    }
+
+    return cb ? cb() : Promise.resolve(); // api changed. used to cb(this) - inconsistent
   }
 
   // eslint-disable-next-line camelcase
@@ -187,7 +194,7 @@ export default class EPI2ME {
     this.log.debug('new instance token needed');
 
     try {
-      const token = await this.REST.instance_token(this.config.instance.id_workflow_instance);
+      const token = await this.REST.instanceToken(this.config.instance.id_workflow_instance);
       this.log.debug(`allocated new instance token expiring at ${token.expiration}`);
       this.states.sts_expiration = new Date(token.expiration).getTime() - 60 * this.config.options.sessionGrace; // refresh token x mins before it expires
       // "classic" token mode no longer supported
@@ -206,6 +213,7 @@ export default class EPI2ME {
 
       /* todo: delay promise resolution so we don't hammer the website */
     }
+
     return Promise.resolve();
   }
 
@@ -221,45 +229,41 @@ export default class EPI2ME {
     return new AWS.SQS();
   }
 
-  autoStart(workflowConfig, cb) {
-    this.REST.start_workflow(workflowConfig, async (workflowError, instance) => {
-      if (workflowError) {
-        const msg = `Failed to start workflow: ${
-          workflowError && workflowError.error ? workflowError.error : workflowError
-        }`;
-        this.log.warn(msg);
-        if (cb) cb(msg);
-        return;
-      }
-      this.config.workflow = JSON.parse(JSON.stringify(workflowConfig));
-      await this.autoConfigure(instance, cb);
-    });
+  async autoStart(workflowConfig, cb) {
+    let instance;
+    try {
+      instance = await this.REST.startWorkflow(workflowConfig);
+    } catch (startError) {
+      const msg = `Failed to start workflow: ${startError && startError.error ? startError.error : startError}`;
+      this.log.warn(msg);
+
+      return cb ? cb(msg) : Promise.reject(startError);
+    }
+
+    this.config.workflow = JSON.parse(JSON.stringify(workflowConfig));
+    return this.autoConfigure(instance, cb);
   }
 
-  autoJoin(id, cb) {
+  async autoJoin(id, cb) {
     this.config.instance.id_workflow_instance = id;
+    let instance;
+    try {
+      instance = await this.REST.workflowInstance(id);
+    } catch (joinError) {
+      const msg = `Failed to join workflow instance: ${joinError && joinError.error ? joinError.error : joinError}`;
+      this.log.warn(msg);
+      return cb ? cb(msg) : Promise.reject(joinError);
+    }
 
-    this.REST.workflow_instance(id, async (instanceError, instance) => {
-      if (instanceError) {
-        const msg = `Failed to join workflow instance: ${
-          instanceError && instanceError.error ? instanceError.error : instanceError
-        }`;
-        this.log.warn(msg);
-        if (cb) cb(msg);
-        return;
-      }
+    if (instance.state === 'stopped') {
+      this.log.warn(`workflow ${id} is already stopped`);
+      return cb ? cb('could not join workflow') : Promise.reject(new Error('could not join workflow'));
+    }
 
-      if (instance.state === 'stopped') {
-        this.log.warn(`workflow ${id} is already stopped`);
-        if (cb) cb('could not join workflow');
-        return;
-      }
+    /* it could be useful to populate this as autoStart does */
+    this.config.workflow = this.config.workflow || {};
 
-      /* it could be useful to populate this as autoStart does */
-      this.config.workflow = this.config.workflow || {};
-
-      await this.autoConfigure(instance, cb);
-    });
+    return this.autoConfigure(instance, cb);
   }
 
   async autoConfigure(instance, autoStartCb) {
@@ -328,29 +332,33 @@ export default class EPI2ME {
     if (autoStartCb) autoStartCb(null, this.config.instance);
 
     // MC-2068 - Don't use an interval.
-    this.downloadCheckInterval = setInterval(
-      this.loadAvailableDownloadMessages.bind(this),
-      this.config.options.downloadCheckInterval * 1000,
-    );
+    this.downloadCheckInterval = setInterval(() => {
+      this.loadAvailableDownloadMessages();
+    }, this.config.options.downloadCheckInterval * 1000);
 
     // MC-1795 - stop workflow when instance has been stopped remotely
-    this.stateCheckInterval = setInterval(() => {
-      this.REST.workflow_instance(this.config.instance.id_workflow_instance, (instanceError, instanceObj) => {
-        if (instanceError) {
-          this.log.warn(
-            `failed to check instance state: ${
-              instanceError && instanceError.error ? instanceError.error : instanceError
-            }`,
-          );
-        } else if (instanceObj.state === 'stopped') {
+    this.stateCheckInterval = setInterval(async () => {
+      try {
+        const instanceObj = await this.REST.workflowInstance(this.config.instance.id_workflow_instance);
+        if (instanceObj.state === 'stopped') {
           this.log.warn(`instance was stopped remotely at ${instanceObj.stop_date}. shutting down the workflow.`);
-          this.stop_everything(that => {
-            if (typeof that.config.options.remoteShutdownCb === 'function') {
-              that.config.options.remoteShutdownCb(`instance was stopped remotely at ${instanceObj.stop_date}`);
+          try {
+            const stopResult = await this.stopEverything();
+
+            if (typeof stopResult.config.options.remoteShutdownCb === 'function') {
+              stopResult.config.options.remoteShutdownCb(`instance was stopped remotely at ${instanceObj.stop_date}`);
             }
-          });
+          } catch (stopError) {
+            this.log.error(`Error whilst stopping: ${String(stopError)}`);
+          }
         }
-      });
+      } catch (instanceError) {
+        this.log.warn(
+          `failed to check instance state: ${
+            instanceError && instanceError.error ? instanceError.error : instanceError
+          }`,
+        );
+      }
     }, this.config.options.stateCheckInterval * 1000);
 
     /* Request session token */
@@ -359,7 +367,7 @@ export default class EPI2ME {
     // MC-5418: ensure that the session has been established before starting the upload
     this.loadUploadFiles(); // Trigger once at workflow instance start
     this.fileCheckInterval = setInterval(this.loadUploadFiles.bind(this), this.config.options.fileCheckInterval * 1000);
-    return Promise.resolve();
+    return Promise.resolve(instance);
   }
 
   async loadAvailableDownloadMessages() {
@@ -379,7 +387,7 @@ export default class EPI2ME {
 
       this.log.debug('no downloads available');
     } catch (err) {
-      this.log.warn(err);
+      this.log.warn(`loadAvailableDownloadMessages error ${String(err)}`);
       if (!this.states.download.failure) this.states.download.failure = {};
       this.states.download.failure[err] = this.states.download.failure[err] ? this.states.download.failure[err] + 1 : 1;
     }
@@ -401,7 +409,7 @@ export default class EPI2ME {
       const queueURL = await this.discoverQueue(this.config.instance.outputQueueName);
       this.log.debug('fetching messages');
 
-      const sqs = this.sessionedSQS();
+      const sqs = await this.sessionedSQS();
       receiveMessageSet = await sqs
         .receiveMessage({
           AttributeNames: ['All'], // to check if the same message is received multiple times
@@ -466,7 +474,10 @@ export default class EPI2ME {
         settings = this.config.workflow.workflow_attributes;
       } else if ('attributes' in this.config.workflow) {
         // started from CLI
-        const { attributes: attrs } = this.config.workflow.attributes;
+        let { attributes: attrs } = this.config.workflow.attributes;
+        if (!attrs) {
+          attrs = {};
+        }
 
         if ('epi2me:max_size' in attrs) {
           settings.max_size = parseInt(attrs['epi2me:max_size'], 10);
@@ -484,6 +495,7 @@ export default class EPI2ME {
         }
       }
     }
+
     if ('requires_storage' in settings) {
       if (settings.requires_storage) {
         if (!('storage_account' in this.config.workflow)) {
@@ -635,38 +647,38 @@ export default class EPI2ME {
       return Promise.resolve();
     }
 
-    const p = new Promise(resolve => {
-      this.uploadHandler(file, (errorMsg, file2) => {
-        if (errorMsg) {
-          this.log.info(`${file2.id} done, but failed: ${String(errorMsg)}`);
-        } else {
-          this.log.info(`${file2.id} completely done. releasing uploadWorkerPool queue slot`);
-        }
+    let file2;
+    let errorMsg;
+    try {
+      file2 = await this.uploadHandler(file);
+      this.log.info(`${file2.id} completely done. releasing uploadWorkerPool queue slot`);
+    } catch (err) {
+      errorMsg = err;
+      this.log.info(`${file.id} done, but failed: ${String(errorMsg)}`);
+    }
 
-        resolve(); // Release uploadWorkerPool queue slot
+    if (!file2) {
+      file2 = {};
+    }
 
-        const readCount = file2.readCount || 1;
-        this.states.upload.enqueued = this.states.upload.enqueued - readCount;
+    const readCount = file2.readCount || 1;
+    this.states.upload.enqueued = this.states.upload.enqueued - readCount;
 
-        if (errorMsg) {
-          this.log.error(`uploadHandler ${errorMsg}`);
-          if (!this.states.upload.failure) {
-            this.states.upload.failure = {};
-          }
+    if (errorMsg) {
+      this.log.error(`uploadHandler ${errorMsg}`);
+      if (!this.states.upload.failure) {
+        this.states.upload.failure = {};
+      }
 
-          this.states.upload.failure[errorMsg] = this.states.upload.failure[errorMsg]
-            ? this.states.upload.failure[errorMsg] + 1
-            : 1;
-        } else {
-          this.states.upload.queueLength = this.states.upload.queueLength
-            ? this.states.upload.queueLength - readCount
-            : 0;
-          this.states.upload.success = this.states.upload.success ? this.states.upload.success + readCount : readCount;
-        }
-      });
-    });
+      this.states.upload.failure[errorMsg] = this.states.upload.failure[errorMsg]
+        ? this.states.upload.failure[errorMsg] + 1
+        : 1;
+    } else {
+      this.states.upload.queueLength = this.states.upload.queueLength ? this.states.upload.queueLength - readCount : 0;
+      this.states.upload.success = this.states.upload.success ? this.states.upload.success + readCount : readCount;
+    }
 
-    return p; // how about "await p" here? file-by-file?
+    return Promise.resolve(); // file-by-file?
   }
 
   async receiveMessages(receiveMessages) {
@@ -711,7 +723,7 @@ export default class EPI2ME {
   async deleteMessage(message) {
     try {
       const queueURL = await this.discoverQueue(this.config.instance.outputQueueName);
-      const sqs = this.sessionedSQS();
+      const sqs = await this.sessionedSQS();
       await sqs
         .deleteMessage({
           QueueUrl: queueURL,
@@ -745,7 +757,7 @@ export default class EPI2ME {
 
     if (!message) {
       this.log.debug('download.processMessage: empty message');
-      completeCb();
+      return completeCb ? completeCb() : Promise.resolve();
     }
 
     if ('Attributes' in message) {
@@ -761,7 +773,7 @@ export default class EPI2ME {
     } catch (jsonError) {
       this.log.error(`error parsing JSON message.Body from message: ${JSON.stringify(message)} ${String(jsonError)}`);
       this.deleteMessage(message);
-      completeCb();
+      return completeCb ? completeCb() : Promise.resolve();
     }
 
     /* MC-405 telemetry log to file */
@@ -798,7 +810,7 @@ export default class EPI2ME {
 
     if (!messageBody.path) {
       this.log.warn(`invalid message: ${JSON.stringify(messageBody)}`);
-      return;
+      return completeCb ? completeCb() : Promise.resolve();
     }
 
     const match = messageBody.path.match(/[\w\W]*\/([\w\W]*?)$/);
@@ -832,24 +844,27 @@ export default class EPI2ME {
       /* download file from S3 */
       this.log.info(`downloading ${messageBody.path} to ${outputFile}`);
 
-      s3 = this.sessionedS3();
-      this.initiateDownloadStream(s3, messageBody, message, outputFile, completeCb);
-    } else if (this.config.options.downloadMode === 'telemetry') {
-      /* skip download - only interested in telemetry */
-      this.deleteMessage(message);
-
-      const readCount =
-        messageBody.telemetry.batch_summary && messageBody.telemetry.batch_summary.reads_num
-          ? messageBody.telemetry.batch_summary.reads_num
-          : 1;
-
-      this.states.download.success = this.states.download.success
-        ? this.states.download.success + readCount
-        : readCount; // hmm. not exactly "download", these
-
-      /* must signal completion */
-      completeCb();
+      s3 = await this.sessionedS3();
+      const p = new Promise(async resolve => {
+        this.initiateDownloadStream(s3, messageBody, message, outputFile, resolve);
+      });
+      await p;
+      return completeCb ? completeCb() : Promise.resolve();
     }
+
+    // this.config.options.downloadMode === 'telemetry'
+    /* skip download - only interested in telemetry */
+    this.deleteMessage(message);
+
+    const readCount =
+      messageBody.telemetry.batch_summary && messageBody.telemetry.batch_summary.reads_num
+        ? messageBody.telemetry.batch_summary.reads_num
+        : 1;
+
+    this.states.download.success = this.states.download.success ? this.states.download.success + readCount : readCount; // hmm. not exactly "download", these
+
+    /* must signal completion */
+    return completeCb ? completeCb() : Promise.resolve();
   }
 
   initiateDownloadStream(s3, messageBody, message, outputFile, completeCb) {
@@ -1077,94 +1092,100 @@ export default class EPI2ME {
     }).pipe(file); // initiate download stream
   }
 
-  uploadHandler(file, completeCb) {
+  async uploadHandler(file, completeCb) {
     /** open readStream and pipe to S3.upload */
-    const s3 = this.sessionedS3();
+    const s3 = await this.sessionedS3();
 
     let rs;
     const batch = file.batch || '';
     const fileId = path.join(this.config.options.inputFolder, batch, file.name);
     const objectId = `${this.config.instance.bucketFolder}/component-0/${file.name}/${file.name}`;
     let timeoutHandle;
-    let completed = false;
 
-    const done = err => {
-      if (!completed) {
-        completed = true;
-        clearTimeout(timeoutHandle);
-        completeCb(err, file);
-      }
-    };
-
-    // timeout to ensure this completeCb *always* gets called
-    timeoutHandle = setTimeout(() => {
-      if (rs && !rs.closed) rs.close();
-      done(`this.uploadWorkerPool timeoutHandle. Clearing queue slot for file: ${file.name}`);
-    }, (this.config.options.uploadTimeout + 5) * 1000);
-
-    try {
-      rs = fs.createReadStream(fileId);
-    } catch (createReadStreamException) {
-      done(`createReadStreamException exception${String(createReadStreamException)}`); // close the queue job
-    }
-
-    rs.on('error', readStreamError => {
-      rs.close();
-      let errstr = 'error in upload readstream';
-      if (readStreamError && readStreamError.message) {
-        errstr += `: ${readStreamError.message}`;
-      }
-      done(errstr);
-    });
-
-    rs.on('open', () => {
-      const params = {
-        Bucket: this.config.instance.bucket,
-        Key: objectId,
-        Body: rs,
+    const p = new Promise((resolve, reject) => {
+      const timeoutFunc = () => {
+        if (rs && !rs.closed) rs.close();
+        return completeCb ? completeCb(`${file.name} timed out`) : reject(new Error(`${file.name} timed out`));
       };
+      // timeout to ensure this completeCb *always* gets called
+      timeoutHandle = setTimeout(timeoutFunc, (this.config.options.uploadTimeout + 5) * 1000);
 
-      const options = { partSize: 10 * 1024 * 1024, queueSize: 1 };
-
-      if (this.config.instance.key_id) {
-        // MC-4996 support (optional, for now) encryption
-        params.SSEKMSKeyId = this.config.instance.key_id;
-        params.ServerSideEncryption = 'aws:kms';
-      }
-
-      if (file.size) {
-        params['Content-Length'] = file.size;
-      }
-
-      const managedupload = s3.upload(params, options, async uploadStreamErr => {
-        if (uploadStreamErr) {
-          this.log.warn(`${file.id} uploadStreamError ${uploadStreamErr}`);
-          done(`uploadStreamError ${String(uploadStreamErr)}`); // close the queue job
-        }
-        this.log.info(`${file.id} S3 upload complete`);
-        try {
-          await this.uploadComplete(objectId, file);
-        } catch (e) {
-          done(e);
-        }
-        done();
-        rs.close();
-      });
-
-      managedupload.on('httpUploadProgress', progress => {
-        // MC-6789 - reset upload timeout
-        this.log.debug(`upload progress ${progress.key} ${progress.loaded} / ${progress.total}`);
-
+      try {
+        rs = fs.createReadStream(fileId);
+      } catch (createReadStreamException) {
         clearTimeout(timeoutHandle);
-        timeoutHandle = setTimeout(() => {
-          if (rs && !rs.closed) rs.close();
-          done(`this.uploadWorkerPool timeoutHandle. Clearing queue slot for file: ${file.name}`);
-        }, (this.config.options.uploadTimeout + 5) * 1000);
+        if (completeCb) {
+          completeCb(String(createReadStreamException));
+        } else {
+          reject(createReadStreamException);
+        }
+        return;
+      }
+
+      rs.on('error', readStreamError => {
+        rs.close();
+        let errstr = 'error in upload readstream';
+        if (readStreamError && readStreamError.message) {
+          errstr += `: ${readStreamError.message}`;
+        }
+        clearTimeout(timeoutHandle);
+        return completeCb ? completeCb(errstr) : reject(new Error(errstr));
       });
+
+      rs.on('open', () => {
+        const params = {
+          Bucket: this.config.instance.bucket,
+          Key: objectId,
+          Body: rs,
+        };
+
+        const options = { partSize: 10 * 1024 * 1024, queueSize: 1 };
+
+        if (this.config.instance.key_id) {
+          // MC-4996 support (optional, for now) encryption
+          params.SSEKMSKeyId = this.config.instance.key_id;
+          params.ServerSideEncryption = 'aws:kms';
+        }
+
+        if (file.size) {
+          params['Content-Length'] = file.size;
+        }
+
+        const managedupload = s3.upload(params, options, async uploadStreamErr => {
+          if (uploadStreamErr) {
+            this.log.warn(`${file.id} uploadStreamError ${uploadStreamErr}`);
+            clearTimeout(timeoutHandle);
+            return completeCb ? completeCb(uploadStreamErr) : reject(new Error(uploadStreamErr));
+          }
+
+          this.log.info(`${file.id} S3 upload complete`);
+
+          try {
+            await this.uploadComplete(objectId, file);
+          } catch (uploadCompleteErr) {
+            clearTimeout(timeoutHandle);
+            return completeCb ? completeCb(uploadCompleteErr) : reject(new Error(uploadCompleteErr));
+          }
+
+          rs.close();
+          clearTimeout(timeoutHandle);
+          return completeCb ? completeCb(null, file) : resolve(file);
+        });
+
+        managedupload.on('httpUploadProgress', progress => {
+          // MC-6789 - reset upload timeout
+          this.log.debug(`upload progress ${progress.key} ${progress.loaded} / ${progress.total}`);
+
+          clearTimeout(timeoutHandle);
+          timeoutHandle = setTimeout(timeoutFunc, (this.config.options.uploadTimeout + 5) * 1000);
+        });
+      });
+
+      rs.on('end', rs.close);
+      rs.on('close', () => this.log.debug('closing readstream'));
     });
 
-    rs.on('end', rs.close);
-    rs.on('close', () => this.log.debug('closing readstream'));
+    return p;
   }
 
   async discoverQueue(queueName) {
@@ -1174,18 +1195,19 @@ export default class EPI2ME {
 
     this.log.debug(`discovering queue for ${queueName}`);
 
+    let getQueue;
     try {
-      const sqs = this.sessionedSQS();
-      const getQueue = await sqs.getQueueUrl({ QueueName: queueName }).promise();
-
-      this.log.debug(`found queue ${getQueue.QueueUrl}`);
-      this.config.instance.discoverQueueCache[queueName] = getQueue.QueueUrl;
-
-      return Promise.resolve(getQueue.QueueUrl);
-    } catch (e) {
-      this.log.error(`failed to find queue for ${queueName}: ${String(e)}`);
-      return Promise.reject(e);
+      const sqs = await this.sessionedSQS();
+      getQueue = await sqs.getQueueUrl({ QueueName: queueName }).promise();
+    } catch (err) {
+      this.log.error(`Error: failed to find queue for ${queueName}: ${String(err)}`);
+      return Promise.reject(err);
     }
+
+    this.log.debug(`found queue ${getQueue.QueueUrl}`);
+    this.config.instance.discoverQueueCache[queueName] = getQueue.QueueUrl;
+
+    return Promise.resolve(getQueue.QueueUrl);
   }
 
   async uploadComplete(objectId, file) {
@@ -1242,7 +1264,7 @@ export default class EPI2ME {
 
     try {
       const inputQueueURL = await this.discoverQueue(this.config.instance.inputQueueName);
-      const sqs = this.sessionedSQS();
+      const sqs = await this.sessionedSQS();
 
       this.log.info(`${file.id} sending SQS message to input queue`);
       await sqs
@@ -1306,7 +1328,8 @@ export default class EPI2ME {
     this.log.debug(`querying queue length of ${queueName}`);
 
     try {
-      const attrs = await this.sessionedSQS()
+      const sqs = await this.sessionedSQS();
+      const attrs = await sqs
         .getQueueAttributes({
           QueueUrl: queueURL,
           AttributeNames: ['ApproximateNumberOfMessages'],

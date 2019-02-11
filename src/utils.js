@@ -1,3 +1,4 @@
+/* eslint no-console: ["error", { allow: ["log", "info", "debug", "warn", "error"] }] */
 /*
  * Copyright (c) 2018 Metrichor Ltd.
  * Author: ahurst
@@ -167,11 +168,20 @@ const utils = (function magic() {
         url: call,
         gzip: true,
         data: obj,
+        headers: {},
       };
 
       if (options.legacy_form) {
         // include legacy form parameters
-        req.data = `json=${escape(JSON.stringify(obj))}`;
+        const params = [];
+        const form = merge({ json: JSON.stringify(obj) }, obj);
+        Object.keys(form)
+          .sort()
+          .forEach(attr => {
+            params.push(`${attr}=${escape(form[attr])}`);
+          });
+        req.data = params.join('&');
+        req.headers['Content-Type'] = 'application/x-www-form-urlencoded';
       }
 
       utils.headers(req, options);
@@ -197,11 +207,20 @@ const utils = (function magic() {
         url: call,
         gzip: true,
         data: obj,
+        headers: {},
       };
 
       if (options.legacy_form) {
         // include legacy form parameters
-        req.data = `json=${escape(JSON.stringify(obj))}`;
+        const params = [];
+        const form = merge({ json: JSON.stringify(obj) }, obj);
+        Object.keys(form)
+          .sort()
+          .forEach(attr => {
+            params.push(`${attr}=${escape(form[attr])}`);
+          });
+        req.data = params.join('&');
+        req.headers['Content-Type'] = 'application/x-www-form-urlencoded';
       }
 
       utils.headers(req, options);

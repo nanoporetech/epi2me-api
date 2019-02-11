@@ -3,7 +3,7 @@ import assert from 'assert';
 import bunyan from 'bunyan';
 import REST from '../../src/rest';
 
-describe('rest.ami_images', () => {
+describe('rest.amiImages', () => {
   let ringbuf;
   let log;
   let stubs;
@@ -29,7 +29,7 @@ describe('rest.ami_images', () => {
     });
     stubs.push(stub);
     assert.doesNotThrow(async () => {
-      await rest.ami_images(fake);
+      await rest.amiImages(fake);
     });
     assert(fake.calledOnce, 'callback invoked');
   });
@@ -43,7 +43,7 @@ describe('rest.ami_images', () => {
     });
     stubs.push(stub);
     assert.doesNotThrow(async () => {
-      await rest.ami_images(fake);
+      await rest.amiImages(fake);
     });
     assert(fake.calledOnce, 'callback invoked');
     assert(fake.firstCall.args[0] instanceof Error);

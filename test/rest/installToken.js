@@ -4,7 +4,7 @@ import bunyan from 'bunyan';
 import REST from '../../src/rest';
 import utils from '../../src/utils';
 
-describe('rest.install_token', () => {
+describe('rest.installToken', () => {
   let log;
   let rest;
 
@@ -22,7 +22,7 @@ describe('rest.install_token', () => {
     const fake = sinon.fake();
 
     try {
-      await rest.install_token('12345', fake);
+      await rest.installToken('12345', fake);
       assert.deepEqual(
         stub.args[0],
         [
@@ -73,7 +73,7 @@ describe('rest.install_token', () => {
     const fake = sinon.fake();
 
     try {
-      await rest.install_token('12345', fake);
+      await rest.installToken('12345', fake);
       assert(String(fake.lastCall.args[0]).match(/token fail/), 'expected error');
     } catch (e) {
       assert.fail(e);

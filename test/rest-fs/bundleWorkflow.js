@@ -5,7 +5,7 @@ import tmp from 'tmp';
 import utils from '../../src/utils';
 import REST from '../../src/rest-fs';
 
-describe('rest-fs.bundle_workflow', () => {
+describe('rest-fs.bundleWorkflow', () => {
   let rest;
   let log;
   let ringbuf;
@@ -31,7 +31,7 @@ describe('rest-fs.bundle_workflow', () => {
     });
 
     assert.doesNotThrow(() => {
-      rest.bundle_workflow('1234', '/path/to/1234', progress);
+      rest.bundleWorkflow('1234', '/path/to/1234', progress);
     });
 
     assert(progress.calledTwice, 'progress callback invoked');

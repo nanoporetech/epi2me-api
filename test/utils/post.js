@@ -59,7 +59,7 @@ describe('utils.post', () => {
     ]);
   });
 
-  it('should invoke post with legacy form params - TO FIX', async () => {
+  it('should invoke post with legacy form params', async () => {
     stubs.push(sinon.stub(axios, 'post').resolves({ data: { data: 'data' } }));
     const data = await utils.post(
       'entity',
@@ -78,13 +78,13 @@ describe('utils.post', () => {
 
     assert.deepEqual(axios.post.args[0], [
       'http://epi2me.test/entity',
-      'json=%7B%22id_entity%22%3A123%2C%22name%22%3A%22test%20entity%22%7D',
+      'id_entity=123&json=%7B%22id_entity%22%3A123%2C%22name%22%3A%22test%20entity%22%7D&name=test%20entity',
       {
         url: 'http://epi2me.test/entity',
         gzip: true,
         headers: {
           Accept: 'application/json',
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded',
           'X-EPI2ME-ApiKey': 'foo',
           'X-EPI2ME-Client': 'api',
           'X-EPI2ME-Version': '3.0.0',

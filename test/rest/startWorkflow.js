@@ -3,7 +3,7 @@ import sinon from 'sinon';
 import utils from '../../src/utils';
 import REST from '../../src/rest';
 
-describe('rest.start_workflow', () => {
+describe('rest.startWorkflow', () => {
   let client;
 
   beforeEach(() => {
@@ -22,7 +22,7 @@ describe('rest.start_workflow', () => {
     });
 
     assert.doesNotThrow(() => {
-      client.start_workflow({ id_workflow: 'test' }, (err, obj) => {
+      client.startWorkflow({ id_workflow: 'test' }, (err, obj) => {
         assert.equal(err, null, 'no error reported');
         assert.deepEqual(obj, { id_workflow_instance: '1', id_user: '1' }, 'workflow_instance start response');
       });

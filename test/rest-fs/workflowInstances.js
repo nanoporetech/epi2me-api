@@ -7,7 +7,7 @@ import path from 'path';
 import REST from '../../src/rest-fs';
 import utils from '../../src/utils';
 
-describe('rest-fs.workflow_instances', () => {
+describe('rest-fs.workflowInstances', () => {
   let ringbuf;
   let log;
   let stubs;
@@ -30,7 +30,7 @@ describe('rest-fs.workflow_instances', () => {
 
     const fake = sinon.fake();
     try {
-      await rest.workflow_instances(fake);
+      await rest.workflowInstances(fake);
     } catch (err) {
       assert.fail(err);
     }
@@ -46,7 +46,7 @@ describe('rest-fs.workflow_instances', () => {
     const fake = sinon.fake();
     const rest = new REST({ log });
     try {
-      await rest.workflow_instances(fake, { run_id: 'abcdefabcdef' });
+      await rest.workflowInstances(fake, { run_id: 'abcdefabcdef' });
     } catch (err) {
       assert.fail(err);
     }
@@ -71,7 +71,7 @@ describe('rest-fs.workflow_instances', () => {
     const rest = new REST({ log, local: true, url: dir });
     const fake = sinon.fake();
 
-    await rest.workflow_instances(fake);
+    await rest.workflowInstances(fake);
 
     sinon.assert.calledOnce(fake);
     sinon.assert.calledWith(fake, null, [
@@ -103,7 +103,7 @@ describe('rest-fs.workflow_instances', () => {
     const rest = new REST({ log, local: true });
     let err;
     try {
-      await rest.workflow_instances('a query');
+      await rest.workflowInstances('a query');
     } catch (e) {
       err = e;
     }

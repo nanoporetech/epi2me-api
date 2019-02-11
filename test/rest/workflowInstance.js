@@ -2,7 +2,7 @@ import assert from 'assert';
 import sinon from 'sinon';
 import REST from '../../src/rest';
 
-describe('rest.workflow_instance', () => {
+describe('rest.workflowInstance', () => {
   let rest;
   let stubs;
 
@@ -19,7 +19,7 @@ describe('rest.workflow_instance', () => {
       s.restore();
     });
   });
-  it('should read a workflow_instance with callback', done => {
+  it('should read a workflowInstance with callback', done => {
     sinon.stub(rest, 'read').resolves({
       id_workflow_instance: '149',
       state: 'running',
@@ -33,7 +33,7 @@ describe('rest.workflow_instance', () => {
     });
 
     try {
-      rest.workflow_instance(149, (err, obj) => {
+      rest.workflowInstance(149, (err, obj) => {
         assert.equal(err, null, 'no error reported');
         assert.deepEqual(
           obj,
@@ -57,7 +57,7 @@ describe('rest.workflow_instance', () => {
     }
   });
 
-  it('should read a workflow_instance with promise', async () => {
+  it('should read a workflowInstance with promise', async () => {
     sinon.stub(rest, 'read').resolves({
       id_workflow_instance: '149',
       state: 'running',
@@ -71,7 +71,7 @@ describe('rest.workflow_instance', () => {
     });
 
     try {
-      const obj = await rest.workflow_instance(149);
+      const obj = await rest.workflowInstance(149);
 
       assert.deepEqual(
         obj,
