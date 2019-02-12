@@ -11,8 +11,6 @@ describe('epi2me.uploadHandler', () => {
   let stubs;
 
   const clientFactory = opts => {
-    stubs = [];
-
     const tmpdir = tmp.dirSync().name;
     fs.writeFile(path.join(tmpdir, tmpfile));
     const client = new EPI2ME(
@@ -36,6 +34,10 @@ describe('epi2me.uploadHandler', () => {
     return client;
   };
 
+  beforeEach(() => {
+    stubs = [];
+  });
+
   afterEach(() => {
     stubs.forEach(s => {
       s.restore();
@@ -46,15 +48,13 @@ describe('epi2me.uploadHandler', () => {
     const client = clientFactory();
     stubs.push(
       sinon.stub(client, 'sessionedS3').resolves({
-        upload: (params, options, cb) => {
-          cb();
-          assert(params);
-          return {
-            on: () => {
-              // support for httpUploadProgress
-            },
-          };
-        },
+        upload: () => ({
+          // params, options passed
+          on: () => {
+            // support for httpUploadProgress
+          },
+          promise: () => Promise.resolve(),
+        }),
       }),
     );
 
@@ -81,13 +81,13 @@ describe('epi2me.uploadHandler', () => {
     );
 
     sinon.stub(client, 'sessionedS3').resolves({
-      upload: (params, options, cb) => {
-        cb();
+      upload: params => {
         assert(params); // not a very useful test
         return {
           on: () => {
             // support for httpUploadProgress
           },
+          promise: () => Promise.resolve(),
         };
       },
     });

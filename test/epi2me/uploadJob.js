@@ -20,21 +20,6 @@ describe('epi2me.uploadJob', () => {
       ),
     );
 
-  it('should handle bad file object', () => {
-    const client = clientFactory();
-
-    sinon.stub(client, 'moveFile');
-    sinon.stub(client, 'uploadHandler');
-
-    assert.doesNotThrow(() => {
-      const x = {};
-      x.x = x; // circular
-      client.uploadJob(x);
-    });
-    assert(client.log.error.args[0][0].match(/could not stringify/));
-    assert(client.uploadHandler.calledOnce);
-  });
-
   it('should handle file object with skip and no readCount', async () => {
     const client = clientFactory();
 
@@ -114,10 +99,10 @@ describe('epi2me.uploadJob', () => {
       await client.uploadJob(x);
       clock.tick(1000);
     } catch (err) {
-      // empty
+      assert.fail(err);
     }
 
-    assert(client.log.info.args[1][0].match(/uploadHandler failed/), 'error message propagated');
+    assert(client.log.info.lastCall.args[0].match(/uploadHandler failed/), 'error message propagated');
     clock.restore();
   });
 
@@ -132,11 +117,11 @@ describe('epi2me.uploadJob', () => {
       const x = { id: 72 };
       await client.uploadJob(x);
       clock.tick(1000);
-    } catch (e) {
-      assert.fail(e);
+    } catch (err) {
+      assert.fail(err);
     }
 
-    assert(client.log.info.args[1][0].match(/uploadHandler failed/), 'error message propagated');
+    assert(client.log.info.lastCall.args[0].match(/uploadHandler failed/), 'error message propagated');
     assert.deepEqual(client.states.upload.failure, { 'Error: uploadHandler failed': 1 }, 'error counted');
 
     clock.restore();
@@ -157,7 +142,7 @@ describe('epi2me.uploadJob', () => {
       assert.fail(e);
     }
 
-    assert(client.log.info.args[1][0].match(/uploadHandler failed/), 'error message propagated');
+    assert(client.log.info.lastCall.args[0].match(/uploadHandler failed/), 'error message propagated');
     assert.deepEqual(client.states.upload.failure, { 'Error: uploadHandler failed': 8 }, 'error counted');
 
     clock.restore();
@@ -177,7 +162,7 @@ describe('epi2me.uploadJob', () => {
       assert.fail(e);
     }
 
-    assert(client.log.info.args[1][0].match(/completely done/), 'completion info message');
+    assert(client.log.info.lastCall.args[0].match(/completely done/), 'completion info message');
 
     clock.restore();
   });
@@ -199,7 +184,7 @@ describe('epi2me.uploadJob', () => {
       assert.fail(e);
     }
 
-    assert(client.log.info.args[1][0].match(/completely done/), 'completion info message');
+    assert(client.log.info.lastCall.args[0].match(/completely done/), 'completion info message');
     assert.deepEqual(
       client.states,
       {

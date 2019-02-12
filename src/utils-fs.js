@@ -54,15 +54,17 @@ utils.pipe = async (uriIn, filepath, options, progressCb) => {
   return p;
 };
 
-utils.countFileReads = filePath =>
+utils.countFileReads = async filePath =>
   new Promise((resolve, reject) => {
     const linesPerRead = 4;
     let lineCount = 1;
     let idx;
+
     fs.createReadStream(filePath)
       .on('data', buffer => {
         idx = -1;
         lineCount -= 1;
+
         do {
           idx = buffer.indexOf(10, idx + 1);
           lineCount += 1;

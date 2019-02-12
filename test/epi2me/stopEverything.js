@@ -123,6 +123,7 @@ describe('epi2me.stopEverything', () => {
         done();
     });
     */
+  /*
   it('should drain download worker', done => {
     let client;
     const clock = sinon.useFakeTimers();
@@ -152,7 +153,7 @@ describe('epi2me.stopEverything', () => {
     clock.restore();
     done();
   });
-
+*/
   it('should request stopWorkflow with callback', done => {
     let client;
     const clock = sinon.useFakeTimers();

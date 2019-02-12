@@ -2,12 +2,14 @@ import assert from 'assert';
 import sinon from 'sinon';
 import { merge } from 'lodash';
 import EPI2ME from '../../src/epi2me';
+import utils from '../../src/utils-fs';
 
 describe('epi2me.enqueueUploadFiles', () => {
   let debug;
   let info;
   let warn;
   let error;
+  let stubs;
 
   const clientFactory = opts =>
     new EPI2ME(
@@ -31,6 +33,12 @@ describe('epi2me.enqueueUploadFiles', () => {
     info = sinon.stub();
     warn = sinon.stub();
     error = sinon.stub();
+    stubs = [];
+  });
+  afterEach(() => {
+    stubs.forEach(s => {
+      s.restore();
+    });
   });
 
   it('should bail if arg is not an array', async () => {
@@ -76,7 +84,7 @@ describe('epi2me.enqueueUploadFiles', () => {
         requires_storage: true,
       },
     };
-    sinon.stub(client, 'loadUploadFiles').callsFake();
+    sinon.stub(client, 'loadUploadFiles').resolves();
     sinon.stub(client, 'uploadJob').resolves();
 
     try {
@@ -96,16 +104,17 @@ describe('epi2me.enqueueUploadFiles', () => {
       },
       storage_account: 'C000000',
     };
-    const loadUploadFiles = sinon.stub(client, 'loadUploadFiles').callsFake();
+    const loadUploadFiles = sinon.stub(client, 'loadUploadFiles').resolves();
     sinon.stub(client, 'uploadJob').resolves();
+    stubs.push(sinon.stub(utils, 'countFileReads').resolves());
 
     try {
       await client.enqueueUploadFiles([{}]);
-
-      assert.ok(error.notCalled, 'no errors raised');
-      assert.ok(loadUploadFiles.calledOnce, 'loadUploadFiles fired');
     } catch (e) {
       assert.fail(e);
     }
+
+    assert.ok(error.notCalled, 'no errors raised');
+    assert.ok(loadUploadFiles.calledOnce, 'loadUploadFiles fired');
   });
 });

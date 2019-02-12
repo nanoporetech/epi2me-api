@@ -30,8 +30,13 @@ describe('epi2me.receiveMessages', () => {
   });
 
   it('should queue and process download messages using downloadWorkerPool', async () => {
-    sinon.stub(client, 'processMessage').callsFake((message, resolver) => {
-      setTimeout(resolver, 1);
+    sinon.stub(client, 'processMessage').callsFake(() => {
+      const p = new Promise(resolve => {
+        setTimeout(() => {
+          resolve();
+        }, 1);
+      });
+      return p;
     });
 
     try {
@@ -42,6 +47,8 @@ describe('epi2me.receiveMessages', () => {
     assert.equal(client.downloadWorkerPool.remaining, 4, 'pending message count');
 
     clock.tick(10);
+
+    await Promise.all(client.downloadWorkerPool);
 
     assert.equal(client.downloadWorkerPool.remaining, 0, 'processed message count');
     assert.equal(client.processMessage.callCount, 4, 'processMessage invocation count');

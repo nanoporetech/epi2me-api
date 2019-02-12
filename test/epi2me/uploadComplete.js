@@ -26,7 +26,7 @@ describe('epi2me.uploadComplete', () => {
     const sqs = new AWS.SQS();
 
     sinon.stub(client, 'discoverQueue').resolves('http://my-queue/');
-    sinon.stub(client, 'sessionedSQS').callsFake(() => sqs);
+    sinon.stub(client, 'sessionedSQS').resolves(sqs);
     sinon.stub(sqs, 'sendMessage').callsFake(() => ({
       promise: () => Promise.reject(new Error('uploadComplete failed')),
     }));
@@ -35,7 +35,8 @@ describe('epi2me.uploadComplete', () => {
       await client.uploadComplete('object-id', { id: 'my-file' });
       assert.fail('unexpected success');
     } catch (e) {
-      assert.ok(String(e).match(/SQS sendmessage exception/));
+      assert(client.log.error.lastCall.args[0].match(/exception sending SQS/));
+      assert.ok(String(e).match(/uploadComplete failed/));
     }
   });
 
@@ -55,8 +56,8 @@ describe('epi2me.uploadComplete', () => {
     } catch (e) {
       err = e;
     }
-    assert(client.log.error.args[0][0].match(/uploadComplete failed/), 'exception message logged');
-    assert(String(err).match(/SQS sendmessage exception/), 'error message passed back');
+    assert(client.log.error.lastCall.args[0].match(/exception sending SQS/));
+    assert.ok(String(err).match(/uploadComplete failed/));
   });
 
   it('sqs callback success should move file and log info', async () => {
@@ -107,7 +108,7 @@ describe('epi2me.uploadComplete', () => {
     const sqs = new AWS.SQS();
 
     sinon.stub(client, 'discoverQueue').resolves('http://my-queue/');
-    sinon.stub(client, 'sessionedSQS').callsFake(() => sqs);
+    sinon.stub(client, 'sessionedSQS').resolves(sqs);
     sinon.stub(sqs, 'sendMessage').resolves();
     sinon.stub(client, 'moveFile').resolves();
 
@@ -120,8 +121,8 @@ describe('epi2me.uploadComplete', () => {
       err = e;
     }
 
-    assert(client.log.error.args[0][0].match(/exception parsing/), 'exception message logged');
-    assert(String(err).match(/json exception/), 'error message passed back');
+    assert(client.log.error.lastCall.args[0].match(/exception parsing/), 'exception message logged');
+    assert(String(err).match(/Unexpected token/), 'error message passed back');
   });
 
   it('should handle & propagate additional metadata', async () => {
