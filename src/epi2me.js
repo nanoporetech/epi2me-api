@@ -442,19 +442,19 @@ export default class EPI2ME {
     // const fileExp = new RegExp('\\.' + this.config.options.inputFormat + '$');   // only consider files with the specified extension
     const remaining = this.inputBatchQueue ? this.inputBatchQueue.remaining : 0;
     // if remaining > 0, there are still files in the inputBatchQueue
+    this.log.debug(`loadUploadFiles: ${remaining} batches in the inputBatchQueue`);
+
     if (!this.dirScanInProgress && remaining === 0) {
-      this.log.debug(`loadUploadFiles: ${remaining} batches in the inputBatchQueue`);
       this.dirScanInProgress = true;
       this.log.debug('scanning input folder for new files');
 
       try {
         const files = await utils.loadInputFiles(this.config.options, this.log);
-        this.dirScanInProgress = false;
         await this.enqueueUploadFiles(files); // block dirScan semaphore until complete
       } catch (err) {
-        this.dirScanInProgress = false;
-        this.log.error(err);
+        this.log.error(String(err));
       }
+      this.dirScanInProgress = false;
     } else {
       this.log.debug('directory scan already in progress');
     }
@@ -1058,11 +1058,12 @@ export default class EPI2ME {
       this.log.warn('transfer timed out');
       onStreamError();
     };
+
     transferTimeout = setTimeout(
       transferTimeoutFunc,
       1000 * this.config.options.downloadTimeout,
     ); /* download stream timeout in ms */
-
+    console.log('downloadTimeout', 1000 * this.config.options.downloadTimeout);
     const updateVisibilityFunc = async () => {
       const queueUrl = this.config.instance.outputQueueURL;
       const receiptHandle = message.ReceiptHandle;
@@ -1082,6 +1083,7 @@ export default class EPI2ME {
         clearInterval(visibilityInterval);
       }
     };
+
     visibilityInterval = setInterval(
       updateVisibilityFunc,
       900 * this.config.options.inFlightDelay,
@@ -1094,6 +1096,7 @@ export default class EPI2ME {
         transferTimeoutFunc,
         1000 * this.config.options.downloadTimeout,
       ); /* download stream timeout in ms */
+      console.log('reset transferTimeout');
       //                this.log.debug(`downloaded ${chunk.length} bytes. resetting transferTimeout`);
     }).pipe(file); // initiate download stream
   }
