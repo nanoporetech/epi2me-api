@@ -1,6 +1,11 @@
+/*
+ * Copyright (c) 2019 Metrichor Ltd.
+ * Authors: rpettett,gvanginkel
+ */
+
 import os from 'os';
 import { merge, filter, assign, every, isFunction } from 'lodash';
-import utils, { deprecatedFunctionWarning } from './utils';
+import utils from './utils';
 import { local, url as baseURL, user_agent as userAgent, signing } from './default_options.json';
 
 export default class REST {
@@ -85,12 +90,6 @@ export default class REST {
     }
   }
 
-  // eslint-disable-next-line camelcase
-  async instance_token(id, cb) {
-    deprecatedFunctionWarning('instance_token', 'instanceToken');
-    return this.instanceToken(id, cb);
-  }
-
   async installToken(id, cb) {
     try {
       const data = await utils.post(
@@ -102,12 +101,6 @@ export default class REST {
     } catch (err) {
       return cb ? cb(err) : Promise.reject(err);
     }
-  }
-
-  // eslint-disable-next-line camelcase
-  async install_token(id, cb) {
-    deprecatedFunctionWarning('install_token', 'installToken');
-    return this.installToken(id, cb);
   }
 
   async attributes(cb) {
@@ -140,12 +133,6 @@ export default class REST {
     } catch (err) {
       return cb ? cb(err) : Promise.reject(err);
     }
-  }
-
-  // eslint-disable-next-line camelcase
-  async ami_images(cb) {
-    deprecatedFunctionWarning('ami_images', 'amiImages');
-    return this.amiImages(cb);
   }
 
   async amiImage(first, second, third) {
@@ -216,12 +203,6 @@ export default class REST {
     } catch (err) {
       return cb ? cb(err) : Promise.reject(err);
     }
-  }
-
-  // eslint-disable-next-line camelcase
-  async ami_image(first, second, third) {
-    deprecatedFunctionWarning('ami_image', 'amiImage');
-    return this.amiImage(first, second, third);
   }
 
   async workflow(first, second, third) {
@@ -352,12 +333,6 @@ export default class REST {
     return utils.post('workflow_instance', config, assign({}, this.options, { legacy_form: true }), cb);
   }
 
-  // eslint-disable-next-line camelcase
-  async start_workflow(config, cb) {
-    deprecatedFunctionWarning('start_workflow', 'startWorkflow');
-    return this.startWorkflow(config, cb);
-  }
-
   stopWorkflow(idWorkflowInstance, cb) {
     return utils.put(
       'workflow_instance/stop',
@@ -366,12 +341,6 @@ export default class REST {
       assign({}, this.options, { legacy_form: true }),
       cb,
     );
-  }
-
-  // eslint-disable-next-line camelcase
-  stop_workflow(idWorkflowInstance, cb) {
-    deprecatedFunctionWarning('stop_workflow', 'stopWorkflow');
-    return this.stopWorkflow(idWorkflowInstance, cb);
   }
 
   async workflowInstances(first, second) {
@@ -415,12 +384,6 @@ export default class REST {
     }
   }
 
-  // eslint-disable-next-line camelcase
-  async workflow_instances(first, second) {
-    deprecatedFunctionWarning('workflow_instances', 'workflowInstances');
-    return this.workflowInstances(first, second);
-  }
-
   async workflowInstance(id, cb) {
     try {
       const workflowInstance = await this.read('workflow_instance', id);
@@ -430,20 +393,8 @@ export default class REST {
     }
   }
 
-  // eslint-disable-next-line camelcase
-  async workflow_instance(id, cb) {
-    deprecatedFunctionWarning('workflow_instance', 'workflowInstance');
-    return this.workflowInstance(id, cb);
-  }
-
   workflowConfig(id, cb) {
     return utils.get(`workflow/config/${id}`, this.options, cb);
-  }
-
-  // eslint-disable-next-line camelcase
-  workflow_config(id, cb) {
-    deprecatedFunctionWarning('workflow_config', 'workflowConfig');
-    return this.workflowConfig(id, cb);
   }
 
   async register(code, second, third) {

@@ -1,8 +1,11 @@
+/*
+ * Copyright (c) 2019 Metrichor Ltd.
+ * Authors: rpettett,gvanginkel
+ */
 import fs from 'fs-extra';
 import path from 'path';
 import REST from './rest';
 import utils from './utils-fs';
-import { deprecatedFunctionWarning } from './utils';
 
 export default class REST_FS extends REST {
   async workflows(cb) {
@@ -93,12 +96,6 @@ export default class REST_FS extends REST {
     }
   }
 
-  // eslint-disable-next-line camelcase
-  async workflow_instances(first, second) {
-    deprecatedFunctionWarning('workflow_instances', 'workflowInstances');
-    return this.workflowInstances(first, second);
-  }
-
   async datasets(first, second) {
     if (!this.options.local) {
       return super.datasets(first, second);
@@ -177,11 +174,5 @@ export default class REST_FS extends REST {
       this.options,
       progressCb,
     );
-  }
-
-  // eslint-disable-next-line camelcase
-  async bundle_workflow(idWorkflow, filepath, progressCb) {
-    deprecatedFunctionWarning('bundle_workflow', 'bundleWorkflow');
-    return this.bundleWorkflow(idWorkflow, filepath, progressCb);
   }
 }

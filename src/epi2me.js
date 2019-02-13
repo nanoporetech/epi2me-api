@@ -13,7 +13,6 @@ import { EOL } from 'os';
 import path from 'path';
 import proxy from 'proxy-agent';
 import utils from './utils-fs';
-import { deprecatedFunctionWarning } from './utils';
 import _REST from './rest-fs';
 import DEFAULTS from './default_options.json';
 
@@ -102,7 +101,7 @@ export default class EPI2ME {
     this.REST = new _REST(merge({}, { log: this.log }, this.config.options));
   }
 
-  async stopEverything(cb) {
+  async stopEverything() {
     this.log.debug('stopping watchers');
 
     if (this.downloadCheckInterval) {
@@ -141,19 +140,13 @@ export default class EPI2ME {
         await this.REST.stopWorkflow(idWorkflowInstance);
       } catch (stopException) {
         this.log.error(`Error stopping instance: ${String(stopException)}`);
-        return cb ? cb(stopException) : Promise.reject(stopException);
+        return Promise.reject(stopException);
       }
 
       this.log.info(`workflow instance ${idWorkflowInstance} stopped`);
     }
 
-    return cb ? cb() : Promise.resolve(); // api changed. used to cb(this) - inconsistent
-  }
-
-  // eslint-disable-next-line camelcase
-  async stop_everything(cb) {
-    deprecatedFunctionWarning('stop_everything', 'stopEverything');
-    this.stopEverything(cb);
+    return Promise.resolve(); // api changed
   }
 
   async session() {
@@ -234,13 +227,15 @@ export default class EPI2ME {
     try {
       instance = await this.REST.startWorkflow(workflowConfig);
     } catch (startError) {
-      const msg = `Failed to start workflow: ${startError && startError.error ? startError.error : startError}`;
+      const msg = `Failed to start workflow: ${String(startError)}`;
       this.log.warn(msg);
 
       return cb ? cb(msg) : Promise.reject(startError);
     }
 
-    this.config.workflow = JSON.parse(JSON.stringify(workflowConfig));
+    this.config.workflow = JSON.parse(JSON.stringify(workflowConfig)); // object copy
+    this.log.debug('instance', JSON.stringify(instance));
+    this.log.debug('workflow config', JSON.stringify(this.config.workflow));
     return this.autoConfigure(instance, cb);
   }
 
@@ -250,7 +245,7 @@ export default class EPI2ME {
     try {
       instance = await this.REST.workflowInstance(id);
     } catch (joinError) {
-      const msg = `Failed to join workflow instance: ${joinError && joinError.error ? joinError.error : joinError}`;
+      const msg = `Failed to join workflow instance: ${String(joinError)}`;
       this.log.warn(msg);
       return cb ? cb(msg) : Promise.reject(joinError);
     }
@@ -262,6 +257,8 @@ export default class EPI2ME {
 
     /* it could be useful to populate this as autoStart does */
     this.config.workflow = this.config.workflow || {};
+    this.log.debug('instance', JSON.stringify(instance));
+    this.log.debug('workflow config', JSON.stringify(this.config.workflow));
 
     return this.autoConfigure(instance, cb);
   }
@@ -276,16 +273,17 @@ export default class EPI2ME {
      * description (workflow)
      * chain
      */
-    this.config.instance.id_workflow_instance = instance.id_workflow_instance;
-    this.config.instance.id_workflow = instance.id_workflow;
-    this.config.instance.remote_addr = instance.remote_addr;
-    this.config.instance.key_id = instance.key_id;
-    this.config.instance.bucket = instance.bucket;
+
+    // copy tuples with the same names
+    ['id_workflow_instance', 'id_workflow', 'remote_addr', 'key_id', 'bucket', 'user_defined'].forEach(f => {
+      this.config.instance[f] = instance[f];
+    });
+
+    // copy tuples with different names / structures
     this.config.instance.inputQueueName = instance.inputqueue;
     this.config.instance.outputQueueName = instance.outputqueue;
     this.config.instance.awssettings.region = instance.region || this.config.options.region;
     this.config.instance.bucketFolder = `${instance.outputqueue}/${instance.id_user}/${instance.id_workflow_instance}`;
-    this.config.instance.user_defined = instance.user_defined; // MC-2387 - parameterisation
 
     if (instance.chain) {
       if (typeof instance.chain === 'object') {
@@ -734,7 +732,7 @@ export default class EPI2ME {
       this.downloadWorkerPool.push(p);
     });
 
-    this.log.info(`downloader queued ${receiveMessages.Messages.length} files for download`);
+    this.log.info(`downloader queued ${receiveMessages.Messages.length} messages for processing`);
     return Promise.all(this.downloadWorkerPool); // does awaiting here control parallelism better?
   }
 
@@ -759,17 +757,6 @@ export default class EPI2ME {
   async processMessage(message) {
     let messageBody;
     let folder;
-
-    const writeTelemetry = telemetry => {
-      try {
-        this.telemetryLogStream.write(JSON.stringify(telemetry) + EOL);
-      } catch (telemetryWriteErr) {
-        this.log.error(`error writing telemetry: ${telemetryWriteErr}`);
-      }
-      if (this.config.options.telemetryCb) {
-        this.config.options.telemetryCb(telemetry);
-      }
-    };
 
     if (!message) {
       this.log.debug('download.processMessage: empty message');
@@ -822,11 +809,18 @@ export default class EPI2ME {
         }
       }
 
-      writeTelemetry(telemetry);
+      try {
+        this.telemetryLogStream.write(JSON.stringify(telemetry) + EOL);
+      } catch (telemetryWriteErr) {
+        this.log.error(`error writing telemetry: ${telemetryWriteErr}`);
+      }
+      if (this.config.options.telemetryCb) {
+        this.config.options.telemetryCb(telemetry);
+      }
     }
 
     if (!messageBody.path) {
-      this.log.warn(`invalid message: ${JSON.stringify(messageBody)}`);
+      this.log.warn(`nothing to download`);
       return Promise.resolve();
     }
 

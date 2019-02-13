@@ -1,24 +1,15 @@
-/* eslint no-console: ["error", { allow: ["log", "info", "debug", "warn", "error"] }] */
 /*
- * Copyright (c) 2018 Metrichor Ltd.
- * Author: ahurst
- * When: 2016-05-17
- *
+ * Copyright (c) 2019 Metrichor Ltd.
+ * Authors: rpettett, ahurst, gvanginkel
+ * Created: 2016-05-17
  */
 
 import axios from 'axios';
 import crypto from 'crypto';
 import { merge } from 'lodash';
-
 import { version as VERSION } from '../package.json';
 
 axios.defaults.validateStatus = status => status <= 504; // Reject only if the status code is greater than or equal to 500
-
-export const deprecatedFunctionWarning = (fromName, toName) => {
-  console.warn(
-    `DEPRECATION WARNING: '${fromName}' will be removed from future versions of this package. Please rename the function to '${toName}'`,
-  );
-};
 
 const utils = (function magic() {
   const internal = {

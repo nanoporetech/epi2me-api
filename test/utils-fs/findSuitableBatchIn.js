@@ -36,10 +36,10 @@ describe('utils-fs.findSuitablebatchIn', () => {
     }
     await Promise.all(p);
 
-    clock.tick(1000);
+    clock.tick(1000); // move the timestamp along
     const folder = await utils.findSuitableBatchIn(dir);
     assert.equal(folder, path.join(dir, 'batch_1000'), 'new batch');
-  });
+  }).timeout(5000);
 
   it('should return latest if free', async () => {
     const dir = tmp.dirSync().name;

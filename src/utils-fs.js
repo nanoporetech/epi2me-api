@@ -1,9 +1,9 @@
 /*
- * Copyright (c) 2018 Metrichor Ltd.
- * Author: ahurst
- * When: 2016-05-17
- *
+ * Copyright (c) 2019 Metrichor Ltd.
+ * Authors: rpettett, ahurst, gvanginkel
+ * Created: 2016-05-17
  */
+
 import axios from 'axios';
 import fs from 'fs-extra';
 import path from 'path';

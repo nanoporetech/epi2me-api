@@ -4,16 +4,22 @@ import EPI2ME from '../../src/epi2me';
 
 describe('epi2me.autoStart', () => {
   function newApi(error, instance) {
-    const client = new EPI2ME();
-    sinon.stub(client.REST, 'startWorkflow').callsFake(() => {
-      if (error) {
-        return Promise.reject(error);
-      }
-      return Promise.resolve(instance);
+    const client = new EPI2ME({
+      log: {
+        debug: sinon.stub(),
+        info: sinon.stub(),
+        warn: sinon.stub(),
+        log: sinon.stub(),
+        error: sinon.stub(),
+      },
     });
 
-    sinon.stub(client, 'autoConfigure').callsFake((id, cb) => (cb ? cb() : Promise.resolve()));
-    sinon.stub(client.log, 'warn');
+    if (error) {
+      sinon.stub(client.REST, 'startWorkflow').rejects(error);
+    } else {
+      sinon.stub(client.REST, 'startWorkflow').resolves(instance);
+    }
+    sinon.stub(client, 'autoConfigure').resolves();
 
     return client;
   }
@@ -25,31 +31,36 @@ describe('epi2me.autoStart', () => {
       outputqueue: 'queue',
     });
 
-    await client.autoStart(111, () => {
-      assert(client.REST.startWorkflow.calledOnce, 'startWorkflow called once');
-      assert(client.autoConfigure.calledOnce, 'autoConfigure called once');
+    try {
+      await client.autoStart(111);
+    } catch (err) {
+      assert.fail(err);
+    }
 
-      const args = client.autoConfigure.args[0][0];
-      assert.equal(args.id_workflow_instance, 10, 'instance id passed');
-      assert.equal(args.id_user, 'user', 'user id passed');
-      assert.equal(args.outputqueue, 'queue', 'output queue passed');
-    });
+    assert(client.REST.startWorkflow.calledOnce, 'startWorkflow called once');
+    assert(client.autoConfigure.calledOnce, 'autoConfigure called once');
+
+    const args = client.autoConfigure.args[0][0];
+    assert.equal(args.id_workflow_instance, 10, 'instance id passed');
+    assert.equal(args.id_user, 'user', 'user id passed');
+    assert.equal(args.outputqueue, 'queue', 'output queue passed');
   });
 
   it('should handle startWorkflow errors', async () => {
-    const client = newApi(
-      {
-        error: 'Message',
-      },
-      {
-        state: 'stopped',
-      },
-    );
-
-    await client.autoStart(111, () => {
-      assert(client.REST.startWorkflow.calledOnce, 'startWorkflow called once');
-      assert(client.log.warn.calledWith('Failed to start workflow: Message'), 'logged warning');
-      assert(client.autoConfigure.notCalled, 'autoConfigure not called');
+    const client = newApi(new Error('Message'), {
+      state: 'stopped',
     });
+
+    let err;
+    try {
+      await client.autoStart(111);
+    } catch (e) {
+      err = e;
+    }
+
+    assert(String(err).match(/Message/), 'thrown error message');
+    assert(client.REST.startWorkflow.calledOnce, 'startWorkflow called once');
+    assert(client.log.warn.calledWith('Failed to start workflow: Error: Message'), 'logged warning');
+    assert(client.autoConfigure.notCalled, 'autoConfigure not called');
   });
 });
