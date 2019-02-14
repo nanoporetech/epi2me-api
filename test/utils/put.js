@@ -5,6 +5,7 @@ import utils from '../../src/utils';
 
 describe('utils.put', () => {
   let stubs = [];
+  let log;
   const versionBackup = `${utils.version}`;
 
   before(() => {
@@ -17,6 +18,12 @@ describe('utils.put', () => {
 
   beforeEach(() => {
     stubs = [];
+    log = {
+      info: sinon.stub(),
+      debug: sinon.stub(),
+      warn: sinon.stub(),
+      error: sinon.stub(),
+    };
   });
 
   afterEach(() => {
@@ -37,6 +44,7 @@ describe('utils.put', () => {
       {
         apikey: 'foo',
         url: 'http://epi2me.test',
+        log,
       },
     );
 
@@ -71,6 +79,7 @@ describe('utils.put', () => {
         apikey: 'foo',
         url: 'http://epi2me.test',
         legacy_form: true,
+        log,
       },
     );
 
@@ -106,18 +115,20 @@ describe('utils.put', () => {
         apikey: 'foo',
         url: 'http://epi2me.test',
         proxy: 'http://proxy.internal:3128/',
+        log,
       },
     );
 
     assert.deepEqual(data, { data: 'data' });
-
+    assert(axios.put.args[0][2].httpsAgent, 'custom agent for tunnelled proxy');
+    delete axios.put.args[0][2].httpsAgent;
     assert.deepEqual(axios.put.args[0], [
       'http://epi2me.test/entity/123',
       { name: 'test entity' },
       {
         url: 'http://epi2me.test/entity/123',
         gzip: true,
-        proxy: 'http://proxy.internal:3128/',
+        proxy: false,
         headers: {
           Accept: 'application/json',
           'Content-Type': 'application/json',
@@ -142,6 +153,7 @@ describe('utils.put', () => {
         {
           apikey: 'foo',
           url: 'http://epi2me.test',
+          log,
         },
       );
       assert.fail('unexpected success');

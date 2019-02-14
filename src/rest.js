@@ -1,10 +1,10 @@
 /*
  * Copyright (c) 2019 Metrichor Ltd.
- * Authors: rpettett,gvanginkel
+ * Authors: rpettett, gvanginkel
  */
 
 import os from 'os';
-import { merge, filter, assign, every, isFunction } from 'lodash';
+import { merge, filter, assign } from 'lodash';
 import utils from './utils';
 import { local, url as baseURL, user_agent as userAgent, signing } from './default_options.json';
 
@@ -15,30 +15,8 @@ export default class REST {
       { agent_version: utils.version, local, url: baseURL, user_agent: userAgent, signing },
       options,
     );
-    const { log } = this.options;
-    if (log) {
-      if (every([log.info, log.warn, log.error], isFunction)) {
-        this.log = log;
-      } else {
-        throw new Error('expected log object to have "error", "debug", "info" and "warn" methods');
-      }
-    } else {
-      this.log = {
-        info: msg => {
-          console.info(`[${new Date().toISOString()}] INFO: ${msg}`);
-        },
-        debug: msg => {
-          // eslint-disable-next-line
-          console.debug(`[${new Date().toISOString()}] DEBUG: ${msg}`);
-        },
-        warn: msg => {
-          console.warn(`[${new Date().toISOString()}] WARN: ${msg}`);
-        },
-        error: msg => {
-          console.error(`[${new Date().toISOString()}] ERROR: ${msg}`);
-        },
-      };
-    }
+
+    this.log = this.options.log;
   }
 
   async list(entity) {

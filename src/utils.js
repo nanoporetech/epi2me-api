@@ -7,6 +7,7 @@
 import axios from 'axios';
 import crypto from 'crypto';
 import { merge } from 'lodash';
+import * as tunnel from 'tunnel';
 import { version as VERSION } from '../package.json';
 
 axios.defaults.validateStatus = status => status <= 504; // Reject only if the status code is greater than or equal to 500
@@ -63,6 +64,7 @@ const utils = (function magic() {
         .digest('hex');
       req.headers['X-EPI2ME-SignatureV0'] = digest;
     },
+
     responseHandler: async r => {
       const json = r ? r.data : null;
 
@@ -95,6 +97,7 @@ const utils = (function magic() {
   return {
     version: VERSION,
     headers: (req, optionsIn) => {
+      const { log } = merge({ log: { debug: () => {} } }, optionsIn);
       // common headers required for everything
       let options = optionsIn;
       if (!options) {
@@ -118,12 +121,31 @@ const utils = (function magic() {
       }
 
       if (options.proxy) {
-        req.proxy = options.proxy;
+        const matches = options.proxy.match(/https?:\/\/((\S+):(\S+)@)?(\S+):(\d+)/);
+        const user = matches[2];
+        const pass = matches[3];
+        const host = matches[4];
+        const port = matches[5];
+        const proxy = { host, port };
+
+        if (user && pass) {
+          proxy.proxyAuth = `${user}:${pass}`;
+        }
+
+        if (options.proxy.match(/^https/)) {
+          log.debug(`using HTTPS over HTTPS proxy`, JSON.stringify(proxy)); // nb. there's no CA/cert handling for self-signed certs
+          req.httpsAgent = tunnel.httpsOverHttps({ proxy });
+        } else {
+          log.debug(`using HTTPS over HTTP proxy`, JSON.stringify(proxy));
+          req.httpsAgent = tunnel.httpsOverHttp({ proxy });
+        }
+        req.proxy = false; // do not double-interpret proxy settings
       }
     },
 
     get: async (uriIn, options) => {
       // do something to get/set data in epi2me
+      const { log } = merge({ log: { debug: () => {} } }, options);
       let call;
 
       let srv = options.url;
@@ -138,11 +160,11 @@ const utils = (function magic() {
       }
 
       const req = { url: call, gzip: true };
-
       utils.headers(req, options);
 
       let res;
       try {
+        log.debug('GET', req.url, JSON.stringify(req));
         res = await axios.get(req.url, req); // url, headers++
       } catch (err) {
         return Promise.reject(err);
@@ -151,6 +173,7 @@ const utils = (function magic() {
     },
 
     post: async (uriIn, obj, options) => {
+      const { log } = merge({ log: { debug: () => {} } }, options);
       let srv = options.url;
       srv = srv.replace(/\/+$/, ''); // clip trailing slashes
       const uri = uriIn.replace(/\/+/g, '/'); // clip multiple slashes
@@ -182,6 +205,7 @@ const utils = (function magic() {
 
       let res;
       try {
+        log.debug('POST', req.url, data, JSON.stringify(req));
         res = await axios.post(req.url, data, req); // url, data, headers++
       } catch (err) {
         return Promise.reject(err);
@@ -190,6 +214,7 @@ const utils = (function magic() {
     },
 
     put: async (uriIn, id, obj, options) => {
+      const { log } = merge({ log: { debug: () => {} } }, options);
       let srv = options.url;
       srv = srv.replace(/\/+$/, ''); // clip trailing slashes
       const uri = uriIn.replace(/\/+/g, '/'); // clip multiple slashes
@@ -221,6 +246,7 @@ const utils = (function magic() {
 
       let res;
       try {
+        log.debug('PUT', req.url, data, JSON.stringify(req));
         res = await axios.put(req.url, data, req); // url, data, headers++
       } catch (err) {
         return Promise.reject(err);

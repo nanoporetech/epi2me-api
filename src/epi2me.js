@@ -26,7 +26,7 @@ export default class EPI2ME {
     }
 
     if (opts.log) {
-      if (every([opts.log.info, opts.log.warn, opts.log.error], isFunction)) {
+      if (every([opts.log.info, opts.log.warn, opts.log.error, opts.log.debug], isFunction)) {
         this.log = opts.log;
       } else {
         throw new Error('expected log object to have "error", "debug", "info" and "warn" methods');

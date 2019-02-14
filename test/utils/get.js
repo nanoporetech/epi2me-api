@@ -5,10 +5,17 @@ import utils from '../../src/utils';
 
 describe('utils.get', () => {
   let stubs = [];
+  let log;
   const versionBackup = `${utils.version}`;
 
   before(() => {
     utils.version = '3.0.0';
+    log = {
+      info: sinon.stub(),
+      debug: sinon.stub(),
+      warn: sinon.stub(),
+      error: sinon.stub(),
+    };
   });
 
   after(() => {
@@ -30,6 +37,7 @@ describe('utils.get', () => {
     const data = await utils.get('entity/123', {
       apikey: 'foo',
       url: 'http://epi2me.test',
+      log,
     });
 
     assert.deepEqual(data, { data: 'data' });
@@ -56,6 +64,7 @@ describe('utils.get', () => {
       skip_url_mangle: true,
       apikey: 'foo',
       url: 'http://epi2me.test',
+      log,
     });
 
     assert.deepEqual(data, { data: 'data' });
@@ -82,16 +91,18 @@ describe('utils.get', () => {
       proxy: 'http://proxy.internal:3128/',
       apikey: 'foo',
       url: 'http://epi2me.test',
+      log,
     });
 
     assert.deepEqual(data, { data: 'data' });
-
+    assert(axios.get.args[0][1].httpsAgent, 'custom agent for tunnelled proxy');
+    delete axios.get.args[0][1].httpsAgent;
     assert.deepEqual(axios.get.args[0], [
       'http://epi2me.test/entity/123',
       {
         url: 'http://epi2me.test/entity/123',
-        proxy: 'http://proxy.internal:3128/',
         gzip: true,
+        proxy: false, // disabled when using custom agent
         headers: {
           Accept: 'application/json',
           'Content-Type': 'application/json',
@@ -109,6 +120,7 @@ describe('utils.get', () => {
       await utils.get('entity/123', {
         apikey: 'foo',
         url: 'http://epi2me.test',
+        log,
       });
       assert.fail('unexpected success');
     } catch (err) {

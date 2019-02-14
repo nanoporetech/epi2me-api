@@ -10,6 +10,7 @@ describe('session fetchInstanceToken method', () => {
         info: sinon.stub(),
         warn: sinon.stub(),
         error: sinon.stub(),
+        debug: sinon.stub(),
       },
     });
   });

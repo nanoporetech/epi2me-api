@@ -6,8 +6,15 @@ import utils from '../../src/utils';
 
 describe('utils.headers', () => {
   let clock;
+  let log;
   beforeEach(() => {
     clock = sinon.useFakeTimers();
+    log = {
+      info: sinon.stub(),
+      debug: sinon.stub(),
+      warn: sinon.stub(),
+      error: sinon.stub(),
+    };
   });
   afterEach(() => {
     clock.restore();
@@ -16,7 +23,7 @@ describe('utils.headers', () => {
   it('should create empty headers if none set', () => {
     const req = {};
 
-    utils.headers(req, { user_agent: 'EPI2ME Test', agent_version: '0.0.1' });
+    utils.headers(req, { user_agent: 'EPI2ME Test', agent_version: '0.0.1', log });
 
     assert.deepEqual(req.headers, {
       Accept: 'application/json',
@@ -28,7 +35,7 @@ describe('utils.headers', () => {
 
   it('should propagate existing headers', () => {
     const req = { headers: { 'accept-language': 'mt' } };
-    utils.headers(req, { user_agent: 'EPI2ME Test', agent_version: '0.0.1' });
+    utils.headers(req, { user_agent: 'EPI2ME Test', agent_version: '0.0.1', log });
 
     assert.deepEqual(req.headers, {
       Accept: 'application/json',
@@ -41,7 +48,7 @@ describe('utils.headers', () => {
 
   it('should override default headers', () => {
     const req = { headers: { Accept: 'application/gzip', 'Accept-Encoding': 'gzip' } };
-    utils.headers(req, { user_agent: 'EPI2ME Test', agent_version: '0.0.1' });
+    utils.headers(req, { user_agent: 'EPI2ME Test', agent_version: '0.0.1', log });
 
     assert.deepEqual(req.headers, {
       'Accept-Encoding': 'gzip',
@@ -56,7 +63,7 @@ describe('utils.headers', () => {
     const versionBackup = `${utils.version}`;
     utils.version = '3.0.0';
     const req = { headers: { 'accept-language': 'mt' } };
-    utils.headers(req);
+    utils.headers(req, log);
     assert.deepEqual(req.headers, {
       Accept: 'application/json',
       'Content-Type': 'application/json',
@@ -71,7 +78,7 @@ describe('utils.headers', () => {
     const versionBackup = `${utils.version}`;
     utils.version = '3.0.0';
     const req = { headers: { 'accept-language': 'mt' } };
-    utils.headers(req, { signing: false });
+    utils.headers(req, { signing: false, log });
     assert.deepEqual(req.headers, {
       Accept: 'application/json',
       'Content-Type': 'application/json',
