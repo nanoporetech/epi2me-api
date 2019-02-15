@@ -1090,7 +1090,6 @@ export default class EPI2ME {
         transferTimeoutFunc,
         1000 * this.config.options.downloadTimeout,
       ); /* download stream timeout in ms */
-      console.log('reset transferTimeout');
       //                this.log.debug(`downloaded ${chunk.length} bytes. resetting transferTimeout`);
     }).pipe(file); // initiate download stream
   }
