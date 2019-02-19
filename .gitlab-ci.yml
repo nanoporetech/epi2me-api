@@ -2,6 +2,7 @@ image: docker-registry.oxfordnanolabs.local:5000/ont-base-ubuntu:16.04
 stages:
   - test
   - triggers
+  - publish
 
 .common: &common |
    sed -i 's|deb http://deb-repo.oxfordnanolabs.local/apt|#deb http://deb-repo.oxfordnanolabs.local/apt|g' /etc/apt/sources.list /etc/apt/sources.list.d/*.list || true
@@ -27,6 +28,17 @@ test:
     - make cover
   variables:
     PATCH: $CI_BUILD_ID
+
+release:
+  stage: publish
+  script:
+    - *deps
+    - (echo "_auth = $NPM_TOKEN" ; echo "email = $NPM_EMAIL") > ~/.npmrc
+    - npm publish
+  only:
+    - /^release-\d+\.\d+(?:.\d+)?(?:-\S+)?$/ # use regexp
+  only:
+    - tags
 
 pages:
   stage: triggers
