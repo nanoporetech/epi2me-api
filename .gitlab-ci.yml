@@ -33,7 +33,6 @@ release:
   stage: publish
   script:
     - *deps
-    - (echo "_auth = $NPM_TOKEN" ; echo "email = $NPM_EMAIL") > ~/.npmrc
     - npm publish
   only:
     - /^release-\d+\.\d+(?:.\d+)?(?:-\S+)?$/ # use regexp
