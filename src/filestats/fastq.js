@@ -16,7 +16,7 @@ export default async function(filePath) {
           lineCount += 1;
         } while (idx !== -1);
       })
-      .on('end', () => resolve({ reads: Math.floor(lineCount / linesPerRead) }))
+      .on('end', () => resolve({ type: 'fastq', reads: Math.floor(lineCount / linesPerRead) }))
       .on('error', reject);
   });
 }
