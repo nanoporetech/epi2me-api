@@ -9,6 +9,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import { isString, isArray } from 'lodash';
 import utils from './utils';
+import filestats from './filestats';
 
 const targetBatchSize = 4000;
 
@@ -54,28 +55,10 @@ utils.pipe = async (uriIn, filepath, options, progressCb) => {
   return p;
 };
 
-utils.countFileReads = async filePath =>
-  new Promise((resolve, reject) => {
-    const linesPerRead = 4;
-    let lineCount = 1;
-    let idx;
+utils.countFileReads = filePath => {
+  return filestats(filePath).then(d => d.reads); // backwards-compatibility
+};
 
-    fs.createReadStream(filePath)
-      .on('data', buffer => {
-        idx = -1;
-        lineCount -= 1;
-
-        do {
-          idx = buffer.indexOf(10, idx + 1);
-          lineCount += 1;
-        } while (idx !== -1);
-      })
-      .on('end', () => resolve(Math.floor(lineCount / linesPerRead)))
-      .on('error', reject);
-  });
-
-// this isn't good... wtf:
-// make async!
 utils.findSuitableBatchIn = async folder => {
   // For downloads without the folder split
   // Look inside `folder` and return any batch with a free slot.

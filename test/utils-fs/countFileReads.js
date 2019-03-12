@@ -11,7 +11,6 @@ describe('utils-fs.countFileReads', () => {
     await fs.writeFile(fn, 'one\ntwo\nthree\nfour\none\ntwo\nthree\nfour\n');
 
     const count = await utils.countFileReads(fn);
-
     assert.equal(count, 2, 'counted reads');
   });
 });

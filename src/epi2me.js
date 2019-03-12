@@ -14,6 +14,7 @@ import path from 'path';
 import proxy from 'proxy-agent';
 import utils from './utils-fs';
 import _REST from './rest-fs';
+import filestats from './filestats';
 import DEFAULTS from './default_options.json';
 
 export default class EPI2ME {
@@ -565,7 +566,7 @@ export default class EPI2ME {
           const statP = async () => {
             let count;
             try {
-              count = await utils.countFileReads(file.path);
+              count = await filestats(file.path);
               file.readCount = count;
               this.states.upload.enqueued += count;
               this.states.upload.readsCount = this.states.upload.readsCount

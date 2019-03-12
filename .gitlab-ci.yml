@@ -33,6 +33,7 @@ release:
   stage: publish
   script:
     - *deps
+    - echo "//registry.npmjs.org/:_authToken=\${NPM_TOKEN}" > .npmrc
     - npm publish
   only:
     - /^release-\d+\.\d+(?:.\d+)?(?:-\S+)?$/ # use regexp

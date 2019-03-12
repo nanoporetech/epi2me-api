@@ -106,7 +106,7 @@ describe('epi2me.enqueueUploadFiles', () => {
     };
     const loadUploadFiles = sinon.stub(client, 'loadUploadFiles').resolves();
     sinon.stub(client, 'uploadJob').resolves();
-    stubs.push(sinon.stub(utils, 'countFileReads').resolves());
+    stubs.push(sinon.stub(utils, 'countFileReads').resolves(0));
 
     try {
       await client.enqueueUploadFiles([{}]);
