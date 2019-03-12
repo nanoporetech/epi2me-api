@@ -12,11 +12,11 @@ export default async function(filePath) {
         lineCount -= 1;
 
         do {
-          idx = buffer.indexOf(10, idx + 1);
+          idx = buffer.indexOf(62, idx + 1); // 62 == ">"
           lineCount += 1;
         } while (idx !== -1);
       })
-      .on('end', () => resolve({ type: 'fasta', reads: Math.floor(lineCount / linesPerRead) }))
+      .on('end', () => resolve({ type: 'fasta', sequences: Math.floor(lineCount / linesPerRead) }))
       .on('error', reject);
   });
 }

@@ -55,7 +55,9 @@ export default class EPI2ME {
         success: 0,
         failure: {},
         queueLength: 0,
-        enqueued: 0,
+        enqueued: {
+          files: 0,
+        },
         totalSize: 0,
       },
       download: {
@@ -460,6 +462,23 @@ export default class EPI2ME {
     return Promise.resolve();
   }
 
+  uploadState(table, op, newData) {
+    if (op === 'incr') {
+      Object.keys(newData).forEach(o => {
+        this.states.upload[table][o] = this.states.upload[table][o]
+          ? this.states.upload[table][o] + newData[o]
+          : newData[o];
+      });
+    } else {
+      Object.keys(newData).forEach(o => {
+        this.states.upload[table][o] = this.states.upload[table][o]
+          ? this.states.upload[table][o] - newData[o]
+          : -newData[o];
+        console.log(table, o, this.states.upload[table][o]);
+      });
+    }
+  }
+
   async enqueueUploadFiles(files) {
     let maxFiles = 0;
     let maxFileSize = 0;
@@ -524,111 +543,41 @@ export default class EPI2ME {
     }
 
     this.log.info(`enqueueUploadFiles: ${files.length} new files`);
+
+    this.uploadState('filesCount', 'incr', files.length);
+
     this.inputBatchQueue = [];
     this.inputBatchQueue.remaining = 0;
-
-    this.states.upload.filesCount = this.states.upload.filesCount
-      ? this.states.upload.filesCount + files.length
-      : files.length;
-
-    if (this.config.options.filetype === '.fastq' || this.config.options.filetype === '.fq') {
-      const batchP = async () => {
-        const uploadWorkerPool = [];
-        this.log.debug('enqueueUploadFiles.countFileReads: counting FASTQ reads per file');
-
-        const statPromises = [];
-        files.forEach(fileIn => {
-          const file = fileIn;
-
-          if (maxFiles && this.states.upload.filesCount > maxFiles) {
-            msg = `Maximum ${maxFiles} file(s) already uploaded. Moving ${file.name} into skip folder`;
-            this.log.error(msg);
-            this.states.warnings.push(msg);
-            this.states.upload.filesCount -= 1;
-            file.skip = 'SKIP_TOO_MANY';
-            uploadWorkerPool.push(this.uploadJob(file));
-            return;
-          }
-
-          if (maxFileSize && file.size > maxFileSize) {
-            msg = `${file.name} is over ${maxFileSize
-              .toString()
-              .replace(/\B(?=(\d{3})+(?!\d))/g, ',')}. Moving into skip folder`;
-            file.skip = 'SKIP_TOO_BIG';
-            this.states.upload.filesCount -= 1;
-
-            this.log.error(msg);
-            this.states.warnings.push(msg);
-            uploadWorkerPool.push(this.uploadJob(file));
-            return;
-          }
-
-          const statP = async () => {
-            let count;
-            try {
-              count = await filestats(file.path);
-              file.readCount = count;
-              this.states.upload.enqueued += count;
-              this.states.upload.readsCount = this.states.upload.readsCount
-                ? this.states.upload.readsCount + count
-                : count;
-
-              uploadWorkerPool.push(this.uploadJob(file));
-              return Promise.resolve();
-            } catch (err) {
-              this.log.error(`statP, countFileReads ${String(err)}`);
-              return Promise.reject(err);
-            }
-          };
-          statPromises.push(statP());
-        });
-
-        try {
-          await Promise.all(statPromises);
-        } catch (err) {
-          this.log.error(`statP (fastq) exception ${String(err)}`);
-        }
-
-        this.log.debug(`enqueueUploadFiles.enqueued: ${this.states.upload.enqueued}`);
-        try {
-          await Promise.all(uploadWorkerPool);
-        } catch (err) {
-          this.log.error(`uploadWorkerPool (fastq) exception ${String(err)}`);
-        }
-
-        this.inputBatchQueue.remaining -= 1;
-        return Promise.resolve();
-      };
-
-      this.inputBatchQueue.push(batchP()); // note execution of async function here
+    files.forEach(async fileIn => {
+      const file = fileIn;
       this.inputBatchQueue.remaining += 1;
-    } else {
-      this.states.upload.enqueued += files.length;
-      this.inputBatchQueue = files.map(itemIn => {
-        const item = itemIn;
 
-        if (maxFiles && this.states.upload.filesCount > maxFiles) {
-          msg = `Maximum ${maxFiles} file(s) already uploaded. Moving ${item.name} into skip folder`;
-          this.log.error(msg);
-          this.states.warnings.push(msg);
-          this.states.upload.filesCount -= 1;
-          item.skip = 'SKIP_TOO_MANY';
-        } else if (maxFileSize && item.size > maxFileSize) {
-          msg = `${item.name} is over ${maxFileSize
-            .toString()
-            .replace(/\B(?=(\d{3})+(?!\d))/g, ',')}. Moving into skip folder`;
-          this.log.error(msg);
-          this.states.warnings.push(msg);
-          this.states.upload.filesCount -= 1;
-          item.skip = 'SKIP_TOO_BIG';
-        }
+      if (maxFiles && this.states.upload.filesCount > maxFiles) {
+        // too many files processed
+        msg = `Maximum ${maxFiles} file(s) already uploaded. Moving ${file.name} into skip folder`;
+        this.log.error(msg);
+        this.states.warnings.push(msg);
+        this.states.upload.filesCount -= 1;
+        file.skip = 'SKIP_TOO_MANY';
+      } else if (maxFileSize && file.size > maxFileSize) {
+        // file too big to process
+        msg = `${file.name} is over ${maxFileSize
+          .toString()
+          .replace(/\B(?=(\d{3})+(?!\d))/g, ',')}. Moving into skip folder`;
+        file.skip = 'SKIP_TOO_BIG';
+        this.states.upload.filesCount -= 1;
 
-        return this.uploadJob(item).then(() => {
-          this.inputBatchQueue.remaining -= 1;
-        }); // Promise
-      });
-      this.inputBatchQueue.remaining += 1;
-    }
+        this.log.error(msg);
+        this.states.warnings.push(msg);
+      } else {
+        // normal handling for all file types
+        const count = await filestats(file.path);
+        this.uploadState('enqueued', 'incr', merge({ files: 1 }, count));
+      }
+
+      this.inputBatchQueue.remaining -= 1;
+      return this.uploadJob(file);
+    });
 
     // should this await Promise.all() ?
     try {
@@ -647,7 +596,7 @@ export default class EPI2ME {
 
     if ('skip' in file) {
       const readCount = file.readCount || 1;
-      this.states.upload.enqueued = this.states.upload.enqueued - readCount;
+      this.uploadState('enqueued', 'decr', { files: 1, reads: readCount }); // this.states.upload.enqueued = this.states.upload.enqueued - readCount;
       this.states.upload.queueLength = this.states.upload.queueLength ? this.states.upload.queueLength - readCount : 0;
       try {
         await this.moveFile(file, 'skip');
@@ -672,7 +621,7 @@ export default class EPI2ME {
     }
 
     const readCount = file2.readCount || 1;
-    this.states.upload.enqueued = this.states.upload.enqueued - readCount;
+    this.uploadState('enqueued', 'decr', { files: 1, reads: readCount }); // this.states.upload.enqueued = this.states.upload.enqueued - readCount;
 
     if (errorMsg) {
       this.log.error(`uploadHandler ${errorMsg}`);

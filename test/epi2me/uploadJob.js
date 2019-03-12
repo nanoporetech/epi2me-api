@@ -28,7 +28,7 @@ describe('epi2me.uploadJob', () => {
       return Promise.resolve();
     });
     sinon.stub(client, 'uploadHandler');
-    client.states.upload.enqueued = 10;
+    client.states.upload.enqueued = { files: 10, reads: 20 };
 
     try {
       const x = { skip: true };
@@ -38,7 +38,7 @@ describe('epi2me.uploadJob', () => {
     }
 
     assert(client.moveFile.calledOnce);
-    assert.equal(client.states.upload.enqueued, 9);
+    assert.deepEqual(client.states.upload.enqueued, { files: 9, reads: 19 });
     assert.equal(client.states.upload.queueLength, 0);
   });
 
@@ -50,7 +50,7 @@ describe('epi2me.uploadJob', () => {
       return Promise.resolve();
     });
     sinon.stub(client, 'uploadHandler');
-    client.states.upload.enqueued = 10;
+    client.states.upload.enqueued = { files: 10, reads: 20 };
 
     try {
       const x = { skip: true, readCount: 5 };
@@ -60,7 +60,7 @@ describe('epi2me.uploadJob', () => {
     }
 
     assert(client.moveFile.calledOnce);
-    assert.equal(client.states.upload.enqueued, 5);
+    assert.deepEqual(client.states.upload.enqueued, { files: 9, reads: 15 });
     assert.equal(client.states.upload.queueLength, 0);
   });
 
@@ -72,7 +72,7 @@ describe('epi2me.uploadJob', () => {
       return Promise.resolve();
     });
     sinon.stub(client, 'uploadHandler');
-    client.states.upload.enqueued = 10;
+    client.states.upload.enqueued = { files: 10, reads: 20 };
     client.states.upload.queueLength = 10;
 
     try {
@@ -83,7 +83,7 @@ describe('epi2me.uploadJob', () => {
     }
 
     assert(client.moveFile.calledOnce);
-    assert.equal(client.states.upload.enqueued, 5);
+    assert.deepEqual(client.states.upload.enqueued, { files: 9, reads: 15 });
     assert.equal(client.states.upload.queueLength, 5);
   });
 
@@ -172,7 +172,6 @@ describe('epi2me.uploadJob', () => {
     const client = clientFactory();
 
     sinon.stub(client, 'uploadHandler').callsFake(file => Promise.resolve(file));
-
     client.states.upload.queueLength = 8192;
     client.states.upload.success = 25;
 
@@ -196,7 +195,7 @@ describe('epi2me.uploadJob', () => {
           totalSize: 0,
         },
         upload: {
-          enqueued: -4096,
+          enqueued: { files: -1, reads: -4096 },
           failure: {},
           queueLength: 4096,
           success: 4121,
