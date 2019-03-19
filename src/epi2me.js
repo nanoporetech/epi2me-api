@@ -935,12 +935,14 @@ export default class EPI2ME {
             ? messageBody.telemetry.batch_summary.reads_num
             : 1;
 
-        this.downloadState('success', 'incr', { files: 1, reads: readCount }); // bytes?
+        const ext = path.extname(outputFile);
+        this.downloadState('success', 'incr', { files: 1, reads: readCount });
+        this.downloadState('types', 'incr', { [ext]: 1 });
 
         // MC-1993 - store total size of downloaded files
         try {
           const stats = await fs.stat(outputFile);
-          this.downloadState('success', 'incr', { bytes: stats.size }); // this.states.download.totalSize += stats.size;
+          this.downloadState('success', 'incr', { bytes: stats.size });
         } catch (err) {
           this.log.warn(`failed to stat file: ${String(err)}`);
         }
