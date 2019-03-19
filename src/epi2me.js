@@ -468,14 +468,14 @@ export default class EPI2ME {
     if (op === 'incr') {
       Object.keys(newData).forEach(o => {
         this.states.upload[table][o] = this.states.upload[table][o]
-          ? this.states.upload[table][o] + newData[o]
-          : newData[o];
+          ? this.states.upload[table][o] + parseInt(newData[o], 10)
+          : parseInt(newData[o], 10);
       });
     } else {
       Object.keys(newData).forEach(o => {
         this.states.upload[table][o] = this.states.upload[table][o]
-          ? this.states.upload[table][o] - newData[o]
-          : -newData[o];
+          ? this.states.upload[table][o] - parseInt(newData[o], 10)
+          : -parseInt(newData[o], 10);
       });
     }
   }
