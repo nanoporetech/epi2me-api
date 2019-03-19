@@ -38,22 +38,22 @@ describe('epi2me.uploadJob', () => {
     }
 
     assert(client.moveFile.calledOnce);
-    assert.deepEqual(client.states.upload.enqueued, { files: 9, reads: 19 });
-    assert.equal(client.states.upload.queueLength, 0);
+    assert.deepEqual(client.states.upload.enqueued, { files: 9, reads: 20 });
+    assert.deepEqual(client.states.upload.queueLength, { files: 0 });
   });
 
   it('should handle file object with skip and readCount', async () => {
     const client = clientFactory();
 
     sinon.stub(client, 'moveFile').callsFake(file => {
-      assert.deepEqual(file, { skip: true, readCount: 5 });
+      assert.deepEqual(file, { skip: true, stats: { reads: 5 } });
       return Promise.resolve();
     });
     sinon.stub(client, 'uploadHandler');
     client.states.upload.enqueued = { files: 10, reads: 20 };
 
     try {
-      const x = { skip: true, readCount: 5 };
+      const x = { skip: true, stats: { reads: 5 } };
       await client.uploadJob(x);
     } catch (e) {
       assert.fail(e);
@@ -61,22 +61,22 @@ describe('epi2me.uploadJob', () => {
 
     assert(client.moveFile.calledOnce);
     assert.deepEqual(client.states.upload.enqueued, { files: 9, reads: 15 });
-    assert.equal(client.states.upload.queueLength, 0);
+    assert.deepEqual(client.states.upload.queueLength, { files: 0, reads: -5 });
   });
 
   it('should handle file object with skip and queueLength', async () => {
     const client = clientFactory();
 
     sinon.stub(client, 'moveFile').callsFake(file => {
-      assert.deepEqual(file, { skip: true, readCount: 5 });
+      assert.deepEqual(file, { skip: true, stats: { reads: 5 } });
       return Promise.resolve();
     });
     sinon.stub(client, 'uploadHandler');
     client.states.upload.enqueued = { files: 10, reads: 20 };
-    client.states.upload.queueLength = 10;
+    client.states.upload.queueLength = { files: 10 };
 
     try {
-      const x = { skip: true, readCount: 5 };
+      const x = { skip: true, stats: { reads: 5 } };
       await client.uploadJob(x);
     } catch (e) {
       assert.fail(e);
@@ -84,7 +84,7 @@ describe('epi2me.uploadJob', () => {
 
     assert(client.moveFile.calledOnce);
     assert.deepEqual(client.states.upload.enqueued, { files: 9, reads: 15 });
-    assert.equal(client.states.upload.queueLength, 5);
+    assert.deepEqual(client.states.upload.queueLength, { files: 10, reads: -5 });
   });
 
   it('should handle callback with error and no tally', async () => {
@@ -172,11 +172,11 @@ describe('epi2me.uploadJob', () => {
     const client = clientFactory();
 
     sinon.stub(client, 'uploadHandler').callsFake(file => Promise.resolve(file));
-    client.states.upload.queueLength = 8192;
-    client.states.upload.success = 25;
+    client.states.upload.queueLength = { reads: 8192 };
+    client.states.upload.success = { files: 25 };
 
     try {
-      const x = { id: 72, readCount: 4096 };
+      const x = { id: 72, stats: { reads: 4096 } };
       await client.uploadJob(x);
       clock.tick(1000);
     } catch (e) {
@@ -195,11 +195,12 @@ describe('epi2me.uploadJob', () => {
           totalSize: 0,
         },
         upload: {
+          filesCount: 0, // dirty
           enqueued: { files: -1, reads: -4096 },
           failure: {},
-          queueLength: 4096,
-          success: 4121,
-          totalSize: 0,
+          queueLength: { reads: 4096 },
+          success: { files: 26, reads: 4096 },
+          total: { files: 0, bytes: 0 },
         },
         warnings: [],
       },

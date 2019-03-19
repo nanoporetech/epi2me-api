@@ -52,19 +52,20 @@ export default class EPI2ME {
 
     this.states = {
       upload: {
-        success: 0,
+        filesCount: 0, // this one seems duplicate
+        success: { files: 0 },
         failure: {},
-        queueLength: 0,
+        queueLength: { files: 0 },
         enqueued: {
           files: 0,
         },
-        totalSize: 0,
+        total: { files: 0, bytes: 0 },
       },
       download: {
         success: 0,
         fail: 0,
         failure: {},
-        queueLength: 0,
+        queueLength: 0, // { files: 0 } // ?
         totalSize: 0,
       },
       warnings: [],
@@ -462,7 +463,8 @@ export default class EPI2ME {
     return Promise.resolve();
   }
 
-  uploadState(table, op, newData) {
+  uploadState(table, op, newDataIn) {
+    const newData = newDataIn || {};
     if (op === 'incr') {
       Object.keys(newData).forEach(o => {
         this.states.upload[table][o] = this.states.upload[table][o]
@@ -474,7 +476,6 @@ export default class EPI2ME {
         this.states.upload[table][o] = this.states.upload[table][o]
           ? this.states.upload[table][o] - newData[o]
           : -newData[o];
-        console.log(table, o, this.states.upload[table][o]);
       });
     }
   }
@@ -544,7 +545,8 @@ export default class EPI2ME {
 
     this.log.info(`enqueueUploadFiles: ${files.length} new files`);
 
-    this.uploadState('filesCount', 'incr', files.length);
+    //    this.uploadState('filesCount', 'incr', { files: files.length });
+    this.states.upload.filesCount += files.length;
 
     this.inputBatchQueue = [];
     this.inputBatchQueue.remaining = 0;
@@ -571,8 +573,9 @@ export default class EPI2ME {
         this.states.warnings.push(msg);
       } else {
         // normal handling for all file types
-        const count = await filestats(file.path);
-        this.uploadState('enqueued', 'incr', merge({ files: 1 }, count));
+        const counters = await filestats(file.path);
+        file.stats = counters;
+        this.uploadState('enqueued', 'incr', merge({ files: 1 }, counters));
       }
 
       this.inputBatchQueue.remaining -= 1;
@@ -595,9 +598,8 @@ export default class EPI2ME {
     // Initiate file upload to S3
 
     if ('skip' in file) {
-      const readCount = file.readCount || 1;
-      this.uploadState('enqueued', 'decr', { files: 1, reads: readCount }); // this.states.upload.enqueued = this.states.upload.enqueued - readCount;
-      this.states.upload.queueLength = this.states.upload.queueLength ? this.states.upload.queueLength - readCount : 0;
+      this.uploadState('enqueued', 'decr', merge({ files: 1 }, file.stats)); // this.states.upload.enqueued = this.states.upload.enqueued - readCount;
+      this.uploadState('queueLength', 'decr', file.stats); // this.states.upload.queueLength = this.states.upload.queueLength ? this.states.upload.queueLength - readCount : 0;
       try {
         await this.moveFile(file, 'skip');
       } catch (e) {
@@ -620,8 +622,7 @@ export default class EPI2ME {
       file2 = {};
     }
 
-    const readCount = file2.readCount || 1;
-    this.uploadState('enqueued', 'decr', { files: 1, reads: readCount }); // this.states.upload.enqueued = this.states.upload.enqueued - readCount;
+    this.uploadState('enqueued', 'decr', merge({ files: 1 }, file2.stats)); // this.states.upload.enqueued = this.states.upload.enqueued - readCount;
 
     if (errorMsg) {
       this.log.error(`uploadHandler ${errorMsg}`);
@@ -633,8 +634,8 @@ export default class EPI2ME {
         ? this.states.upload.failure[errorMsg] + 1
         : 1;
     } else {
-      this.states.upload.queueLength = this.states.upload.queueLength ? this.states.upload.queueLength - readCount : 0;
-      this.states.upload.success = this.states.upload.success ? this.states.upload.success + readCount : readCount;
+      this.uploadState('queueLength', 'decr', file2.stats); // this.states.upload.queueLength = this.states.upload.queueLength ? this.states.upload.queueLength - readCount : 0;
+      this.uploadState('success', 'incr', merge({ files: 1 }, file2.stats)); // this.states.upload.success = this.states.upload.success ? this.states.upload.success + readCount : readCount;
     }
 
     return Promise.resolve(); // file-by-file?
@@ -1255,7 +1256,7 @@ export default class EPI2ME {
       this.log.debug(`${file.id}: ${type} and mv done`);
 
       if (type === 'upload') {
-        this.states.upload.totalSize += file.size;
+        this.uploadState('total', 'incr', { bytes: file.size }); // this.states.upload.totalSize += file.size;
       }
       this.uploadedFiles.push(fileName); // flag as uploaded to prevent multiple uploads
     } catch (moveError) {
@@ -1322,10 +1323,12 @@ export default class EPI2ME {
 
   stats(key) {
     if (this.states[key]) {
-      this.states[key].queueLength = parseInt(this.states[key].queueLength, 10) || 0; // a little housekeeping
+      //      this.states[key].queueLength = parseInt(this.states[key].queueLength, 10) || 0; // a little housekeeping
       // 'total' is the most up-to-date measure of the total number of reads to be uploaded
       if (key === 'upload' && this.uploadedFiles && this.states.upload) {
-        this.states.upload.total = this.uploadedFiles.length + this.states.upload.enqueued + this.states.upload.success;
+        this.uploadState('total', 'incr', merge({ files: this.uploadedFiles.length }, this.states.upload.enqueued));
+        this.uploadState('total', 'incr', this.states.upload.success);
+        // this.states.upload.total = this.uploadedFiles.length + this.states.upload.enqueued + this.states.upload.success;
       }
     }
     return this.states[key];

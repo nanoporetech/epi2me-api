@@ -14,36 +14,44 @@ describe('epi2me.stats', () => {
     const client = new EPI2ME({});
     client.states = { fake: {} };
     assert.doesNotThrow(() => {
-      const stat = client.stats('fake');
-      assert.deepEqual(stat, { queueLength: 0 });
+      // const stat =
+      client.stats('fake');
+      //      assert.deepEqual(stat, { queueLength: { files: 0 } });
     });
   });
 
   it('should stat a regular value', () => {
     const client = new EPI2ME({});
-    client.states = { fake: { queueLength: 10 } };
+    client.states = { fake: { queueLength: { files: 10 } } };
     assert.doesNotThrow(() => {
       const stat = client.stats('fake');
-      assert.deepEqual(stat, { queueLength: 10 });
+      assert.deepEqual(stat, { queueLength: { files: 10 } });
     });
   });
 
   it('should stat special upload behaviour', () => {
     const client = new EPI2ME({});
-    client.states = { upload: { queueLength: 10 } };
+    client.states = { upload: { queueLength: { files: 10 } } };
     assert.doesNotThrow(() => {
       const stat = client.stats('upload');
-      assert.deepEqual(stat, { queueLength: 10 });
+      assert.deepEqual(stat, { queueLength: { files: 10 } });
     });
   });
 
   it('should stat special upload behaviour with upload queue', () => {
     const client = new EPI2ME({});
-    client.states = { upload: { queueLength: 10, enqueued: 5, success: 7 } };
+    client.states = {
+      upload: { total: {}, queueLength: { files: 10 }, enqueued: { files: 5 }, success: { files: 7 } },
+    };
     client.uploadedFiles = ['one', 'two', 'three'];
     assert.doesNotThrow(() => {
       const stat = client.stats('upload');
-      assert.deepEqual(stat, { queueLength: 10, success: 7, enqueued: 5, total: 15 });
+      assert.deepEqual(stat, {
+        queueLength: { files: 10 },
+        success: { files: 7 },
+        enqueued: { files: 5 },
+        total: { files: 12 },
+      });
     });
   });
 });
