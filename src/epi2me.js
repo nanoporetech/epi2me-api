@@ -6,7 +6,7 @@
  *
  */
 
-import { every, isFunction, defaults, merge, isArray, chain } from 'lodash';
+import { every, isFunction, defaults, merge, isArray } from 'lodash';
 import AWS from 'aws-sdk';
 import fs from 'fs-extra'; /* MC-565 handle EMFILE & EXDIR gracefully; use Promises */
 import { EOL } from 'os';
@@ -62,11 +62,10 @@ export default class EPI2ME {
         total: { files: 0, bytes: 0 },
       },
       download: {
-        success: 0,
+        success: { files: 0, reads: 0, bytes: 0 },
         fail: 0,
         failure: {},
         queueLength: 0, // { files: 0 } // ?
-        totalSize: 0,
       },
       warnings: [],
     };
@@ -480,6 +479,23 @@ export default class EPI2ME {
     }
   }
 
+  downloadState(table, op, newDataIn) {
+    const newData = newDataIn || {};
+    if (op === 'incr') {
+      Object.keys(newData).forEach(o => {
+        this.states.download[table][o] = this.states.download[table][o]
+          ? this.states.download[table][o] + parseInt(newData[o], 10)
+          : parseInt(newData[o], 10);
+      });
+    } else {
+      Object.keys(newData).forEach(o => {
+        this.states.download[table][o] = this.states.download[table][o]
+          ? this.states.download[table][o] - parseInt(newData[o], 10)
+          : -parseInt(newData[o], 10);
+      });
+    }
+  }
+
   async enqueueUploadFiles(files) {
     let maxFiles = 0;
     let maxFileSize = 0;
@@ -823,7 +839,7 @@ export default class EPI2ME {
         ? messageBody.telemetry.batch_summary.reads_num
         : 1;
 
-    this.states.download.success = this.states.download.success ? this.states.download.success + readCount : readCount; // hmm. not exactly "download", these
+    this.downloadState('success', 'incr', { files: 1, reads: readCount }); // this.states.download.success = this.states.download.success ? this.states.download.success + readCount : readCount; // hmm. not exactly "download", these
 
     /* must signal completion */
     return Promise.resolve();
@@ -919,50 +935,19 @@ export default class EPI2ME {
             ? messageBody.telemetry.batch_summary.reads_num
             : 1;
 
-        if (!this.states.download.success) {
-          this.states.download.success = readCount;
-        } else {
-          this.states.download.success += readCount;
-        }
+        this.downloadState('success', 'incr', { files: 1, reads: readCount }); // bytes?
 
         // MC-1993 - store total size of downloaded files
         try {
           const stats = await fs.stat(outputFile);
-          this.states.download.totalSize += stats.size;
+          this.downloadState('success', 'incr', { bytes: stats.size }); // this.states.download.totalSize += stats.size;
         } catch (err) {
           this.log.warn(`failed to stat file: ${String(err)}`);
         }
 
         try {
-          const logStats = () => {
-            this.log.info(`Uploads: ${JSON.stringify(this.states.upload)}`);
-            this.log.info(`Downloads: ${JSON.stringify(this.states.download)}`);
-          };
-
-          if (this.config.options.filetype === '.fastq' || this.config.options.filetype === '.fq') {
-            // files may be appended, so can't increment the totalSize
-            if (!this.downloadedFileSizes) this.downloadedFileSizes = {};
-
-            try {
-              const stats = await fs.stat(outputFile);
-              this.downloadedFileSizes[outputFile] = stats.size || 0;
-              this.states.download.totalSize = chain(this.downloadedFileSizes)
-                .values()
-                .sum()
-                .value();
-              logStats();
-            } catch (err) {
-              this.log.error(`finish, getFileSize (fastq) ${String(err)}`);
-            }
-          } else {
-            try {
-              const stats = await utils.getFileSize(outputFile);
-              this.states.download.totalSize += stats.size || 0;
-              logStats();
-            } catch (err) {
-              this.log.error(`finish, getFileSize (other) ${String(err)}`);
-            }
-          }
+          this.log.info(`Uploads: ${JSON.stringify(this.states.upload)}`);
+          this.log.info(`Downloads: ${JSON.stringify(this.states.download)}`);
 
           // MC-2540 : if there is some postprocessing to do( e.g fastq extraction) - call the dataCallback
           // dataCallback might depend on the exit_status ( e.g. fastq can only be extracted from successful reads )
@@ -1008,7 +993,7 @@ export default class EPI2ME {
       transferTimeoutFunc,
       1000 * this.config.options.downloadTimeout,
     ); /* download stream timeout in ms */
-    console.log('downloadTimeout', 1000 * this.config.options.downloadTimeout);
+    //    console.log('downloadTimeout', 1000 * this.config.options.downloadTimeout);
     const updateVisibilityFunc = async () => {
       const queueUrl = this.config.instance.outputQueueURL;
       const receiptHandle = message.ReceiptHandle;

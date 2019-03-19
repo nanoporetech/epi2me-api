@@ -120,11 +120,15 @@ describe('epi2me.initiateDownloadStream', () => {
     client.initiateDownloadStream(s3, {}, {}, filename, () => {
       // assert.equal(readStream.destroyed, true, "should destroy the read stream"); // fails on node > 2.2.1
       assert(client.deleteMessage.notCalled, 'should not delete sqs message on error');
-      assert.equal(client.states.download.success, 0, 'should not count as download success on error');
+      assert.deepEqual(
+        client.states.download.success,
+        { files: 0, bytes: 0, reads: 0 },
+        'should not count as download success on error',
+      );
       done();
     });
 
-    assert.equal(client.states.download.success, 0);
+    assert.deepEqual(client.states.download.success, { files: 0, bytes: 0, reads: 0 });
   });
 
   it('should handle write stream errors', done => {
@@ -141,7 +145,11 @@ describe('epi2me.initiateDownloadStream', () => {
     client.initiateDownloadStream(s3, {}, {}, filename, () => {
       // assert.equal(readStream.destroyed, true, "should destroy the read stream"); // fails on node > 2.2.1
       assert(client.deleteMessage.notCalled, 'should not delete sqs message on error');
-      assert.equal(client.states.download.success, 0, 'should not count as download success on error');
+      assert.deepEqual(
+        client.states.download.success,
+        { files: 0, reads: 0, bytes: 0 },
+        'should not count as download success on error',
+      );
       done();
     });
 
