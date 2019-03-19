@@ -42,7 +42,7 @@ describe('epi2me.moveFile', () => {
     const client = clientFactory({
       inputFolder: workingDir,
     });
-    client.uploadedFiles = [];
+
     client.states.upload.totalSize = 0;
 
     const mkdirp = sinon.stub(fs, 'mkdirp').rejects(new Error('mkdirp failed'));
@@ -72,7 +72,7 @@ describe('epi2me.moveFile', () => {
     const client = clientFactory({
       inputFolder: workingDir,
     });
-    client.uploadedFiles = [];
+
     client.states.upload.totalSize = 0;
 
     const remove = sinon.stub(fs, 'remove').rejects(new Error('failed to remove'));
@@ -109,7 +109,7 @@ describe('epi2me.moveFile', () => {
     const client = clientFactory({
       inputFolder: workingDir,
     });
-    client.uploadedFiles = [];
+
     client.states.upload.totalSize = 0;
 
     fs.mkdirpSync(path.join(workingDir, 'batchB')); // source folder present
@@ -139,7 +139,7 @@ describe('epi2me.moveFile', () => {
     const client = clientFactory({
       inputFolder: workingDir,
     });
-    client.uploadedFiles = [];
+
     client.states.upload.totalSize = 0;
 
     fs.mkdirpSync(path.join(workingDir, 'batchB')); // source folder present

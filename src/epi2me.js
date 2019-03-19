@@ -330,7 +330,7 @@ export default class EPI2ME {
       }
     });
 
-    this.uploadedFiles = []; // container for files that have been successfully uploaded, but failed to move
+    //    this.uploadedFiles = []; // container for files that have been successfully uploaded, but failed to move
     if (autoStartCb) autoStartCb(null, this.config.instance);
 
     // MC-2068 - Don't use an interval.
@@ -1258,7 +1258,7 @@ export default class EPI2ME {
       if (type === 'upload') {
         this.uploadState('total', 'incr', { bytes: file.size }); // this.states.upload.totalSize += file.size;
       }
-      this.uploadedFiles.push(fileName); // flag as uploaded to prevent multiple uploads
+      //      this.uploadedFiles.push(fileName); // flag as uploaded to prevent multiple uploads
     } catch (moveError) {
       this.log.debug(`${file.id} ${type} move error: ${String(moveError)}`);
 
@@ -1325,9 +1325,12 @@ export default class EPI2ME {
     if (this.states[key]) {
       //      this.states[key].queueLength = parseInt(this.states[key].queueLength, 10) || 0; // a little housekeeping
       // 'total' is the most up-to-date measure of the total number of reads to be uploaded
-      if (key === 'upload' && this.uploadedFiles && this.states.upload) {
-        this.uploadState('total', 'incr', merge({ files: this.uploadedFiles.length }, this.states.upload.enqueued));
-        this.uploadState('total', 'incr', this.states.upload.success);
+      if (key === 'upload') {
+        this.states.upload.total = {
+          files: 0 + parseInt(this.states.upload.enqueued.files, 10) + parseInt(this.states.upload.success.files, 10),
+        };
+        //        this.uploadState('total', 'incr', merge({ files: this.uploadedFiles.length }, this.states.upload.enqueued));
+        //        this.uploadState('total', 'incr', this.states.upload.success);
         // this.states.upload.total = this.uploadedFiles.length + this.states.upload.enqueued + this.states.upload.success;
       }
     }
