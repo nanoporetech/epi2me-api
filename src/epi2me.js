@@ -928,8 +928,8 @@ export default class EPI2ME {
 
         // MC-1993 - store total size of downloaded files
         try {
-          const stats = await fs.stat(outputFile);
-          this.downloadState('success', 'incr', { bytes: stats.size });
+          const stats = await filestats(outputFile);
+          this.downloadState('success', 'incr', { bytes: stats.bytes });
         } catch (err) {
           this.log.warn(`failed to stat file: ${String(err)}`);
         }
