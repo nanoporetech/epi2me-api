@@ -554,10 +554,8 @@ export default class EPI2ME {
     //    this.uploadState('filesCount', 'incr', { files: files.length });
     this.states.upload.filesCount += files.length; // total count of files for an instance
 
-    let remaining = 0;
     const inputBatchQueue = files.map(async fileIn => {
       const file = fileIn;
-      remaining += 1;
 
       if (maxFiles && this.states.upload.filesCount > maxFiles) {
         // too many files processed
@@ -578,13 +576,10 @@ export default class EPI2ME {
         this.states.warnings.push(msg);
       } else {
         // normal handling for all file types
-        const counters = await filestats(file.path);
-        file.stats = counters;
-        this.uploadState('enqueued', 'incr', merge({ files: 1 }, counters));
+        file.stats = await filestats(file.path);
+        this.uploadState('enqueued', 'incr', merge({ files: 1 }, file.stats));
       }
 
-      remaining -= 1;
-      this.log.debug(`upload: inputBatchQueue has ${remaining} remaining`);
       return this.uploadJob(file);
     });
 
