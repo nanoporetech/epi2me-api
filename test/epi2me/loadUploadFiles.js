@@ -32,25 +32,6 @@ describe('epi2me.loadUploadFiles', () => {
     });
   });
 
-  it('should resolve with no work done if remaining items', async () => {
-    const client = clientFactory();
-    sinon.stub(client, 'enqueueUploadFiles').resolves();
-    sinon.stub(utils, 'loadInputFiles').resolves();
-
-    client.inputBatchQueue = [];
-    client.inputBatchQueue.remaining = 1;
-    client.dirScanInProgress = false;
-
-    try {
-      await client.loadUploadFiles();
-    } catch (err) {
-      assert.fail(err);
-    }
-
-    assert(client.enqueueUploadFiles.notCalled, 'enqueueUploadFiles not invoked');
-    utils.loadInputFiles.restore();
-  });
-
   it('should resolve with no work done if dirScanInProgress', async () => {
     const client = clientFactory();
     sinon.stub(client, 'enqueueUploadFiles').resolves();

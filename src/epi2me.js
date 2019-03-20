@@ -376,14 +376,10 @@ export default class EPI2ME {
       const queueURL = await this.discoverQueue(this.config.instance.outputQueueName);
       const len = await this.queueLength(queueURL);
 
-      if (len !== undefined && len !== null) {
-        this.states.download.queueLength = len;
-
-        if (len > 0) {
-          /* only process downloads if there are downloads to process */
-          this.log.debug(`downloads available: ${len}`);
-          return this.downloadAvailable();
-        }
+      if (len) {
+        /* only process downloads if there are downloads to process */
+        this.log.debug(`downloads available: ${len}`);
+        return this.downloadAvailable();
       }
 
       this.log.debug('no downloads available');
@@ -431,37 +427,6 @@ export default class EPI2ME {
     return this.receiveMessages(receiveMessageSet);
   }
 
-  async loadUploadFiles() {
-    /**
-     * Entry point for new files. Triggered on an interval
-     *  - Scan the input folder files
-     *      fs.readdir is resource-intensive if there are a large number of files
-     *      It should only be triggered when needed
-     *  - Push list of new files into uploadWorkerPool (that.enqueueFiles)
-     */
-
-    // const fileExp = new RegExp('\\.' + this.config.options.inputFormat + '$');   // only consider files with the specified extension
-    const remaining = this.inputBatchQueue ? this.inputBatchQueue.remaining : 0;
-    // if remaining > 0, there are still files in the inputBatchQueue
-    this.log.debug(`loadUploadFiles: ${remaining} batches in the inputBatchQueue`);
-
-    if (!this.dirScanInProgress && remaining === 0) {
-      this.dirScanInProgress = true;
-      this.log.debug('scanning input folder for new files');
-
-      try {
-        const files = await utils.loadInputFiles(this.config.options, this.log);
-        await this.enqueueUploadFiles(files); // block dirScan semaphore until complete
-      } catch (err) {
-        this.log.error(String(err));
-      }
-      this.dirScanInProgress = false;
-    } else {
-      this.log.debug('directory scan already in progress');
-    }
-    return Promise.resolve();
-  }
-
   uploadState(table, op, newDataIn) {
     const newData = newDataIn || {};
     if (op === 'incr') {
@@ -494,6 +459,37 @@ export default class EPI2ME {
           : -parseInt(newData[o], 10);
       });
     }
+  }
+
+  async loadUploadFiles() {
+    /**
+     * Entry point for new files. Triggered on an interval
+     *  - Scan the input folder files
+     *      fs.readdir is resource-intensive if there are a large number of files
+     *      It should only be triggered when needed
+     *  - Push list of new files into uploadWorkerPool (that.enqueueFiles)
+     */
+
+    // dirScanInProgress is a semaphore used to bail out early if this routine is invoked by interval when it's already running
+    if (this.dirScanInProgress) {
+      this.log.debug('directory scan already in progress');
+      return Promise.resolve();
+    }
+
+    this.dirScanInProgress = true;
+    this.log.debug('scanning input folder for new files');
+
+    try {
+      // find files waiting for upload
+      const files = await utils.loadInputFiles(this.config.options, this.log);
+      // trigger upload for all waiting files, blocking until all complete
+      await this.enqueueUploadFiles(files);
+    } catch (err) {
+      this.log.error(String(err));
+    }
+    this.dirScanInProgress = false;
+
+    return Promise.resolve();
   }
 
   async enqueueUploadFiles(files) {
@@ -562,13 +558,13 @@ export default class EPI2ME {
     this.log.info(`enqueueUploadFiles: ${files.length} new files`);
 
     //    this.uploadState('filesCount', 'incr', { files: files.length });
-    this.states.upload.filesCount += files.length;
+    this.states.upload.filesCount += files.length; // total count of files for an instance
 
-    this.inputBatchQueue = [];
-    this.inputBatchQueue.remaining = 0;
+    const inputBatchQueue = [];
+    let remaining = 0;
     files.forEach(async fileIn => {
       const file = fileIn;
-      this.inputBatchQueue.remaining += 1;
+      remaining += 1;
 
       if (maxFiles && this.states.upload.filesCount > maxFiles) {
         // too many files processed
@@ -594,16 +590,17 @@ export default class EPI2ME {
         this.uploadState('enqueued', 'incr', merge({ files: 1 }, counters));
       }
 
-      this.inputBatchQueue.remaining -= 1;
+      remaining -= 1;
+      this.log.debug(`inputBatchQueue has ${remaining} remaining`);
       return this.uploadJob(file);
     });
 
-    // should this await Promise.all() ?
     try {
-      await Promise.all(this.inputBatchQueue);
+      // inputBatchQueue contains an array of promises corresponding to local files waiting for upload and which are only resolved on successful transfer to S3
+      await Promise.all(inputBatchQueue);
       this.log.info('inputBatchQueue slot released. trigger loadUploadFiles');
-      this.loadUploadFiles(); // immediately load more files
-      return Promise.resolve();
+      // try and load more files straight away. returns a promise which resolves after awaiting the new work
+      return this.loadUploadFiles();
     } catch (err) {
       this.log.error(`enqueueUploadFiles exception ${String(err)}`);
       return Promise.reject(err);
