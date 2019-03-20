@@ -592,7 +592,7 @@ export default class EPI2ME {
 
       remaining -= 1;
       this.log.debug(`inputBatchQueue has ${remaining} remaining`);
-      return this.uploadJob(file);
+      inputBatchQueue.push(this.uploadJob(file));
     });
 
     try {
