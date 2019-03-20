@@ -1,10 +1,17 @@
 import fs from 'fs-extra';
 
-export default async function(filePath) {
-  return new Promise((resolve, reject) => {
+export default function(filePath) {
+  return new Promise(async (resolve, reject) => {
     const linesPerRead = 2;
     let lineCount = 1;
     let idx;
+    let stat = { size: 0 };
+
+    try {
+      stat = await fs.stat(filePath);
+    } catch (e) {
+      reject(e);
+    }
 
     fs.createReadStream(filePath)
       .on('data', buffer => {
@@ -16,7 +23,7 @@ export default async function(filePath) {
           lineCount += 1;
         } while (idx !== -1);
       })
-      .on('end', () => resolve({ type: 'fasta', sequences: Math.floor(lineCount / linesPerRead) }))
+      .on('end', () => resolve({ type: 'fasta', bytes: stat.size, sequences: Math.floor(lineCount / linesPerRead) }))
       .on('error', reject);
   });
 }
