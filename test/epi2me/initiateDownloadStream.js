@@ -34,7 +34,7 @@ describe('epi2me.initiateDownloadStream', () => {
       ),
     );
 
-    sinon.stub(client, 'loadAvailableDownloadMessages');
+    sinon.stub(client, 'checkForDownloads');
     sinon.stub(client, 'deleteMessage');
     //	sinon.stub(client.sqs, "changeMessageVisibility");
 

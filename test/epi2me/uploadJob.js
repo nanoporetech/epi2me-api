@@ -192,6 +192,7 @@ describe('epi2me.uploadJob', () => {
           failure: {},
           queueLength: 0,
           success: { files: 0, bytes: 0, reads: 0 },
+          types: {},
         },
         upload: {
           filesCount: 0, // dirty

@@ -40,17 +40,18 @@ describe('epi2me.receiveMessages', () => {
     });
 
     try {
-      client.receiveMessages({ Messages: [1, 2, 3, 4] }); // no awaiting here so we can resolve promises with a clock tick
+      client.receiveMessages({ Messages: [{ MessageId: 1 }, { MessageId: 2 }, { MessageId: 3 }, { MessageId: 4 }] }); // no awaiting here so we can resolve promises with a clock tick
     } catch (e) {
       assert.fail(e);
     }
-    assert.equal(client.downloadWorkerPool.remaining, 4, 'pending message count');
+
+    assert.equal(Object.keys(client.downloadWorkerPool).length, 4, 'pending message count');
 
     clock.tick(10);
 
-    await Promise.all(client.downloadWorkerPool);
+    await Promise.all(Object.values(client.downloadWorkerPool));
 
-    assert.equal(client.downloadWorkerPool.remaining, 0, 'processed message count');
+    assert.equal(Object.keys(client.downloadWorkerPool).length, 0, 'processed message count');
     assert.equal(client.processMessage.callCount, 4, 'processMessage invocation count');
   });
 });

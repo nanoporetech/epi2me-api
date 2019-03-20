@@ -66,6 +66,7 @@ export default class EPI2ME {
         fail: 0,
         failure: {},
         queueLength: 0, // { files: 0 } // ?
+        types: {},
       },
       warnings: [],
     };
@@ -127,7 +128,7 @@ export default class EPI2ME {
 
     if (this.downloadWorkerPool) {
       this.log.debug('clearing downloadWorkerPool');
-      await Promise.all(this.downloadWorkerPool);
+      await Promise.all(Object.values(this.downloadWorkerPool));
       this.downloadWorkerPool = null;
     }
 
@@ -328,7 +329,7 @@ export default class EPI2ME {
 
     // MC-2068 - Don't use an interval.
     this.downloadCheckInterval = setInterval(() => {
-      this.loadAvailableDownloadMessages();
+      this.checkForDownloads();
     }, this.config.options.downloadCheckInterval * 1000);
 
     // MC-1795 - stop workflow when instance has been stopped remotely
@@ -365,7 +366,7 @@ export default class EPI2ME {
     return Promise.resolve(instance);
   }
 
-  async loadAvailableDownloadMessages() {
+  async checkForDownloads() {
     try {
       const queueURL = await this.discoverQueue(this.config.instance.outputQueueName);
       const len = await this.queueLength(queueURL);
@@ -378,7 +379,7 @@ export default class EPI2ME {
 
       this.log.debug('no downloads available');
     } catch (err) {
-      this.log.warn(`loadAvailableDownloadMessages error ${String(err)}`);
+      this.log.warn(`checkForDownloads error ${String(err)}`);
       if (!this.states.download.failure) this.states.download.failure = {};
       this.states.download.failure[err] = this.states.download.failure[err] ? this.states.download.failure[err] + 1 : 1;
     }
@@ -387,9 +388,9 @@ export default class EPI2ME {
   }
 
   async downloadAvailable() {
-    const downloadWorkerPoolRemaining = this.downloadWorkerPool ? this.downloadWorkerPool.remaining : 0;
+    const downloadWorkerPoolRemaining = Object.keys(this.downloadWorkerPool || {}).length;
 
-    if (downloadWorkerPoolRemaining >= this.config.options.downloadPoolSize * 5) {
+    if (downloadWorkerPoolRemaining >= this.config.options.downloadPoolSize) {
       /* ensure downloadPool is limited but fully utilised */
       this.log.debug(`${downloadWorkerPoolRemaining} downloads already queued`);
       return Promise.resolve();
@@ -406,7 +407,7 @@ export default class EPI2ME {
           AttributeNames: ['All'], // to check if the same message is received multiple times
           QueueUrl: queueURL,
           VisibilityTimeout: this.config.options.inFlightDelay, // approximate time taken to pass/fail job before resubbing
-          MaxNumberOfMessages: this.config.options.downloadPoolSize, // MC-505 - download multiple threads simultaneously
+          MaxNumberOfMessages: this.config.options.downloadPoolSize - downloadWorkerPoolRemaining, // download enough messages to fill the pool up again
           WaitTimeSeconds: this.config.options.waitTimeSeconds, // long-poll
         })
         .promise();
@@ -653,8 +654,7 @@ export default class EPI2ME {
     }
 
     if (!this.downloadWorkerPool) {
-      this.downloadWorkerPool = [];
-      this.downloadWorkerPool.remaining = 0;
+      this.downloadWorkerPool = {};
     }
 
     receiveMessages.Messages.forEach(message => {
@@ -664,37 +664,37 @@ export default class EPI2ME {
         const timeoutHandle = setTimeout(() => {
           clearTimeout(timeoutHandle);
           this.log.error(`this.downloadWorkerPool timeoutHandle. Clearing queue slot for message: ${message.Body}`);
-          this.downloadWorkerPool.remaining -= 1;
-          reject();
+          delete this.downloadWorkerPool[message.MessageId];
+          reject(new Error('download timed out'));
         }, (60 + this.config.options.downloadTimeout) * 1000);
 
         this.processMessage(message)
           .then(() => {
-            this.downloadWorkerPool.remaining -= 1;
+            delete this.downloadWorkerPool[message.MessageId];
             clearTimeout(timeoutHandle);
             resolve();
           })
           .catch(err => {
             this.log.error(`processMessage ${String(err)}`);
-            this.downloadWorkerPool.remaining -= 1;
+            delete this.downloadWorkerPool[message.MessageId];
             clearTimeout(timeoutHandle);
             resolve();
           });
       });
 
-      this.downloadWorkerPool.remaining += 1;
-      this.downloadWorkerPool.push(p);
+      this.downloadWorkerPool[message.MessageId] = p; // is the promise the most useful thing to keep here? it's really just something truthy
     });
 
     this.log.info(`downloader queued ${receiveMessages.Messages.length} messages for processing`);
-    return Promise.all(this.downloadWorkerPool); // does awaiting here control parallelism better?
+    // return Promise.all(this.downloadWorkerPool); // does awaiting here control parallelism better?
+    return Promise.resolve();
   }
 
   async deleteMessage(message) {
     try {
       const queueURL = await this.discoverQueue(this.config.instance.outputQueueName);
       const sqs = await this.sessionedSQS();
-      await sqs
+      return sqs
         .deleteMessage({
           QueueUrl: queueURL,
           ReceiptHandle: message.ReceiptHandle,
@@ -705,6 +705,7 @@ export default class EPI2ME {
       this.states.download.failure[error] = this.states.download.failure[error]
         ? this.states.download.failure[error] + 1
         : 1;
+      return Promise.reject(error);
     }
   }
 
@@ -729,7 +730,11 @@ export default class EPI2ME {
       messageBody = JSON.parse(message.Body);
     } catch (jsonError) {
       this.log.error(`error parsing JSON message.Body from message: ${JSON.stringify(message)} ${String(jsonError)}`);
-      this.deleteMessage(message);
+      try {
+        await this.deleteMessage(message);
+      } catch (e) {
+        this.log.error(`Exception deleting message: ${String(e)}`);
+      }
       return Promise.resolve();
     }
 
@@ -816,10 +821,13 @@ export default class EPI2ME {
       await p;
       return Promise.resolve();
     }
-
     // this.config.options.downloadMode === 'telemetry'
     /* skip download - only interested in telemetry */
-    this.deleteMessage(message);
+    try {
+      await this.deleteMessage(message);
+    } catch (e) {
+      this.log.error(`Exception deleting message: ${String(e)}`);
+    }
 
     const readCount =
       messageBody.telemetry.batch_summary && messageBody.telemetry.batch_summary.reads_num
@@ -923,6 +931,7 @@ export default class EPI2ME {
             : 1;
 
         const ext = path.extname(outputFile);
+
         this.downloadState('success', 'incr', { files: 1, reads: readCount });
         this.downloadState('types', 'incr', { [ext]: 1 });
 
@@ -933,6 +942,7 @@ export default class EPI2ME {
         } catch (err) {
           this.log.warn(`failed to stat file: ${String(err)}`);
         }
+        console.log('HERE4');
 
         try {
           this.log.info(`Uploads: ${JSON.stringify(this.states.upload)}`);
@@ -949,7 +959,11 @@ export default class EPI2ME {
           this.log.warn(`failed to fs.stat file: ${err}`);
         }
 
-        this.deleteMessage(message); /* MC-1953 - only delete message on condition neither end of the pipe failed */
+        try {
+          await this.deleteMessage(message);
+        } catch (e) {
+          this.log.error(`Exception deleting message: ${String(e)}`);
+        }
       }
     });
 
@@ -964,7 +978,7 @@ export default class EPI2ME {
       clearTimeout(transferTimeout);
       clearInterval(visibilityInterval);
       // MC-2143 - check for more jobs
-      setTimeout(this.loadAvailableDownloadMessages.bind(this));
+      setTimeout(this.checkForDownloads.bind(this));
       completeCb();
     });
 

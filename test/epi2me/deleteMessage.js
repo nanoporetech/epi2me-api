@@ -34,8 +34,16 @@ describe('epi2me.deleteMessage', () => {
     const client = clientFactory();
     client.config.instance.outputQueueName = 'my-output-queue';
 
-    const sessionedSQS = sinon.stub(client, 'sessionedSQS').callsFake(() => ({ sqs: 'obj' }));
+    const sqs = new AWS.SQS();
+    const sessionedSQS = sinon.stub(client, 'sessionedSQS').callsFake(
+      () =>
+        // don't do any portal sessioning
+        sqs,
+    );
     const discoverQueue = sinon.stub(client, 'discoverQueue').resolves();
+    sinon.stub(sqs, 'deleteMessage').callsFake(() => ({
+      promise: () => Promise.resolve(),
+    }));
 
     try {
       await client.deleteMessage({ message: 'test message' });
@@ -92,10 +100,10 @@ describe('epi2me.deleteMessage', () => {
     try {
       await client.deleteMessage({ message: 'test message', ReceiptHandle: 'abcd-1234' });
     } catch (error) {
-      assert.fail(error);
+      assert.ok(String(error).match(/deleteMessage failed/), 'thrown error message');
     }
-
-    assert.ok(client.log.error.args[0][0].match(/deleteMessage failed/), 'error message logged');
+    //    console.log(client.log.debug.args);
+    // assert.ok(client.log.error.args[0][0].match(/deleteMessage failed/), 'error message logged');
   });
 
   it('should invoke sqs.deleteMessage with exception', async () => {
@@ -113,7 +121,7 @@ describe('epi2me.deleteMessage', () => {
     try {
       await client.deleteMessage({ message: 'test message', ReceiptHandle: 'abcd-1234' });
     } catch (error) {
-      assert.fail(error);
+      assert.ok(String(error).match(/deleteMessage failed/), 'thrown error message');
     }
 
     assert.ok(client.log.error.args[0][0].match(/exception.*deleteMessage failed/), 'exception message logged');
@@ -134,7 +142,7 @@ describe('epi2me.deleteMessage', () => {
     try {
       await client.deleteMessage({ message: 'test message', ReceiptHandle: 'abcd-1234' });
     } catch (error) {
-      assert.fail(error);
+      assert.ok(String(error).match(/could not connect/), 'thrown error message');
     }
 
     assert.ok(deleteMessage.notCalled, 'sqs.deleteMessage is not invoked if queue discovery fails');
@@ -158,7 +166,7 @@ describe('epi2me.deleteMessage', () => {
     try {
       await client.deleteMessage({ message: 'test message', ReceiptHandle: 'abcd-1234' });
     } catch (error) {
-      assert.fail(error);
+      assert.ok(String(error).match(/could not connect/), 'thrown error message');
     }
 
     assert.ok(deleteMessage.notCalled, 'sqs.deleteMessage is not invoked if queue discovery fails');

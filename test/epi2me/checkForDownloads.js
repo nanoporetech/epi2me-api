@@ -3,7 +3,7 @@ import sinon from 'sinon';
 import { merge } from 'lodash';
 import EPI2ME from '../../src/epi2me';
 
-describe('epi2me.loadAvailableDownloadMessages', () => {
+describe('epi2me.checkForDownloads', () => {
   let debug;
   const clientFactory = opts =>
     new EPI2ME(
@@ -32,7 +32,7 @@ describe('epi2me.loadAvailableDownloadMessages', () => {
     sinon.stub(client, 'downloadAvailable').callsFake();
 
     try {
-      await client.loadAvailableDownloadMessages();
+      await client.checkForDownloads();
     } catch (e) {
       assert.fail(e);
     }
@@ -48,7 +48,7 @@ describe('epi2me.loadAvailableDownloadMessages', () => {
     sinon.stub(client, 'downloadAvailable').callsFake();
 
     try {
-      await client.loadAvailableDownloadMessages();
+      await client.checkForDownloads();
     } catch (e) {
       assert.fail(e);
     }
@@ -64,7 +64,7 @@ describe('epi2me.loadAvailableDownloadMessages', () => {
     sinon.stub(client, 'downloadAvailable').callsFake();
 
     try {
-      await client.loadAvailableDownloadMessages();
+      await client.checkForDownloads();
     } catch (e) {
       assert.fail(e);
     }
@@ -80,7 +80,7 @@ describe('epi2me.loadAvailableDownloadMessages', () => {
     sinon.stub(client, 'downloadAvailable').callsFake();
 
     try {
-      await client.loadAvailableDownloadMessages();
+      await client.checkForDownloads();
     } catch (e) {
       assert.fail(e);
     }
