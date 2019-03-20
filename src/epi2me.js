@@ -65,7 +65,6 @@ export default class EPI2ME {
         success: { files: 0, reads: 0, bytes: 0 },
         fail: 0,
         failure: {},
-        queueLength: 0, // { files: 0 } // ?
         types: {},
       },
       warnings: [],
