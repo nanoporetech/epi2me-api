@@ -942,7 +942,6 @@ export default class EPI2ME {
         } catch (err) {
           this.log.warn(`failed to stat file: ${String(err)}`);
         }
-        console.log('HERE4');
 
         try {
           this.log.info(`Uploads: ${JSON.stringify(this.states.upload)}`);
