@@ -125,12 +125,6 @@ export default class EPI2ME {
       this.fileCheckInterval = null;
     }
 
-    if (this.uploadWorkerPool) {
-      this.log.debug('clearing uploadWorkerPool');
-      await Promise.all(this.uploadWorkerPool);
-      this.uploadWorkerPool = null;
-    }
-
     if (this.downloadWorkerPool) {
       this.log.debug('clearing downloadWorkerPool');
       await Promise.all(this.downloadWorkerPool);
@@ -472,12 +466,12 @@ export default class EPI2ME {
 
     // dirScanInProgress is a semaphore used to bail out early if this routine is invoked by interval when it's already running
     if (this.dirScanInProgress) {
-      this.log.debug('directory scan already in progress');
+      this.log.debug('upload: directory scan already in progress');
       return Promise.resolve();
     }
 
     this.dirScanInProgress = true;
-    this.log.debug('scanning input folder for new files');
+    this.log.debug('upload: scanning input folder for new files');
 
     try {
       // find files waiting for upload
@@ -555,14 +549,13 @@ export default class EPI2ME {
       }
     }
 
-    this.log.info(`enqueueUploadFiles: ${files.length} new files`);
+    this.log.info(`upload: enqueueUploadFiles: ${files.length} new files`);
 
     //    this.uploadState('filesCount', 'incr', { files: files.length });
     this.states.upload.filesCount += files.length; // total count of files for an instance
 
-    const inputBatchQueue = [];
     let remaining = 0;
-    files.forEach(async fileIn => {
+    const inputBatchQueue = files.map(async fileIn => {
       const file = fileIn;
       remaining += 1;
 
@@ -591,18 +584,19 @@ export default class EPI2ME {
       }
 
       remaining -= 1;
-      this.log.debug(`inputBatchQueue has ${remaining} remaining`);
-      inputBatchQueue.push(this.uploadJob(file));
+      this.log.debug(`upload: inputBatchQueue has ${remaining} remaining`);
+      return this.uploadJob(file);
     });
 
     try {
       // inputBatchQueue contains an array of promises corresponding to local files waiting for upload and which are only resolved on successful transfer to S3
       await Promise.all(inputBatchQueue);
-      this.log.info('inputBatchQueue slot released. trigger loadUploadFiles');
+      this.log.info(`upload: inputBatchQueue (${inputBatchQueue.length} jobs) complete`);
       // try and load more files straight away. returns a promise which resolves after awaiting the new work
       return this.loadUploadFiles();
+      // return Promise.resolve();
     } catch (err) {
-      this.log.error(`enqueueUploadFiles exception ${String(err)}`);
+      this.log.error(`upload: enqueueUploadFiles exception ${String(err)}`);
       return Promise.reject(err);
     }
   }
@@ -624,11 +618,12 @@ export default class EPI2ME {
     let file2;
     let errorMsg;
     try {
+      this.log.info(`upload: ${file.id} starting`);
       file2 = await this.uploadHandler(file);
-      this.log.info(`${file2.id} completely done. releasing uploadWorkerPool queue slot`);
+      this.log.info(`upload: ${file2.id} uploaded and notified`);
     } catch (err) {
       errorMsg = err;
-      this.log.info(`${file.id} done, but failed: ${String(errorMsg)}`);
+      this.log.error(`upload: ${file.id} done, but failed: ${String(errorMsg)}`);
     }
 
     if (!file2) {
@@ -638,7 +633,7 @@ export default class EPI2ME {
     this.uploadState('enqueued', 'decr', merge({ files: 1 }, file2.stats)); // this.states.upload.enqueued = this.states.upload.enqueued - readCount;
 
     if (errorMsg) {
-      this.log.error(`uploadHandler ${errorMsg}`);
+      this.log.error(`uploadJob ${errorMsg}`);
       if (!this.states.upload.failure) {
         this.states.upload.failure = {};
       }
@@ -1042,7 +1037,7 @@ export default class EPI2ME {
     const p = new Promise((resolve, reject) => {
       const timeoutFunc = () => {
         if (rs && !rs.closed) rs.close();
-        return reject(new Error(`${file.name} timed out`));
+        reject(new Error(`${file.name} timed out`));
       };
       // timeout to ensure this completeCb *always* gets called
       timeoutHandle = setTimeout(timeoutFunc, (this.config.options.uploadTimeout + 5) * 1000);
@@ -1063,7 +1058,7 @@ export default class EPI2ME {
           errstr += `: ${readStreamError.message}`;
         }
         clearTimeout(timeoutHandle);
-        return reject(new Error(errstr));
+        reject(new Error(errstr));
       });
 
       rs.on('open', () => {
@@ -1098,27 +1093,25 @@ export default class EPI2ME {
           .promise()
           .then(() => {
             this.log.info(`${file.id} S3 upload complete`);
+            rs.close();
+            clearTimeout(timeoutHandle);
 
             this.uploadComplete(objectId, file)
               .then(() => {
-                rs.close();
-                clearTimeout(timeoutHandle);
                 resolve(file);
               })
               .catch(uploadCompleteErr => {
-                clearTimeout(timeoutHandle);
                 reject(uploadCompleteErr);
               });
           })
           .catch(uploadStreamErr => {
             this.log.warn(`${file.id} uploadStreamError ${uploadStreamErr}`);
-            clearTimeout(timeoutHandle);
             reject(uploadStreamErr);
           });
       });
 
-      rs.on('end', rs.close);
-      rs.on('close', () => this.log.debug('closing readstream'));
+      //      rs.on('end', rs.close);
+      //      rs.on('close', () => this.log.debug('closing readstream'));
     });
 
     return p;
@@ -1237,7 +1230,7 @@ export default class EPI2ME {
       await fs.mkdirp(path.join(moveTo, fileBatch));
       await fs.move(fileFrom, fileTo);
 
-      this.log.debug(`${file.id}: ${type} and mv done`);
+      this.log.debug(`${file.id} ${type} and mv done`);
 
       if (type === 'upload') {
         this.uploadState('total', 'incr', { bytes: file.size }); // this.states.upload.totalSize += file.size;

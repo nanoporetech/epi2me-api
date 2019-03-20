@@ -102,7 +102,7 @@ describe('epi2me.uploadJob', () => {
       assert.fail(err);
     }
 
-    assert(client.log.info.lastCall.args[0].match(/uploadHandler failed/), 'error message propagated');
+    assert(client.log.error.lastCall.args[0].match(/uploadHandler failed/), 'error message propagated');
     clock.restore();
   });
 
@@ -121,7 +121,7 @@ describe('epi2me.uploadJob', () => {
       assert.fail(err);
     }
 
-    assert(client.log.info.lastCall.args[0].match(/uploadHandler failed/), 'error message propagated');
+    assert(client.log.error.lastCall.args[0].match(/uploadHandler failed/), 'error message propagated');
     assert.deepEqual(client.states.upload.failure, { 'Error: uploadHandler failed': 1 }, 'error counted');
 
     clock.restore();
@@ -142,7 +142,7 @@ describe('epi2me.uploadJob', () => {
       assert.fail(e);
     }
 
-    assert(client.log.info.lastCall.args[0].match(/uploadHandler failed/), 'error message propagated');
+    assert(client.log.error.lastCall.args[0].match(/uploadHandler failed/), 'error message propagated');
     assert.deepEqual(client.states.upload.failure, { 'Error: uploadHandler failed': 8 }, 'error counted');
 
     clock.restore();
@@ -162,7 +162,7 @@ describe('epi2me.uploadJob', () => {
       assert.fail(e);
     }
 
-    assert(client.log.info.lastCall.args[0].match(/completely done/), 'completion info message');
+    assert(client.log.info.lastCall.args[0].match(/uploaded and notified/), 'completion info message');
 
     clock.restore();
   });
@@ -183,7 +183,7 @@ describe('epi2me.uploadJob', () => {
       assert.fail(e);
     }
 
-    assert(client.log.info.lastCall.args[0].match(/completely done/), 'completion info message');
+    assert(client.log.info.lastCall.args[0].match(/uploaded and notified/), 'completion info message');
     assert.deepEqual(
       client.states,
       {

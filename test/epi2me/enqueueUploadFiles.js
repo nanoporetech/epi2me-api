@@ -73,7 +73,7 @@ describe('epi2me.enqueueUploadFiles', () => {
       assert.fail(e);
     }
 
-    assert.ok(info.lastCall.args[0].match(/slot released/), 'logged as complete');
+    assert.ok(info.lastCall.args[0].match(/inputBatchQueue.*complete/), 'logged as complete');
     assert.ok(loadUploadFiles.calledOnce, 'loadUploadFiles fired');
   });
 
