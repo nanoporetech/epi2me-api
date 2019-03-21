@@ -1,6 +1,13 @@
 {
   "presets": [
-    ["env", { "targets": { "node": "current" } }]
+    [
+      "@babel/preset-env",
+      {
+        "modules": "umd",
+        "targets": {
+          "node": "current"
+        }
+      }
+    ]
   ]
 }
-
