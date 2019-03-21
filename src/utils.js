@@ -164,7 +164,7 @@ const utils = (function magic() {
 
       let res;
       try {
-        log.debug('GET', req.url, JSON.stringify(req));
+        log.debug(`GET ${req.url}`); // , JSON.stringify(req));
         res = await axios.get(req.url, req); // url, headers++
       } catch (err) {
         return Promise.reject(err);
@@ -205,7 +205,7 @@ const utils = (function magic() {
 
       let res;
       try {
-        log.debug('POST', req.url, data, JSON.stringify(req));
+        log.debug(`POST ${req.url}`); // , data, JSON.stringify(req));
         res = await axios.post(req.url, data, req); // url, data, headers++
       } catch (err) {
         return Promise.reject(err);
@@ -246,7 +246,7 @@ const utils = (function magic() {
 
       let res;
       try {
-        log.debug('PUT', req.url, data, JSON.stringify(req));
+        log.debug(`PUT ${req.url}`); // , data, JSON.stringify(req));
         res = await axios.put(req.url, data, req); // url, data, headers++
       } catch (err) {
         return Promise.reject(err);
