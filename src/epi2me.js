@@ -647,6 +647,12 @@ export default class EPI2ME {
     } else {
       this.uploadState('queueLength', 'decr', file2.stats); // this.states.upload.queueLength = this.states.upload.queueLength ? this.states.upload.queueLength - readCount : 0;
       this.uploadState('success', 'incr', merge({ files: 1 }, file2.stats)); // this.states.upload.success = this.states.upload.success ? this.states.upload.success + readCount : readCount;
+
+      if (file.name) {
+        // nb. we only count types for successful uploads
+        const ext = path.extname(file.name);
+        this.uploadState('types', 'incr', { [ext]: 1 });
+      }
     }
 
     return Promise.resolve(); // file-by-file?
