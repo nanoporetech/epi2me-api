@@ -648,9 +648,9 @@ export default class EPI2ME {
       this.uploadState('queueLength', 'decr', file2.stats); // this.states.upload.queueLength = this.states.upload.queueLength ? this.states.upload.queueLength - readCount : 0;
       this.uploadState('success', 'incr', merge({ files: 1 }, file2.stats)); // this.states.upload.success = this.states.upload.success ? this.states.upload.success + readCount : readCount;
 
-      if (file.name) {
+      if (file2.name) {
         // nb. we only count types for successful uploads
-        const ext = path.extname(file.name);
+        const ext = path.extname(file2.name);
         this.uploadState('types', 'incr', { [ext]: 1 });
       }
     }
@@ -733,9 +733,9 @@ export default class EPI2ME {
 
     if ('Attributes' in message) {
       if ('ApproximateReceiveCount' in message.Attributes) {
-        this.log.info(`download.processMessage: ${message.MessageId} / ${message.Attributes.ApproximateReceiveCount}`);
+        this.log.debug(`download.processMessage: ${message.MessageId} / ${message.Attributes.ApproximateReceiveCount}`);
       } else {
-        this.log.info(`download.processMessage: ${message.MessageId} / NA `);
+        this.log.debug(`download.processMessage: ${message.MessageId} / NA `);
       }
     }
 
@@ -757,6 +757,7 @@ export default class EPI2ME {
 
       if (telemetry.tm_path) {
         try {
+          this.log.debug(`download.processMessage: ${message.MessageId} fetching telemetry`);
           const s3 = await this.sessionedS3();
           const data = await s3
             .getObject({
@@ -764,6 +765,7 @@ export default class EPI2ME {
               Key: telemetry.tm_path,
             })
             .promise();
+          this.log.info(`download.processMessage: ${message.MessageId} fetched telemetry`);
 
           telemetry.batch = data.Body.toString('utf-8')
             .split('\n')
@@ -825,13 +827,14 @@ export default class EPI2ME {
 
     if (this.config.options.downloadMode === 'data+telemetry') {
       /* download file from S3 */
-      this.log.info(`downloading ${messageBody.path} to ${outputFile}`);
+      this.log.debug(`download.processMessage: ${message.MessageId} downloading ${messageBody.path} to ${outputFile}`);
 
       const s3 = await this.sessionedS3();
       const p = new Promise(async resolve => {
         this.initiateDownloadStream(s3, messageBody, message, outputFile, resolve);
       });
       await p;
+      this.log.info(`download.processMessage: ${message.MessageId} downloaded ${messageBody.path} to ${outputFile}`);
       return Promise.resolve();
     }
     // this.config.options.downloadMode === 'telemetry'
