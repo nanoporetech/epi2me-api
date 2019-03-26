@@ -60,6 +60,7 @@ export default class EPI2ME {
           files: 0,
         },
         total: { files: 0, bytes: 0 },
+        types: {},
       },
       download: {
         success: { files: 0, reads: 0, bytes: 0 },
@@ -487,7 +488,7 @@ export default class EPI2ME {
       // trigger upload for all waiting files, blocking until all complete
       await this.enqueueUploadFiles(files);
     } catch (err) {
-      this.log.error(String(err));
+      this.log.error(`upload: exception in enqueueUploadFiles: ${String(err)}`);
     }
     this.dirScanInProgress = false;
 
