@@ -190,7 +190,7 @@ describe('epi2me.uploadJob', () => {
         download: {
           fail: 0,
           failure: {},
-          success: { files: 0, bytes: 0, reads: 0 },
+          success: { files: 0, bytes: 0, reads: 0, niceSize: '0 B'},
           types: {},
         },
         upload: {
