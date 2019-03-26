@@ -201,6 +201,7 @@ describe('epi2me.uploadJob', () => {
           success: { files: 26, reads: 4096, niceSize: '0 B' },
           total: { files: 0, bytes: 0 },
           niceTypes: '',
+          types: {},
         },
         warnings: [],
       },
