@@ -421,42 +421,37 @@ export default class EPI2ME {
     return this.receiveMessages(receiveMessageSet);
   }
 
-  uploadState(table, op, newDataIn) {
+  storeState(direction, table, op, newDataIn) {
     const newData = newDataIn || {};
     if (op === 'incr') {
       Object.keys(newData).forEach(o => {
-        this.states.upload[table][o] = this.states.upload[table][o]
-          ? this.states.upload[table][o] + parseInt(newData[o], 10)
+        this.states[direction][table][o] = this.states[direction][table][o]
+          ? this.states[direction][table][o] + parseInt(newData[o], 10)
           : parseInt(newData[o], 10);
       });
     } else {
       Object.keys(newData).forEach(o => {
-        this.states.upload[table][o] = this.states.upload[table][o]
-          ? this.states.upload[table][o] - parseInt(newData[o], 10)
+        this.states[direction][table][o] = this.states[direction][table][o]
+          ? this.states[direction][table][o] - parseInt(newData[o], 10)
           : -parseInt(newData[o], 10);
       });
     }
 
-    this.states.upload.success.niceSize = utils.niceSize(this.states.upload.success.bytes);
+    this.states[direction].success.niceSize = utils.niceSize(this.states[direction].success.bytes);
+    this.states[direction].niceTypes = Object.keys(this.states[direction].types || {})
+      .sort()
+      .map(fileType => {
+        return `${this.states[direction].types[fileType]} ${fileType}`;
+      })
+      .join(', ');
   }
 
-  downloadState(table, op, newDataIn) {
-    const newData = newDataIn || {};
-    if (op === 'incr') {
-      Object.keys(newData).forEach(o => {
-        this.states.download[table][o] = this.states.download[table][o]
-          ? this.states.download[table][o] + parseInt(newData[o], 10)
-          : parseInt(newData[o], 10);
-      });
-    } else {
-      Object.keys(newData).forEach(o => {
-        this.states.download[table][o] = this.states.download[table][o]
-          ? this.states.download[table][o] - parseInt(newData[o], 10)
-          : -parseInt(newData[o], 10);
-      });
-    }
+  uploadState(table, op, newData) {
+    return this.storeState('upload', table, op, newData);
+  }
 
-    this.states.download.success.niceSize = utils.niceSize(this.states.download.success.bytes);
+  downloadState(table, op, newData) {
+    return this.storeState('download', table, op, newData);
   }
 
   async loadUploadFiles() {
