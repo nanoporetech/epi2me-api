@@ -366,6 +366,12 @@ export default class EPI2ME {
   }
 
   async checkForDownloads() {
+    if (this.checkForDownloadsRunning) {
+      this.log.debug('checkForDownloads already running');
+      return Promise.resolve();
+    }
+    this.checkForDownloadsRunning = true;
+
     try {
       const queueURL = await this.discoverQueue(this.config.instance.outputQueueName);
       const len = await this.queueLength(queueURL);
@@ -373,6 +379,7 @@ export default class EPI2ME {
       if (len) {
         /* only process downloads if there are downloads to process */
         this.log.debug(`downloads available: ${len}`);
+        this.checkForDownloadsRunning = false;
         return this.downloadAvailable();
       }
 
@@ -383,6 +390,7 @@ export default class EPI2ME {
       this.states.download.failure[err] = this.states.download.failure[err] ? this.states.download.failure[err] + 1 : 1;
     }
 
+    this.checkForDownloadsRunning = false;
     return Promise.resolve();
   }
 
