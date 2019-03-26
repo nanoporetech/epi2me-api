@@ -436,6 +436,8 @@ export default class EPI2ME {
           : -parseInt(newData[o], 10);
       });
     }
+
+    this.states.download.success.niceSize = utils.niceSize(this.states.upload.success.bytes);
   }
 
   downloadState(table, op, newDataIn) {
@@ -453,6 +455,8 @@ export default class EPI2ME {
           : -parseInt(newData[o], 10);
       });
     }
+
+    this.states.download.success.niceSize = utils.niceSize(this.states.download.success.bytes);
   }
 
   async loadUploadFiles() {
