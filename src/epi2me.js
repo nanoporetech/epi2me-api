@@ -379,8 +379,9 @@ export default class EPI2ME {
       if (len) {
         /* only process downloads if there are downloads to process */
         this.log.debug(`downloads available: ${len}`);
+        await this.downloadAvailable();
         this.checkForDownloadsRunning = false;
-        return this.downloadAvailable();
+        return Promise.resolve();
       }
 
       this.log.debug('no downloads available');
