@@ -190,7 +190,7 @@ describe('epi2me.uploadJob', () => {
         download: {
           fail: 0,
           failure: {},
-          success: { files: 0, bytes: 0, reads: 0, niceSize: '0 B'},
+          success: { files: 0, bytes: 0, reads: 0},
           types: {},
         },
         upload: {
@@ -198,7 +198,7 @@ describe('epi2me.uploadJob', () => {
           enqueued: { files: -1, reads: -4096 },
           failure: {},
           queueLength: { reads: 4096 },
-          success: { files: 26, reads: 4096 },
+          success: { files: 26, reads: 4096, niceSize: '0 B' },
           total: { files: 0, bytes: 0 },
         },
         warnings: [],

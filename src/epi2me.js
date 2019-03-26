@@ -437,7 +437,7 @@ export default class EPI2ME {
       });
     }
 
-    this.states.download.success.niceSize = utils.niceSize(this.states.upload.success.bytes);
+    this.states.upload.success.niceSize = utils.niceSize(this.states.upload.success.bytes);
   }
 
   downloadState(table, op, newDataIn) {
