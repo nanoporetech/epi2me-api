@@ -465,7 +465,7 @@ export default class EPI2ME {
       .join(', ');
 
     const now = Date.now();
-    if (!this.stateReportTime || this.stateReportTime < now - 2000) {
+    if (!this.stateReportTime || now - this.stateReportTime > 2000) {
       // report at most every 2 seconds
       this.stateReportTime = now;
       this.log.info(`Uploads: ${JSON.stringify(this.states.upload)}`);
