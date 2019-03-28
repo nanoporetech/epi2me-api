@@ -351,7 +351,7 @@ export default class EPI2ME {
       } catch (instanceError) {
         this.log.warn(
           `failed to check instance state: ${
-            instanceError && instanceError.error ? instanceError.error : instanceError
+          instanceError && instanceError.error ? instanceError.error : instanceError
           }`,
         );
       }
@@ -551,7 +551,7 @@ export default class EPI2ME {
       if (files.length > maxFiles) {
         msg = `ERROR: ${
           files.length
-        } files found. Workflow can only accept ${maxFiles}. Please move the extra files away.`;
+          } files found. Workflow can only accept ${maxFiles}. Please move the extra files away.`;
         this.log.error(msg);
         this.states.warnings.push(msg);
         return Promise.resolve();
@@ -803,18 +803,16 @@ export default class EPI2ME {
     const fn = match ? match[1] : '';
     folder = this.config.options.outputFolder;
 
-    if (this.config.options.filter === 'on') {
-      /* MC-940: use folder hinting if present */
-      if (messageBody.telemetry && messageBody.telemetry.hints && messageBody.telemetry.hints.folder) {
-        this.log.debug(`using folder hint ${messageBody.telemetry.hints.folder}`);
-        // MC-4987 - folder hints may now be nested.
-        // eg: HIGH_QUALITY/CLASSIFIED/ALIGNED
-        // or: LOW_QUALITY
-        const codes = messageBody.telemetry.hints.folder
-          .split('/') // hints are always unix-style
-          .map(o => o.toUpperCase()); // MC-5612 cross-platform uppercase "pass" folder
-        folder = path.join.apply(null, [folder, ...codes]);
-      }
+    /* MC-940: use folder hinting if present */
+    if (messageBody.telemetry && messageBody.telemetry.hints && messageBody.telemetry.hints.folder) {
+      this.log.debug(`using folder hint ${messageBody.telemetry.hints.folder}`);
+      // MC-4987 - folder hints may now be nested.
+      // eg: HIGH_QUALITY/CLASSIFIED/ALIGNED
+      // or: LOW_QUALITY
+      const codes = messageBody.telemetry.hints.folder
+        .split('/') // hints are always unix-style
+        .map(o => o.toUpperCase()); // MC-5612 cross-platform uppercase "pass" folder
+      folder = path.join.apply(null, [folder, ...codes]);
     }
 
     if (this.config.options.filetype === '.fast5') {
