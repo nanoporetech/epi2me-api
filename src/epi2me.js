@@ -351,7 +351,7 @@ export default class EPI2ME {
       } catch (instanceError) {
         this.log.warn(
           `failed to check instance state: ${
-          instanceError && instanceError.error ? instanceError.error : instanceError
+            instanceError && instanceError.error ? instanceError.error : instanceError
           }`,
         );
       }
@@ -551,7 +551,7 @@ export default class EPI2ME {
       if (files.length > maxFiles) {
         msg = `ERROR: ${
           files.length
-          } files found. Workflow can only accept ${maxFiles}. Please move the extra files away.`;
+        } files found. Workflow can only accept ${maxFiles}. Please move the extra files away.`;
         this.log.error(msg);
         this.states.warnings.push(msg);
         return Promise.resolve();
