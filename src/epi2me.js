@@ -1132,7 +1132,7 @@ export default class EPI2ME {
           .promise()
           .then(() => {
             this.log.info(`${file.id} S3 upload complete`);
-            this.uploadState('progress', 'decr', { total: file.size });
+            this.uploadState('progress', 'decr', { total: file.size, progress: file.size });
             rs.close();
             clearTimeout(timeoutHandle);
 
