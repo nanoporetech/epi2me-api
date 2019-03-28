@@ -1123,7 +1123,6 @@ export default class EPI2ME {
         const managedUpload = s3.upload(params, options);
 
         managedUpload.on('httpUploadProgress', progress => {
-          myProgress = progress.loaded;
           //          this.log.debug(`upload progress ${progress.key} ${progress.loaded} / ${progress.total}`);
           this.uploadState('progress', 'incr', { progress: progress.loaded - myProgress }); // delta since last time
           myProgress = progress.loaded; // store for calculating delta next iteration
