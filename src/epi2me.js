@@ -61,6 +61,7 @@ export default class EPI2ME {
         },
         total: { files: 0, bytes: 0 },
         types: {},
+        progress: {},
       },
       download: {
         success: { files: 0, reads: 0, bytes: 0 },
@@ -433,6 +434,14 @@ export default class EPI2ME {
 
   storeState(direction, table, op, newDataIn) {
     const newData = newDataIn || {};
+    if (!this.states[direction]) {
+      this.states[direction] = {};
+    }
+
+    if (!this.states[direction][table]) {
+      this.states[direction][table] = {};
+    }
+
     if (op === 'incr') {
       Object.keys(newData).forEach(o => {
         this.states[direction][table][o] = this.states[direction][table][o]
@@ -454,6 +463,14 @@ export default class EPI2ME {
         return `${this.states[direction].types[fileType]} ${fileType}`;
       })
       .join(', ');
+
+    const now = Date.now();
+    if (!this.stateReportTime || this.stateReportTime < now - 2000) {
+      // report at most every 2 seconds
+      this.stateReportTime = now;
+      this.log.info(`Uploads: ${JSON.stringify(this.states.upload)}`);
+      this.log.info(`Downloads: ${JSON.stringify(this.states.download)}`);
+    }
   }
 
   uploadState(table, op, newData) {
@@ -803,18 +820,16 @@ export default class EPI2ME {
     const fn = match ? match[1] : '';
     folder = this.config.options.outputFolder;
 
-    if (this.config.options.filter === 'on') {
-      /* MC-940: use folder hinting if present */
-      if (messageBody.telemetry && messageBody.telemetry.hints && messageBody.telemetry.hints.folder) {
-        this.log.debug(`using folder hint ${messageBody.telemetry.hints.folder}`);
-        // MC-4987 - folder hints may now be nested.
-        // eg: HIGH_QUALITY/CLASSIFIED/ALIGNED
-        // or: LOW_QUALITY
-        const codes = messageBody.telemetry.hints.folder
-          .split('/') // hints are always unix-style
-          .map(o => o.toUpperCase()); // MC-5612 cross-platform uppercase "pass" folder
-        folder = path.join.apply(null, [folder, ...codes]);
-      }
+    /* MC-940: use folder hinting if present */
+    if (messageBody.telemetry && messageBody.telemetry.hints && messageBody.telemetry.hints.folder) {
+      this.log.debug(`using folder hint ${messageBody.telemetry.hints.folder}`);
+      // MC-4987 - folder hints may now be nested.
+      // eg: HIGH_QUALITY/CLASSIFIED/ALIGNED
+      // or: LOW_QUALITY
+      const codes = messageBody.telemetry.hints.folder
+        .split('/') // hints are always unix-style
+        .map(o => o.toUpperCase()); // MC-5612 cross-platform uppercase "pass" folder
+      folder = path.join.apply(null, [folder, ...codes]);
     }
 
     if (this.config.options.filetype === '.fast5') {
@@ -961,9 +976,6 @@ export default class EPI2ME {
         }
 
         try {
-          this.log.info(`Uploads: ${JSON.stringify(this.states.upload)}`);
-          this.log.info(`Downloads: ${JSON.stringify(this.states.download)}`);
-
           // MC-2540 : if there is some postprocessing to do( e.g fastq extraction) - call the dataCallback
           // dataCallback might depend on the exit_status ( e.g. fastq can only be extracted from successful reads )
           const exitStatus =
@@ -1105,12 +1117,16 @@ export default class EPI2ME {
           params['Content-Length'] = file.size;
         }
 
-        const managedUpload = s3.upload(params, options);
-        managedUpload.on('httpUploadProgress', progress => {
-          // MC-6789 - reset upload timeout
-          this.log.debug(`upload progress ${progress.key} ${progress.loaded} / ${progress.total}`);
+        this.uploadState('progress', 'incr', { total: file.size });
+        let myProgress = 0;
 
-          clearTimeout(timeoutHandle);
+        const managedUpload = s3.upload(params, options);
+
+        managedUpload.on('httpUploadProgress', progress => {
+          //          this.log.debug(`upload progress ${progress.key} ${progress.loaded} / ${progress.total}`);
+          this.uploadState('progress', 'incr', { progress: progress.loaded - myProgress }); // delta since last time
+          myProgress = progress.loaded; // store for calculating delta next iteration
+          clearTimeout(timeoutHandle); // MC-6789 - reset upload timeout
           timeoutHandle = setTimeout(timeoutFunc, (this.config.options.uploadTimeout + 5) * 1000);
         });
 
@@ -1118,6 +1134,7 @@ export default class EPI2ME {
           .promise()
           .then(() => {
             this.log.info(`${file.id} S3 upload complete`);
+            this.uploadState('progress', 'decr', { total: file.size, progress: file.size });
             rs.close();
             clearTimeout(timeoutHandle);
 

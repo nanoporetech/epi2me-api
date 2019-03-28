@@ -127,7 +127,7 @@ describe('rest.workflow', () => {
             widget: 'ajax_dropdown',
             values: {
               data_root: 'datasets',
-              source: '{{EPI2ME_HOST}}/dataset.json?reference_only=1&apikey={{EPI2ME_API_KEY}}',
+              source: '{{EPI2ME_HOST}}/dataset.json?reference_only=1',
               items: { label_key: 'name', value_key: 'prefix' },
             },
           },
@@ -139,7 +139,7 @@ describe('rest.workflow', () => {
       if (uri === 'workflow/config/12345') {
         return Promise.resolve({});
       }
-      if (uri === '/dataset.json?reference_only=1&apikey={{EPI2ME_API_KEY}}') {
+      if (uri === '/dataset.json?reference_only=1') {
         return Promise.resolve({
           datasets: [
             {
@@ -242,7 +242,7 @@ describe('rest.workflow', () => {
         });
       }
 
-      throw new Error(`unhandled test url${uri}`);
+      throw new Error(`unhandled test url ${uri}`);
     });
 
     stubs.push(stub1);

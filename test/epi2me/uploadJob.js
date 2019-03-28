@@ -162,7 +162,7 @@ describe('epi2me.uploadJob', () => {
       assert.fail(e);
     }
 
-    assert(client.log.info.lastCall.args[0].match(/uploaded and notified/), 'completion info message');
+    assert(client.log.info.args[1][0].match(/72 uploaded and notified/), 'completion info message');
 
     clock.restore();
   });
@@ -183,7 +183,7 @@ describe('epi2me.uploadJob', () => {
       assert.fail(e);
     }
 
-    assert(client.log.info.lastCall.args[0].match(/uploaded and notified/), 'completion info message');
+    assert(client.log.info.args[1][0].match(/72 uploaded and notified/), 'completion info message');
     assert.deepEqual(
       client.states,
       {
@@ -202,6 +202,7 @@ describe('epi2me.uploadJob', () => {
           total: { files: 0, bytes: 0 },
           niceTypes: '',
           types: {},
+          progress: {},
         },
         warnings: [],
       },

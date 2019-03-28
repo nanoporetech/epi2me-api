@@ -276,7 +276,7 @@ export default class REST {
       ...toFetch.map((iterObj, i) => {
         const param = toFetch[i]; // so we can explicitly reassign to the iterator without eslint complaints
         return new Promise(async (resolve, reject) => {
-          const uri = param.values.source.replace('{{EPI2ME_HOST}}', '');
+          const uri = param.values.source.replace('{{EPI2ME_HOST}}', '').replace(/&?apikey=\{\{EPI2ME_API_KEY\}\}/, '');
 
           try {
             const workflowParam = await utils.get(uri, this.options); // e.g. {datasets:[...]} from the /dataset.json list response

@@ -158,6 +158,7 @@ utils.loadInputFiles = ({ inputFolder, outputFolder, uploadedFolder, filetype },
     const inputFilter = file => {
       const basename = path.basename(file);
       return !(
+        file.split(path.sep).filter(x => x.match(/^[.]/)).length || // MC-6941 do not upload files beginning with dot
         basename === 'downloads' ||
         basename === 'uploaded' ||
         basename === 'skip' ||
