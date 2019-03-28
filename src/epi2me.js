@@ -1118,13 +1118,16 @@ export default class EPI2ME {
         }
 
         this.uploadState('progress', 'incr', { total: file.size });
+        let myProgress = 0;
 
         const managedUpload = s3.upload(params, options);
+
         managedUpload.on('httpUploadProgress', progress => {
-          // MC-6789 - reset upload timeout
+          myProgress = progress.loaded;
           //          this.log.debug(`upload progress ${progress.key} ${progress.loaded} / ${progress.total}`);
-          this.uploadState('progress', 'incr', { progress: progress.loaded });
-          clearTimeout(timeoutHandle);
+          this.uploadState('progress', 'incr', { progress: progress.loaded - myProgress }); // delta since last time
+          myProgress = progress.loaded; // store for calculating delta next iteration
+          clearTimeout(timeoutHandle); // MC-6789 - reset upload timeout
           timeoutHandle = setTimeout(timeoutFunc, (this.config.options.uploadTimeout + 5) * 1000);
         });
 
