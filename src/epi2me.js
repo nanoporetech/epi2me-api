@@ -434,11 +434,11 @@ export default class EPI2ME {
 
   storeState(direction, table, op, newDataIn) {
     const newData = newDataIn || {};
-    if(!this.states[direction]) {
+    if (!this.states[direction]) {
       this.states[direction] = {};
     }
 
-    if(!this.states[direction][table]) {
+    if (!this.states[direction][table]) {
       this.states[direction][table] = {};
     }
 
