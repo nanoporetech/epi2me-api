@@ -40,6 +40,7 @@ describe('utils-fs.loadInputFiles', () => {
      */
     fs.writeFileSync(path.join(batch1, '1.fastq'), '');
     fs.writeFileSync(path.join(batch2, '2.fastq'), '');
+    fs.writeFileSync(path.join(batch2, '._2.fastq'), ''); // MC-6941 junk file
     fs.writeFileSync(path.join(outputFolder, 'downloaded.fastq'), '');
     fs.writeFileSync(path.join(uploadedFolder, 'uploaded.fastq'), '');
 
@@ -57,17 +58,17 @@ describe('utils-fs.loadInputFiles', () => {
       assert.equal(files[0].name, '1.fastq', 'should load the folders in alphabetical order');
       assert.equal(files[0].batch, 'batch_1', 'fileObject1 should have batch property');
       fs.unlinkSync(files[0].path);
+    });
 
-      await utils.loadInputFiles(opts).then(async files2 => {
-        assert.equal(files2.length, 1, 'should find the one valid file');
-        assert.equal(files2[0].name, '2.fastq', 'should load the folders in alphabetical order');
-        assert.equal(files2[0].batch, 'batch_2', 'fileObject2 should have batch property');
-        fs.unlinkSync(files2[0].path);
+    await utils.loadInputFiles(opts).then(async files2 => {
+      assert.equal(files2.length, 1, 'should find the one valid file');
+      assert.equal(files2[0].name, '2.fastq', 'should load the folders in alphabetical order');
+      assert.equal(files2[0].batch, 'batch_2', 'fileObject2 should have batch property');
+      fs.unlinkSync(files2[0].path);
+    });
 
-        await utils.loadInputFiles(opts).then(files3 => {
-          assert.equal(typeof files3, 'undefined', 'should find the one valid file');
-        });
-      });
+    await utils.loadInputFiles(opts).then(files3 => {
+      assert.equal(typeof files3, 'undefined', 'should find the one valid file');
     });
   });
 });
