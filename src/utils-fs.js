@@ -11,8 +11,6 @@ import { isString, isArray } from 'lodash';
 import utils from './utils';
 import filestats from './filestats';
 
-const targetBatchSize = 4000;
-
 utils.pipe = async (uriIn, filepath, options, progressCb) => {
   let srv = options.url;
   let uri = `/${uriIn}`; // note no forced extension for piped requests
@@ -57,32 +55,6 @@ utils.pipe = async (uriIn, filepath, options, progressCb) => {
 
 utils.countFileReads = filePath => {
   return filestats(filePath).then(d => d.reads); // backwards-compatibility
-};
-
-utils.findSuitableBatchIn = async folder => {
-  // For downloads without the folder split
-  // Look inside `folder` and return any batch with a free slot.
-  // if no suitable batches, create one and return that.
-  await fs.mkdirp(folder);
-  const prefix = 'batch_';
-  const createBatch = async () => {
-    const batchName = `${prefix}${Date.now()}`;
-    const newBatchPath = path.join(folder, batchName);
-    return fs.mkdirp(newBatchPath);
-  };
-
-  let batches = await fs.readdir(folder);
-  batches = batches.filter(d => d.slice(0, prefix.length) === prefix);
-
-  if (!batches || !batches.length) {
-    return createBatch();
-  }
-
-  const latestBatch = path.join(folder, batches.pop());
-  if (fs.readdirSync(latestBatch).length < targetBatchSize) {
-    return latestBatch;
-  }
-  return createBatch();
 };
 
 let IdCounter = 0;

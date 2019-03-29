@@ -492,12 +492,11 @@ export default class EPI2ME {
 
     // dirScanInProgress is a semaphore used to bail out early if this routine is invoked by interval when it's already running
     if (this.dirScanInProgress) {
-      this.log.debug('upload: directory scan already in progress');
       return Promise.resolve();
     }
 
     this.dirScanInProgress = true;
-    this.log.debug('upload: scanning input folder for new files');
+    this.log.debug('upload: started directory scan');
 
     try {
       // find files waiting for upload
@@ -508,6 +507,7 @@ export default class EPI2ME {
       this.log.error(`upload: exception in enqueueUploadFiles: ${String(err)}`);
     }
     this.dirScanInProgress = false;
+    this.log.debug('upload: finished directory scan');
 
     return Promise.resolve();
   }
@@ -830,12 +830,6 @@ export default class EPI2ME {
         .split('/') // hints are always unix-style
         .map(o => o.toUpperCase()); // MC-5612 cross-platform uppercase "pass" folder
       folder = path.join.apply(null, [folder, ...codes]);
-    }
-
-    if (this.config.options.filetype === '.fast5') {
-      // MC-5240: .fast5 files always need to be batched
-      // eg: HIGH_QUALITY/CLASSIFIED/ALIGNED/BATCH-1
-      folder = utils.findSuitableBatchIn(folder);
     }
 
     fs.mkdirpSync(folder);

@@ -5,7 +5,6 @@ import fs from 'fs-extra';
 import path from 'path';
 import { merge } from 'lodash';
 import EPI2ME from '../../src/epi2me';
-import utils from '../../src/utils';
 
 describe('epi2me-api.processMessage', () => {
   const clientFactory = opts =>
@@ -187,50 +186,6 @@ describe('epi2me-api.processMessage', () => {
   //   stub.restore();
   //   stub2.restore();
   // });
-
-  it('should handle fast5 filetype behavior', async () => {
-    const tmpDir = tmp.dirSync();
-    const client = clientFactory({
-      filter: 'off',
-      downloadMode: 'data+telemetry',
-      outputFolder: tmpDir.name,
-      filetype: '.fast5',
-    });
-    const stub = sinon.stub(client, 'sessionedS3').callsFake(() => 's3 object');
-
-    const stub2 = sinon
-      .stub(client, 'initiateDownloadStream')
-      .callsFake((s3, messageBody, message, outputFile, completeCb) => {
-        completeCb();
-      });
-
-    stubs.push(sinon.stub(fs, 'mkdirpSync').callsFake());
-    stubs.push(sinon.stub(utils, 'findSuitableBatchIn').callsFake(() => '/folder_out'));
-
-    try {
-      await client.processMessage(
-        {
-          Body: JSON.stringify({
-            path:
-              'OUTPUT-UUID/INPUT-UUID/9999/999999/component-2/OK/pass/CLASSIFIED/fastq_runid_shasum_15.fastq/fastq_runid_shasum_15.fastq',
-            telemetry: {
-              hints: {
-                folder: 'OK/pass/CLASSIFIED',
-              },
-            },
-          }),
-        },
-        () => {},
-      );
-    } catch (err) {
-      assert.fail(err);
-    }
-
-    assert.equal(stub2.args[0][3], path.join('/folder_out', 'fastq_runid_shasum_15.fastq'));
-    tmpDir.removeCallback();
-    stub.restore();
-    stub2.restore();
-  });
 
   it('should correctly process real-world filter folder MC-6850', async () => {
     const tmpDir = tmp.dirSync();
