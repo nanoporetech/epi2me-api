@@ -202,7 +202,7 @@ describe('epi2me.uploadJob', () => {
           total: { files: 0, bytes: 0 },
           niceTypes: '',
           types: {},
-          progress: {},
+          progress: { niceSize: '0 B' },
         },
         warnings: [],
       },
