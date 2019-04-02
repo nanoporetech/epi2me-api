@@ -457,7 +457,7 @@ export default class EPI2ME {
     }
 
     this.states[direction].progress.niceSize = utils.niceSize(
-      this.states[direction].success.bytes + this.states[direction].progress.bytes,
+      this.states[direction].success.bytes + this.states[direction].progress.bytes || 0,
     );
     this.states[direction].success.niceSize = utils.niceSize(this.states[direction].success.bytes);
     this.states[direction].niceTypes = Object.keys(this.states[direction].types || {})
@@ -693,30 +693,32 @@ export default class EPI2ME {
 
     receiveMessages.Messages.forEach(message => {
       const p = new Promise((resolve, reject) => {
+        this.downloadWorkerPool[message.MessageId] = 1;
         // timeout to ensure this queueCb *always* gets called
 
         const timeoutHandle = setTimeout(() => {
           clearTimeout(timeoutHandle);
-          this.log.error(`this.downloadWorkerPool timeoutHandle. Clearing queue slot for message: ${message.Body}`);
-          delete this.downloadWorkerPool[message.MessageId];
+          this.log.error(
+            `this.downloadWorkerPool timeoutHandle. Clearing queue slot for message: ${message.MessageId}`,
+          );
           reject(new Error('download timed out'));
         }, (60 + this.config.options.downloadTimeout) * 1000);
 
         this.processMessage(message)
           .then(() => {
-            delete this.downloadWorkerPool[message.MessageId];
             clearTimeout(timeoutHandle);
             resolve();
           })
           .catch(err => {
             this.log.error(`processMessage ${String(err)}`);
-            delete this.downloadWorkerPool[message.MessageId];
             clearTimeout(timeoutHandle);
             resolve();
           });
       });
 
-      this.downloadWorkerPool[message.MessageId] = p; // is the promise the most useful thing to keep here? it's really just something truthy
+      p.then(() => {
+        delete this.downloadWorkerPool[message.MessageId];
+      });
     });
 
     this.log.info(`downloader queued ${receiveMessages.Messages.length} messages for processing`);
