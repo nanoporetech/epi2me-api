@@ -456,9 +456,11 @@ export default class EPI2ME {
       });
     }
 
+    // complete plus in-transit
     this.states[direction].progress.niceSize = utils.niceSize(
       this.states[direction].success.bytes + this.states[direction].progress.bytes || 0,
     );
+    // complete
     this.states[direction].success.niceSize = utils.niceSize(this.states[direction].success.bytes);
     this.states[direction].niceTypes = Object.keys(this.states[direction].types || {})
       .sort()
@@ -860,12 +862,12 @@ export default class EPI2ME {
       this.log.error(`Exception deleting message: ${String(e)}`);
     }
 
-    const readCount =
-      messageBody.telemetry.batch_summary && messageBody.telemetry.batch_summary.reads_num
-        ? messageBody.telemetry.batch_summary.reads_num
-        : 1;
+    //    const readCount =
+    //      messageBody.telemetry.batch_summary && messageBody.telemetry.batch_summary.reads_num
+    //        ? messageBody.telemetry.batch_summary.reads_num
+    //        : 1;
 
-    this.downloadState('success', 'incr', { files: 1, reads: readCount }); // this.states.download.success = this.states.download.success ? this.states.download.success + readCount : readCount; // hmm. not exactly "download", these
+    this.downloadState('success', 'incr', merge({ files: 1 }, filestats(outputFile))); // reads: readCount, bytes:  }); // this.states.download.success = this.states.download.success ? this.states.download.success + readCount : readCount; // hmm. not exactly "download", these
 
     /* must signal completion */
     return Promise.resolve();
