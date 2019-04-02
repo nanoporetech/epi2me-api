@@ -456,6 +456,9 @@ export default class EPI2ME {
       });
     }
 
+    this.states[direction].progress.niceSize = utils.niceSize(
+      this.states[direction].success.bytes + this.states[direction].progress.bytes,
+    );
     this.states[direction].success.niceSize = utils.niceSize(this.states[direction].success.bytes);
     this.states[direction].niceTypes = Object.keys(this.states[direction].types || {})
       .sort()
