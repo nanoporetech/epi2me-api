@@ -867,7 +867,7 @@ export default class EPI2ME {
     //        ? messageBody.telemetry.batch_summary.reads_num
     //        : 1;
 
-    this.downloadState('success', 'incr', merge({ files: 1 }, filestats(outputFile))); // reads: readCount, bytes:  }); // this.states.download.success = this.states.download.success ? this.states.download.success + readCount : readCount; // hmm. not exactly "download", these
+    this.downloadState('success', 'incr', merge({ files: 1 }, await filestats(outputFile))); // reads: readCount, bytes:  }); // this.states.download.success = this.states.download.success ? this.states.download.success + readCount : readCount; // hmm. not exactly "download", these
 
     /* must signal completion */
     return Promise.resolve();
