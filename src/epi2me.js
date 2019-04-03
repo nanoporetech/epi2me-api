@@ -1152,7 +1152,7 @@ export default class EPI2ME {
               })
               .finally(() => {
                 this.uploadState('progress', 'decr', { total: file.size, bytes: file.size }); // zero in-flight upload counters
-              })
+              });
           })
           .catch(uploadStreamErr => {
             this.log.warn(`${file.id} uploadStreamError ${uploadStreamErr}`);
