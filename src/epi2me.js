@@ -223,6 +223,11 @@ export default class EPI2ME {
     return new AWS.SQS();
   }
 
+  reportProgress() {
+    const { upload, download } = this.states;
+    this.log.info(`Progress: ${JSON.stringify({ progress: { download, upload } })}`);
+  }
+
   async autoStart(workflowConfig, cb) {
     let instance;
     try {
@@ -363,6 +368,7 @@ export default class EPI2ME {
     /* Request session token */
     await this.session();
 
+    this.reportProgress();
     // MC-5418: ensure that the session has been established before starting the upload
     this.loadUploadFiles(); // Trigger once at workflow instance start
     this.fileCheckInterval = setInterval(this.loadUploadFiles.bind(this), this.config.options.fileCheckInterval * 1000);
@@ -475,8 +481,7 @@ export default class EPI2ME {
     if (!this.stateReportTime || now - this.stateReportTime > 2000) {
       // report at most every 2 seconds
       this.stateReportTime = now;
-      this.log.info(`Uploads: ${JSON.stringify(this.states.upload)}`);
-      this.log.info(`Downloads: ${JSON.stringify(this.states.download)}`);
+      this.reportProgress();
     }
   }
 
@@ -981,6 +986,7 @@ export default class EPI2ME {
         }
 
         try {
+          this.reportProgress();
           // MC-2540 : if there is some postprocessing to do( e.g fastq extraction) - call the dataCallback
           // dataCallback might depend on the exit_status ( e.g. fastq can only be extracted from successful reads )
           const exitStatus =
