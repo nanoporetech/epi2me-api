@@ -1275,9 +1275,9 @@ export default class EPI2ME {
 
       this.log.debug(`${file.id} ${type} and mv done`);
 
-      if (type === 'upload') {
-        this.uploadState('total', 'incr', { bytes: file.size }); // this.states.upload.totalSize += file.size;
-      }
+      //      if (type === 'upload') {
+      //        this.uploadState('total', 'incr', { bytes: file.size }); // this.states.upload.totalSize += file.size;
+      //      }
       //      this.uploadedFiles.push(fileName); // flag as uploaded to prevent multiple uploads
     } catch (moveError) {
       this.log.debug(`${file.id} ${type} move error: ${String(moveError)}`);
