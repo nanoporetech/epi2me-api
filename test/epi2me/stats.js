@@ -31,27 +31,22 @@ describe('epi2me.stats', () => {
 
   it('should stat special upload behaviour', () => {
     const client = new EPI2ME({});
-    client.states = { upload: { total: {}, enqueued: {}, success: {}, queueLength: { files: 10 } } };
+    client.states = { upload: { total: {}, success: {} } };
     assert.doesNotThrow(() => {
       const stat = client.stats('upload');
-      assert.deepEqual(stat.queueLength, { files: 10 });
+      assert.deepEqual(stat, { total: {}, success: {} });
     });
   });
 
   it('should stat special upload behaviour with upload queue', () => {
     const client = new EPI2ME({});
     client.states = {
-      upload: { total: {}, queueLength: { files: 10 }, enqueued: { files: 5 }, success: { files: 7 } },
+      upload: { total: {}, success: { files: 7 } },
     };
 
     assert.doesNotThrow(() => {
       const stat = client.stats('upload');
-      assert.deepEqual(stat, {
-        queueLength: { files: 10 },
-        success: { files: 7 },
-        enqueued: { files: 5 },
-        total: { files: 12 },
-      });
+      assert.deepEqual(stat, { total: {}, success: { files: 7 } });
     });
   });
 });
