@@ -15,6 +15,7 @@ describe('epi2me.initiateDownloadStream', () => {
 
   const s3Mock = cb => ({
     getObject: () => ({
+      on: () => {},
       createReadStream: cb,
     }),
   });
@@ -152,7 +153,6 @@ describe('epi2me.initiateDownloadStream', () => {
       );
       done();
     });
-
     writeStream.on('open', () => {
       writeStream.emit('error', new Error('Test'));
     });
