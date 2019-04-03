@@ -55,11 +55,6 @@ export default class EPI2ME {
         filesCount: 0, // internal. do not use
         success: { files: 0, bytes: 0, reads: 0 }, // successfully uploaded file count, bytes, reads
         failure: {}, // failed upload counts by error message
-        // queueLength: { files: 0 }, // internal. do not use
-        enqueued: {
-          // internal. do not use
-          files: 0,
-        },
         types: {}, // completely uploaded file counts by file type {".fastq": 1, ".vcf": 17}
         niceTypes: '', // "1 .fastq, 17.vcf"
         progress: { bytes: 0, total: 0 }, // bytes in-flight for uploads in progress
@@ -611,7 +606,6 @@ export default class EPI2ME {
         try {
           // normal handling for all file types
           file.stats = await filestats(file.path);
-          this.uploadState('enqueued', 'incr', merge({ files: 1 }, file.stats));
         } catch (e) {
           this.error(`failed to stat ${file.path}: ${String(e)}`);
         }
@@ -637,8 +631,6 @@ export default class EPI2ME {
     // Initiate file upload to S3
 
     if ('skip' in file) {
-      this.uploadState('enqueued', 'decr', merge({ files: 1 }, file.stats)); // this.states.upload.enqueued = this.states.upload.enqueued - readCount;
-      // this.uploadState('queueLength', 'decr', file.stats); // this.states.upload.queueLength = this.states.upload.queueLength ? this.states.upload.queueLength - readCount : 0;
       try {
         await this.moveFile(file, 'skip');
       } catch (e) {
@@ -661,8 +653,6 @@ export default class EPI2ME {
     if (!file2) {
       file2 = {};
     }
-
-    this.uploadState('enqueued', 'decr', merge({ files: 1 }, file2.stats)); // this.states.upload.enqueued = this.states.upload.enqueued - readCount;
 
     if (errorMsg) {
       this.log.error(`uploadJob ${errorMsg}`);
@@ -1344,18 +1334,6 @@ export default class EPI2ME {
   }
 
   stats(key) {
-    if (this.states[key]) {
-      //      this.states[key].queueLength = parseInt(this.states[key].queueLength, 10) || 0; // a little housekeeping
-      // 'total' is the most up-to-date measure of the total number of reads to be uploaded
-      if (key === 'upload') {
-        this.states.upload.total = {
-          files: 0 + parseInt(this.states.upload.enqueued.files, 10) + parseInt(this.states.upload.success.files, 10),
-        };
-        //        this.uploadState('total', 'incr', merge({ files: this.uploadedFiles.length }, this.states.upload.enqueued));
-        //        this.uploadState('total', 'incr', this.states.upload.success);
-        // this.states.upload.total = this.uploadedFiles.length + this.states.upload.enqueued + this.states.upload.success;
-      }
-    }
     return this.states[key];
   }
 }
