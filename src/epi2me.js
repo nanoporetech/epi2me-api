@@ -52,22 +52,24 @@ export default class EPI2ME {
 
     this.states = {
       upload: {
-        filesCount: 0, // this one seems duplicate
-        success: { files: 0 },
-        failure: {},
-        queueLength: { files: 0 },
+        filesCount: 0, // internal. do not use
+        success: { files: 0, bytes: 0, reads: 0 }, // successfully uploaded file count, bytes, reads
+        failure: {}, // failed upload counts by error message
+        // queueLength: { files: 0 }, // internal. do not use
         enqueued: {
+          // internal. do not use
           files: 0,
         },
-        total: { files: 0, bytes: 0 },
-        types: {},
-        progress: {},
+        types: {}, // completely uploaded file counts by file type {".fastq": 1, ".vcf": 17}
+        niceTypes: '', // "1 .fastq, 17.vcf"
+        progress: { bytes: 0, total: 0 }, // bytes in-flight for uploads in progress
       },
       download: {
         success: { files: 0, reads: 0, bytes: 0 },
         fail: 0,
-        failure: {},
-        types: {},
+        failure: {}, // failed download count by error message
+        types: {}, // completely downloaded file counts by file type {".fastq": 17, ".vcf": 1}
+        niceTypes: '', // "17 .fastq, 1.vcf"
       },
       warnings: [],
     };
@@ -632,7 +634,7 @@ export default class EPI2ME {
 
     if ('skip' in file) {
       this.uploadState('enqueued', 'decr', merge({ files: 1 }, file.stats)); // this.states.upload.enqueued = this.states.upload.enqueued - readCount;
-      this.uploadState('queueLength', 'decr', file.stats); // this.states.upload.queueLength = this.states.upload.queueLength ? this.states.upload.queueLength - readCount : 0;
+      // this.uploadState('queueLength', 'decr', file.stats); // this.states.upload.queueLength = this.states.upload.queueLength ? this.states.upload.queueLength - readCount : 0;
       try {
         await this.moveFile(file, 'skip');
       } catch (e) {
@@ -668,7 +670,7 @@ export default class EPI2ME {
         ? this.states.upload.failure[errorMsg] + 1
         : 1;
     } else {
-      this.uploadState('queueLength', 'decr', file2.stats); // this.states.upload.queueLength = this.states.upload.queueLength ? this.states.upload.queueLength - readCount : 0;
+      // this.uploadState('queueLength', 'decr', file2.stats); // this.states.upload.queueLength = this.states.upload.queueLength ? this.states.upload.queueLength - readCount : 0;
       this.uploadState('success', 'incr', merge({ files: 1 }, file2.stats)); // this.states.upload.success = this.states.upload.success ? this.states.upload.success + readCount : readCount;
 
       if (file2.name) {
