@@ -937,11 +937,11 @@ export default class EPI2ME {
       file = fs.createWriteStream(outputFile);
       const req = s3.getObject(params);
 
-      /* track request/response bytes expected
-            req.on('httpHeaders', (status, headers, response) => {
-                this.states.download.totalBytes += parseInt(headers['content-length']);
-            });
-            */
+      // track request/response bytes expected
+      req.on('httpHeaders', (status, headers) => {
+        // status, headers, response
+        this.downloadState('progress', 'incr', { total: parseInt(headers['content-length'], 10) });
+      });
 
       rs = req.createReadStream();
     } catch (getObjectException) {
@@ -972,9 +972,10 @@ export default class EPI2ME {
         // MC-1993 - store total size of downloaded files
         try {
           const ext = path.extname(outputFile);
-
-          this.downloadState('success', 'incr', merge({ files: 1 }, await filestats(outputFile)));
+          const stats = await filestats(outputFile);
+          this.downloadState('success', 'incr', merge({ files: 1 }, stats));
           this.downloadState('types', 'incr', { [ext]: 1 });
+          this.downloadState('progress', 'decr', { total: stats.bytes, bytes: stats.bytes }); // reset in-flight counters
         } catch (err) {
           this.log.warn(`failed to stat ${outputFile}: ${String(err)}`);
         }
@@ -1054,14 +1055,15 @@ export default class EPI2ME {
       900 * this.config.options.inFlightDelay,
     ); /* message in flight timeout in ms, less 10% */
 
-    rs.on('data', () => {
+    rs.on('data', chunk => {
       // bytesLoaded += chunk.length;
       clearTimeout(transferTimeout);
       transferTimeout = setTimeout(
         transferTimeoutFunc,
         1000 * this.config.options.downloadTimeout,
       ); /* download stream timeout in ms */
-      //                this.log.debug(`downloaded ${chunk.length} bytes. resetting transferTimeout`);
+
+      this.downloadState('progress', 'incr', { bytes: chunk.length });
     }).pipe(file); // initiate download stream
   }
 
@@ -1138,16 +1140,18 @@ export default class EPI2ME {
           .promise()
           .then(() => {
             this.log.info(`${file.id} S3 upload complete`);
-            this.uploadState('progress', 'decr', { total: file.size, bytes: file.size });
             rs.close();
             clearTimeout(timeoutHandle);
 
-            this.uploadComplete(objectId, file)
+            this.uploadComplete(objectId, file) // send message
               .then(() => {
                 resolve(file);
               })
               .catch(uploadCompleteErr => {
                 reject(uploadCompleteErr);
+              })
+              .finally(() => {
+                this.uploadState('progress', 'decr', { total: file.size, bytes: file.size }); // zero in-flight upload counters
               });
           })
           .catch(uploadStreamErr => {
