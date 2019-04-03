@@ -608,9 +608,13 @@ export default class EPI2ME {
         this.log.error(msg);
         this.states.warnings.push(msg);
       } else {
-        // normal handling for all file types
-        file.stats = await filestats(file.path);
-        this.uploadState('enqueued', 'incr', merge({ files: 1 }, file.stats));
+        try {
+          // normal handling for all file types
+          file.stats = await filestats(file.path);
+          this.uploadState('enqueued', 'incr', merge({ files: 1 }, file.stats));
+        } catch (e) {
+          this.error(`failed to stat ${file.path}: ${String(e)}`);
+        }
       }
 
       return this.uploadJob(file);
@@ -864,12 +868,12 @@ export default class EPI2ME {
       this.log.error(`Exception deleting message: ${String(e)}`);
     }
 
-    //    const readCount =
-    //      messageBody.telemetry.batch_summary && messageBody.telemetry.batch_summary.reads_num
-    //        ? messageBody.telemetry.batch_summary.reads_num
-    //        : 1;
+    const readCount =
+      messageBody.telemetry.batch_summary && messageBody.telemetry.batch_summary.reads_num
+        ? messageBody.telemetry.batch_summary.reads_num
+        : 1;
 
-    this.downloadState('success', 'incr', merge({ files: 1 }, await filestats(outputFile))); // reads: readCount, bytes:  }); // this.states.download.success = this.states.download.success ? this.states.download.success + readCount : readCount; // hmm. not exactly "download", these
+    this.downloadState('success', 'incr', { files: 1, reads: readCount });
 
     /* must signal completion */
     return Promise.resolve();
@@ -960,22 +964,19 @@ export default class EPI2ME {
         // SUCCESS
         this.log.debug(`downloaded ${outputFile}`);
 
-        const readCount =
-          messageBody.telemetry && messageBody.telemetry.batch_summary && messageBody.telemetry.batch_summary.reads_num
-            ? messageBody.telemetry.batch_summary.reads_num
-            : 1;
-
-        const ext = path.extname(outputFile);
-
-        this.downloadState('success', 'incr', { files: 1, reads: readCount });
-        this.downloadState('types', 'incr', { [ext]: 1 });
+        //        const readCount =
+        //          messageBody.telemetry && messageBody.telemetry.batch_summary && messageBody.telemetry.batch_summary.reads_num
+        //            ? messageBody.telemetry.batch_summary.reads_num
+        //            : 1;
 
         // MC-1993 - store total size of downloaded files
         try {
-          const stats = await filestats(outputFile);
-          this.downloadState('success', 'incr', { bytes: stats.bytes });
+          const ext = path.extname(outputFile);
+
+          this.downloadState('success', 'incr', merge({ files: 1 }, await filestats(outputFile)));
+          this.downloadState('types', 'incr', { [ext]: 1 });
         } catch (err) {
-          this.log.warn(`failed to stat file: ${String(err)}`);
+          this.log.warn(`failed to stat ${outputFile}: ${String(err)}`);
         }
 
         try {
