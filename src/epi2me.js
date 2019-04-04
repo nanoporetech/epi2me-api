@@ -12,6 +12,7 @@ import fs from 'fs-extra'; /* MC-565 handle EMFILE & EXDIR gracefully; use Promi
 import { EOL } from 'os';
 import path from 'path';
 import proxy from 'proxy-agent';
+import Promise from 'core-js/features/promise'; // shim Promise.finally() for nw 0.29.4 nodejs
 import utils from './utils-fs';
 import _REST from './rest-fs';
 import filestats from './filestats';
@@ -459,14 +460,28 @@ export default class EPI2ME {
       });
     }
 
-    this.states[direction].success.niceReads = utils.niceSize(this.states[direction].success.reads);
+    try {
+      this.states[direction].success.niceReads = utils.niceSize(this.states[direction].success.reads);
+    } catch (ignore) {
+      this.states[direction].success.niceReads = 0;
+    }
 
-    // complete plus in-transit
-    this.states[direction].progress.niceSize = utils.niceSize(
-      this.states[direction].success.bytes + this.states[direction].progress.bytes || 0,
-    );
-    // complete
-    this.states[direction].success.niceSize = utils.niceSize(this.states[direction].success.bytes);
+    try {
+      // complete plus in-transit
+      this.states[direction].progress.niceSize = utils.niceSize(
+        this.states[direction].success.bytes + this.states[direction].progress.bytes || 0,
+      );
+    } catch (ignore) {
+      this.states[direction].progress.niceSize = 0;
+    }
+
+    try {
+      // complete
+      this.states[direction].success.niceSize = utils.niceSize(this.states[direction].success.bytes);
+    } catch (ignore) {
+      this.states[direction].success.niceSize = 0;
+    }
+
     this.states[direction].niceTypes = Object.keys(this.states[direction].types || {})
       .sort()
       .map(fileType => {
@@ -699,10 +714,8 @@ export default class EPI2ME {
     receiveMessages.Messages.forEach(message => {
       const p = new Promise((resolve, reject) => {
         this.downloadWorkerPool[message.MessageId] = 1;
-        // timeout to ensure this queueCb *always* gets called
 
         const timeoutHandle = setTimeout(() => {
-          clearTimeout(timeoutHandle);
           this.log.error(
             `this.downloadWorkerPool timeoutHandle. Clearing queue slot for message: ${message.MessageId}`,
           );
@@ -711,13 +724,14 @@ export default class EPI2ME {
 
         this.processMessage(message)
           .then(() => {
-            clearTimeout(timeoutHandle);
             resolve();
           })
           .catch(err => {
             this.log.error(`processMessage ${String(err)}`);
-            clearTimeout(timeoutHandle);
             resolve();
+          })
+          .finally(() => {
+            clearTimeout(timeoutHandle);
           });
       });
 
