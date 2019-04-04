@@ -12,6 +12,7 @@ import fs from 'fs-extra'; /* MC-565 handle EMFILE & EXDIR gracefully; use Promi
 import { EOL } from 'os';
 import path from 'path';
 import proxy from 'proxy-agent';
+import Promise from 'core-js/features/promise'; // shim Promise.finally() for nw 0.29.4 nodejs
 import utils from './utils-fs';
 import _REST from './rest-fs';
 import filestats from './filestats';
