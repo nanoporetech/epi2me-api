@@ -58,9 +58,10 @@ export default class EPI2ME {
         failure: {}, // failed upload counts by error message
         types: {}, // completely uploaded file counts by file type {".fastq": 1, ".vcf": 17}
         niceTypes: '', // "1 .fastq, 17.vcf"
-        progress: { bytes: 0, total: 0 }, // bytes in-flight for uploads in progress
+        progress: { bytes: 0, total: 0 }, // uploads in-flight: bytes, total
       },
       download: {
+        progress: {}, // downloads in-flight: bytes, total
         success: { files: 0, reads: 0, bytes: 0 },
         fail: 0,
         failure: {}, // failed download count by error message
