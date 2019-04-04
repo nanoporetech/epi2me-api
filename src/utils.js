@@ -271,9 +271,9 @@ const utils = (function magic() {
       }
 
       if (unitidx === 0) {
-        return UNITS[unitidx] ? `${size} ${UNITS[unitidx]}` : `${size}`;
+        return `${size}${UNITS[unitidx]}`;
       }
-      return `${size.toFixed(2)} ${UNITS[unitidx]}`;
+      return `${size.toFixed(1)}${UNITS[unitidx]}`;
     },
   };
 })();
