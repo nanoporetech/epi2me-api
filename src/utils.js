@@ -12,7 +12,7 @@ import { version as VERSION } from '../package.json';
 
 axios.defaults.validateStatus = status => status <= 504; // Reject only if the status code is greater than or equal to 500
 
-const UNITS = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB'];
+const UNITS = ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z'];
 const DIV = 1000;
 
 const utils = (function magic() {
@@ -271,7 +271,7 @@ const utils = (function magic() {
       }
 
       if (unitidx === 0) {
-        return `${size} ${UNITS[unitidx]}`;
+        return UNITS[unitidx] ? `${size} ${UNITS[unitidx]}` : `${size}`;
       }
       return `${size.toFixed(2)} ${UNITS[unitidx]}`;
     },
