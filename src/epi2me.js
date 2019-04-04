@@ -459,6 +459,8 @@ export default class EPI2ME {
       });
     }
 
+    this.states[direction].success.niceReads = utils.niceSize(this.states[direction].success.reads);
+
     // complete plus in-transit
     this.states[direction].progress.niceSize = utils.niceSize(
       this.states[direction].success.bytes + this.states[direction].progress.bytes || 0,
