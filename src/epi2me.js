@@ -527,7 +527,7 @@ export default class EPI2ME {
       // trigger upload for all waiting files, blocking until all complete
 
       let running = 0;
-      const fileFunc = () => {
+      const chunkFunc = () => {
         return new Promise(async resolve => {
           if (running > this.config.options.transferPoolSize) { // run at most n at any one time
             setTimeout(resolve(), 1000); // and check for more members of files[] after a second
@@ -552,7 +552,7 @@ export default class EPI2ME {
       };
 
       while(files.length) {
-        await fileFunc(); // eslint-disable-line no-await-in-loop
+        await chunkFunc(); // eslint-disable-line no-await-in-loop
       }
 
     } catch (err) {
