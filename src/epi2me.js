@@ -530,7 +530,7 @@ export default class EPI2ME {
       const chunkFunc = () => {
         return new Promise(async resolve => {
           if (running > this.config.options.transferPoolSize) { // run at most n at any one time
-            setTimeout(resolve(), 1000); // and check for more members of files[] after a second
+            setTimeout(resolve, 1000); // and check for more members of files[] after a second
             return;
           }
 
