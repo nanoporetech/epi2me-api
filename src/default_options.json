@@ -14,7 +14,7 @@
   "inFlightDelay": 600,
   "waitTimeSeconds": 20,
   "waitTokenError": 30,
-  "downloadPoolSize": 3,
+  "transferPoolSize": 3,
   "filter": "on",
   "downloadMode": "data+telemetry",
   "deleteOnComplete": "off",

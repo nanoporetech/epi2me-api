@@ -71,8 +71,6 @@ export default class EPI2ME {
       warnings: [],
     };
 
-    // if (opts.filter === 'on') defaults.downloadPoolSize = 5;
-
     this.config = {
       options: defaults(opts, DEFAULTS),
       instance: {
@@ -405,7 +403,7 @@ export default class EPI2ME {
   async downloadAvailable() {
     const downloadWorkerPoolRemaining = Object.keys(this.downloadWorkerPool || {}).length;
 
-    if (downloadWorkerPoolRemaining >= this.config.options.downloadPoolSize) {
+    if (downloadWorkerPoolRemaining >= this.config.options.transferPoolSize) {
       /* ensure downloadPool is limited but fully utilised */
       this.log.debug(`${downloadWorkerPoolRemaining} downloads already queued`);
       return Promise.resolve();
@@ -422,7 +420,7 @@ export default class EPI2ME {
           AttributeNames: ['All'], // to check if the same message is received multiple times
           QueueUrl: queueURL,
           VisibilityTimeout: this.config.options.inFlightDelay, // approximate time taken to pass/fail job before resubbing
-          MaxNumberOfMessages: this.config.options.downloadPoolSize - downloadWorkerPoolRemaining, // download enough messages to fill the pool up again
+          MaxNumberOfMessages: this.config.options.transferPoolSize - downloadWorkerPoolRemaining, // download enough messages to fill the pool up again
           WaitTimeSeconds: this.config.options.waitTimeSeconds, // long-poll
         })
         .promise();
@@ -527,9 +525,38 @@ export default class EPI2ME {
       // find files waiting for upload
       const files = await utils.loadInputFiles(this.config.options, this.log);
       // trigger upload for all waiting files, blocking until all complete
-      await this.enqueueUploadFiles(files);
+
+      let running = 0;
+      const fileFunc = () => {
+        return new Promise(async resolve => {
+          if (running > this.config.options.transferPoolSize) { // run at most n at any one time
+            setTimeout(resolve(), 1000); // and check for more members of files[] after a second
+            return;
+          }
+
+          // subtlety: if you upload a pre-existing run, this will generally always quantise/"sawtooth" n files at a time and wait for each set to complete
+          // but if you trickle files in one at a time, you'll actually achieve faster throughput
+          const filesChunk = files.splice(0, this.config.options.transferPoolSize - running); // fill up all available slots
+          running += filesChunk.length;
+
+          try {
+            await this.enqueueUploadFiles(filesChunk);
+          } catch (e) {
+            this.log.error(`upload: exception in enqueueUploadFiles: ${String(e)}`);
+          }
+
+          running -= filesChunk; // clear the upload slot(s)
+
+          resolve();
+        });
+      };
+
+      while(files.length) {
+        await fileFunc(); // eslint-disable-line no-await-in-loop
+      }
+
     } catch (err) {
-      this.log.error(`upload: exception in enqueueUploadFiles: ${String(err)}`);
+      this.log.error(`upload: exception in loadInputFiles: ${String(err)}`);
     }
     this.dirScanInProgress = false;
     this.log.debug('upload: finished directory scan');
