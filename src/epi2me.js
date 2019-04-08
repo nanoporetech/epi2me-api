@@ -545,7 +545,7 @@ export default class EPI2ME {
             this.log.error(`upload: exception in enqueueUploadFiles: ${String(e)}`);
           }
 
-          running -= filesChunk; // clear the upload slot(s)
+          running -= filesChunk.length; // clear the upload slot(s)
 
           resolve();
         });
