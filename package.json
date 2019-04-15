@@ -15,6 +15,8 @@
     "lodash": "4.17.11",
     "proxy-agent": "3.0.3",
     "recursive-readdir": "2.2.2",
+    "sqlite": "^3.0.3",
+    "sqlite3": "4.0.6",
     "tunnel": "^0.0.6",
     "yarn": "^1.15.2"
   },

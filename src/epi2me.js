@@ -16,6 +16,7 @@ import Promise from 'core-js/features/promise'; // shim Promise.finally() for nw
 import utils from './utils-fs';
 import _REST from './rest-fs';
 import filestats from './filestats';
+import DB from './db';
 import DEFAULTS from './default_options.json';
 
 export default class EPI2ME {
@@ -305,6 +306,9 @@ export default class EPI2ME {
     if (!this.config.instance.inputQueueName) throw new Error('inputQueueName must be set');
     if (!this.config.instance.outputQueueName) throw new Error('outputQueueName must be set');
 
+    // set up a new sqlite db for uploads & skips
+    this.db = new DB(this.config.options.inputFolder);
+
     fs.mkdirpSync(this.config.options.outputFolder);
 
     // MC-1828 - include instance id in telemetry file name
@@ -522,14 +526,18 @@ export default class EPI2ME {
     this.log.debug('upload: started directory scan');
 
     try {
+      const dbFilter = fileIn => {
+        return this.db.seenUpload(fileIn);
+      };
       // find files waiting for upload
-      const files = await utils.loadInputFiles(this.config.options, this.log);
+      const files = await utils.loadInputFiles(this.config.options, this.log, dbFilter);
       // trigger upload for all waiting files, blocking until all complete
 
       let running = 0;
       const chunkFunc = () => {
         return new Promise(async resolve => {
-          if (running > this.config.options.transferPoolSize) { // run at most n at any one time
+          if (running > this.config.options.transferPoolSize) {
+            // run at most n at any one time
             setTimeout(resolve, 1000); // and check for more members of files[] after a second
             return;
           }
@@ -551,10 +559,9 @@ export default class EPI2ME {
         });
       };
 
-      while(files.length) {
+      while (files.length) {
         await chunkFunc(); // eslint-disable-line no-await-in-loop
       }
-
     } catch (err) {
       this.log.error(`upload: exception in loadInputFiles: ${String(err)}`);
     }
@@ -681,12 +688,7 @@ export default class EPI2ME {
     // Initiate file upload to S3
 
     if ('skip' in file) {
-      try {
-        await this.moveFile(file, 'skip');
-      } catch (e) {
-        return Promise.reject(e);
-      }
-      return Promise.resolve();
+      return this.db.skipFile(file.path);
     }
 
     let file2;
@@ -1112,8 +1114,7 @@ export default class EPI2ME {
     const s3 = await this.sessionedS3();
 
     let rs;
-    const batch = file.batch || '';
-    const fileId = path.join(this.config.options.inputFolder, batch, file.name);
+    const fileId = path.join(this.config.options.inputFolder, file.name);
     const objectId = `${this.config.instance.bucketFolder}/component-0/${file.name}/${file.name}`;
     let timeoutHandle;
 
@@ -1298,41 +1299,7 @@ export default class EPI2ME {
     }
 
     this.log.info(`${file.id} SQS message sent. Move to uploaded`);
-
-    try {
-      await this.moveFile(file, 'upload');
-      return Promise.resolve();
-    } catch (e) {
-      return Promise.reject(e);
-    }
-
-    // success
-  }
-
-  async moveFile(file, type) {
-    const moveTo = type === 'upload' ? this.uploadTo : this.skipTo;
-    const fileName = file.name;
-    const fileBatch = file.batch || '';
-    const fileFrom = file.path || path.join(this.config.options.inputFolder, fileBatch, fileName);
-    const fileTo = path.join(moveTo, fileBatch, fileName);
-
-    try {
-      await fs.mkdirp(path.join(moveTo, fileBatch));
-      await fs.move(fileFrom, fileTo);
-
-      this.log.debug(`${file.id} ${type} and mv done`);
-    } catch (moveError) {
-      this.log.debug(`${file.id} ${type} move error: ${String(moveError)}`);
-
-      try {
-        await fs.remove(fileTo);
-      } catch (unlinkError) {
-        this.log.warn(`${file.id} ${type} additionally failed to delete ${fileTo}: ${String(unlinkError)}`);
-      }
-
-      return Promise.reject(moveError);
-    }
-    return Promise.resolve();
+    return this.db.uploadFile(file.path);
   }
 
   async queueLength(queueURL) {

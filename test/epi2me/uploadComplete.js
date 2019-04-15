@@ -2,11 +2,13 @@ import assert from 'assert';
 import sinon from 'sinon';
 import { merge } from 'lodash';
 import AWS from 'aws-sdk';
+import tmp from 'tmp';
 import EPI2ME from '../../src/epi2me';
+import DB from '../../src/db';
 
 describe('epi2me.uploadComplete', () => {
-  const clientFactory = opts =>
-    new EPI2ME(
+  const clientFactory = opts => {
+    const client = new EPI2ME(
       merge(
         {
           url: 'https://epi2me-test.local',
@@ -20,6 +22,9 @@ describe('epi2me.uploadComplete', () => {
         opts,
       ),
     );
+    client.db = new DB(tmp.dirSync().name);
+    return client;
+  };
 
   it('sqs callback failure should handle error and log warning', async () => {
     const client = clientFactory();
@@ -32,7 +37,7 @@ describe('epi2me.uploadComplete', () => {
     }));
 
     try {
-      await client.uploadComplete('object-id', { id: 'my-file' });
+      await client.uploadComplete('object-id', { id: 'my-file', path: 'path/to/file.fastq' });
       assert.fail('unexpected success');
     } catch (e) {
       assert(client.log.error.lastCall.args[0].match(/exception sending SQS/));
@@ -52,7 +57,7 @@ describe('epi2me.uploadComplete', () => {
 
     let err;
     try {
-      await client.uploadComplete('object-id', { id: 'my-file' });
+      await client.uploadComplete('object-id', { id: 'my-file', path: 'path/to/file.fastq' });
     } catch (e) {
       err = e;
     }
@@ -87,14 +92,8 @@ describe('epi2me.uploadComplete', () => {
       };
     });
 
-    sinon.stub(client, 'moveFile').callsFake((file, type) => {
-      assert.deepEqual(file, { id: 'my-file' }, 'object metadata');
-      assert.equal(type, 'upload');
-      return Promise.resolve();
-    });
-
     try {
-      await client.uploadComplete('object-id', { id: 'my-file' });
+      await client.uploadComplete('object-id', { id: 'my-file', path: 'path/to/file.fastq' });
     } catch (e) {
       assert.fail(e);
     }
@@ -110,13 +109,12 @@ describe('epi2me.uploadComplete', () => {
     sinon.stub(client, 'discoverQueue').resolves('http://my-queue/');
     sinon.stub(client, 'sessionedSQS').resolves(sqs);
     sinon.stub(sqs, 'sendMessage').resolves();
-    sinon.stub(client, 'moveFile').resolves();
 
     client.config.instance.chain = {}; // components undefined
 
     let err;
     try {
-      await client.uploadComplete('object-id', { id: 'my-file' });
+      await client.uploadComplete('object-id', { id: 'my-file', path: 'path/to/file.fastq' });
     } catch (e) {
       err = e;
     }
@@ -160,14 +158,12 @@ describe('epi2me.uploadComplete', () => {
       };
     });
 
-    sinon.stub(client, 'moveFile').resolves();
-
     client.config.instance.chain = { components: [], targetComponentId: 1 };
     client.config.instance.key_id = 'data-secret';
     client.config.options.agent_address = JSON.stringify({ city: 'Cambridge', ip: '127.0.0.1' });
 
     try {
-      await client.uploadComplete('object-id', { id: 'my-file' });
+      await client.uploadComplete('object-id', { id: 'my-file', path: 'path/to/file.fastq' });
     } catch (e) {
       assert.fail(e);
     }
@@ -206,14 +202,12 @@ describe('epi2me.uploadComplete', () => {
       };
     });
 
-    sinon.stub(client, 'moveFile').resolves();
-
     client.config.instance.chain = { components: [], targetComponentId: 1 };
     client.config.instance.key_id = 'data-secret';
     client.config.options.agent_address = 'bad json data';
 
     try {
-      await client.uploadComplete('object-id', { id: 'my-file' });
+      await client.uploadComplete('object-id', { id: 'my-file', path: 'path/to/file.fastq' });
     } catch (e) {
       assert.fail(e);
     }
@@ -240,7 +234,6 @@ describe('epi2me.uploadComplete', () => {
         promise: () => Promise.resolve(),
       };
     });
-    sinon.stub(client, 'moveFile').resolves();
 
     client.uploadMessageQueue = 'upload-q';
     client.downloadMessageQueue = 'download-q';
@@ -249,7 +242,7 @@ describe('epi2me.uploadComplete', () => {
     };
 
     try {
-      await client.uploadComplete('object-id', { id: 'my-file' });
+      await client.uploadComplete('object-id', { id: 'my-file', path: 'path/to/file.fastq' });
     } catch (e) {
       assert.fail(e);
     }

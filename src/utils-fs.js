@@ -7,7 +7,7 @@
 import axios from 'axios';
 import fs from 'fs-extra';
 import path from 'path';
-import { isString, isArray } from 'lodash';
+import { isString } from 'lodash';
 import utils from './utils';
 import filestats from './filestats';
 
@@ -115,7 +115,7 @@ utils.lsFolder = (dir, ignore, filetype, rootDir = '') =>
       .catch(err => Promise.reject(new Error(`error listing folder ${err}`)));
   });
 
-utils.loadInputFiles = ({ inputFolder, outputFolder, uploadedFolder, filetype }, uploaded = []) =>
+utils.loadInputFiles = ({ inputFolder, outputFolder, uploadedFolder, filetype }, log, extraFilter) =>
   /**
    * Entry point for new .fast5 / .fastq files.
    *  - Scan the input folder files
@@ -138,8 +138,8 @@ utils.loadInputFiles = ({ inputFolder, outputFolder, uploadedFolder, filetype },
         (uploadedFolder && basename === path.basename(uploadedFolder)) ||
         (outputFolder && basename === path.basename(outputFolder)) ||
         basename === 'tmp' ||
-        (isArray(uploaded) && uploaded.indexOf(path.posix.basename(file)) > -1)
-      );
+        (extraFilter ? extraFilter(file) : null)
+      ); // logged in database
     };
 
     // iterate through folders
