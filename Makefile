@@ -11,7 +11,7 @@ cover:
 	yarn cover
 
 deps:
-	apt-get install -y --force-yes nodejs
+	apt-get install -y --force-yes nodejs jq
 	npm install -g yarn
 
 .PHONY: dist test lint cover test_integration
