@@ -162,7 +162,7 @@ utils.loadInputFiles = ({ inputFolder, outputFolder, uploadedFolder, filetype },
           if (batchFolders.length) {
             next(); // iterate
           } else {
-            resolve(); // Done. No new files were found
+            resolve([]); // Done. No new files were found. Needs to emit an array
           }
         })
         .catch(err => {
