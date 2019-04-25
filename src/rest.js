@@ -218,7 +218,7 @@ export default class REST {
     if (action === 'update') {
       // three args: update object: (123, {...}, func)
       try {
-        const update = await utils.put('workflow', id, obj, assign({}, this.options, { legacy_form: true }));
+        const update = await utils.put('workflow', id, obj, this.options);
         return cb ? cb(null, update) : Promise.resolve(update);
       } catch (err) {
         return cb ? cb(err) : Promise.reject(err);
@@ -229,7 +229,7 @@ export default class REST {
       // two args: create object: ({...}, func)
 
       try {
-        const create = await utils.post('workflow', obj, assign({}, this.options, { legacy_form: true }));
+        const create = await utils.post('workflow', obj, this.options);
         return cb ? cb(null, create) : Promise.resolve(create);
       } catch (err) {
         return cb ? cb(err) : Promise.reject(err);
