@@ -68,7 +68,7 @@ describe('utils-fs.loadInputFiles', () => {
     });
 
     await utils.loadInputFiles(opts).then(files3 => {
-      assert.equal(typeof files3, 'undefined', 'should find the one valid file');
+      assert.deepEqual(files3, [], 'should find no files');
     });
   });
 });
