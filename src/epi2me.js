@@ -1113,8 +1113,7 @@ export default class EPI2ME {
     const s3 = await this.sessionedS3();
 
     let rs;
-    const fileId = path.join(this.config.options.inputFolder, file.name);
-    const objectId = `${this.config.instance.bucketFolder}/component-0/${file.name}/${file.name}`;
+    const objectId = `${this.config.instance.bucketFolder}/component-0/${file.name}/${file.relative}`; // not sure why this needs the file.name prefix
     let timeoutHandle;
 
     const p = new Promise((resolve, reject) => {
@@ -1126,7 +1125,7 @@ export default class EPI2ME {
       timeoutHandle = setTimeout(timeoutFunc, (this.config.options.uploadTimeout + 5) * 1000);
 
       try {
-        rs = fs.createReadStream(fileId);
+        rs = fs.createReadStream(file.path);
       } catch (createReadStreamException) {
         clearTimeout(timeoutHandle);
 
@@ -1236,7 +1235,7 @@ export default class EPI2ME {
       bucket: this.config.instance.bucket,
       outputQueue: this.config.instance.outputQueueName,
       remote_addr: this.config.instance.remote_addr,
-      user_defined: this.config.instance.user_defined || null, // MC-2397 - bind paramthis.config to each sqs message
+      user_defined: this.config.instance.user_defined || null, // MC-2397 - bind param this.config to each sqs message
       apikey: this.config.options.apikey,
       id_workflow_instance: this.config.instance.id_workflow_instance,
       id_master: this.config.instance.id_workflow,
