@@ -11,12 +11,14 @@ export default class db {
           try {
             await Promise.all([
               dbh
-                .run("CREATE TABLE meta (version CHAR(12) DEFAULT '' NOT NULL, id_workflow_instance INTEGER UNSIGNED)")
+                .run(
+                  "CREATE TABLE IF NOT EXISTS meta (version CHAR(12) DEFAULT '' NOT NULL, id_workflow_instance INTEGER UNSIGNED)",
+                )
                 .then(() => {
                   dbh.run("INSERT INTO meta (version, id_workflow_instance) VALUES('0.0.1', ?)", idWorkflowInstance);
                 }),
-              dbh.run("CREATE TABLE uploads (filename CHAR(255) DEFAULT '' NOT NULL PRIMARY KEY)"),
-              dbh.run("CREATE TABLE skips (filename CHAR(255) DEFAULT '' NOT NULL PRIMARY KEY)"),
+              dbh.run("CREATE TABLE IF NOT EXISTS uploads (filename CHAR(255) DEFAULT '' NOT NULL PRIMARY KEY)"),
+              dbh.run("CREATE TABLE IF NOT EXISTS skips (filename CHAR(255) DEFAULT '' NOT NULL PRIMARY KEY)"),
             ]);
 
             return Promise.resolve(dbh);
