@@ -1,9 +1,10 @@
 import sqlite from 'sqlite';
 import { mkdirp } from 'fs-extra';
+import { remove } from 'lodash';
 import path from 'path';
 
 export default class db {
-  constructor(dbRoot, id_workflow_instance) {
+  constructor(dbRoot, idWorkflowInstance) {
     this.db = mkdirp(dbRoot)
       .then(() => {
         return sqlite.open(path.join(dbRoot, 'db.sqlite'), { Promise }).then(async dbh => {
@@ -12,7 +13,7 @@ export default class db {
               dbh
                 .run("CREATE TABLE meta (version CHAR(12) DEFAULT '' NOT NULL, id_workflow_instance INTEGER UNSIGNED)")
                 .then(() => {
-                  dbh.run("INSERT INTO meta (version, id_workflow_instance) VALUES('0.0.1', ?)", id_workflow_instance);
+                  dbh.run("INSERT INTO meta (version, id_workflow_instance) VALUES('0.0.1', ?)", idWorkflowInstance);
                 }),
               dbh.run("CREATE TABLE uploads (filename CHAR(255) DEFAULT '' NOT NULL PRIMARY KEY)"),
               dbh.run("CREATE TABLE skips (filename CHAR(255) DEFAULT '' NOT NULL PRIMARY KEY)"),
@@ -41,6 +42,11 @@ export default class db {
 
   async seenUpload(filename) {
     const dbh = await this.db;
-    return dbh.get('SELECT * FROM uploads u, skips s WHERE u.filename=? OR s.filename=? LIMIT 1', filename, filename);
+    return Promise.all([
+      dbh.get('SELECT * FROM uploads u WHERE u.filename=? LIMIT 1', filename),
+      dbh.get('SELECT * FROM skips s WHERE s.filename=? LIMIT 1', filename),
+    ]).then(results => {
+      return remove(results, undefined).length;
+    });
   }
 }

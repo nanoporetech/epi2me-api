@@ -526,11 +526,8 @@ export default class EPI2ME {
     this.log.debug('upload: started directory scan');
 
     try {
-      const dbFilter = fileIn => {
-        const dbCheck = this.db.seenUpload(fileIn);
-        console.log("dbFilter", fileIn, dbCheck);
-        return dbCheck;
-      };
+      const dbFilter = fileIn => this.db.seenUpload(fileIn);
+
       // find files waiting for upload
       const files = await utils.loadInputFiles(this.config.options, this.log, dbFilter);
       // trigger upload for all waiting files, blocking until all complete
@@ -1359,3 +1356,4 @@ export default class EPI2ME {
 
 EPI2ME.version = utils.version;
 EPI2ME.REST = _REST;
+EPI2ME.utils = utils;
