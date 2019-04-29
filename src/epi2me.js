@@ -307,7 +307,7 @@ export default class EPI2ME {
     if (!this.config.instance.outputQueueName) throw new Error('outputQueueName must be set');
 
     // set up a new sqlite db for uploads & skips
-    this.db = new DB(this.config.options.inputFolder);
+    this.db = new DB(this.config.options.inputFolder, this.config.instance.id_workflow_instance);
 
     fs.mkdirpSync(this.config.options.outputFolder);
 
@@ -527,7 +527,9 @@ export default class EPI2ME {
 
     try {
       const dbFilter = fileIn => {
-        return this.db.seenUpload(fileIn);
+        const dbCheck = this.db.seenUpload(fileIn);
+        console.log("dbFilter", fileIn, dbCheck);
+        return dbCheck;
       };
       // find files waiting for upload
       const files = await utils.loadInputFiles(this.config.options, this.log, dbFilter);

@@ -3,7 +3,7 @@ import { mkdirp } from 'fs-extra';
 import path from 'path';
 
 export default class db {
-  constructor(dbRoot) {
+  constructor(dbRoot, id_workflow_instance) {
     this.db = mkdirp(dbRoot)
       .then(() => {
         return sqlite.open(path.join(dbRoot, 'db.sqlite'), { Promise }).then(async dbh => {
@@ -12,7 +12,7 @@ export default class db {
               dbh
                 .run("CREATE TABLE meta (version CHAR(12) DEFAULT '' NOT NULL, id_workflow_instance INTEGER UNSIGNED)")
                 .then(() => {
-                  dbh.run("INSERT INTO meta (version) VALUES('0.0.1')");
+                  dbh.run("INSERT INTO meta (version, id_workflow_instance) VALUES('0.0.1', ?)", id_workflow_instance);
                 }),
               dbh.run("CREATE TABLE uploads (filename CHAR(255) DEFAULT '' NOT NULL PRIMARY KEY)"),
               dbh.run("CREATE TABLE skips (filename CHAR(255) DEFAULT '' NOT NULL PRIMARY KEY)"),
