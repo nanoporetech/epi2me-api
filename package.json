@@ -1,6 +1,6 @@
 {
   "name": "epi2me-api",
-  "version": "2019.04.15",
+  "version": "2019.4.29-933",
   "license": "MPL-2.0",
   "repository": "https://git.oxfordnanolabs.local/metrichor/api.git",
   "description": "API for communicating with the EPI2ME website(s)",
@@ -74,7 +74,7 @@
     ]
   },
   "scripts": {
-    "build:version": "jq \".version=\\\"$(date +%Y.%m.%d)\\\"\" < package.json > tmp && mv tmp package.json",
+    "build:version": "jq \".version=\\\"$(date +%Y.%-m.%-d)-${PATCH:-$(date +%-H%M)}\\\"\" < package.json > package.json.tmp && mv package.json.tmp package.json",
     "lint-js": "eslint --ignore-path .eslintignore --ignore-pattern \"!**/.*\" .",
     "fix-js": "yarn run lint-js --fix",
     "lint": "yarn lint-js",
