@@ -1113,7 +1113,10 @@ export default class EPI2ME {
     const s3 = await this.sessionedS3();
 
     let rs;
-    const objectId = `${this.config.instance.bucketFolder}/component-0/${file.name}/${file.relative}`; // not sure why this needs the file.name prefix
+    const objectId = `${this.config.instance.bucketFolder}/component-0/${file.name}/${file.relative}`.replace(
+      /\/+/g,
+      '/',
+    ); // not sure why this needs the file.name prefix
     let timeoutHandle;
 
     const p = new Promise((resolve, reject) => {
