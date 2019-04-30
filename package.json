@@ -1,6 +1,6 @@
 {
   "name": "epi2me-api",
-  "version": "2019.4.29-1612",
+  "version": "2019.4.30-1617",
   "license": "MPL-2.0",
   "repository": "https://git.oxfordnanolabs.local/metrichor/api.git",
   "description": "API for communicating with the EPI2ME website(s)",
@@ -14,9 +14,7 @@
     "fs-extra": "^7.0.0",
     "lodash": "4.17.11",
     "proxy-agent": "3.0.3",
-    "recursive-readdir": "2.2.2",
     "sqlite": "^3.0.3",
-    "sqlite3": "4.0.6",
     "tunnel": "^0.0.6",
     "yarn": "^1.15.2"
   },
