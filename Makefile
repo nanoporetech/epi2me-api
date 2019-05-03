@@ -1,5 +1,5 @@
 dist:
-	yarn dist
+	yarn build
 
 test:
 	yarn test

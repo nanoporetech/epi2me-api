@@ -1,3 +1,4 @@
+import path from 'path';
 import json from 'rollup-plugin-json';
 import { eslint } from 'rollup-plugin-eslint';
 import analyze from 'rollup-plugin-analyzer';
@@ -57,11 +58,11 @@ const epi2meFull = {
   input: 'src/epi2me.js',
   output: [
     {
-      file: pkg.main,
+      dir: path.dirname(pkg.main),
       format: 'cjs',
     },
     {
-      file: pkg.module,
+      dir: path.dirname(pkg.module),
       format: 'es',
     },
   ],

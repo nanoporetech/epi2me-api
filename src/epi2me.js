@@ -16,7 +16,6 @@ import Promise from 'core-js/features/promise'; // shim Promise.finally() for nw
 import utils from './utils-fs';
 import _REST from './rest-fs';
 import filestats from './filestats';
-import DB from './db';
 import DEFAULTS from './default_options.json';
 
 export default class EPI2ME {
@@ -275,7 +274,7 @@ export default class EPI2ME {
      * description (workflow)
      * chain
      */
-
+    console.log('autoConfigure'); // eslint-disable-line no-console
     // copy tuples with the same names
     ['id_workflow_instance', 'id_workflow', 'remote_addr', 'key_id', 'bucket', 'user_defined'].forEach(f => {
       this.config.instance[f] = instance[f];
@@ -305,9 +304,6 @@ export default class EPI2ME {
     if (!this.config.instance.bucketFolder) throw new Error('bucketFolder must be set');
     if (!this.config.instance.inputQueueName) throw new Error('inputQueueName must be set');
     if (!this.config.instance.outputQueueName) throw new Error('outputQueueName must be set');
-
-    // set up a new sqlite db for uploads & skips
-    this.db = new DB(this.config.options.inputFolder, this.config.instance.id_workflow_instance);
 
     fs.mkdirpSync(this.config.options.outputFolder);
 
@@ -372,6 +368,18 @@ export default class EPI2ME {
     this.loadUploadFiles(); // Trigger once at workflow instance start
     this.fileCheckInterval = setInterval(this.loadUploadFiles.bind(this), this.config.options.fileCheckInterval * 1000);
     return Promise.resolve(instance);
+  }
+
+  db() {
+    if (this.dbHandle) {
+      return this.dbHandle;
+    }
+    // set up a new sqlite db for uploads & skips
+    return import('./db')
+      .then(({default: DB}) => {
+        this.dbHandle = new DB(this.config.options.inputFolder, this.config.instance.id_workflow_instance);
+        return this.dbHandle;
+      });
   }
 
   async checkForDownloads() {
@@ -526,7 +534,7 @@ export default class EPI2ME {
     this.log.debug('upload: started directory scan');
 
     try {
-      const dbFilter = fileIn => this.db.seenUpload(fileIn);
+      const dbFilter = fileIn => this.db().seenUpload(fileIn);
 
       // find files waiting for upload
       const files = await utils.loadInputFiles(this.config.options, this.log, dbFilter);
@@ -687,7 +695,7 @@ export default class EPI2ME {
     // Initiate file upload to S3
 
     if ('skip' in file) {
-      return this.db.skipFile(file.path);
+      return this.db().skipFile(file.path);
     }
 
     let file2;
@@ -1116,7 +1124,7 @@ export default class EPI2ME {
     const objectId = `${this.config.instance.bucketFolder}/component-0/${file.name}/${file.relative}`.replace(
       /\/+/g,
       '/',
-    ); // not sure why this needs the file.name prefix
+    ); // not sure why this needs the file.name prefix. does this need to replace \ with / as well?
     let timeoutHandle;
 
     const p = new Promise((resolve, reject) => {
@@ -1300,7 +1308,7 @@ export default class EPI2ME {
     }
 
     this.log.info(`${file.id} SQS message sent. Move to uploaded`);
-    return this.db.uploadFile(file.path);
+    return this.db().uploadFile(file.path);
   }
 
   async queueLength(queueURL) {
