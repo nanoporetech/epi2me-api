@@ -2,7 +2,7 @@ import assert from 'assert';
 import sinon from 'sinon';
 import tmp from 'tmp';
 import { merge } from 'lodash';
-import EPI2ME from '../../src/epi2me';
+import EPI2ME from '../../src/epi2me-fs';
 
 describe('epi2me.stopEverything', () => {
   let clock;

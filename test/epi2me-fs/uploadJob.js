@@ -2,7 +2,7 @@ import assert from 'assert';
 import sinon from 'sinon';
 import { merge } from 'lodash';
 import tmp from 'tmp';
-import EPI2ME from '../../src/epi2me';
+import EPI2ME from '../../src/epi2me-fs';
 import DB from '../../src/db';
 
 describe('epi2me.uploadJob', () => {
@@ -21,9 +21,7 @@ describe('epi2me.uploadJob', () => {
         opts,
       ),
     );
-    client.db = () => {
-      return new DB(tmp.dirSync().name);
-    };
+    client.db = new DB(tmp.dirSync().name);
     return client;
   };
 

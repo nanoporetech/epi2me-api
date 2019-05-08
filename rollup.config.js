@@ -55,14 +55,14 @@ const plugins = [
 ];
 
 const epi2meFull = {
-  input: 'src/epi2me.js',
+  input: 'src/epi2me-fs.js',
   output: [
     {
-      dir: path.dirname(pkg.main),
+      file: path.join(path.dirname(pkg.main), "index.js"),
       format: 'cjs',
     },
     {
-      dir: path.dirname(pkg.module),
+      file: path.join(path.dirname(pkg.module), "index.es.js"),
       format: 'es',
     },
   ],
@@ -88,14 +88,14 @@ const epi2meFull = {
 };
 
 const epi2meWeb = {
-  input: 'src/rest.js',
+  input: 'src/epi2me.js',
   output: [
     {
-      file: 'dist/web/index.js',
+      file: path.join(path.dirname(pkg.main), "web/index.js"),
       format: 'cjs',
     },
     {
-      file: 'dist/web/index.es.js',
+      file: path.join(path.dirname(pkg.module), "web/index.es.js"),
       format: 'es',
     },
   ],

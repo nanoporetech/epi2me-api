@@ -3,7 +3,7 @@ import sinon from 'sinon';
 import { merge } from 'lodash';
 import AWS from 'aws-sdk';
 import tmp from 'tmp';
-import EPI2ME from '../../src/epi2me';
+import EPI2ME from '../../src/epi2me-fs';
 import DB from '../../src/db';
 
 describe('epi2me.uploadComplete', () => {
@@ -22,9 +22,7 @@ describe('epi2me.uploadComplete', () => {
         opts,
       ),
     );
-    client.db = () => {
-      return new DB(tmp.dirSync().name);
-    };
+    client.db = new DB(tmp.dirSync().name);
     return client;
   };
 
