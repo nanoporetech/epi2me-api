@@ -1,6 +1,6 @@
 import assert from 'assert';
 import sinon from 'sinon';
-import EPI2ME from '../../src/epi2me';
+import EPI2ME from '../../src/epi2me-fs';
 
 describe('epi2me.autoStart', () => {
   function newApi(error, instance) {

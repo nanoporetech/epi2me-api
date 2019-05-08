@@ -1,8 +1,7 @@
 import assert from 'assert';
 import sinon from 'sinon';
 import { merge } from 'lodash';
-import EPI2ME from '../../src/epi2me';
-import utils from '../../src/utils-fs';
+import EPI2ME from '../../src/epi2me-fs';
 
 describe('epi2me.enqueueUploadFiles', () => {
   let debug;
@@ -106,7 +105,6 @@ describe('epi2me.enqueueUploadFiles', () => {
     };
     const loadUploadFiles = sinon.stub(client, 'loadUploadFiles').resolves();
     sinon.stub(client, 'uploadJob').resolves();
-    stubs.push(sinon.stub(utils, 'countFileReads').resolves(0));
 
     try {
       await client.enqueueUploadFiles([{}]);

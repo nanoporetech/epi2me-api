@@ -1,6 +1,6 @@
 {
   "name": "epi2me-api",
-  "version": "2019.4.26-1225",
+  "version": "2019.5.8-1621",
   "license": "MPL-2.0",
   "repository": "https://git.oxfordnanolabs.local/metrichor/api.git",
   "description": "API for communicating with the EPI2ME website(s)",
@@ -14,7 +14,7 @@
     "fs-extra": "^7.0.0",
     "lodash": "4.17.11",
     "proxy-agent": "3.0.3",
-    "recursive-readdir": "2.2.2",
+    "sqlite": "^3.0.3",
     "tunnel": "^0.0.6",
     "yarn": "^1.15.2"
   },
@@ -42,7 +42,6 @@
     "nyc": "^13.2.0",
     "prettier": "^1.16.4",
     "prettier-eslint": "^8.8.2",
-    "proxyquire": "2.1.0",
     "rollup": "^1.1.2",
     "rollup-plugin-analyzer": "^3.0.0",
     "rollup-plugin-cpy": "^1.1.0",

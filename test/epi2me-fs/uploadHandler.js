@@ -4,14 +4,14 @@ import path from 'path';
 import tmp from 'tmp';
 import fs from 'fs-extra';
 import { merge } from 'lodash';
-import EPI2ME from '../../src/epi2me';
+import EPI2ME from '../../src/epi2me-fs';
 
 describe('epi2me.uploadHandler', () => {
   const tmpfile = 'tmpfile.txt';
   let stubs;
-
+  let tmpdir;
   const clientFactory = opts => {
-    const tmpdir = tmp.dirSync().name;
+    tmpdir = tmp.dirSync().name;
     fs.writeFile(path.join(tmpdir, tmpfile));
     const client = new EPI2ME(
       merge(
@@ -61,7 +61,7 @@ describe('epi2me.uploadHandler', () => {
     sinon.stub(client, 'uploadComplete').resolves();
 
     try {
-      await client.uploadHandler({ name: tmpfile });
+      await client.uploadHandler({ name: tmpfile, relative: path.basename(tmpfile), path: path.join(tmpdir, tmpfile) });
     } catch (error) {
       assert.fail(error);
     }
@@ -95,7 +95,12 @@ describe('epi2me.uploadHandler', () => {
     sinon.stub(client, 'uploadComplete').resolves();
 
     try {
-      await client.uploadHandler({ id: 'my-file', name: tmpfile });
+      await client.uploadHandler({
+        id: 'my-file',
+        name: tmpfile,
+        relative: path.basename(tmpfile),
+        path: path.join(tmpdir, tmpfile),
+      });
       assert.fail('unexpected success');
     } catch (error) {
       assert(String(error).match(/error in upload readstream/));
@@ -105,7 +110,12 @@ describe('epi2me.uploadHandler', () => {
   it('should handle bad file name - ENOENT', async () => {
     const client = clientFactory();
     try {
-      await client.uploadHandler({ id: 'my-file', name: 'bad file name' });
+      await client.uploadHandler({
+        id: 'my-file',
+        name: 'bad file name',
+        relative: 'bad file name',
+        path: path.join(tmpdir, 'bad file name'),
+      });
     } catch (err) {
       assert(String(err).match(/ENOENT/));
     }

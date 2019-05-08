@@ -7,9 +7,8 @@
 import axios from 'axios';
 import fs from 'fs-extra';
 import path from 'path';
-import { isString, isArray } from 'lodash';
+import { flatten, remove } from 'lodash';
 import utils from './utils';
-import filestats from './filestats';
 
 utils.pipe = async (uriIn, filepath, options, progressCb) => {
   let srv = options.url;
@@ -53,69 +52,48 @@ utils.pipe = async (uriIn, filepath, options, progressCb) => {
   return p;
 };
 
-utils.countFileReads = filePath => {
-  return filestats(filePath).then(d => d.reads); // backwards-compatibility
-};
-
 let IdCounter = 0;
 utils.getFileID = () => {
   IdCounter += 1;
   return `FILE_${IdCounter}`;
 };
 
-utils.lsFolder = (dir, ignore, filetype, rootDir = '') =>
-  fs.readdir(dir).then(filesIn => {
-    let ls = filesIn;
-    if (ignore) {
-      ls = ls.filter(ignore);
+utils.lsRecursive = async (rootFolder, item, exclusionFilter) => {
+  const stat = fs.statSync(item); // hmm. prefer database over fs statting?
+  if (exclusionFilter) {
+    const result = await exclusionFilter(item, stat);
+    if (result) {
+      return null;
     }
+  }
 
-    let folders = [];
-    const files = [];
-    const promises = ls.map(entry =>
-      fs.stat(path.join(dir, entry)).then(stats => {
-        if (stats.isDirectory()) {
-          folders.push(path.join(dir, entry));
-          return Promise.resolve();
-        }
-
-        if (stats.isFile() && (!filetype || path.extname(entry) === filetype)) {
-          /** For each file, construct a file object: */
-          const parsed = path.parse(entry);
-
-          const fileObject = {
-            name: parsed.base,
-            path: path.join(dir, entry),
-            size: stats.size,
-            id: utils.getFileID(),
-          };
-
-          const batch = dir
-            .replace(rootDir, '')
-            .replace('\\', '')
-            .replace('/', '');
-          if (isString(batch) && batch.length) fileObject.batch = batch;
-          files.push(fileObject);
-          return Promise.resolve();
-        }
-
-        return Promise.resolve(); // unhandled type. ignore? reject?
-      }),
-    );
-
-    return Promise.all(promises)
-      .then(() => {
-        folders = folders.sort();
-        /**
-         * // It's important to load the batch folders alphabetically
-         * 1, then 2, etc.
-         */
-        return Promise.resolve({ files, folders });
+  if (stat.isDirectory()) {
+    return fs
+      .readdir(item)
+      .then(listing => {
+        // map short names to full paths
+        return listing.map(childItem => path.join(item, childItem));
       })
-      .catch(err => Promise.reject(new Error(`error listing folder ${err}`)));
-  });
+      .then(listing => {
+        // map full paths to array of Promises for exclusion checks
+        return Promise.all(listing.map(childPath => utils.lsRecursive(rootFolder, childPath, exclusionFilter)));
+      })
+      .then(listing => {
+        // array of exclusion checks
+        return flatten(listing);
+      });
+  }
 
-utils.loadInputFiles = ({ inputFolder, outputFolder, uploadedFolder, filetype }, uploaded = []) =>
+  return {
+    name: path.parse(item).base, // "my.fastq"
+    path: item, // "/Users/rpettett/test_sets/zymo/demo/INPUT_PREFIX/my.fastq"
+    relative: item.replace(rootFolder, ''), // "INPUT_PREFIX/my.fastq"
+    size: stat.size,
+    id: utils.getFileID(),
+  };
+};
+
+utils.loadInputFiles = async ({ inputFolder, outputFolder, uploadedFolder, filetype }, log, extraFilter) => {
   /**
    * Entry point for new .fast5 / .fastq files.
    *  - Scan the input folder files
@@ -124,53 +102,51 @@ utils.loadInputFiles = ({ inputFolder, outputFolder, uploadedFolder, filetype },
    *  - Push list of new files into uploadWorkerPool (that.enqueueFiles)
    */
 
-  new Promise((resolve, reject) => {
-    // function used to filter the readdir results in utils.lsFolder
-    // exclude all files and folders meet any of these criteria:
-    const inputFilter = file => {
-      const basename = path.basename(file);
-      return !(
-        file.split(path.sep).filter(x => x.match(/^[.]/)).length || // MC-6941 do not upload files beginning with dot
-        basename === 'downloads' ||
-        basename === 'uploaded' ||
-        basename === 'skip' ||
-        basename === 'fail' ||
-        (uploadedFolder && basename === path.basename(uploadedFolder)) ||
-        (outputFolder && basename === path.basename(outputFolder)) ||
-        basename === 'tmp' ||
-        (isArray(uploaded) && uploaded.indexOf(path.posix.basename(file)) > -1)
-      );
-    };
+  // function used to filter the readdir results in utils.lsFolder
+  // exclude all files and folders meet any of these criteria:
 
-    // iterate through folders
-    let batchFolders = [inputFolder];
+  const exclusionFilter = async (file, stat) => {
+    const basename = path.basename(file);
 
-    const next = () => {
-      if (!batchFolders || !batchFolders.length) {
-        return;
-      }
+    const promises = [
+      new Promise((resolve, reject) => {
+        return basename === 'downloads' || // quick checks first
+          basename === 'uploaded' ||
+          basename === 'skip' ||
+          basename === 'fail' ||
+          basename === 'tmp' ||
+          basename === 'db.sqlite'
+          ? reject(new Error(`${file} failed basic filename`))
+          : resolve('basic ok');
+      }),
+      new Promise((resolve, reject) => {
+        return file.split(path.sep).filter(x => x.match(/^[.]/)).length || // MC-6941 do not upload from any location beginning with dot
+          (uploadedFolder && basename === path.basename(uploadedFolder)) ||
+          (outputFolder && basename === path.basename(outputFolder)) ||
+          (filetype && path.extname(file) !== filetype && stat.isFile()) // exclude any file not matching wanted file extension
+          ? reject(new Error(`${file} failed extended filename`))
+          : resolve('extended ok');
+      }),
+      extraFilter
+        ? new Promise((resolve, reject) => {
+            extraFilter(file).then(result => {
+              return result ? reject(new Error(`${file} failed extraFilter`)) : resolve('extra ok');
+            });
+          })
+        : Promise.resolve('extra skip'),
+    ];
 
-      utils
-        .lsFolder(batchFolders.splice(0, 1)[0], inputFilter, filetype, inputFolder)
-        .then(({ files, folders }) => {
-          // Keep iterating though batch folders until one with files is found
-          if (files && files.length) {
-            resolve(files); // Done. Resolve promise with new files
-            return;
-          }
-          batchFolders = [...folders, ...batchFolders];
-          if (batchFolders.length) {
-            next(); // iterate
-          } else {
-            resolve([]); // Done. No new files were found. Needs to emit an array
-          }
-        })
-        .catch(err => {
-          reject(new Error(`Failed to check for new files: ${err.message}`));
-        });
-    };
+    return Promise.all(promises)
+      .then(() => {
+        return null; // falsy == do not exclude
+      })
+      .catch(() => {
+        return 'exclude'; // truthy == exclude
+      }); // rejection just means don't keep
+  };
 
-    next(); // start first iteration
-  });
+  const actionList = await utils.lsRecursive(inputFolder, inputFolder, exclusionFilter);
+  return Promise.resolve(remove(actionList, null));
+};
 
 export default utils;

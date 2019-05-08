@@ -4,7 +4,7 @@ import fs from 'fs-extra';
 import tmp from 'tmp';
 import path from 'path';
 import { merge } from 'lodash';
-import EPI2ME from '../../src/epi2me';
+import EPI2ME from '../../src/epi2me-fs';
 
 describe('epi2me.autoConfigure', () => {
   let clock;

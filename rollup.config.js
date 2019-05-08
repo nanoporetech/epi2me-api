@@ -1,3 +1,4 @@
+import path from 'path';
 import json from 'rollup-plugin-json';
 import { eslint } from 'rollup-plugin-eslint';
 import analyze from 'rollup-plugin-analyzer';
@@ -19,7 +20,7 @@ const plugins = [
   terser({
     parse: {
       // we want terser to parse ecma 8 code. However, we don't want it
-      // to apply any minfication steps that turns valid ecma 5 code
+      // to apply any minification steps that turns valid ecma 5 code
       // into invalid ecma 5 code. This is why the 'compress' and 'output'
       // sections only apply transformations that are ecma 5 safe
       // https://github.com/facebook/create-react-app/pull/4234
@@ -54,14 +55,14 @@ const plugins = [
 ];
 
 const epi2meFull = {
-  input: 'src/epi2me.js',
+  input: 'src/epi2me-fs.js',
   output: [
     {
-      file: pkg.main,
+      file: path.join(path.dirname(pkg.main), "index.js"),
       format: 'cjs',
     },
     {
-      file: pkg.module,
+      file: path.join(path.dirname(pkg.module), "index.es.js"),
       format: 'es',
     },
   ],
@@ -87,14 +88,14 @@ const epi2meFull = {
 };
 
 const epi2meWeb = {
-  input: 'src/rest.js',
+  input: 'src/epi2me.js',
   output: [
     {
-      file: 'dist/web/index.js',
+      file: path.join(path.dirname(pkg.main), "web/index.js"),
       format: 'cjs',
     },
     {
-      file: 'dist/web/index.es.js',
+      file: path.join(path.dirname(pkg.module), "web/index.es.js"),
       format: 'es',
     },
   ],

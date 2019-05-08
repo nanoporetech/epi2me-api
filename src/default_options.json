@@ -3,9 +3,7 @@
   "url": "https://epi2me.nanoporetech.com",
   "user_agent": "EPI2ME API",
   "region": "eu-west-1",
-  "retention": "on",
   "sessionGrace": 5,
-  "sortInputFiles": false,
   "uploadTimeout": 1200,
   "downloadTimeout": 1200,
   "fileCheckInterval": 5,
@@ -15,9 +13,7 @@
   "waitTimeSeconds": 20,
   "waitTokenError": 30,
   "transferPoolSize": 3,
-  "filter": "on",
   "downloadMode": "data+telemetry",
-  "deleteOnComplete": "off",
   "filetype": ".fastq",
   "signing": true
 }
