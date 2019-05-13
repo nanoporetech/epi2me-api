@@ -18,7 +18,7 @@ import EPI2ME from './epi2me';
 import DB from './db';
 
 const rootDir = () => {
-  return path.join(homedir(), '.epi2me');
+  return process.env.EPI2ME_HOME || path.join(homedir(), '.epi2me');
 };
 
 export default class EPI2ME_FS extends EPI2ME {
@@ -1005,4 +1005,4 @@ export default class EPI2ME_FS extends EPI2ME {
 EPI2ME_FS.version = utils.version;
 EPI2ME_FS.REST = _REST;
 EPI2ME_FS.utils = utils;
-EPI2ME_FS.rootDir = rootDir(); // todo: combine with CLI/daemon settings!
+EPI2ME_FS.EPI2ME_HOME = rootDir();
