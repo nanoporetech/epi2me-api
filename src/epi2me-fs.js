@@ -8,7 +8,7 @@
 
 import { merge, isArray } from 'lodash';
 import fs from 'fs-extra'; /* MC-565 handle EMFILE & EXDIR gracefully; use Promises */
-import { EOL } from 'os';
+import { EOL, homedir } from 'os';
 import path from 'path';
 import Promise from 'core-js/features/promise'; // shim Promise.finally() for nw 0.29.4 nodejs
 import utils from './utils-fs';
@@ -16,6 +16,10 @@ import _REST from './rest-fs';
 import filestats from './filestats';
 import EPI2ME from './epi2me';
 import DB from './db';
+
+const rootDir = () => {
+  return path.join(homedir(), '.epi2me');
+};
 
 export default class EPI2ME_FS extends EPI2ME {
   constructor(optString) {
@@ -109,8 +113,11 @@ export default class EPI2ME_FS extends EPI2ME {
 
     fs.mkdirpSync(this.config.options.outputFolder);
 
+    // MC-7108 use common epi2me working folder
+    const instancesDir = path.join(rootDir(), 'instances');
+    const thisInstanceDir = path.join(instancesDir, this.config.instance.id_workflow_instance);
     // set up new tracking database
-    this.db = new DB(this.config.options.inputFolder, this.config.instance.id_workflow_instance);
+    this.db = new DB(thisInstanceDir, this.config.instance.id_workflow_instance);
 
     // MC-1828 - include instance id in telemetry file name
     const fileName = this.config.instance.id_workflow_instance
@@ -998,3 +1005,4 @@ export default class EPI2ME_FS extends EPI2ME {
 EPI2ME_FS.version = utils.version;
 EPI2ME_FS.REST = _REST;
 EPI2ME_FS.utils = utils;
+EPI2ME_FS.rootDir = rootDir(); // todo: combine with CLI/daemon settings!
