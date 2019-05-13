@@ -58,11 +58,11 @@ const epi2meFull = {
   input: 'src/epi2me-fs.js',
   output: [
     {
-      file: path.join(path.dirname(pkg.main), "index.js"),
+      file: path.join(path.dirname(pkg.main), 'index.js'),
       format: 'cjs',
     },
     {
-      file: path.join(path.dirname(pkg.module), "index.es.js"),
+      file: path.join(path.dirname(pkg.module), 'index.es.js'),
       format: 'es',
     },
   ],
@@ -91,11 +91,11 @@ const epi2meWeb = {
   input: 'src/epi2me.js',
   output: [
     {
-      file: path.join(path.dirname(pkg.main), "web/index.js"),
+      file: path.join(path.dirname(pkg.main), 'web/index.js'),
       format: 'cjs',
     },
     {
-      file: path.join(path.dirname(pkg.module), "web/index.es.js"),
+      file: path.join(path.dirname(pkg.module), 'web/index.es.js'),
       format: 'es',
     },
   ],
