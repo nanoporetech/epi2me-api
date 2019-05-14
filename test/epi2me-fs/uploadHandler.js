@@ -120,4 +120,49 @@ describe('epi2me.uploadHandler', () => {
       assert(String(err).match(/ENOENT/));
     }
   });
+
+  it('should handle structured input folders', async () => {
+    const client = clientFactory();
+    const crso = fs.createReadStream;
+    stubs.push(
+      sinon.stub(fs, 'createReadStream').callsFake(() => {
+        return crso(path.join(tmpdir, tmpfile));
+      }),
+    );
+
+    sinon.stub(client, 'sessionedS3').resolves({
+      upload: params => {
+        assert(params); // not a very useful test
+        return {
+          on: () => {
+            // support for httpUploadProgress
+          },
+          promise: () => Promise.resolve(),
+        };
+      },
+    });
+
+    sinon.stub(client, 'uploadComplete').resolves();
+
+    try {
+      await client.uploadHandler({
+        id: 'FILE_72',
+        name: '12345.fastq',
+        relative: 'TEST_2%5C12345.fastq',
+        path: 'C:\\Data\\MinKNOW\\TEST2%5C12345.fastq',
+      });
+
+      assert.deepEqual(client.uploadComplete.lastCall.args, [
+        '/component-0/12345.fastq/TEST_2%255C12345.fastq',
+        {
+          id: 'FILE_72',
+          name: '12345.fastq',
+          relative: 'TEST_2%5C12345.fastq',
+          path: 'C:\\Data\\MinKNOW\\TEST2%5C12345.fastq',
+        },
+      ]);
+    } catch (error) {
+      assert.fail(error);
+    }
+  });
 });

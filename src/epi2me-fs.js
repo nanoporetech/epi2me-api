@@ -833,10 +833,15 @@ export default class EPI2ME_FS extends EPI2ME {
     const s3 = await this.sessionedS3();
 
     let rs;
-    const objectId = `${this.config.instance.bucketFolder}/component-0/${file.name}/${file.relative}`.replace(
-      /\/+/g,
-      '/',
-    ); // not sure why this needs the file.name prefix. does this need to replace \ with / as well?
+    const objectId = [
+      this.config.instance.bucketFolder,
+      'component-0',
+      file.name,
+      encodeURIComponent(file.relative.replace(/^[\\/]+/, '')), // do we need to replace \ with / here ?
+    ]
+      .join('/')
+      .replace(/\/+/g, '/');
+
     let timeoutHandle;
 
     const p = new Promise((resolve, reject) => {
