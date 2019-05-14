@@ -18,7 +18,15 @@ import EPI2ME from './epi2me';
 import DB from './db';
 
 const rootDir = () => {
-  return process.env.EPI2ME_HOME || path.join(homedir(), '.epi2me');
+  /* Windows: C:\Users\rmp\AppData\EPI2ME
+   * MacOS:   /Users/rmp/Library/Application Support/EPI2ME
+   * Linux:   /home/rmp/.epi2me
+   * nb. EPI2ME_HOME environment variable always takes precedence
+   */
+  const appData =
+    process.env.APPDATA || (process.platform === 'darwin' ? path.join(homedir(), 'Library/Application Support') : homedir()); // linux strictly should use ~/.local/share/
+
+  return process.env.EPI2ME_HOME || path.join(appData, process.platform === 'linux' ? '.epi2me' : 'EPI2ME');
 };
 
 export default class EPI2ME_FS extends EPI2ME {
