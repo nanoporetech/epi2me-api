@@ -93,7 +93,7 @@ utils.lsRecursive = async (rootFolder, item, exclusionFilter) => {
   };
 };
 
-utils.loadInputFiles = async ({ inputFolder, outputFolder, uploadedFolder, filetype }, log, extraFilter) => {
+utils.loadInputFiles = async ({ inputFolder, outputFolder, filetype }, log, extraFilter) => {
   /**
    * Entry point for new .fast5 / .fastq files.
    *  - Scan the input folder files
@@ -111,7 +111,6 @@ utils.loadInputFiles = async ({ inputFolder, outputFolder, uploadedFolder, filet
     const promises = [
       new Promise((resolve, reject) => {
         return basename === 'downloads' || // quick checks first
-          basename === 'uploaded' ||
           basename === 'skip' ||
           basename === 'fail' ||
           basename === 'tmp' ||
@@ -121,7 +120,6 @@ utils.loadInputFiles = async ({ inputFolder, outputFolder, uploadedFolder, filet
       }),
       new Promise((resolve, reject) => {
         return file.split(path.sep).filter(x => x.match(/^[.]/)).length || // MC-6941 do not upload from any location beginning with dot
-          (uploadedFolder && basename === path.basename(uploadedFolder)) ||
           (outputFolder && basename === path.basename(outputFolder)) ||
           (filetype && path.extname(file) !== filetype && stat.isFile()) // exclude any file not matching wanted file extension
           ? reject(new Error(`${file} failed extended filename`))

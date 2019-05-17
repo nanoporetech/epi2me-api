@@ -24,7 +24,8 @@ const rootDir = () => {
    * nb. EPI2ME_HOME environment variable always takes precedence
    */
   const appData =
-    process.env.APPDATA || (process.platform === 'darwin' ? path.join(homedir(), 'Library/Application Support') : homedir()); // linux strictly should use ~/.local/share/
+    process.env.APPDATA ||
+    (process.platform === 'darwin' ? path.join(homedir(), 'Library/Application Support') : homedir()); // linux strictly should use ~/.local/share/
 
   return process.env.EPI2ME_HOME || path.join(appData, process.platform === 'linux' ? '.epi2me' : 'EPI2ME');
 };
@@ -49,8 +50,8 @@ export default class EPI2ME_FS extends EPI2ME {
     }
 
     this.config.workflow = JSON.parse(JSON.stringify(workflowConfig)); // object copy
-    this.log.debug('instance', JSON.stringify(instance));
-    this.log.debug('workflow config', JSON.stringify(this.config.workflow));
+    this.log.info('instance', JSON.stringify(instance));
+    this.log.info('workflow config', JSON.stringify(this.config.workflow));
     return this.autoConfigure(instance, cb);
   }
 
@@ -147,7 +148,6 @@ export default class EPI2ME_FS extends EPI2ME {
       }
     });
 
-    //    this.uploadedFiles = []; // container for files that have been successfully uploaded, but failed to move
     if (autoStartCb) autoStartCb(null, this.config.instance);
 
     // MC-2068 - Don't use an interval.
@@ -390,7 +390,7 @@ export default class EPI2ME_FS extends EPI2ME {
 
       if (maxFiles && this.states.upload.filesCount > maxFiles) {
         // too many files processed
-        msg = `Maximum ${maxFiles} file(s) already uploaded. Moving ${file.name} into skip folder`;
+        msg = `Maximum ${maxFiles} file(s) already uploaded. Marking ${file.name} as skipped`;
         this.log.error(msg);
         this.states.warnings.push(msg);
         this.states.upload.filesCount -= 1;
@@ -399,7 +399,7 @@ export default class EPI2ME_FS extends EPI2ME {
         // file too big to process
         msg = `${file.name} is over ${maxFileSize
           .toString()
-          .replace(/\B(?=(\d{3})+(?!\d))/g, ',')}. Moving into skip folder`;
+          .replace(/\B(?=(\d{3})+(?!\d))/g, ',')}. Marking as skipped`;
         file.skip = 'SKIP_TOO_BIG';
         this.states.upload.filesCount -= 1;
 
@@ -1010,7 +1010,7 @@ export default class EPI2ME_FS extends EPI2ME {
       return Promise.reject(sendMessageException);
     }
 
-    this.log.info(`${file.id} SQS message sent. Move to uploaded`);
+    this.log.info(`${file.id} SQS message sent. Mark as uploaded`);
     return this.db.uploadFile(file.path);
   }
 }

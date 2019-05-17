@@ -8,7 +8,6 @@
 
 import { every, isFunction, defaults, merge } from 'lodash';
 import AWS from 'aws-sdk';
-import path from 'path';
 import proxy from 'proxy-agent';
 import Promise from 'core-js/features/promise'; // shim Promise.finally() for nw 0.29.4 nodejs
 import utils from './utils';
@@ -87,15 +86,6 @@ export default class EPI2ME {
     this.config.instance.awssettings = {
       region: this.config.options.region,
     };
-
-    if (this.config.options.inputFolder) {
-      if (this.config.options.uploadedFolder && this.config.options.uploadedFolder !== '+uploaded') {
-        this.uploadTo = this.config.options.uploadedFolder;
-      } else {
-        this.uploadTo = path.join(this.config.options.inputFolder, 'uploaded');
-      }
-      this.skipTo = path.join(this.config.options.inputFolder, 'skip');
-    }
 
     this.REST = new _REST(merge({}, { log: this.log }, this.config.options));
   }
