@@ -21,7 +21,7 @@ describe('epi2me.uploadJob', () => {
         opts,
       ),
     );
-    client.db = new DB(tmp.dirSync().name);
+    client.db = new DB(tmp.dirSync().name, null, client.log);
     return client;
   };
 

@@ -1,6 +1,6 @@
 {
   "name": "epi2me-api",
-  "version": "2019.5.17-1140",
+  "version": "2019.5.20-1316",
   "license": "MPL-2.0",
   "repository": "https://git.oxfordnanolabs.local/metrichor/api.git",
   "description": "API for communicating with the EPI2ME website(s)",

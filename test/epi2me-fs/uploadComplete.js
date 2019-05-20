@@ -22,7 +22,7 @@ describe('epi2me.uploadComplete', () => {
         opts,
       ),
     );
-    client.db = new DB(tmp.dirSync().name);
+    client.db = new DB(tmp.dirSync().name, null, client.log);
     return client;
   };
 

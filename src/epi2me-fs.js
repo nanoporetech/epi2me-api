@@ -89,7 +89,7 @@ export default class EPI2ME_FS extends EPI2ME {
      * description (workflow)
      * chain
      */
-    console.log('autoConfigure'); // eslint-disable-line no-console
+
     // copy tuples with the same names
     ['id_workflow_instance', 'id_workflow', 'remote_addr', 'key_id', 'bucket', 'user_defined'].forEach(f => {
       this.config.instance[f] = instance[f];
@@ -126,7 +126,7 @@ export default class EPI2ME_FS extends EPI2ME {
     const instancesDir = path.join(rootDir(), 'instances');
     const thisInstanceDir = path.join(instancesDir, this.config.instance.id_workflow_instance);
     // set up new tracking database
-    this.db = new DB(thisInstanceDir, this.config.instance.id_workflow_instance);
+    this.db = new DB(thisInstanceDir, this.config.instance.id_workflow_instance, this.log);
 
     // MC-1828 - include instance id in telemetry file name
     const fileName = this.config.instance.id_workflow_instance
@@ -798,7 +798,7 @@ export default class EPI2ME_FS extends EPI2ME {
       transferTimeoutFunc,
       1000 * this.config.options.downloadTimeout,
     ); /* download stream timeout in ms */
-    //    console.log('downloadTimeout', 1000 * this.config.options.downloadTimeout);
+
     const updateVisibilityFunc = async () => {
       const queueUrl = this.config.instance.outputQueueURL;
       const receiptHandle = message.ReceiptHandle;
