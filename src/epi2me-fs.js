@@ -942,6 +942,11 @@ export default class EPI2ME_FS extends EPI2ME {
           myProgress = progress.loaded; // store for calculating delta next iteration
           clearTimeout(timeoutHandle); // MC-6789 - reset upload timeout
           timeoutHandle = setTimeout(timeoutFunc, (this.config.options.uploadTimeout + 5) * 1000);
+          try {
+            this.session(); // MC-7129 check if token needs refreshing during long duration uploads (>token duration). Don't bother awaiting.
+          } catch (e) {
+            this.log.warn({ error: String(e) }, 'Error refreshing token');
+          }
         });
 
         managedUpload
