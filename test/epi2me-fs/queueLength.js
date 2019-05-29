@@ -1,7 +1,7 @@
 import assert from 'assert';
 import sinon from 'sinon';
 import AWS from 'aws-sdk';
-import EPI2ME from '../../src/epi2me';
+import EPI2ME from '../../src/epi2me-fs';
 
 describe('epi2me.queueLength', () => {
   let client;
@@ -37,6 +37,23 @@ describe('epi2me.queueLength', () => {
     }
   });
 
+  it('should handle poor response', async () => {
+    const sqs = new AWS.SQS();
+    sinon.stub(client, 'sessionedSQS').callsFake(() => sqs);
+    sinon.stub(sqs, 'getQueueAttributes').callsFake(opts => {
+      assert.equal(opts.QueueUrl, queueUrl);
+      return {
+        promise: () => Promise.resolve(),
+      };
+    });
+
+    try {
+      await client.queueLength(queueUrl);
+    } catch (err) {
+      assert(String(err).match(/unexpected response/));
+    }
+  });
+
   it('should handle sessionedSQS errors', async () => {
     const sqs = new AWS.SQS();
     sinon.stub(client, 'sessionedSQS').callsFake(() => sqs);
@@ -52,6 +69,14 @@ describe('epi2me.queueLength', () => {
       assert.fail('unexpected success');
     } catch (err) {
       assert(String(err).match(/getQueueAttributes failure/), 'error propagated');
+    }
+  });
+
+  it('should reject if no queueURL given', async () => {
+    try {
+      await client.queueLength();
+    } catch (e) {
+      assert(String(e).match(/no queueURL specified/));
     }
   });
 });

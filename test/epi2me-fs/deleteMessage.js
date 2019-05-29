@@ -2,7 +2,7 @@ import assert from 'assert';
 import sinon from 'sinon';
 import { merge } from 'lodash';
 import AWS from 'aws-sdk';
-import EPI2ME from '../../src/epi2me';
+import EPI2ME from '../../src/epi2me-fs';
 
 describe('epi2me.deleteMessage', () => {
   const clientFactory = opts =>
@@ -161,7 +161,7 @@ describe('epi2me.deleteMessage', () => {
     sinon.stub(client, 'discoverQueue').rejects('could not connect');
     const deleteMessage = sinon.stub();
 
-    client.states.download.failure['could not connect'] = 7;
+    client.states.download.failure = { 'could not connect': 7 };
 
     try {
       await client.deleteMessage({ message: 'test message', ReceiptHandle: 'abcd-1234' });

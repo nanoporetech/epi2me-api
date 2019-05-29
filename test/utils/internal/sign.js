@@ -27,7 +27,7 @@ describe('utils.internal.sign', () => {
 
   it('should generate signature with key and secret', () => {
     const req = { url: 'https://epi2me.test/secretdata' };
-      utils.headers(req, { apikey: 'foo', apisecret: 'bar', agent_version: '3.0.0' });
+    utils.headers(req, { apikey: 'foo', apisecret: 'bar', agent_version: '3.0.0' });
     assert.equal(req.headers['X-EPI2ME-SignatureV0'], 'f7785001cbf15c047d548886330125bdf879c4e8'); // sensitive to api version
   });
 

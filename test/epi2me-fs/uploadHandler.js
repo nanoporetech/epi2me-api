@@ -4,14 +4,14 @@ import path from 'path';
 import tmp from 'tmp';
 import fs from 'fs-extra';
 import { merge } from 'lodash';
-import EPI2ME from '../../src/epi2me';
+import EPI2ME from '../../src/epi2me-fs';
 
 describe('epi2me.uploadHandler', () => {
   const tmpfile = 'tmpfile.txt';
   let stubs;
-
+  let tmpdir;
   const clientFactory = opts => {
-    const tmpdir = tmp.dirSync().name;
+    tmpdir = tmp.dirSync().name;
     fs.writeFile(path.join(tmpdir, tmpfile));
     const client = new EPI2ME(
       merge(
@@ -61,7 +61,7 @@ describe('epi2me.uploadHandler', () => {
     sinon.stub(client, 'uploadComplete').resolves();
 
     try {
-      await client.uploadHandler({ name: tmpfile });
+      await client.uploadHandler({ name: tmpfile, relative: path.basename(tmpfile), path: path.join(tmpdir, tmpfile) });
     } catch (error) {
       assert.fail(error);
     }
@@ -95,7 +95,12 @@ describe('epi2me.uploadHandler', () => {
     sinon.stub(client, 'uploadComplete').resolves();
 
     try {
-      await client.uploadHandler({ id: 'my-file', name: tmpfile });
+      await client.uploadHandler({
+        id: 'my-file',
+        name: tmpfile,
+        relative: path.basename(tmpfile),
+        path: path.join(tmpdir, tmpfile),
+      });
       assert.fail('unexpected success');
     } catch (error) {
       assert(String(error).match(/error in upload readstream/));
@@ -105,9 +110,59 @@ describe('epi2me.uploadHandler', () => {
   it('should handle bad file name - ENOENT', async () => {
     const client = clientFactory();
     try {
-      await client.uploadHandler({ id: 'my-file', name: 'bad file name' });
+      await client.uploadHandler({
+        id: 'my-file',
+        name: 'bad file name',
+        relative: 'bad file name',
+        path: path.join(tmpdir, 'bad file name'),
+      });
     } catch (err) {
       assert(String(err).match(/ENOENT/));
+    }
+  });
+
+  it('should handle structured input folders', async () => {
+    const client = clientFactory();
+    const crso = fs.createReadStream;
+    stubs.push(
+      sinon.stub(fs, 'createReadStream').callsFake(() => {
+        return crso(path.join(tmpdir, tmpfile));
+      }),
+    );
+
+    sinon.stub(client, 'sessionedS3').resolves({
+      upload: params => {
+        assert(params); // not a very useful test
+        return {
+          on: () => {
+            // support for httpUploadProgress
+          },
+          promise: () => Promise.resolve(),
+        };
+      },
+    });
+
+    sinon.stub(client, 'uploadComplete').resolves();
+
+    try {
+      await client.uploadHandler({
+        id: 'FILE_72',
+        name: '12345.fastq',
+        relative: 'TEST_2%5C12345.fastq',
+        path: 'C:\\Data\\MinKNOW\\TEST2%5C12345.fastq',
+      });
+
+      assert.deepEqual(client.uploadComplete.lastCall.args, [
+        '/component-0/12345.fastq/TEST_2%255C12345.fastq',
+        {
+          id: 'FILE_72',
+          name: '12345.fastq',
+          relative: 'TEST_2%5C12345.fastq',
+          path: 'C:\\Data\\MinKNOW\\TEST2%5C12345.fastq',
+        },
+      ]);
+    } catch (error) {
+      assert.fail(error);
     }
   });
 });

@@ -23,7 +23,9 @@ export default function(filePath) {
           lineCount += 1;
         } while (idx !== -1);
       })
-      .on('end', () => resolve({ type: 'fasta', bytes: stat.size, sequences: Math.floor(lineCount / linesPerRead) }))
+      .on('end', () =>
+        resolve({ type: 'fasta', bytes: stat.size, sequences: Math.floor((1 + lineCount) / linesPerRead) }),
+      )
       .on('error', reject);
   });
 }

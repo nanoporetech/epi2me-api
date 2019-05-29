@@ -1,6 +1,6 @@
 import sinon from 'sinon';
 import assert from 'assert';
-import EPI2ME from '../../src/epi2me';
+import EPI2ME from '../../src/epi2me-fs';
 
 describe('epi2me.autoJoin', () => {
   const stubs = [];
@@ -23,11 +23,14 @@ describe('epi2me.autoJoin', () => {
     stubs.push(sinon.stub(client, 'autoConfigure').resolves());
 
     sinon.stub(client.log, 'warn');
+    sinon.stub(client.log, 'debug');
+    sinon.stub(client.log, 'error');
+    sinon.stub(client.log, 'info');
 
     return client;
   }
 
-  it('should join an existing workflow instance', async () => {
+  it('should join an existing workflow instance (with callback)', async () => {
     const client = newApi(null, {
       id_workflow_instance: 10,
       id_user: 'user',
@@ -49,39 +52,35 @@ describe('epi2me.autoJoin', () => {
     }
   });
 
-  it('should handle workflow_instance errors', done => {
-    const client = newApi(
-      {
-        error: 'Message',
-      },
-      {
-        state: 'stopped',
-      },
-    );
-
-    assert.doesNotThrow(() => {
-      client.autoJoin(111, () => {
-        assert(client.REST.workflowInstance.calledOnce);
-        assert(client.log.warn.calledOnce);
-        assert(client.log.warn.calledWith('Failed to join workflow instance: Message'));
-        assert(client.autoConfigure.notCalled);
-      });
-    });
-    done();
-  });
-
-  it('should not join an instance where state === stopped', done => {
-    const client = newApi({
+  it('should handle workflow_instance errors', async () => {
+    const client = newApi(new Error('Message'), {
       state: 'stopped',
     });
 
-    assert.doesNotThrow(() => {
-      client.autoJoin(111, () => {
-        assert(client.REST.workflowInstance.calledOnce);
-        assert(client.autoConfigure.notCalled);
-        // assert(client.log.warn.calledWith("workflow 111 is already stopped"));
-      });
+    try {
+      await client.autoJoin(111);
+    } catch (e) {
+      assert(String(e).match(/Message/));
+    }
+
+    assert(client.REST.workflowInstance.calledOnce);
+    assert(client.log.warn.calledOnce);
+    assert(client.log.warn.calledWith('Failed to join workflow instance: Error: Message'));
+    assert(client.autoConfigure.notCalled);
+  });
+
+  it('should not join an instance where state === stopped', async () => {
+    const client = newApi(null, {
+      state: 'stopped',
     });
-    done();
+
+    try {
+      await client.autoJoin(111);
+    } catch (e) {
+      assert.ok(String(e).match(/could not join/));
+    }
+    assert(client.REST.workflowInstance.calledOnce);
+    assert(client.autoConfigure.notCalled);
+    // assert(client.log.warn.calledWith("workflow 111 is already stopped"));
   });
 });

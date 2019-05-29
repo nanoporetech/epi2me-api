@@ -1,6 +1,6 @@
 import assert from 'assert';
 import sinon from 'sinon';
-import EPI2ME from '../../src/epi2me';
+import EPI2ME from '../../src/epi2me-fs';
 
 describe('session fetchInstanceToken method', () => {
   let client;
@@ -20,6 +20,19 @@ describe('session fetchInstanceToken method', () => {
 
     await client.session();
     assert(stub.calledOnce);
+  });
+
+  it('should bail if already sessioning', async () => {
+    const stub = sinon.stub(client, 'fetchInstanceToken').resolves();
+    client.sessionQueue = Promise.resolve();
+    client.sessionQueue.busy = false;
+    client.sessioning = true;
+    try {
+      await client.session();
+    } catch (e) {
+      assert.fail(e);
+    }
+    assert(stub.notCalled);
   });
 
   it('should call if sts_expiration unset', async () => {
