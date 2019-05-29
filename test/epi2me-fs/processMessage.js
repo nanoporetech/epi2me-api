@@ -4,6 +4,7 @@ import tmp from 'tmp';
 import fs from 'fs-extra';
 import path from 'path';
 import { merge } from 'lodash';
+import AWS from 'aws-sdk';
 import EPI2ME from '../../src/epi2me-fs';
 
 describe('epi2me-api.processMessage', () => {
@@ -73,20 +74,18 @@ describe('epi2me-api.processMessage', () => {
       downloadMode: 'data+telemetry',
       outputFolder: tmpDir.name,
     });
-    const stub = sinon.stub(client, 'sessionedS3').resolves('s3 object');
+    const s3 = new AWS.S3();
 
-    const stub2 = sinon
-      .stub(client, 'initiateDownloadStream')
-      .callsFake((s3, messageBody, message, outputFile, completeCb) => {
-        completeCb();
-      });
-
+    sinon.stub(client, 'sessionedS3').resolves(s3);
+    sinon.stub(client, 'initiateDownloadStream').resolves();
+    sinon.stub(client, 'deleteMessage').resolves();
     stubs.push(sinon.stub(fs, 'mkdirpSync').callsFake());
 
     try {
       await client.processMessage(
         {
           Body: JSON.stringify({
+            bucket: 'epi2test',
             path:
               'OUTPUT-UUID/INPUT-UUID/9999/999999/component-2/OK/pass/CLASSIFIED/fastq_runid_shasum_15.fastq/fastq_runid_shasum_15.fastq',
             telemetry: {
@@ -102,10 +101,11 @@ describe('epi2me-api.processMessage', () => {
       assert.fail(err);
     }
 
-    assert.equal(stub2.args[0][3], path.join(tmpDir.name, 'OK/PASS/CLASSIFIED/fastq_runid_shasum_15.fastq'));
+    assert.equal(
+      client.initiateDownloadStream.args[0][2],
+      path.join(tmpDir.name, 'OK/PASS/CLASSIFIED/fastq_runid_shasum_15.fastq'),
+    );
     tmpDir.removeCallback();
-    stub.restore();
-    stub2.restore();
   });
 
   it('should retain output folder when no telemetry', async () => {
@@ -115,14 +115,10 @@ describe('epi2me-api.processMessage', () => {
       downloadMode: 'data+telemetry',
       outputFolder: tmpDir.name,
     });
-    const stub = sinon.stub(client, 'sessionedS3').resolves('s3 object');
-
-    const stub2 = sinon
-      .stub(client, 'initiateDownloadStream')
-      .callsFake((s3, messageBody, message, outputFile, completeCb) => {
-        completeCb();
-      });
-
+    const s3 = new AWS.S3();
+    sinon.stub(client, 'sessionedS3').resolves(s3);
+    sinon.stub(client, 'initiateDownloadStream').resolves();
+    sinon.stub(client, 'deleteMessage').resolves();
     stubs.push(sinon.stub(fs, 'mkdirpSync').callsFake());
 
     try {
@@ -139,10 +135,8 @@ describe('epi2me-api.processMessage', () => {
       assert.fail(err);
     }
 
-    assert.equal(stub2.args[0][3], path.join(tmpDir.name, 'fastq_runid_shasum_15.fastq'));
+    assert.equal(client.initiateDownloadStream.args[0][2], path.join(tmpDir.name, 'fastq_runid_shasum_15.fastq'));
     tmpDir.removeCallback();
-    stub.restore();
-    stub2.restore();
   });
 
   // it('should retain output folder when filtering off', async () => {
@@ -194,14 +188,10 @@ describe('epi2me-api.processMessage', () => {
       downloadMode: 'data+telemetry',
       outputFolder: tmpDir.name,
     });
-    const stub = sinon.stub(client, 'sessionedS3').callsFake(() => 's3 object');
-
-    const stub2 = sinon
-      .stub(client, 'initiateDownloadStream')
-      .callsFake((s3, messageBody, message, outputFile, completeCb) => {
-        completeCb();
-      });
-
+    const s3 = new AWS.S3();
+    sinon.stub(client, 'sessionedS3').resolves(s3);
+    sinon.stub(client, 'initiateDownloadStream').resolves();
+    sinon.stub(client, 'deleteMessage').resolves();
     stubs.push(sinon.stub(fs, 'mkdirpSync').callsFake());
 
     try {
@@ -353,15 +343,12 @@ describe('epi2me-api.processMessage', () => {
     } catch (err) {
       assert.fail(err);
     }
-
     assert.equal(
-      stub2.args[0][3],
+      client.initiateDownloadStream.args[0][2],
       path.join(tmpDir.name, 'PASS/fastq_runid_738d663ef9214e590fb4806bf5aed784b941fd48_1.fastq.bam'),
       'initiateDownloadStream argument',
     );
     assert.equal(fs.mkdirpSync.args[0][0], path.join(tmpDir.name, 'PASS'), 'mkdirpSync argument');
     tmpDir.removeCallback();
-    stub.restore();
-    stub2.restore();
   });
 });

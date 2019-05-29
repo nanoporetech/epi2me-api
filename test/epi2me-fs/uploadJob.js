@@ -182,7 +182,6 @@ describe('epi2me.uploadJob', () => {
       {
         download: {
           fail: 0,
-          failure: {},
           progress: {},
           success: { files: 0, bytes: 0, reads: 0 },
           types: {},
@@ -190,7 +189,6 @@ describe('epi2me.uploadJob', () => {
         },
         upload: {
           filesCount: 0, // dirty
-          failure: {},
           success: { files: 26, reads: 4096, niceSize: '0', niceReads: '4.1K' },
           // total: { files: 0, bytes: 0 },
           niceTypes: '',

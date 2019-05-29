@@ -23,6 +23,9 @@ describe('epi2me.autoJoin', () => {
     stubs.push(sinon.stub(client, 'autoConfigure').resolves());
 
     sinon.stub(client.log, 'warn');
+    sinon.stub(client.log, 'debug');
+    sinon.stub(client.log, 'error');
+    sinon.stub(client.log, 'info');
 
     return client;
   }

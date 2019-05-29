@@ -51,7 +51,7 @@ export default class EPI2ME {
       upload: {
         filesCount: 0, // internal. do not use
         success: { files: 0, bytes: 0, reads: 0 }, // successfully uploaded file count, bytes, reads
-        failure: {}, // failed upload counts by error message
+        //        failure: {}, // failed upload counts by error message
         types: {}, // completely uploaded file counts by file type {".fastq": 1, ".vcf": 17}
         niceTypes: '', // "1 .fastq, 17.vcf"
         progress: { bytes: 0, total: 0 }, // uploads in-flight: bytes, total
@@ -60,7 +60,7 @@ export default class EPI2ME {
         progress: {}, // downloads in-flight: bytes, total
         success: { files: 0, reads: 0, bytes: 0 },
         fail: 0,
-        failure: {}, // failed download count by error message
+        //        failure: {}, // failed download count by error message
         types: {}, // completely downloaded file counts by file type {".fastq": 17, ".vcf": 1}
         niceTypes: '', // "17 .fastq, 1.vcf"
       },
@@ -291,6 +291,7 @@ export default class EPI2ME {
         .promise();
     } catch (error) {
       this.log.error(`deleteMessage exception: ${String(error)}`);
+      if (!this.states.download.failure) this.states.download.failure = {};
       this.states.download.failure[error] = this.states.download.failure[error]
         ? this.states.download.failure[error] + 1
         : 1;
@@ -321,7 +322,7 @@ export default class EPI2ME {
   }
 
   async queueLength(queueURL) {
-    if (!queueURL) return Promise.resolve();
+    if (!queueURL) return Promise.reject(new Error('no queueURL specified'));
 
     const queueName = queueURL.match(/([\w\-_]+)$/)[0];
     this.log.debug(`querying queue length of ${queueName}`);
@@ -340,11 +341,12 @@ export default class EPI2ME {
         len = parseInt(len, 10) || 0;
         return Promise.resolve(len);
       }
+
+      return Promise.reject(new Error('unexpected response'));
     } catch (err) {
       this.log.error(`error in getQueueAttributes ${String(err)}`);
       return Promise.reject(err);
     }
-    return Promise.resolve();
   }
 
   url() {
