@@ -22,6 +22,19 @@ describe('session fetchInstanceToken method', () => {
     assert(stub.calledOnce);
   });
 
+  it('should bail if already sessioning', async () => {
+    const stub = sinon.stub(client, 'fetchInstanceToken').resolves();
+    client.sessionQueue = Promise.resolve();
+    client.sessionQueue.busy = false;
+    client.sessioning = true;
+    try {
+      await client.session();
+    } catch (e) {
+      assert.fail(e);
+    }
+    assert(stub.notCalled);
+  });
+
   it('should call if sts_expiration unset', async () => {
     const stub = sinon.stub(client, 'fetchInstanceToken').resolves();
     client.sessionQueue = Promise.resolve();

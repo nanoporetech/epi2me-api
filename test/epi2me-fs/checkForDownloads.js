@@ -5,6 +5,7 @@ import EPI2ME from '../../src/epi2me-fs';
 
 describe('epi2me.checkForDownloads', () => {
   let debug;
+  let warn;
   const clientFactory = opts =>
     new EPI2ME(
       merge(
@@ -13,7 +14,7 @@ describe('epi2me.checkForDownloads', () => {
           log: {
             debug,
             info: sinon.stub(),
-            warn: sinon.stub(),
+            warn,
             error: sinon.stub(),
           },
         },
@@ -23,6 +24,23 @@ describe('epi2me.checkForDownloads', () => {
 
   beforeEach(() => {
     debug = sinon.stub();
+    warn = sinon.stub();
+  });
+
+  it('should bail if already running', async () => {
+    const client = clientFactory();
+    sinon.stub(client, 'discoverQueue').resolves('http://queue.url/');
+    sinon.stub(client, 'queueLength').resolves(); // undefined
+    sinon.stub(client, 'downloadAvailable').callsFake();
+    client.checkForDownloadsRunning = true;
+
+    try {
+      await client.checkForDownloads();
+    } catch (e) {
+      assert.fail(e);
+    }
+
+    assert(client.discoverQueue.notCalled);
   });
 
   it('should process undefined messages', async () => {
@@ -87,5 +105,36 @@ describe('epi2me.checkForDownloads', () => {
 
     assert(debug.lastCall.args[0].match(/downloads available: 50/));
     assert(client.downloadAvailable.calledOnce);
+  });
+
+  it('should handle new error', async () => {
+    const client = clientFactory();
+    sinon.stub(client, 'discoverQueue').rejects(new Error('discoverQueue failed'));
+
+    try {
+      await client.checkForDownloads();
+    } catch (e) {
+      assert.fail(e);
+    }
+
+    assert(warn.lastCall.args[0].match(/checkForDownloads error/));
+    assert.deepEqual(client.states.download.failure, { 'Error: discoverQueue failed': 1 });
+    assert.equal(client.checkForDownloadsRunning, false, 'semaphore unset');
+  });
+
+  it('should handle subsequent error', async () => {
+    const client = clientFactory();
+    sinon.stub(client, 'discoverQueue').rejects(new Error('discoverQueue failed'));
+    client.states.download.failure = { 'Error: discoverQueue failed': 1 };
+
+    try {
+      await client.checkForDownloads();
+    } catch (e) {
+      assert.fail(e);
+    }
+
+    assert(warn.lastCall.args[0].match(/checkForDownloads error/));
+    assert.deepEqual(client.states.download.failure, { 'Error: discoverQueue failed': 2 });
+    assert.equal(client.checkForDownloadsRunning, false, 'semaphore unset');
   });
 });

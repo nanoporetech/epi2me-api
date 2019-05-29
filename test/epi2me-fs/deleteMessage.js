@@ -161,7 +161,7 @@ describe('epi2me.deleteMessage', () => {
     sinon.stub(client, 'discoverQueue').rejects('could not connect');
     const deleteMessage = sinon.stub();
 
-    client.states.download.failure['could not connect'] = 7;
+    client.states.download.failure = { 'could not connect': 7 };
 
     try {
       await client.deleteMessage({ message: 'test message', ReceiptHandle: 'abcd-1234' });

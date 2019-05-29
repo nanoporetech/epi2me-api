@@ -4,21 +4,15 @@ import path from 'path';
 import tmp from 'tmp';
 import fs from 'fs-extra';
 import { merge } from 'lodash';
+import AWS from 'aws-sdk';
 import EPI2ME from '../../src/epi2me-fs';
 
 // MC-1304 - test download streams
 describe('epi2me.initiateDownloadStream', () => {
   let tmpfile;
   let tmpdir;
-  let writeStream;
   let stubs;
-
-  const s3Mock = cb => ({
-    getObject: () => ({
-      on: () => {},
-      createReadStream: cb,
-    }),
-  });
+  let clock;
 
   const clientFactory = opts => {
     const client = new EPI2ME(
@@ -43,6 +37,7 @@ describe('epi2me.initiateDownloadStream', () => {
   };
 
   beforeEach(() => {
+    clock = sinon.useFakeTimers();
     tmpdir = tmp.dirSync({ unsafeCleanup: true });
     tmpfile = tmp.fileSync({ prefix: 'prefix-', postfix: '.txt' });
     stubs = [];
@@ -50,33 +45,28 @@ describe('epi2me.initiateDownloadStream', () => {
     stubs.push(sinon.stub(fs, 'stat').callsFake(() => Promise.resolve(0)));
 
     fs.writeFile(path.join(tmpdir.name, 'tmpfile.txt'), 'dataset', () => {});
-
-    writeStream = null;
-    const fscWS = fs.createWriteStream; // original, and best
-    stubs.push(
-      sinon.stub(fs, 'createWriteStream').callsFake((...args) => {
-        writeStream = fscWS(...args);
-        return writeStream;
-      }),
-    );
   });
 
   afterEach(() => {
+    clock.restore();
     stubs.forEach(s => {
       s.restore();
     });
   });
 
-  it('should handle s3 error', done => {
+  it('should handle s3 error', async () => {
     const client = clientFactory({});
-    const s3 = s3Mock(() => {
-      throw new Error('S3 Error');
-    });
-    client.initiateDownloadStream(s3, {}, {}, tmpfile.name, () => {
-      assert(client.log.error.calledOnce, 'should log error message');
-      done();
-    });
+    sinon.stub(client, 'sessionedS3').throws(new Error('S3 Error'));
+
+    try {
+      await client.initiateDownloadStream({}, {}, tmpfile.name);
+    } catch (e) {
+      assert(String(e).match(/S3 Error/));
+    }
+
+    assert(client.log.error.calledOnce, 'should log error message');
   });
+
   /*
     it('should open read stream and write to outputFile', (done) => {
         let client = clientFactory({
@@ -104,93 +94,127 @@ describe('epi2me.initiateDownloadStream', () => {
         });
     });
 */
-  it('should handle read stream errors', done => {
-    const client = clientFactory({});
 
-    const s3 = s3Mock(() => {
-      tmpfile = tmp.fileSync({ prefix: 'prefix-', postfix: '.txt' });
-      const readStream = fs.createReadStream(tmpfile.name);
-      readStream.on('open', () => {
-        readStream.emit('error', new Error('Test'));
-      });
-      return readStream;
+  it('should handle read stream errors', async () => {
+    const client = clientFactory({});
+    const s3 = new AWS.S3();
+
+    sinon.stub(client, 'sessionedS3').callsFake(() => s3);
+
+    sinon.stub(s3, 'getObject').callsFake(() => {
+      return {
+        on: () => {},
+        createReadStream: () => {
+          tmpfile = tmp.fileSync({ prefix: 'prefix-', postfix: '.txt' });
+          const readStream = fs.createReadStream(tmpfile.name);
+          readStream.on('open', () => {
+            readStream.emit('error', new Error('Test'));
+          });
+          return readStream;
+        },
+      };
     });
 
     const filename = path.join(tmpdir.name, 'tmpfile.txt');
 
-    client.initiateDownloadStream(s3, {}, {}, filename, () => {
-      // assert.equal(readStream.destroyed, true, "should destroy the read stream"); // fails on node > 2.2.1
-      assert(client.deleteMessage.notCalled, 'should not delete sqs message on error');
-      assert.deepEqual(
-        client.states.download.success,
-        { files: 0, bytes: 0, reads: 0 },
-        'should not count as download success on error',
-      );
-      done();
-    });
+    try {
+      await client.initiateDownloadStream({}, {}, filename);
+    } catch (e) {
+      assert.fail(e);
+    }
+    assert(client.deleteMessage.notCalled, 'should not delete sqs message on error');
+    assert.deepEqual(
+      client.states.download.success,
+      { files: 0, bytes: 0, reads: 0 },
+      'should not count as download success on error',
+    );
 
     assert.deepEqual(client.states.download.success, { files: 0, bytes: 0, reads: 0 });
   });
 
-  it('should handle write stream errors', done => {
+  it('should handle write stream errors', async () => {
     const client = clientFactory({});
+    const s3 = new AWS.S3();
 
-    const s3 = s3Mock(() => {
-      tmpfile = tmp.fileSync({ prefix: 'prefix-', postfix: '.txt' });
-      const readStream = fs.createReadStream(tmpfile.name);
-      return readStream;
+    sinon.stub(client, 'sessionedS3').callsFake(() => s3);
+    sinon.stub(s3, 'getObject').callsFake(() => {
+      return {
+        on: () => {},
+        createReadStream: () => {
+          tmpfile = tmp.fileSync({ prefix: 'prefix-', postfix: '.txt' });
+          const readStream = fs.createReadStream(tmpfile.name);
+          return readStream;
+        },
+      };
     });
 
     const filename = path.join(tmpdir.name, 'tmpfile2.txt');
+    let writeStream = null;
+    const fscWS = fs.createWriteStream; // original, and best
+    stubs.push(
+      sinon.stub(fs, 'createWriteStream').callsFake((...args) => {
+        writeStream = fscWS(...args);
+        writeStream.on('open', () => {
+          writeStream.emit('error', new Error('Test'));
+        });
+        return writeStream;
+      }),
+    );
 
-    client.initiateDownloadStream(s3, {}, {}, filename, () => {
-      // assert.equal(readStream.destroyed, true, "should destroy the read stream"); // fails on node > 2.2.1
-      assert(client.deleteMessage.notCalled, 'should not delete sqs message on error');
-      assert.deepEqual(
-        client.states.download.success,
-        { files: 0, reads: 0, bytes: 0 },
-        'should not count as download success on error',
-      );
-      done();
-    });
-    writeStream.on('open', () => {
-      writeStream.emit('error', new Error('Test'));
-    });
+    await client.initiateDownloadStream({}, {}, filename);
+
+    assert(client.deleteMessage.notCalled, 'should not delete sqs message on error');
+    assert.deepEqual(
+      client.states.download.success,
+      { files: 0, reads: 0, bytes: 0 },
+      'should not count as download success on error',
+    );
   });
 
-  it('should handle createWriteStream error', done => {
+  it('should handle createWriteStream error', async () => {
     const client = clientFactory({});
+    const s3 = new AWS.S3();
 
-    assert.doesNotThrow(() => {
-      client.initiateDownloadStream(s3Mock(() => {}), {}, {}, null, done);
-    });
+    sinon.stub(client, 'sessionedS3').callsFake(() => s3);
+
+    try {
+      await client.initiateDownloadStream({}, {}, null);
+    } catch (e) {
+      assert(String(e).match(/Error/)); // it's a little bit too internal-y
+    }
   });
-  /*
-  it('should handle transfer timeout errors', async () => {
-    const clock = sinon.useFakeTimers();
-    const client = clientFactory({ downloadTimeout: 1 }); // effectively zero. Zero would result in default value
 
-    const s3 = s3Mock(() => {
-      tmpfile = tmp.fileSync({ prefix: 'prefix-', postfix: '.txt' });
-      const readStream = fs.createReadStream(tmpfile.name);
-      // Writing random data to file so that the timeout fails before the readstream is done
-      clock.tick(5000); // more than downloadTimeout: 1
-      fs.writeFileSync(tmpfile.name, new Array(1e5).join('aaa'));
-      return readStream;
+  it('should handle transfer timeout errors', async () => {
+    const client = clientFactory({ downloadTimeout: 1 }); // effectively zero. Zero would result in default value
+    const s3 = new AWS.S3();
+    sinon.stub(client, 'sessionedS3').callsFake(() => s3);
+
+    sinon.stub(s3, 'getObject').callsFake(() => {
+      return {
+        on: sinon.fake(),
+        createReadStream: () => {
+          fs.writeFileSync(tmpfile.name, new Array(1e5).join('aaa'));
+          const readStream = fs.createReadStream(tmpfile.name);
+          // Writing random data to file so that the timeout fails before the readstream is done
+          //          clock.tick(2000 * client.config.options.downloadTimeout); // should cause transferTimeout to fire
+          readStream.on('open', () => {
+            // defer error emission
+            readStream.emit('error', new Error('fake timeout'));
+          });
+          return readStream;
+        },
+      };
     });
 
     const filename = path.join(tmpdir.name, 'tmpfile.txt');
 
-    const p = new Promise(resolve => {
-      client.initiateDownloadStream(s3, {}, {}, filename, resolve);
-    });
-    await p;
-    console.log(client.log.debug.args);
-    console.log(client.log.warn.args);
-    console.log(client.log.info.args);
+    try {
+      await client.initiateDownloadStream(s3, {}, filename);
+    } catch (e) {
+      assert.fail(e); // does not reject immediately (req.createReadStream)
+    }
+
     assert(client.deleteMessage.notCalled, 'should not delete sqs message on error');
-    assert.equal(client.states.download.success, 0, 'should not count as download success on error');
-    clock.restore();
+    assert.equal(client.states.download.success.files, 0, 'should not count as download success on error');
   });
-*/
 });
