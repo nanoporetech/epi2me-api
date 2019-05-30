@@ -132,7 +132,7 @@ export default class EPI2ME {
     return Promise.resolve(); // api changed
   }
 
-  async session() {
+  async session(children) {
     /* MC-1848 all session requests are serialised through that.sessionQueue to avoid multiple overlapping requests */
     if (this.sessioning) {
       return Promise.resolve(); // resolve or reject? Throttle to n=1: bail out if there's already a job queued
@@ -145,7 +145,7 @@ export default class EPI2ME {
       this.sessioning = true;
 
       try {
-        await this.fetchInstanceToken();
+        await this.fetchInstanceToken(children);
         this.sessioning = false;
       } catch (err) {
         this.sessioning = false;
@@ -157,7 +157,7 @@ export default class EPI2ME {
     return Promise.resolve();
   }
 
-  async fetchInstanceToken() {
+  async fetchInstanceToken(children) {
     if (!this.config.instance.id_workflow_instance) {
       return Promise.reject(new Error('must specify id_workflow_instance'));
     }
@@ -184,6 +184,15 @@ export default class EPI2ME {
       // MC-5418 - This needs to be done before the process starts uploading messages!
       AWS.config.update(this.config.instance.awssettings);
       AWS.config.update(token);
+      if (children) {
+        children.forEach(child => {
+          try {
+            child.config.update(token);
+          } catch (e) {
+            this.log.warn(`failed to update config on`, child, ':', String(e));
+          }
+        });
+      }
     } catch (err) {
       this.log.warn(`failed to fetch instance token: ${String(err)}`);
 
