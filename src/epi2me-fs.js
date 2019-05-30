@@ -936,14 +936,15 @@ export default class EPI2ME_FS extends EPI2ME {
 
         const managedUpload = s3.upload(params, options);
 
-        managedUpload.on('httpUploadProgress', progress => {
+        managedUpload.on('httpUploadProgress', async progress => {
           //          this.log.debug(`upload progress ${progress.key} ${progress.loaded} / ${progress.total}`);
           this.uploadState('progress', 'incr', { bytes: progress.loaded - myProgress }); // delta since last time
           myProgress = progress.loaded; // store for calculating delta next iteration
           clearTimeout(timeoutHandle); // MC-6789 - reset upload timeout
           timeoutHandle = setTimeout(timeoutFunc, (this.config.options.uploadTimeout + 5) * 1000);
           try {
-            this.session([s3]); // MC-7129 check if token needs refreshing during long duration uploads (>token duration). Don't bother awaiting.
+            await this.session([s3]); // MC-7129 check if token needs refreshing during long duration uploads (>token duration). Don't bother awaiting.
+            managedUpload.service.config.update(s3.config); // update the managed upload with the refreshed token
           } catch (e) {
             this.log.warn({ error: String(e) }, 'Error refreshing token');
           }
