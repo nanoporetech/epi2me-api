@@ -92,9 +92,11 @@ export default class EPI2ME_FS extends EPI2ME {
 
     // copy tuples with the same names
 
-    ['id_workflow_instance', 'id_workflow', 'remote_addr', 'key_id', 'bucket', 'user_defined'].forEach(f => {
-      this.config.instance[f] = instance[f];
-    });
+    ['id_workflow_instance', 'id_workflow', 'remote_addr', 'key_id', 'bucket', 'user_defined', 'start_date'].forEach(
+      f => {
+        this.config.instance[f] = instance[f];
+      },
+    );
 
     // copy tuples with different names / structures
     this.config.instance.inputQueueName = instance.inputqueue;
@@ -944,7 +946,7 @@ export default class EPI2ME_FS extends EPI2ME {
           timeoutHandle = setTimeout(timeoutFunc, (this.config.options.uploadTimeout + 5) * 1000);
           try {
             await this.session([s3]); // MC-7129 check if token needs refreshing during long duration uploads (>token duration). Don't bother awaiting.
-            managedUpload.service.config.update(s3.config); // update the managed upload with the refreshed token
+            //            managedUpload.service.config.update(s3.config); // update the managed upload with the refreshed token
           } catch (e) {
             this.log.warn({ error: String(e) }, 'Error refreshing token');
           }

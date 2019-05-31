@@ -2,6 +2,7 @@ import sqlite from 'sqlite';
 import { mkdirp } from 'fs-extra';
 import { remove } from 'lodash';
 import path from 'path';
+import pkg from '../package.json';
 
 export default class db {
   constructor(dbRoot, idWorkflowInstance, log) {
@@ -20,7 +21,11 @@ export default class db {
                   "CREATE TABLE IF NOT EXISTS meta (version CHAR(12) DEFAULT '' NOT NULL, id_workflow_instance INTEGER UNSIGNED)",
                 )
                 .then(() => {
-                  dbh.run("INSERT INTO meta (version, id_workflow_instance) VALUES('0.0.1', ?)", idWorkflowInstance);
+                  dbh.run(
+                    'INSERT INTO meta (version, id_workflow_instance) VALUES(?, ?)',
+                    pkg.version,
+                    idWorkflowInstance,
+                  );
                 }),
               dbh.run("CREATE TABLE IF NOT EXISTS uploads (filename CHAR(255) DEFAULT '' NOT NULL PRIMARY KEY)"),
               dbh.run("CREATE TABLE IF NOT EXISTS skips (filename CHAR(255) DEFAULT '' NOT NULL PRIMARY KEY)"),
