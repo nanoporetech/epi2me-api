@@ -88,28 +88,49 @@ export default class EPI2ME {
     };
 
     this.REST = new _REST(merge({}, { log: this.log }, this.config.options));
+
+    // placeholders for all the timers we might want to cancel if forcing a stop
+    this.timers = {
+      downloadCheckInterval: null,
+      stateCheckInterval: null,
+      fileCheckInterval: null,
+      transferTimeouts: {},
+      visibilityIntervals: {},
+    };
   }
 
   async stopEverything() {
     this.log.debug('stopping watchers');
 
-    if (this.downloadCheckInterval) {
+    if (this.timers.downloadCheckInterval) {
       this.log.debug('clearing downloadCheckInterval interval');
-      clearInterval(this.downloadCheckInterval);
-      this.downloadCheckInterval = null;
+      clearInterval(this.timers.downloadCheckInterval);
+      this.timers.downloadCheckInterval = null;
     }
 
-    if (this.stateCheckInterval) {
+    if (this.timers.stateCheckInterval) {
       this.log.debug('clearing stateCheckInterval interval');
-      clearInterval(this.stateCheckInterval);
-      this.stateCheckInterval = null;
+      clearInterval(this.timers.stateCheckInterval);
+      this.timers.stateCheckInterval = null;
     }
 
-    if (this.fileCheckInterval) {
+    if (this.timers.fileCheckInterval) {
       this.log.debug('clearing fileCheckInterval interval');
-      clearInterval(this.fileCheckInterval);
-      this.fileCheckInterval = null;
+      clearInterval(this.timers.fileCheckInterval);
+      this.timers.fileCheckInterval = null;
     }
+
+    Object.keys(this.timers.transferTimeouts).forEach(key => {
+      this.log.debug(`clearing transferTimeout for ${key}`);
+      clearTimeout(this.timers.transferTimeouts[key]);
+      delete this.timers.transferTimeouts[key];
+    });
+
+    Object.keys(this.timers.visibilityIntervals).forEach(key => {
+      this.log.debug(`clearing visibilityInterval for ${key}`);
+      clearInterval(this.timers.visibilityIntervals[key]);
+      delete this.timers.visibilityIntervals[key];
+    });
 
     if (this.downloadWorkerPool) {
       this.log.debug('clearing downloadWorkerPool');
@@ -132,7 +153,7 @@ export default class EPI2ME {
     return Promise.resolve(); // api changed
   }
 
-  async session() {
+  async session(children) {
     /* MC-1848 all session requests are serialised through that.sessionQueue to avoid multiple overlapping requests */
     if (this.sessioning) {
       return Promise.resolve(); // resolve or reject? Throttle to n=1: bail out if there's already a job queued
@@ -145,7 +166,7 @@ export default class EPI2ME {
       this.sessioning = true;
 
       try {
-        await this.fetchInstanceToken();
+        await this.fetchInstanceToken(children);
         this.sessioning = false;
       } catch (err) {
         this.sessioning = false;
@@ -157,7 +178,7 @@ export default class EPI2ME {
     return Promise.resolve();
   }
 
-  async fetchInstanceToken() {
+  async fetchInstanceToken(children) {
     if (!this.config.instance.id_workflow_instance) {
       return Promise.reject(new Error('must specify id_workflow_instance'));
     }
@@ -184,6 +205,15 @@ export default class EPI2ME {
       // MC-5418 - This needs to be done before the process starts uploading messages!
       AWS.config.update(this.config.instance.awssettings);
       AWS.config.update(token);
+      if (children) {
+        children.forEach(child => {
+          try {
+            child.config.update(token);
+          } catch (e) {
+            this.log.warn(`failed to update config on`, child, ':', String(e));
+          }
+        });
+      }
     } catch (err) {
       this.log.warn(`failed to fetch instance token: ${String(err)}`);
 
