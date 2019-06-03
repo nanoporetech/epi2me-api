@@ -154,12 +154,12 @@ export default class EPI2ME_FS extends EPI2ME {
     if (autoStartCb) autoStartCb(null, this.config.instance);
 
     // MC-2068 - Don't use an interval.
-    this.downloadCheckInterval = setInterval(() => {
+    this.timers.downloadCheckInterval = setInterval(() => {
       this.checkForDownloads();
     }, this.config.options.downloadCheckInterval * 1000);
 
     // MC-1795 - stop workflow when instance has been stopped remotely
-    this.stateCheckInterval = setInterval(async () => {
+    this.timers.stateCheckInterval = setInterval(async () => {
       try {
         const instanceObj = await this.REST.workflowInstance(this.config.instance.id_workflow_instance);
         if (instanceObj.state === 'stopped') {
@@ -189,7 +189,7 @@ export default class EPI2ME_FS extends EPI2ME {
     this.reportProgress();
     // MC-5418: ensure that the session has been established before starting the upload
     this.loadUploadFiles(); // Trigger once at workflow instance start
-    this.fileCheckInterval = setInterval(this.loadUploadFiles.bind(this), this.config.options.fileCheckInterval * 1000);
+    this.timers.fileCheckInterval = setInterval(this.loadUploadFiles.bind(this), this.config.options.fileCheckInterval * 1000);
     return Promise.resolve(instance);
   }
 
@@ -715,8 +715,6 @@ export default class EPI2ME_FS extends EPI2ME {
       }
 
       let file;
-      let transferTimeout;
-      let visibilityInterval;
       let rs;
 
       const deleteFile = () => {
@@ -740,7 +738,7 @@ export default class EPI2ME_FS extends EPI2ME {
 
       const onStreamError = err => {
         this.log.error(`Error during stream ${String(err)}`);
-        clearTimeout(transferTimeout);
+        clearTimeout(this.timers.transferTimeouts[outputFile]);
 
         if (!file.networkStreamError) {
           try {
@@ -814,7 +812,7 @@ export default class EPI2ME_FS extends EPI2ME {
         }
 
         /* must signal completion */
-        clearInterval(visibilityInterval);
+        clearInterval(this.timers.visibilityIntervals[outputFile]);
         // MC-2143 - check for more jobs
         setTimeout(this.checkForDownloads.bind(this));
         this.log.info(`download.processMessage: ${message.MessageId} downloaded ${s3Item.path} to ${outputFile}`);
@@ -827,7 +825,7 @@ export default class EPI2ME_FS extends EPI2ME {
         onStreamError(new Error('transfer timed out'));
       };
 
-      transferTimeout = setTimeout(
+      this.timers.transferTimeouts[outputFile] = setTimeout(
         transferTimeoutFunc,
         1000 * this.config.options.downloadTimeout,
       ); /* download stream timeout in ms */
@@ -848,20 +846,20 @@ export default class EPI2ME_FS extends EPI2ME {
             .promise();
         } catch (err) {
           this.log.error({ message_id: message.MessageId, queue: queueUrl, error: err }, 'Error setting visibility');
-          clearInterval(visibilityInterval);
+          clearInterval(this.timers.visibilityIntervals[outputFile]);
           // reject here?
         }
       };
 
-      visibilityInterval = setInterval(
+      this.timers.visibilityIntervals[outputFile] = setInterval(
         updateVisibilityFunc,
         900 * this.config.options.inFlightDelay,
       ); /* message in flight timeout in ms, less 10% */
 
       rs.on('data', chunk => {
         // reset timeout
-        clearTimeout(transferTimeout);
-        transferTimeout = setTimeout(
+        clearTimeout(this.timers.transferTimeouts[outputFile]);
+        this.timers.transferTimeouts[outputFile] = setTimeout(
           transferTimeoutFunc,
           1000 * this.config.options.downloadTimeout,
         ); /* download stream timeout in ms */

@@ -37,7 +37,7 @@ describe('epi2me.stopEverything', () => {
   it('should clear download interval', async () => {
     const client = clientFactory();
     sinon.stub(client.REST, 'stopWorkflow').resolves();
-    client.downloadCheckInterval = setInterval(() => {}, 100);
+    client.timers.downloadCheckInterval = setInterval(() => {}, 100);
 
     try {
       await client.stopEverything();
@@ -50,7 +50,7 @@ describe('epi2me.stopEverything', () => {
   it('should clear statecheck interval', async () => {
     const client = clientFactory();
     sinon.stub(client.REST, 'stopWorkflow').resolves();
-    client.stateCheckInterval = setInterval(() => {}, 100);
+    client.timers.stateCheckInterval = setInterval(() => {}, 100);
 
     try {
       await client.stopEverything();
@@ -64,9 +64,9 @@ describe('epi2me.stopEverything', () => {
     const client = clientFactory();
     sinon.stub(client.REST, 'stopWorkflow').callsFake();
 
-    client.downloadCheckInterval = setInterval(() => {}, 100);
-    client.stateCheckInterval = setInterval(() => {}, 100);
-    client.fileCheckInterval = setInterval(() => {}, 100);
+    client.timers.downloadCheckInterval = setInterval(() => {}, 100);
+    client.timers.stateCheckInterval = setInterval(() => {}, 100);
+    client.timers.fileCheckInterval = setInterval(() => {}, 100);
 
     try {
       await client.stopEverything();
@@ -88,9 +88,9 @@ describe('epi2me.stopEverything', () => {
             sinon.stub(client.REST, "stopWorkflow").callsFake();
             client.uploadWorkerPool = { "drain": uploadDrain };
 
-            client.downloadCheckInterval = setInterval(() => {}, 100);
-            client.stateCheckInterval    = setInterval(() => {}, 100);
-            client.fileCheckInterval     = setInterval(() => {}, 100);
+            client.timers.downloadCheckInterval = setInterval(() => {}, 100);
+            client.timers.stateCheckInterval    = setInterval(() => {}, 100);
+            client.timers.fileCheckInterval     = setInterval(() => {}, 100);
         });
 
         assert.doesNotThrow(() => {
@@ -115,9 +115,9 @@ describe('epi2me.stopEverything', () => {
       sinon.stub(client.REST, 'stopWorkflow').callsFake();
       client.downloadWorkerPool = { drain: downloadDrain };
 
-      client.downloadCheckInterval = setInterval(() => {}, 100);
-      client.stateCheckInterval = setInterval(() => {}, 100);
-      client.fileCheckInterval = setInterval(() => {}, 100);
+      client.timers.downloadCheckInterval = setInterval(() => {}, 100);
+      client.timers.stateCheckInterval = setInterval(() => {}, 100);
+      client.timers.fileCheckInterval = setInterval(() => {}, 100);
     });
 
     assert.doesNotThrow(
