@@ -153,7 +153,7 @@ export default class EPI2ME {
     return Promise.resolve(); // api changed
   }
 
-  async session(children) {
+  async session(children, opts) {
     /* MC-1848 all session requests are serialised through that.sessionQueue to avoid multiple overlapping requests */
     if (this.sessioning) {
       return Promise.resolve(); // resolve or reject? Throttle to n=1: bail out if there's already a job queued
@@ -166,7 +166,7 @@ export default class EPI2ME {
       this.sessioning = true;
 
       try {
-        await this.fetchInstanceToken(children);
+        await this.fetchInstanceToken(children, opts);
         this.sessioning = false;
       } catch (err) {
         this.sessioning = false;
@@ -178,6 +178,7 @@ export default class EPI2ME {
     return Promise.resolve();
   }
 
+  /* NOTE: requesting a token with additional opts WILL POLLUTE THE GLOBAL STATE AND BE CACHED. USE WITH CAUTION */
   async fetchInstanceToken(children, opts) {
     if (!this.config.instance.id_workflow_instance) {
       return Promise.reject(new Error('must specify id_workflow_instance'));
