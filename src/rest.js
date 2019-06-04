@@ -55,16 +55,16 @@ export default class REST {
     return cb ? cb(null, data) : Promise.resolve(data);
   }
 
-  async instanceToken(id, cb) {
+  async instanceToken(id, opts) {
     try {
       const data = await utils.post(
         'token',
-        { id_workflow_instance: id },
+        merge(opts, { id_workflow_instance: id }),
         assign({}, this.options, { legacy_form: true }),
       );
-      return cb ? cb(null, data) : Promise.resolve(data);
+      return Promise.resolve(data);
     } catch (err) {
-      return cb ? cb(err) : Promise.reject(err);
+      return Promise.reject(err);
     }
   }
 

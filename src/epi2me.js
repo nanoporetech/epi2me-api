@@ -178,7 +178,7 @@ export default class EPI2ME {
     return Promise.resolve();
   }
 
-  async fetchInstanceToken(children) {
+  async fetchInstanceToken(children, opts) {
     if (!this.config.instance.id_workflow_instance) {
       return Promise.reject(new Error('must specify id_workflow_instance'));
     }
@@ -191,7 +191,7 @@ export default class EPI2ME {
     this.log.debug('new instance token needed');
 
     try {
-      const token = await this.REST.instanceToken(this.config.instance.id_workflow_instance);
+      const token = await this.REST.instanceToken(this.config.instance.id_workflow_instance, opts);
       this.log.debug(`allocated new instance token expiring at ${token.expiration}`);
       this.states.sts_expiration = new Date(token.expiration).getTime() - 60 * this.config.options.sessionGrace; // refresh token x mins before it expires
       // "classic" token mode no longer supported
@@ -223,15 +223,15 @@ export default class EPI2ME {
     return Promise.resolve();
   }
 
-  async sessionedS3() {
-    await this.session();
+  async sessionedS3(opts) {
+    await this.session(null, opts);
     return new AWS.S3({
       useAccelerateEndpoint: this.config.options.awsAcceleration === 'on',
     });
   }
 
-  async sessionedSQS() {
-    await this.session();
+  async sessionedSQS(opts) {
+    await this.session(null, opts);
     return new AWS.SQS();
   }
 
