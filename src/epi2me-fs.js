@@ -103,6 +103,7 @@ export default class EPI2ME_FS extends EPI2ME {
     this.config.instance.outputQueueName = instance.outputqueue;
     this.config.instance.awssettings.region = instance.region || this.config.options.region;
     this.config.instance.bucketFolder = `${instance.outputqueue}/${instance.id_user}/${instance.id_workflow_instance}`;
+    this.config.instance.summaryTelemetry = instance.telemetry; // MC-7056 for fetchTelemetry (summary) telemetry periodically
 
     if (instance.chain) {
       if (typeof instance.chain === 'object') {
@@ -153,6 +154,11 @@ export default class EPI2ME_FS extends EPI2ME {
 
     if (autoStartCb) autoStartCb(null, this.config.instance);
 
+    // MC-7056 periodically fetch summary telemetry for local reporting purposes
+    this.timers.summaryTelemetryInterval = setInterval(() => {
+      this.fetchTelemetry();
+    }, this.config.options.downloadCheckInterval * 10000) // 10x slower than downloadChecks - is this reasonable?
+
     // MC-2068 - Don't use an interval.
     this.timers.downloadCheckInterval = setInterval(() => {
       this.checkForDownloads();
@@ -189,7 +195,10 @@ export default class EPI2ME_FS extends EPI2ME {
     this.reportProgress();
     // MC-5418: ensure that the session has been established before starting the upload
     this.loadUploadFiles(); // Trigger once at workflow instance start
-    this.timers.fileCheckInterval = setInterval(this.loadUploadFiles.bind(this), this.config.options.fileCheckInterval * 1000);
+    this.timers.fileCheckInterval = setInterval(
+      this.loadUploadFiles.bind(this),
+      this.config.options.fileCheckInterval * 1000,
+    );
     return Promise.resolve(instance);
   }
 
@@ -1051,6 +1060,47 @@ export default class EPI2ME_FS extends EPI2ME {
 
     this.log.info(`${file.id} SQS message sent. Mark as uploaded`);
     return this.db.uploadFile(file.path);
+  }
+
+  async fetchTelemetry() {
+    if (!this.config || !this.config.instance || !this.config.instance.summaryTelemetry) {
+      return Promise.resolve();
+    }
+
+    const instancesDir = path.join(rootDir(), 'instances');
+    const thisInstanceDir = path.join(instancesDir, this.config.instance.id_workflow_instance);
+    const toFetch = [];
+
+    Object.keys(this.config.instance.summaryTelemetry).forEach(componentId => {
+      const component = this.config.instance.summaryTelemetry[componentId] || {};
+      const firstReport = Object.keys(component)[0]; // poor show
+      const url = component[firstReport];
+
+      if (!url) {
+        return;
+      }
+
+      const fn = path.join(thisInstanceDir, `${componentId}.json`);
+
+      toFetch.push(
+        new Promise(resolve => {
+          this.REST.fetchContent(url).then(body => {
+            const ws = fs.createWriteStream(fn);
+            ws.write(JSON.stringify(body));
+            ws.close();
+            this.log.debug(`fetched telemetry summary ${fn}`);
+            resolve();
+          });
+        }),
+      );
+    });
+
+    try {
+      await Promise.all(toFetch);
+    } catch (err) {
+      this.log.warn(String(err));
+    }
+    return Promise.resolve();
   }
 }
 
