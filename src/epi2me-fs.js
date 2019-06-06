@@ -1086,13 +1086,17 @@ export default class EPI2ME_FS extends EPI2ME {
 
       toFetch.push(
         new Promise(resolve => {
-          this.REST.fetchContent(url).then(body => {
-            const ws = fs.createWriteStream(fn);
-            ws.write(JSON.stringify(body));
-            ws.close();
-            this.log.debug(`fetched telemetry summary ${fn}`);
-            resolve();
-          });
+          this.REST.fetchContent(url)
+            .then(body => {
+              const ws = fs.createWriteStream(fn);
+              ws.write(JSON.stringify(body));
+              ws.close();
+              this.log.debug(`fetched telemetry summary ${fn}`);
+              resolve();
+            })
+            .catch(e => {
+              this.log.debug(`Error fetching telemetry: ${String(e)}`);
+            });
         }),
       );
     });
@@ -1104,8 +1108,8 @@ export default class EPI2ME_FS extends EPI2ME {
       errCount += 1;
     }
 
-    if(errCount) {
-      this.log.warn("summary telemetry incomplete");
+    if (errCount) {
+      this.log.warn('summary telemetry incomplete');
     }
     return Promise.resolve();
   }
