@@ -157,7 +157,7 @@ export default class EPI2ME_FS extends EPI2ME {
     // MC-7056 periodically fetch summary telemetry for local reporting purposes
     this.timers.summaryTelemetryInterval = setInterval(() => {
       this.fetchTelemetry();
-    }, this.config.options.downloadCheckInterval * 10000) // 10x slower than downloadChecks - is this reasonable?
+    }, this.config.options.downloadCheckInterval * 10000); // 10x slower than downloadChecks - is this reasonable?
 
     // MC-2068 - Don't use an interval.
     this.timers.downloadCheckInterval = setInterval(() => {
@@ -748,6 +748,7 @@ export default class EPI2ME_FS extends EPI2ME {
       const onStreamError = err => {
         this.log.error(`Error during stream ${String(err)}`);
         clearTimeout(this.timers.transferTimeouts[outputFile]);
+        delete this.timers.transferTimeouts[outputFile];
 
         if (!file.networkStreamError) {
           try {
@@ -822,6 +823,7 @@ export default class EPI2ME_FS extends EPI2ME {
 
         /* must signal completion */
         clearInterval(this.timers.visibilityIntervals[outputFile]);
+        delete this.timers.visibilityIntervals[outputFile];
         // MC-2143 - check for more jobs
         setTimeout(this.checkForDownloads.bind(this));
         this.log.info(`download.processMessage: ${message.MessageId} downloaded ${s3Item.path} to ${outputFile}`);
@@ -1095,10 +1097,15 @@ export default class EPI2ME_FS extends EPI2ME {
       );
     });
 
+    let errCount = 0;
     try {
       await Promise.all(toFetch);
     } catch (err) {
-      this.log.warn(String(err));
+      errCount += 1;
+    }
+
+    if(errCount) {
+      this.log.warn("summary telemetry incomplete");
     }
     return Promise.resolve();
   }
