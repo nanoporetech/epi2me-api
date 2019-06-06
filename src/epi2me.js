@@ -96,29 +96,22 @@ export default class EPI2ME {
       fileCheckInterval: null,
       transferTimeouts: {},
       visibilityIntervals: {},
+      summaryTelemetryInterval: null,
     };
   }
 
   async stopEverything() {
     this.log.debug('stopping watchers');
 
-    if (this.timers.downloadCheckInterval) {
-      this.log.debug('clearing downloadCheckInterval interval');
-      clearInterval(this.timers.downloadCheckInterval);
-      this.timers.downloadCheckInterval = null;
-    }
-
-    if (this.timers.stateCheckInterval) {
-      this.log.debug('clearing stateCheckInterval interval');
-      clearInterval(this.timers.stateCheckInterval);
-      this.timers.stateCheckInterval = null;
-    }
-
-    if (this.timers.fileCheckInterval) {
-      this.log.debug('clearing fileCheckInterval interval');
-      clearInterval(this.timers.fileCheckInterval);
-      this.timers.fileCheckInterval = null;
-    }
+    ['downloadCheckInterval', 'stateCheckInterval', 'fileCheckInterval', 'summaryTelemetryInterval'].forEach(
+      intervalName => {
+        if (this.timers[intervalName]) {
+          this.log.debug(`clearing ${intervalName} interval`);
+          clearInterval(this.timers[intervalName]);
+          this.timers[intervalName] = null;
+        }
+      },
+    );
 
     Object.keys(this.timers.transferTimeouts).forEach(key => {
       this.log.debug(`clearing transferTimeout for ${key}`);

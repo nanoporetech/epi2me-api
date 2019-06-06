@@ -103,6 +103,7 @@ export default class EPI2ME_FS extends EPI2ME {
     this.config.instance.outputQueueName = instance.outputqueue;
     this.config.instance.awssettings.region = instance.region || this.config.options.region;
     this.config.instance.bucketFolder = `${instance.outputqueue}/${instance.id_user}/${instance.id_workflow_instance}`;
+    this.config.instance.summaryTelemetry = instance.telemetry; // MC-7056 for fetchTelemetry (summary) telemetry periodically
 
     if (instance.chain) {
       if (typeof instance.chain === 'object') {
@@ -153,6 +154,11 @@ export default class EPI2ME_FS extends EPI2ME {
 
     if (autoStartCb) autoStartCb(null, this.config.instance);
 
+    // MC-7056 periodically fetch summary telemetry for local reporting purposes
+    this.timers.summaryTelemetryInterval = setInterval(() => {
+      this.fetchTelemetry();
+    }, this.config.options.downloadCheckInterval * 10000); // 10x slower than downloadChecks - is this reasonable?
+
     // MC-2068 - Don't use an interval.
     this.timers.downloadCheckInterval = setInterval(() => {
       this.checkForDownloads();
@@ -189,7 +195,10 @@ export default class EPI2ME_FS extends EPI2ME {
     this.reportProgress();
     // MC-5418: ensure that the session has been established before starting the upload
     this.loadUploadFiles(); // Trigger once at workflow instance start
-    this.timers.fileCheckInterval = setInterval(this.loadUploadFiles.bind(this), this.config.options.fileCheckInterval * 1000);
+    this.timers.fileCheckInterval = setInterval(
+      this.loadUploadFiles.bind(this),
+      this.config.options.fileCheckInterval * 1000,
+    );
     return Promise.resolve(instance);
   }
 
@@ -739,6 +748,7 @@ export default class EPI2ME_FS extends EPI2ME {
       const onStreamError = err => {
         this.log.error(`Error during stream ${String(err)}`);
         clearTimeout(this.timers.transferTimeouts[outputFile]);
+        delete this.timers.transferTimeouts[outputFile];
 
         if (!file.networkStreamError) {
           try {
@@ -813,6 +823,7 @@ export default class EPI2ME_FS extends EPI2ME {
 
         /* must signal completion */
         clearInterval(this.timers.visibilityIntervals[outputFile]);
+        delete this.timers.visibilityIntervals[outputFile];
         // MC-2143 - check for more jobs
         setTimeout(this.checkForDownloads.bind(this));
         this.log.info(`download.processMessage: ${message.MessageId} downloaded ${s3Item.path} to ${outputFile}`);
@@ -1051,6 +1062,56 @@ export default class EPI2ME_FS extends EPI2ME {
 
     this.log.info(`${file.id} SQS message sent. Mark as uploaded`);
     return this.db.uploadFile(file.path);
+  }
+
+  async fetchTelemetry() {
+    if (!this.config || !this.config.instance || !this.config.instance.summaryTelemetry) {
+      return Promise.resolve();
+    }
+
+    const instancesDir = path.join(rootDir(), 'instances');
+    const thisInstanceDir = path.join(instancesDir, this.config.instance.id_workflow_instance);
+    const toFetch = [];
+
+    Object.keys(this.config.instance.summaryTelemetry).forEach(componentId => {
+      const component = this.config.instance.summaryTelemetry[componentId] || {};
+      const firstReport = Object.keys(component)[0]; // poor show
+      const url = component[firstReport];
+
+      if (!url) {
+        return;
+      }
+
+      const fn = path.join(thisInstanceDir, `${componentId}.json`);
+
+      toFetch.push(
+        new Promise(resolve => {
+          this.REST.fetchContent(url)
+            .then(body => {
+              const ws = fs.createWriteStream(fn);
+              ws.write(JSON.stringify(body));
+              ws.close();
+              this.log.debug(`fetched telemetry summary ${fn}`);
+              resolve();
+            })
+            .catch(e => {
+              this.log.debug(`Error fetching telemetry: ${String(e)}`);
+            });
+        }),
+      );
+    });
+
+    let errCount = 0;
+    try {
+      await Promise.all(toFetch);
+    } catch (err) {
+      errCount += 1;
+    }
+
+    if (errCount) {
+      this.log.warn('summary telemetry incomplete');
+    }
+    return Promise.resolve();
   }
 }
 
