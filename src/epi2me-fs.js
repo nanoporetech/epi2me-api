@@ -130,7 +130,14 @@ export default class EPI2ME_FS extends EPI2ME {
     const instancesDir = path.join(rootDir(), 'instances');
     const thisInstanceDir = path.join(instancesDir, this.config.instance.id_workflow_instance);
     // set up new tracking database
-    this.db = new DB(thisInstanceDir, this.config.instance.id_workflow_instance, this.log);
+    this.db = new DB(
+      thisInstanceDir,
+      {
+        idWorkflowInstance: this.config.instance.id_workflow_instance,
+        inputFolder: this.config.options.inputFolder,
+      },
+      this.log,
+    );
 
     // MC-1828 - include instance id in telemetry file name
     const fileName = this.config.instance.id_workflow_instance
