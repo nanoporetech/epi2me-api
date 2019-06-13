@@ -56,9 +56,9 @@ export default class REST {
   }
 
   async status() {
-    let data;
+
     try {
-      data = await utils.get('status', this.options);
+      const data = await utils.get('status', this.options);
       return Promise.resolve(data);
     } catch (err) {
       return Promise.reject(err);
