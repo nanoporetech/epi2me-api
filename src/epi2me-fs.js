@@ -831,6 +831,9 @@ export default class EPI2ME_FS extends EPI2ME {
         /* must signal completion */
         clearInterval(this.timers.visibilityIntervals[outputFile]);
         delete this.timers.visibilityIntervals[outputFile];
+        clearTimeout(this.timers.transferTimeouts[outputFile]);
+        delete this.timers.transferTimeouts[outputFile];
+
         // MC-2143 - check for more jobs
         setTimeout(this.checkForDownloads.bind(this));
         this.log.info(`download.processMessage: ${message.MessageId} downloaded ${s3Item.path} to ${outputFile}`);
