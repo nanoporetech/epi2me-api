@@ -55,6 +55,15 @@ export default class REST {
     return cb ? cb(null, data) : Promise.resolve(data);
   }
 
+  async status() {
+    try {
+      const data = await utils.get('status', this.options);
+      return Promise.resolve(data);
+    } catch (err) {
+      return Promise.reject(err);
+    }
+  }
+
   async instanceToken(id, opts) {
     try {
       const data = await utils.post(
