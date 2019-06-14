@@ -458,7 +458,7 @@ export default class REST {
   }
 
   async fetchContent(url, cb) {
-    const options = assign({}, this.options, { skip_url_mangle: true });
+    const options = assign({}, this.options, { skip_url_mangle: true, headers: { 'Content-Type': '' } });
     try {
       const result = await utils.get(url, options);
       return cb ? cb(null, result) : Promise.resolve(result);
