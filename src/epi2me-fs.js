@@ -39,6 +39,7 @@ export default class EPI2ME_FS extends EPI2ME {
   }
 
   async autoStart(workflowConfig, cb) {
+    this.stopped = false;
     let instance;
     try {
       instance = await this.REST.startWorkflow(workflowConfig);
@@ -56,6 +57,7 @@ export default class EPI2ME_FS extends EPI2ME {
   }
 
   async autoJoin(id, cb) {
+    this.stopped = false;
     this.config.instance.id_workflow_instance = id;
     let instance;
     try {
@@ -301,6 +303,13 @@ export default class EPI2ME_FS extends EPI2ME {
       let running = 0;
       const chunkFunc = () => {
         return new Promise(async resolve => {
+          if (this.stopped) {
+            files.length = 0;
+            this.log.debug(`upload: skipping, stopped`);
+            resolve();
+            return;
+          }
+
           if (running > this.config.options.transferPoolSize) {
             // run at most n at any one time
             setTimeout(resolve, 1000); // and check for more members of files[] after a second

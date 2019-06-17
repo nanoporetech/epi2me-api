@@ -47,6 +47,7 @@ export default class EPI2ME {
       };
     }
 
+    this.stopped = true;
     this.states = {
       upload: {
         filesCount: 0, // internal. do not use
@@ -101,6 +102,8 @@ export default class EPI2ME {
   }
 
   async stopEverything() {
+    this.stopped = true;
+
     this.log.debug('stopping watchers');
 
     ['downloadCheckInterval', 'stateCheckInterval', 'fileCheckInterval', 'summaryTelemetryInterval'].forEach(
