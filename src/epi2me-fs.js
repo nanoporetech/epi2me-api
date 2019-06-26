@@ -742,43 +742,37 @@ export default class EPI2ME_FS extends EPI2ME {
       let file;
       let rs;
 
-      const deleteFile = () => {
-        // don't delete the file if the stream is in append mode
-        // ideally the file should be restored to it's original state
-        // if the write stream has already written data to disk, the downloaded dataset would be inaccurate
-        //
-        try {
-          // if (file && file.bytesWritten > 0)
-          fs.remove(outputFile, err => {
-            if (err) {
-              this.log.warn(`failed to remove file: ${outputFile}`);
-            } else {
-              this.log.warn(`removed failed download file: ${outputFile} ${err}`);
-            }
-          });
-        } catch (unlinkException) {
-          this.log.warn(`failed to remove file. unlinkException: ${outputFile} ${String(unlinkException)}`);
-        }
-      };
-
       const onStreamError = err => {
-        this.log.error(`Error during stream ${String(err)}`);
+        this.log.error(
+          `Error during stream of bucket=${s3Item.bucket} path=${s3Item.path} to file=${outputFile} ${String(err)}`,
+        );
         clearTimeout(this.timers.transferTimeouts[outputFile]);
         delete this.timers.transferTimeouts[outputFile];
 
-        if (!file.networkStreamError) {
-          try {
-            file.networkStreamError = 1; /* MC-1953 - signal the file end of the pipe this the network end of the pipe failed */
-            file.close();
-            deleteFile();
-            if (rs.destroy) {
-              // && !rs.destroyed) {
-              this.log.error(`destroying read stream for ${outputFile}`);
-              rs.destroy();
-            }
-          } catch (e) {
-            this.log.error(`error handling stream error: ${String(e)}`);
+        if (file.networkStreamError) {
+          // already dealing with it
+          return;
+        }
+
+        try {
+          file.networkStreamError = 1; /* MC-1953 - signal the file end of the pipe this the network end of the pipe failed */
+          file.close();
+
+          fs.remove(outputFile)
+            .then(() => {
+              this.log.warn(`removed failed download ${outputFile}`);
+            })
+            .catch(unlinkException => {
+              this.log.warn(`failed to remove ${outputFile}. unlinkException: ${String(unlinkException)}`);
+            });
+
+          if (rs.destroy) {
+            // && !rs.destroyed) {
+            this.log.error(`destroying read stream for ${outputFile}`);
+            rs.destroy();
           }
+        } catch (e) {
+          this.log.error(`error handling stream error: ${String(e)}`);
         }
       };
 
