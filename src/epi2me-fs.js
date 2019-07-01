@@ -902,7 +902,8 @@ export default class EPI2ME_FS extends EPI2ME {
       this.config.instance.bucketFolder,
       'component-0',
       file.name,
-      encodeURIComponent(file.relative.replace(/^[\\/]+/, '')), // do we need to replace \ with / here ?
+      file.relative.replace(/^[\\/]+/, '').replace(/\\/g, '/').replace(/\//g, '_') // MC-7204 - this needs to be unpicked in future
+//      encodeURIComponent(file.relative.replace(/^[\\/]+/, '').replace(/\\/g, '/')), // MC-7204 - escaped slashes not handled by cgd 3.0.7
     ]
       .join('/')
       .replace(/\/+/g, '/');
