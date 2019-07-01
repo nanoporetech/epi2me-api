@@ -37,7 +37,10 @@ describe('epi2me.uploadComplete', () => {
     }));
 
     try {
-      await client.uploadComplete('object-id', { id: 'my-file', path: 'path/to/file.fastq' });
+      await client.uploadComplete('object-id', {
+        id: 'my-file',
+        path: 'path/to/file.fastq',
+      });
       assert.fail('unexpected success');
     } catch (e) {
       assert(client.log.error.lastCall.args[0].match(/exception sending SQS/));
@@ -57,7 +60,10 @@ describe('epi2me.uploadComplete', () => {
 
     let err;
     try {
-      await client.uploadComplete('object-id', { id: 'my-file', path: 'path/to/file.fastq' });
+      await client.uploadComplete('object-id', {
+        id: 'my-file',
+        path: 'path/to/file.fastq',
+      });
     } catch (e) {
       err = e;
     }
@@ -93,7 +99,10 @@ describe('epi2me.uploadComplete', () => {
     });
 
     try {
-      await client.uploadComplete('object-id', { id: 'my-file', path: 'path/to/file.fastq' });
+      await client.uploadComplete('object-id', {
+        id: 'my-file',
+        path: 'path/to/file.fastq',
+      });
     } catch (e) {
       assert.fail(e);
     }
@@ -114,7 +123,10 @@ describe('epi2me.uploadComplete', () => {
 
     let err;
     try {
-      await client.uploadComplete('object-id', { id: 'my-file', path: 'path/to/file.fastq' });
+      await client.uploadComplete('object-id', {
+        id: 'my-file',
+        path: 'path/to/file.fastq',
+      });
     } catch (e) {
       err = e;
     }
@@ -158,12 +170,21 @@ describe('epi2me.uploadComplete', () => {
       };
     });
 
-    client.config.instance.chain = { components: [], targetComponentId: 1 };
+    client.config.instance.chain = {
+      components: [],
+      targetComponentId: 1,
+    };
     client.config.instance.key_id = 'data-secret';
-    client.config.options.agent_address = JSON.stringify({ city: 'Cambridge', ip: '127.0.0.1' });
+    client.config.options.agent_address = JSON.stringify({
+      city: 'Cambridge',
+      ip: '127.0.0.1',
+    });
 
     try {
-      await client.uploadComplete('object-id', { id: 'my-file', path: 'path/to/file.fastq' });
+      await client.uploadComplete('object-id', {
+        id: 'my-file',
+        path: 'path/to/file.fastq',
+      });
     } catch (e) {
       assert.fail(e);
     }
@@ -202,12 +223,18 @@ describe('epi2me.uploadComplete', () => {
       };
     });
 
-    client.config.instance.chain = { components: [], targetComponentId: 1 };
+    client.config.instance.chain = {
+      components: [],
+      targetComponentId: 1,
+    };
     client.config.instance.key_id = 'data-secret';
     client.config.options.agent_address = 'bad json data';
 
     try {
-      await client.uploadComplete('object-id', { id: 'my-file', path: 'path/to/file.fastq' });
+      await client.uploadComplete('object-id', {
+        id: 'my-file',
+        path: 'path/to/file.fastq',
+      });
     } catch (e) {
       assert.fail(e);
     }
@@ -227,7 +254,16 @@ describe('epi2me.uploadComplete', () => {
     sinon.stub(sqs, 'sendMessage').callsFake(obj => {
       assert.deepEqual(
         JSON.parse(obj.MessageBody).components,
-        [{ id: 1, inputQueueName: 'upload-q' }, { id: 2, inputQueueName: 'download-q' }],
+        [
+          {
+            id: 1,
+            inputQueueName: 'upload-q',
+          },
+          {
+            id: 2,
+            inputQueueName: 'download-q',
+          },
+        ],
         'uploadComplete replaced component queue names',
       );
       return {
@@ -238,15 +274,105 @@ describe('epi2me.uploadComplete', () => {
     client.uploadMessageQueue = 'upload-q';
     client.downloadMessageQueue = 'download-q';
     client.config.instance.chain = {
-      components: [{ id: 1, inputQueueName: 'uploadMessageQueue' }, { id: 2, inputQueueName: 'downloadMessageQueue' }],
+      components: [
+        {
+          id: 1,
+          inputQueueName: 'uploadMessageQueue',
+        },
+        {
+          id: 2,
+          inputQueueName: 'downloadMessageQueue',
+        },
+      ],
     };
 
     try {
-      await client.uploadComplete('object-id', { id: 'my-file', path: 'path/to/file.fastq' });
+      await client.uploadComplete('object-id', {
+        id: 'my-file',
+        path: 'path/to/file.fastq',
+      });
     } catch (e) {
       assert.fail(e);
     }
     assert(client.log.info.lastCall.args[0].match(/my-file SQS message sent/), 'info message logged');
+    clock.restore();
+  });
+
+  it('should handle deep input folders wrt sync prefix root (MC-7205)', async () => {
+    const clock = sinon.useFakeTimers();
+    const client = clientFactory();
+    const sqs = new AWS.SQS();
+
+    sinon.stub(client, 'discoverQueue').resolves('http://my-queue/');
+    sinon.stub(client, 'sessionedSQS').callsFake(() => sqs);
+
+    sinon.stub(sqs, 'sendMessage').callsFake(obj => {
+      const struct = JSON.parse(obj.MessageBody);
+
+      assert.deepEqual(
+        struct.path,
+        '/aaa-bbb-ccc-123/1/123456/component-0/file.fastq/fastq_fail%2Fcomplex%2Ffile.fastq',
+        'message path (DEPRECATED)',
+      );
+      assert.equal(struct.prefix, '/aaa-bbb-ccc-123/1/123456/component-0/file.fastq', 'message prefix');
+
+      return {
+        promise: () => Promise.resolve(),
+      };
+    });
+
+    try {
+      await client.uploadComplete(
+        '/aaa-bbb-ccc-123/1/123456/component-0/file.fastq/fastq_fail%2Fcomplex%2Ffile.fastq',
+        {
+          id: 'FILE_15',
+          path: 'fastq_fail/complex/file.fastq',
+        },
+      );
+    } catch (e) {
+      assert.fail(e);
+    }
+
+    assert(client.log.info.lastCall.args[0].match(/FILE_15 SQS message sent/), 'info message logged');
+    clock.restore();
+  });
+
+  it('should handle deep input folders with backslashes wrt sync prefix root (MC-7205)', async () => {
+    const clock = sinon.useFakeTimers();
+    const client = clientFactory();
+    const sqs = new AWS.SQS();
+
+    sinon.stub(client, 'discoverQueue').resolves('http://my-queue/');
+    sinon.stub(client, 'sessionedSQS').callsFake(() => sqs);
+
+    sinon.stub(sqs, 'sendMessage').callsFake(obj => {
+      const struct = JSON.parse(obj.MessageBody);
+
+      assert.deepEqual(
+        struct.path,
+        '/aaa-bbb-ccc-123/1/123456/component-0/file.fastq/fastq_fail%2Ccomplex%2Cfile.fastq',
+        'message path (DEPRECATED)',
+      );
+      assert.equal(struct.prefix, '/aaa-bbb-ccc-123/1/123456/component-0/file.fastq', 'message prefix');
+
+      return {
+        promise: () => Promise.resolve(),
+      };
+    });
+
+    try {
+      await client.uploadComplete(
+        '/aaa-bbb-ccc-123/1/123456/component-0/file.fastq/fastq_fail%2Ccomplex%2Cfile.fastq',
+        {
+          id: 'FILE_15',
+          path: 'fastq_fail\\complex\\file.fastq',
+        },
+      );
+    } catch (e) {
+      assert.fail(e);
+    }
+
+    assert(client.log.info.lastCall.args[0].match(/FILE_15 SQS message sent/), 'info message logged');
     clock.restore();
   });
 });
