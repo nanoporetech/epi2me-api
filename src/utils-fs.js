@@ -93,7 +93,7 @@ utils.lsRecursive = async (rootFolder, item, exclusionFilter) => {
   };
 };
 
-utils.loadInputFiles = async ({ inputFolder, outputFolder, filetype }, log, extraFilter) => {
+utils.loadInputFiles = async ({ inputFolder, outputFolder, filetypeIn }, log, extraFilter) => {
   /**
    * Entry point for new .fast5 / .fastq files.
    *  - Scan the input folder files
@@ -105,6 +105,12 @@ utils.loadInputFiles = async ({ inputFolder, outputFolder, filetype }, log, extr
   // function used to filter the readdir results in utils.lsFolder
   // exclude all files and folders meet any of these criteria:
 
+  // todo: need to support an array of types, e.g. [fasta, fa, fa.gz]
+  let filetype = filetypeIn;
+  if (filetypeIn && filetypeIn.indexOf('.') !== 0) {
+    filetype = `.${filetypeIn}`;
+  }
+
   const exclusionFilter = async (file, stat) => {
     const basename = path.basename(file);
 
@@ -113,8 +119,7 @@ utils.loadInputFiles = async ({ inputFolder, outputFolder, filetype }, log, extr
         return basename === 'downloads' || // quick checks first
           basename === 'skip' ||
           basename === 'fail' ||
-          basename === 'tmp' ||
-          basename === 'db.sqlite'
+          basename === 'tmp'
           ? reject(new Error(`${file} failed basic filename`))
           : resolve('basic ok');
       }),

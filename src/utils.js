@@ -115,6 +115,7 @@ const utils = (function magic() {
           'X-EPI2ME-Version': options.agent_version || utils.version, // new world order
         },
         req.headers,
+        options.headers,
       );
 
       if (!('signing' in options) || options.signing) {

@@ -47,6 +47,7 @@ export default class EPI2ME {
       };
     }
 
+    this.stopped = true;
     this.states = {
       upload: {
         filesCount: 0, // internal. do not use
@@ -88,28 +89,44 @@ export default class EPI2ME {
     };
 
     this.REST = new _REST(merge({}, { log: this.log }, this.config.options));
+
+    // placeholders for all the timers we might want to cancel if forcing a stop
+    this.timers = {
+      downloadCheckInterval: null,
+      stateCheckInterval: null,
+      fileCheckInterval: null,
+      transferTimeouts: {},
+      visibilityIntervals: {},
+      summaryTelemetryInterval: null,
+    };
   }
 
   async stopEverything() {
+    this.stopped = true;
+
     this.log.debug('stopping watchers');
 
-    if (this.downloadCheckInterval) {
-      this.log.debug('clearing downloadCheckInterval interval');
-      clearInterval(this.downloadCheckInterval);
-      this.downloadCheckInterval = null;
-    }
+    ['downloadCheckInterval', 'stateCheckInterval', 'fileCheckInterval', 'summaryTelemetryInterval'].forEach(
+      intervalName => {
+        if (this.timers[intervalName]) {
+          this.log.debug(`clearing ${intervalName} interval`);
+          clearInterval(this.timers[intervalName]);
+          this.timers[intervalName] = null;
+        }
+      },
+    );
 
-    if (this.stateCheckInterval) {
-      this.log.debug('clearing stateCheckInterval interval');
-      clearInterval(this.stateCheckInterval);
-      this.stateCheckInterval = null;
-    }
+    Object.keys(this.timers.transferTimeouts).forEach(key => {
+      this.log.debug(`clearing transferTimeout for ${key}`);
+      clearTimeout(this.timers.transferTimeouts[key]);
+      delete this.timers.transferTimeouts[key];
+    });
 
-    if (this.fileCheckInterval) {
-      this.log.debug('clearing fileCheckInterval interval');
-      clearInterval(this.fileCheckInterval);
-      this.fileCheckInterval = null;
-    }
+    Object.keys(this.timers.visibilityIntervals).forEach(key => {
+      this.log.debug(`clearing visibilityInterval for ${key}`);
+      clearInterval(this.timers.visibilityIntervals[key]);
+      delete this.timers.visibilityIntervals[key];
+    });
 
     if (this.downloadWorkerPool) {
       this.log.debug('clearing downloadWorkerPool');
@@ -132,7 +149,7 @@ export default class EPI2ME {
     return Promise.resolve(); // api changed
   }
 
-  async session() {
+  async session(children, opts) {
     /* MC-1848 all session requests are serialised through that.sessionQueue to avoid multiple overlapping requests */
     if (this.sessioning) {
       return Promise.resolve(); // resolve or reject? Throttle to n=1: bail out if there's already a job queued
@@ -145,7 +162,7 @@ export default class EPI2ME {
       this.sessioning = true;
 
       try {
-        await this.fetchInstanceToken();
+        await this.fetchInstanceToken(children, opts);
         this.sessioning = false;
       } catch (err) {
         this.sessioning = false;
@@ -157,7 +174,8 @@ export default class EPI2ME {
     return Promise.resolve();
   }
 
-  async fetchInstanceToken() {
+  /* NOTE: requesting a token with additional opts WILL POLLUTE THE GLOBAL STATE AND BE CACHED. USE WITH CAUTION */
+  async fetchInstanceToken(children, opts) {
     if (!this.config.instance.id_workflow_instance) {
       return Promise.reject(new Error('must specify id_workflow_instance'));
     }
@@ -170,7 +188,7 @@ export default class EPI2ME {
     this.log.debug('new instance token needed');
 
     try {
-      const token = await this.REST.instanceToken(this.config.instance.id_workflow_instance);
+      const token = await this.REST.instanceToken(this.config.instance.id_workflow_instance, opts);
       this.log.debug(`allocated new instance token expiring at ${token.expiration}`);
       this.states.sts_expiration = new Date(token.expiration).getTime() - 60 * this.config.options.sessionGrace; // refresh token x mins before it expires
       // "classic" token mode no longer supported
@@ -184,6 +202,15 @@ export default class EPI2ME {
       // MC-5418 - This needs to be done before the process starts uploading messages!
       AWS.config.update(this.config.instance.awssettings);
       AWS.config.update(token);
+      if (children) {
+        children.forEach(child => {
+          try {
+            child.config.update(token);
+          } catch (e) {
+            this.log.warn(`failed to update config on`, child, ':', String(e));
+          }
+        });
+      }
     } catch (err) {
       this.log.warn(`failed to fetch instance token: ${String(err)}`);
 
@@ -193,15 +220,15 @@ export default class EPI2ME {
     return Promise.resolve();
   }
 
-  async sessionedS3() {
-    await this.session();
+  async sessionedS3(opts) {
+    await this.session(null, opts);
     return new AWS.S3({
       useAccelerateEndpoint: this.config.options.awsAcceleration === 'on',
     });
   }
 
-  async sessionedSQS() {
-    await this.session();
+  async sessionedSQS(opts) {
+    await this.session(null, opts);
     return new AWS.SQS();
   }
 

@@ -6,8 +6,8 @@ import utils from '../../src/utils-fs';
 
 describe('epi2me.loadUploadFiles', () => {
   let stubs = [];
-  const clientFactory = opts =>
-    new EPI2ME(
+  const clientFactory = opts => {
+    const client = new EPI2ME(
       merge(
         {
           url: 'https://epi2me-test.local',
@@ -21,6 +21,10 @@ describe('epi2me.loadUploadFiles', () => {
         opts,
       ),
     );
+
+    client.stopped = false;
+    return client;
+  };
 
   beforeEach(() => {
     stubs = [];

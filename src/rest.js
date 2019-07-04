@@ -55,16 +55,25 @@ export default class REST {
     return cb ? cb(null, data) : Promise.resolve(data);
   }
 
-  async instanceToken(id, cb) {
+  async status() {
+    try {
+      const data = await utils.get('status', this.options);
+      return Promise.resolve(data);
+    } catch (err) {
+      return Promise.reject(err);
+    }
+  }
+
+  async instanceToken(id, opts) {
     try {
       const data = await utils.post(
         'token',
-        { id_workflow_instance: id },
+        merge(opts, { id_workflow_instance: id }),
         assign({}, this.options, { legacy_form: true }),
       );
-      return cb ? cb(null, data) : Promise.resolve(data);
+      return Promise.resolve(data);
     } catch (err) {
-      return cb ? cb(err) : Promise.reject(err);
+      return Promise.reject(err);
     }
   }
 
@@ -449,7 +458,7 @@ export default class REST {
   }
 
   async fetchContent(url, cb) {
-    const options = assign({}, this.options, { skip_url_mangle: true });
+    const options = assign({}, this.options, { skip_url_mangle: true, headers: { 'Content-Type': '' } });
     try {
       const result = await utils.get(url, options);
       return cb ? cb(null, result) : Promise.resolve(result);
