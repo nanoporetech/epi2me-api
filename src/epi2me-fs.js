@@ -35,7 +35,15 @@ export default class EPI2ME_FS extends EPI2ME {
     super(optString); // sets up this.config & this.log
 
     // overwrite non-fs REST object
-    this.REST = new _REST(merge({}, { log: this.log }, this.config.options));
+    this.REST = new _REST(
+      merge(
+        {},
+        {
+          log: this.log,
+        },
+        this.config.options,
+      ),
+    );
   }
 
   async autoStart(workflowConfig, cb) {
@@ -153,7 +161,9 @@ export default class EPI2ME_FS extends EPI2ME {
         this.log.error(`error opening telemetry log stream: mkdirpException:${String(mkdirException)}`);
       } else {
         try {
-          this.telemetryLogStream = fs.createWriteStream(telemetryLogPath, { flags: 'a' });
+          this.telemetryLogStream = fs.createWriteStream(telemetryLogPath, {
+            flags: 'a',
+          });
           this.log.info(`logging telemetry to ${telemetryLogPath}`);
         } catch (telemetryLogStreamErr) {
           this.log.error(`error opening telemetry log stream: ${String(telemetryLogStreamErr)}`);
@@ -491,12 +501,23 @@ export default class EPI2ME_FS extends EPI2ME {
         : 1;
     } else {
       // this.uploadState('queueLength', 'decr', file2.stats); // this.states.upload.queueLength = this.states.upload.queueLength ? this.states.upload.queueLength - readCount : 0;
-      this.uploadState('success', 'incr', merge({ files: 1 }, file2.stats)); // this.states.upload.success = this.states.upload.success ? this.states.upload.success + readCount : readCount;
+      this.uploadState(
+        'success',
+        'incr',
+        merge(
+          {
+            files: 1,
+          },
+          file2.stats,
+        ),
+      ); // this.states.upload.success = this.states.upload.success ? this.states.upload.success + readCount : readCount;
 
       if (file2.name) {
         // nb. we only count types for successful uploads
         const ext = path.extname(file2.name);
-        this.uploadState('types', 'incr', { [ext]: 1 });
+        this.uploadState('types', 'incr', {
+          [ext]: 1,
+        });
       }
     }
 
@@ -715,7 +736,10 @@ export default class EPI2ME_FS extends EPI2ME {
           ? messageBody.telemetry.batch_summary.reads_num
           : 1;
 
-      this.downloadState('success', 'incr', { files: 1, reads: readCount });
+      this.downloadState('success', 'incr', {
+        files: 1,
+        reads: readCount,
+      });
     }
 
     // this.config.options.downloadMode === 'telemetry'
@@ -790,7 +814,9 @@ export default class EPI2ME_FS extends EPI2ME {
         // track request/response bytes expected
         req.on('httpHeaders', (status, headers) => {
           // status, headers, response
-          this.downloadState('progress', 'incr', { total: parseInt(headers['content-length'], 10) });
+          this.downloadState('progress', 'incr', {
+            total: parseInt(headers['content-length'], 10),
+          });
         });
 
         rs = req.createReadStream();
@@ -815,9 +841,23 @@ export default class EPI2ME_FS extends EPI2ME {
         try {
           const ext = path.extname(outputFile);
           const stats = await filestats(outputFile);
-          this.downloadState('success', 'incr', merge({ files: 1 }, stats));
-          this.downloadState('types', 'incr', { [ext]: 1 });
-          this.downloadState('progress', 'decr', { total: stats.bytes, bytes: stats.bytes }); // reset in-flight counters
+          this.downloadState(
+            'success',
+            'incr',
+            merge(
+              {
+                files: 1,
+              },
+              stats,
+            ),
+          );
+          this.downloadState('types', 'incr', {
+            [ext]: 1,
+          });
+          this.downloadState('progress', 'decr', {
+            total: stats.bytes,
+            bytes: stats.bytes,
+          }); // reset in-flight counters
         } catch (err) {
           this.log.warn(`failed to stat ${outputFile}: ${String(err)}`);
         }
@@ -858,7 +898,12 @@ export default class EPI2ME_FS extends EPI2ME {
         const queueUrl = this.config.instance.outputQueueURL;
         const receiptHandle = message.ReceiptHandle;
 
-        this.log.debug({ message_id: message.MessageId }, 'updateVisibility');
+        this.log.debug(
+          {
+            message_id: message.MessageId,
+          },
+          'updateVisibility',
+        );
 
         try {
           await this.sqs
@@ -869,7 +914,14 @@ export default class EPI2ME_FS extends EPI2ME {
             })
             .promise();
         } catch (err) {
-          this.log.error({ message_id: message.MessageId, queue: queueUrl, error: err }, 'Error setting visibility');
+          this.log.error(
+            {
+              message_id: message.MessageId,
+              queue: queueUrl,
+              error: err,
+            },
+            'Error setting visibility',
+          );
           clearInterval(this.timers.visibilityIntervals[outputFile]);
           // reject here?
         }
@@ -888,7 +940,9 @@ export default class EPI2ME_FS extends EPI2ME {
           1000 * this.config.options.downloadTimeout,
         ); /* download stream timeout in ms */
 
-        this.downloadState('progress', 'incr', { bytes: chunk.length });
+        this.downloadState('progress', 'incr', {
+          bytes: chunk.length,
+        });
       }).pipe(file); // initiate download stream
     });
   }
@@ -902,8 +956,11 @@ export default class EPI2ME_FS extends EPI2ME {
       this.config.instance.bucketFolder,
       'component-0',
       file.name,
-      file.relative.replace(/^[\\/]+/, '').replace(/\\/g, '/').replace(/\//g, '_') // MC-7204 - this needs to be unpicked in future
-//      encodeURIComponent(file.relative.replace(/^[\\/]+/, '').replace(/\\/g, '/')), // MC-7204 - escaped slashes not handled by cgd 3.0.7
+      file.relative
+        .replace(/^[\\/]+/, '')
+        .replace(/\\/g, '/')
+        .replace(/\//g, '_'), // MC-7204 - this needs to be unpicked in future
+      //      encodeURIComponent(file.relative.replace(/^[\\/]+/, '').replace(/\\/g, '/')), // MC-7204 - escaped slashes not handled by cgd 3.0.7
     ]
       .join('/')
       .replace(/\/+/g, '/');
@@ -944,7 +1001,10 @@ export default class EPI2ME_FS extends EPI2ME {
           Body: rs,
         };
 
-        const options = { partSize: 10 * 1024 * 1024, queueSize: 1 };
+        const options = {
+          partSize: 10 * 1024 * 1024,
+          queueSize: 1,
+        };
 
         if (this.config.instance.key_id) {
           // MC-4996 support (optional, for now) encryption
@@ -956,14 +1016,18 @@ export default class EPI2ME_FS extends EPI2ME {
           params['Content-Length'] = file.size;
         }
 
-        this.uploadState('progress', 'incr', { total: file.size });
+        this.uploadState('progress', 'incr', {
+          total: file.size,
+        });
         let myProgress = 0;
 
         const managedUpload = s3.upload(params, options);
 
         managedUpload.on('httpUploadProgress', async progress => {
           //          this.log.debug(`upload progress ${progress.key} ${progress.loaded} / ${progress.total}`);
-          this.uploadState('progress', 'incr', { bytes: progress.loaded - myProgress }); // delta since last time
+          this.uploadState('progress', 'incr', {
+            bytes: progress.loaded - myProgress,
+          }); // delta since last time
           myProgress = progress.loaded; // store for calculating delta next iteration
           clearTimeout(timeoutHandle); // MC-6789 - reset upload timeout
           timeoutHandle = setTimeout(timeoutFunc, (this.config.options.uploadTimeout + 5) * 1000);
@@ -971,7 +1035,12 @@ export default class EPI2ME_FS extends EPI2ME {
             await this.session([s3]); // MC-7129 check if token needs refreshing during long duration uploads (>token duration). Don't bother awaiting.
             //            managedUpload.service.config.update(s3.config); // update the managed upload with the refreshed token
           } catch (e) {
-            this.log.warn({ error: String(e) }, 'Error refreshing token');
+            this.log.warn(
+              {
+                error: String(e),
+              },
+              'Error refreshing token',
+            );
           }
         });
 
@@ -990,7 +1059,10 @@ export default class EPI2ME_FS extends EPI2ME {
                 reject(uploadCompleteErr);
               })
               .finally(() => {
-                this.uploadState('progress', 'decr', { total: file.size, bytes: file.size }); // zero in-flight upload counters
+                this.uploadState('progress', 'decr', {
+                  total: file.size,
+                  bytes: file.size,
+                }); // zero in-flight upload counters
               });
           })
           .catch(uploadStreamErr => {
@@ -1102,9 +1174,7 @@ export default class EPI2ME_FS extends EPI2ME {
         new Promise(resolve => {
           this.REST.fetchContent(url)
             .then(body => {
-              const ws = fs.createWriteStream(fn);
-              ws.write(JSON.stringify(body));
-              ws.close();
+              fs.writeJSONSync(fn, body);
               this.log.debug(`fetched telemetry summary ${fn}`);
               resolve();
             })

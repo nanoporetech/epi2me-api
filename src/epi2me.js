@@ -150,7 +150,8 @@ export default class EPI2ME {
   }
 
   async session(children, opts) {
-    /* MC-1848 all session requests are serialised through that.sessionQueue to avoid multiple overlapping requests */
+    /* MC-1848 all session requests are semaphored on this.sessioning */
+    /* BUT this semaphore does not account for additional options (e.g. session a dataset, an instance or an installation) */
     if (this.sessioning) {
       return Promise.resolve(); // resolve or reject? Throttle to n=1: bail out if there's already a job queued
     }
@@ -205,7 +206,11 @@ export default class EPI2ME {
       if (children) {
         children.forEach(child => {
           try {
+            //            console.log("before child.config", child.config); // eslint-disable-line no-console
+            //            console.log("before child.service.config", child.service.config); // eslint-disable-line no-console
             child.config.update(token);
+            //           console.log("after child.config", child.config); // eslint-disable-line no-console
+            //           console.log("after child.service.config", child.service.config); // eslint-disable-line no-console
           } catch (e) {
             this.log.warn(`failed to update config on`, child, ':', String(e));
           }
