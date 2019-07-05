@@ -1,4 +1,3 @@
-/* global describe, it, beforeEach, afterEach */
 import assert from 'assert';
 import sinon from 'sinon';
 import axios from 'axios';
@@ -34,25 +33,32 @@ describe('utils.post', () => {
   });
 
   it('should invoke post', async () => {
-    stubs.push(sinon.stub(axios, 'post').resolves({ data: { data: 'data' } }));
+    stubs.push(sinon.stub(axios, 'post').resolves({
+      data: {
+        data: 'data'
+      }
+    }));
     const data = await utils.post(
-      'entity',
-      {
+      'entity', {
         id_entity: 123,
         name: 'test entity',
-      },
-      {
+      }, {
         apikey: 'foo',
         url: 'http://epi2me.test',
         log,
       },
     );
 
-    assert.deepEqual(data, { data: 'data' });
+    assert.deepEqual(data, {
+      data: 'data'
+    });
 
     assert.deepEqual(axios.post.args[0], [
       'http://epi2me.test/entity',
-      { id_entity: 123, name: 'test entity' },
+      {
+        id_entity: 123,
+        name: 'test entity'
+      },
       {
         url: 'http://epi2me.test/entity',
         gzip: true,
@@ -68,14 +74,16 @@ describe('utils.post', () => {
   });
 
   it('should invoke post with legacy form params', async () => {
-    stubs.push(sinon.stub(axios, 'post').resolves({ data: { data: 'data' } }));
+    stubs.push(sinon.stub(axios, 'post').resolves({
+      data: {
+        data: 'data'
+      }
+    }));
     const data = await utils.post(
-      'entity',
-      {
+      'entity', {
         id_entity: 123,
         name: 'test entity',
-      },
-      {
+      }, {
         apikey: 'foo',
         url: 'http://epi2me.test',
         legacy_form: true,
@@ -83,7 +91,9 @@ describe('utils.post', () => {
       },
     );
 
-    assert.deepEqual(data, { data: 'data' });
+    assert.deepEqual(data, {
+      data: 'data'
+    });
 
     assert.deepEqual(axios.post.args[0], [
       'http://epi2me.test/entity',
@@ -103,27 +113,34 @@ describe('utils.post', () => {
   });
 
   it('should invoke post with proxy', async () => {
-    stubs.push(sinon.stub(axios, 'post').resolves({ data: { data: 'data' } }));
+    stubs.push(sinon.stub(axios, 'post').resolves({
+      data: {
+        data: 'data'
+      }
+    }));
     const data = await utils.post(
-      'entity',
-      {
+      'entity', {
         id_entity: 123,
         name: 'test entity',
-      },
-      {
+      }, {
         apikey: 'foo',
         url: 'http://epi2me.test',
         proxy: 'http://proxy.internal:3128/',
         log,
       },
     );
-    assert.deepEqual(data, { data: 'data' });
+    assert.deepEqual(data, {
+      data: 'data'
+    });
 
     assert(axios.post.args[0][2].httpsAgent, 'custom agent for tunnelled proxy');
     delete axios.post.args[0][2].httpsAgent;
     assert.deepEqual(axios.post.args[0], [
       'http://epi2me.test/entity',
-      { id_entity: 123, name: 'test entity' },
+      {
+        id_entity: 123,
+        name: 'test entity'
+      },
       {
         url: 'http://epi2me.test/entity',
         gzip: true,
@@ -144,12 +161,10 @@ describe('utils.post', () => {
 
     try {
       await utils.post(
-        'entity',
-        {
+        'entity', {
           id_entity: 123,
           name: 'test entity',
-        },
-        {
+        }, {
           apikey: 'foo',
           url: 'http://epi2me.test',
           log,

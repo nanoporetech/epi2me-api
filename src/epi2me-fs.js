@@ -952,15 +952,17 @@ export default class EPI2ME_FS extends EPI2ME {
     const s3 = await this.sessionedS3();
 
     let rs;
+
+    const mangledRelative = file.relative
+      .replace(/^[\\/]+/, '')
+      .replace(/\\/g, '/')
+      .replace(/\//g, '_'); // MC-7204, MC-7206 - this needs to be unpicked in future
+
     const objectId = [
       this.config.instance.bucketFolder,
       'component-0',
-      file.name,
-      file.relative
-        .replace(/^[\\/]+/, '')
-        .replace(/\\/g, '/')
-        .replace(/\//g, '_'), // MC-7204 - this needs to be unpicked in future
-      //      encodeURIComponent(file.relative.replace(/^[\\/]+/, '').replace(/\\/g, '/')), // MC-7204 - escaped slashes not handled by cgd 3.0.7
+      mangledRelative, // prefix
+      mangledRelative, // objectname //      encodeURIComponent(file.relative.replace(/^[\\/]+/, '').replace(/\\/g, '/')), // MC-7204 - escaped slashes not handled by cgd 3.0.7
     ]
       .join('/')
       .replace(/\/+/g, '/');
