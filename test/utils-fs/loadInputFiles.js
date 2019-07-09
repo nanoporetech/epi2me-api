@@ -10,7 +10,9 @@ describe('utils-fs.loadInputFiles', () => {
   let batch2;
 
   beforeEach(() => {
-    tmpInputDir = tmp.dirSync({ unsafeCleanup: true });
+    tmpInputDir = tmp.dirSync({
+      unsafeCleanup: true,
+    });
     batch1 = path.join(tmpInputDir.name, 'batch_1');
     batch2 = path.join(tmpInputDir.name, 'batch_2');
     fs.mkdirpSync(batch2);
@@ -70,5 +72,54 @@ describe('utils-fs.loadInputFiles', () => {
     await utils.loadInputFiles(opts).then(files3 => {
       assert.deepEqual(files3, [], 'should find no files');
     });
+  });
+
+  it('should skip both fail and fastq_fail', async () => {
+    const inputFolder = path.join(tmpInputDir.name, 'data');
+    const failFolder = path.join(inputFolder, 'fail');
+    const fastqFailFolder = path.join(inputFolder, 'fastq_fail');
+    const passFolder = path.join(inputFolder, 'pass');
+    fs.mkdirpSync(inputFolder);
+    fs.mkdirpSync(failFolder);
+    fs.mkdirpSync(fastqFailFolder);
+    fs.mkdirpSync(passFolder);
+
+    /**
+     * Test folder structure:
+     * data/1.fastq
+     * data/fail/1.fastq
+     * data/fastq_fail/1.fastq
+     * data/pass/1.fastq
+     */
+    fs.writeFileSync(path.join(failFolder, '1.fastq'), '');
+    fs.writeFileSync(path.join(fastqFailFolder, '1.fastq'), '');
+    fs.writeFileSync(path.join(passFolder, '1.fastq'), '');
+    fs.writeFileSync(path.join(inputFolder, '1.fastq'), '');
+
+    const opts = {
+      inputFolder,
+      outputFolder: path.join(inputFolder, 'output'),
+      filetype: '.fastq',
+    };
+
+    await utils.loadInputFiles(opts).then(async files => {
+      assert.deepEqual(files, [{
+          name: '1.fastq',
+          path: path.join(inputFolder, '1.fastq'),
+          relative: '/1.fastq',
+          size: 0,
+          id: 'FILE_6',
+        },
+        {
+          name: '1.fastq',
+          path: path.join(inputFolder, 'pass', '1.fastq'),
+          relative: '/pass/1.fastq',
+          size: 0,
+          id: 'FILE_7',
+        },
+      ]);
+    });
+
+    await fs.remove(inputFolder);
   });
 });
