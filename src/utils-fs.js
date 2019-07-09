@@ -119,6 +119,7 @@ utils.loadInputFiles = async ({ inputFolder, outputFolder, filetypeIn }, log, ex
         return basename === 'downloads' || // quick checks first
           basename === 'skip' ||
           basename === 'fail' ||
+          basename === 'fastq_fail' ||
           basename === 'tmp'
           ? reject(new Error(`${file} failed basic filename`))
           : resolve('basic ok');
