@@ -223,24 +223,22 @@ export default class EPI2ME_FS extends EPI2ME {
 
   async checkForDownloads() {
     if (this.checkForDownloadsRunning) {
-      this.log.debug('checkForDownloads already running');
       return Promise.resolve();
     }
     this.checkForDownloadsRunning = true;
+    this.log.debug('checkForDownloads checking for downloads');
 
     try {
       const queueURL = await this.discoverQueue(this.config.instance.outputQueueName);
       const len = await this.queueLength(queueURL);
 
-      if (len) {
+      if (!len) {
+        this.log.debug('no downloads available');
+      } else {
         /* only process downloads if there are downloads to process */
         this.log.debug(`downloads available: ${len}`);
         await this.downloadAvailable();
-        this.checkForDownloadsRunning = false;
-        return Promise.resolve();
       }
-
-      this.log.debug('no downloads available');
     } catch (err) {
       this.log.warn(`checkForDownloads error ${String(err)}`);
       if (!this.states.download.failure) this.states.download.failure = {};
@@ -537,32 +535,21 @@ export default class EPI2ME_FS extends EPI2ME {
     }
 
     receiveMessages.Messages.forEach(message => {
-      const p = new Promise((resolve, reject) => {
-        this.downloadWorkerPool[message.MessageId] = 1;
+      this.downloadWorkerPool[message.MessageId] = 1;
 
-        const timeoutHandle = setTimeout(() => {
-          this.log.error(
-            `this.downloadWorkerPool timeoutHandle. Clearing queue slot for message: ${message.MessageId}`,
-          );
-          reject(new Error('download timed out'));
-        }, (60 + this.config.options.downloadTimeout) * 1000);
+      const timeoutHandle = setTimeout(() => {
+        this.log.error(`this.downloadWorkerPool timeoutHandle. Clearing queue slot for message: ${message.MessageId}`);
+        throw new Error('download timed out');
+      }, (60 + this.config.options.downloadTimeout) * 1000);
 
-        this.processMessage(message)
-          .then(() => {
-            resolve();
-          })
-          .catch(err => {
-            this.log.error(`processMessage ${String(err)}`);
-            resolve();
-          })
-          .finally(() => {
-            clearTimeout(timeoutHandle);
-          });
-      });
-
-      p.then(() => {
-        delete this.downloadWorkerPool[message.MessageId];
-      });
+      this.processMessage(message)
+        .catch(err => {
+          this.log.error(`processMessage ${String(err)}`);
+        })
+        .finally(() => {
+          clearTimeout(timeoutHandle);
+          delete this.downloadWorkerPool[message.MessageId];
+        });
     });
 
     this.log.info(`downloader queued ${receiveMessages.Messages.length} messages for processing`);
@@ -705,6 +692,7 @@ export default class EPI2ME_FS extends EPI2ME {
                 fetchFile,
               );
             } catch (e) {
+              this.log.error(`Caught exception waiting for initiateDownloadStream: ${String(e)}`);
               if (suffix) {
                 reject(e);
               }
@@ -879,7 +867,9 @@ export default class EPI2ME_FS extends EPI2ME {
 
         // MC-2143 - check for more jobs
         setTimeout(this.checkForDownloads.bind(this));
-        this.log.info(`download.processMessage: ${message.MessageId} downloaded ${s3Item.path} to ${outputFile}`);
+        this.log.info(
+          `download.initiateDownloadStream: ${message.MessageId} downloaded ${s3Item.path} to ${outputFile}`,
+        );
         resolve();
       });
 
@@ -1034,8 +1024,7 @@ export default class EPI2ME_FS extends EPI2ME {
           clearTimeout(timeoutHandle); // MC-6789 - reset upload timeout
           timeoutHandle = setTimeout(timeoutFunc, (this.config.options.uploadTimeout + 5) * 1000);
           try {
-            await this.session([s3]); // MC-7129 check if token needs refreshing during long duration uploads (>token duration). Don't bother awaiting.
-            //            managedUpload.service.config.update(s3.config); // update the managed upload with the refreshed token
+            await this.session([managedUpload.service]); // MC-7129 force refresh token on the MANAGED UPLOAD instance of the s3 service
           } catch (e) {
             this.log.warn(
               {
@@ -1173,17 +1162,14 @@ export default class EPI2ME_FS extends EPI2ME {
       const fn = path.join(thisInstanceDir, `${componentId}.json`);
 
       toFetch.push(
-        new Promise(resolve => {
-          this.REST.fetchContent(url)
-            .then(body => {
-              fs.writeJSONSync(fn, body);
-              this.log.debug(`fetched telemetry summary ${fn}`);
-              resolve();
-            })
-            .catch(e => {
-              this.log.debug(`Error fetching telemetry: ${String(e)}`);
-            });
-        }),
+        this.REST.fetchContent(url)
+          .then(body => {
+            fs.writeJSONSync(fn, body);
+            this.log.debug(`fetched telemetry summary ${fn}`);
+          })
+          .catch(e => {
+            this.log.debug(`Error fetching telemetry: ${String(e)}`);
+          }),
       );
     });
 

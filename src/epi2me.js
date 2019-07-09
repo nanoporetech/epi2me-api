@@ -51,15 +51,26 @@ export default class EPI2ME {
     this.states = {
       upload: {
         filesCount: 0, // internal. do not use
-        success: { files: 0, bytes: 0, reads: 0 }, // successfully uploaded file count, bytes, reads
+        success: {
+          files: 0,
+          bytes: 0,
+          reads: 0,
+        }, // successfully uploaded file count, bytes, reads
         //        failure: {}, // failed upload counts by error message
         types: {}, // completely uploaded file counts by file type {".fastq": 1, ".vcf": 17}
         niceTypes: '', // "1 .fastq, 17.vcf"
-        progress: { bytes: 0, total: 0 }, // uploads in-flight: bytes, total
+        progress: {
+          bytes: 0,
+          total: 0,
+        }, // uploads in-flight: bytes, total
       },
       download: {
         progress: {}, // downloads in-flight: bytes, total
-        success: { files: 0, reads: 0, bytes: 0 },
+        success: {
+          files: 0,
+          reads: 0,
+          bytes: 0,
+        },
         fail: 0,
         //        failure: {}, // failed download count by error message
         types: {}, // completely downloaded file counts by file type {".fastq": 17, ".vcf": 1}
@@ -88,7 +99,15 @@ export default class EPI2ME {
       region: this.config.options.region,
     };
 
-    this.REST = new _REST(merge({}, { log: this.log }, this.config.options));
+    this.REST = new _REST(
+      merge(
+        {},
+        {
+          log: this.log,
+        },
+        this.config.options,
+      ),
+    );
 
     // placeholders for all the timers we might want to cancel if forcing a stop
     this.timers = {
@@ -152,38 +171,45 @@ export default class EPI2ME {
   async session(children, opts) {
     /* MC-1848 all session requests are semaphored on this.sessioning */
     /* BUT this semaphore does not account for additional options (e.g. session a dataset, an instance or an installation) */
-    if (this.sessioning) {
-      return Promise.resolve(); // resolve or reject? Throttle to n=1: bail out if there's already a job queued
+    let skipSemChecks = false;
+    if (children && children.length) {
+      // custom session request
+      skipSemChecks = true;
     }
 
-    if (!this.states.sts_expiration || (this.states.sts_expiration && this.states.sts_expiration <= Date.now())) {
-      /* Ignore if session is still valid */
+    if (!skipSemChecks) {
+      if (this.sessioning) {
+        return Promise.resolve(); // resolve or reject? Throttle to n=1: bail out if there's already a job queued
+      }
+
+      if (this.states.sts_expiration && this.states.sts_expiration > Date.now()) {
+        /* Ignore if session is still valid */
+        return Promise.resolve();
+      }
 
       /* queue a request for a new session token and hope it comes back in under this.config.options.sessionGrace time */
       this.sessioning = true;
+    }
 
-      try {
-        await this.fetchInstanceToken(children, opts);
+    let err = null;
+    try {
+      await this.fetchInstanceToken(children, opts);
+    } catch (e) {
+      err = e;
+      this.log.error(`session error ${String(err)}`);
+    } finally {
+      if (!skipSemChecks) {
         this.sessioning = false;
-      } catch (err) {
-        this.sessioning = false;
-        this.log.error(`session error ${String(err)}`);
-        return Promise.reject(err);
       }
     }
 
-    return Promise.resolve();
+    return err ? Promise.reject(err) : Promise.resolve();
   }
 
   /* NOTE: requesting a token with additional opts WILL POLLUTE THE GLOBAL STATE AND BE CACHED. USE WITH CAUTION */
   async fetchInstanceToken(children, opts) {
     if (!this.config.instance.id_workflow_instance) {
       return Promise.reject(new Error('must specify id_workflow_instance'));
-    }
-
-    if (this.states.sts_expiration && this.states.sts_expiration > Date.now()) {
-      /* escape if session is still valid */
-      return Promise.resolve();
     }
 
     this.log.debug('new instance token needed');
@@ -196,7 +222,9 @@ export default class EPI2ME {
 
       if (this.config.options.proxy) {
         AWS.config.update({
-          httpOptions: { agent: proxy(this.config.options.proxy, true) },
+          httpOptions: {
+            agent: proxy(this.config.options.proxy, true),
+          },
         });
       }
 
@@ -206,13 +234,11 @@ export default class EPI2ME {
       if (children) {
         children.forEach(child => {
           try {
-            //            console.log("before child.config", child.config); // eslint-disable-line no-console
-            //            console.log("before child.service.config", child.service.config); // eslint-disable-line no-console
+            // console.log('before child.config', child.config); // eslint-disable-line no-console
             child.config.update(token);
-            //           console.log("after child.config", child.config); // eslint-disable-line no-console
-            //           console.log("after child.service.config", child.service.config); // eslint-disable-line no-console
+            // console.log('after child.config', child.config); // eslint-disable-line no-console
           } catch (e) {
-            this.log.warn(`failed to update config on`, child, ':', String(e));
+            this.log.warn(`failed to update config on ${String(child)}: ${String(e)}`);
           }
         });
       }
@@ -341,7 +367,11 @@ export default class EPI2ME {
     let getQueue;
     try {
       const sqs = await this.sessionedSQS();
-      getQueue = await sqs.getQueueUrl({ QueueName: queueName }).promise();
+      getQueue = await sqs
+        .getQueueUrl({
+          QueueName: queueName,
+        })
+        .promise();
     } catch (err) {
       this.log.error(`Error: failed to find queue for ${queueName}: ${String(err)}`);
       return Promise.reject(err);
