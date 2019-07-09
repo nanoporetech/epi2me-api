@@ -93,7 +93,7 @@ utils.lsRecursive = async (rootFolder, item, exclusionFilter) => {
   };
 };
 
-utils.loadInputFiles = async ({ inputFolder, outputFolder, filetypeIn }, log, extraFilter) => {
+utils.loadInputFiles = async ({ inputFolder, outputFolder, filetype: filetypeIn }, log, extraFilter) => {
   /**
    * Entry point for new .fast5 / .fastq files.
    *  - Scan the input folder files

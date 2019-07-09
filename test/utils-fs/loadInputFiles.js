@@ -74,7 +74,57 @@ describe('utils-fs.loadInputFiles', () => {
     });
   });
 
-  it('should skip both fail and fastq_fail', async () => {
+  it('MC-7215 should skip undesirable file types', async () => {
+    const inputFolder = path.join(tmpInputDir.name, 'data');
+    const oneFolder = path.join(inputFolder, 'one');
+    const twoFolder = path.join(inputFolder, 'two');
+    const passFolder = path.join(inputFolder, 'pass');
+    fs.mkdirpSync(inputFolder);
+    fs.mkdirpSync(oneFolder);
+    fs.mkdirpSync(twoFolder);
+    fs.mkdirpSync(passFolder);
+
+    /**
+     * Test folder structure:
+     * data/1.txt
+     * data/fail/1.fast5
+     * data/fastq_fail/1.fastq
+     * data/pass/1.fastq
+     */
+    fs.writeFileSync(path.join(oneFolder, '1.txt'), '');
+    fs.writeFileSync(path.join(twoFolder, '1.fast5'), '');
+    fs.writeFileSync(path.join(passFolder, '1.fastq'), '');
+    fs.writeFileSync(path.join(inputFolder, '1.fastq'), '');
+
+    const opts = {
+      inputFolder,
+      outputFolder: path.join(inputFolder, 'output'),
+      filetype: '.fastq',
+    };
+
+    await utils.loadInputFiles(opts).then(async files => {
+      assert.deepEqual(files, [
+        {
+          name: '1.fastq',
+          path: path.join(inputFolder, '1.fastq'),
+          relative: '/1.fastq',
+          size: 0,
+          id: 'FILE_6',
+        },
+        {
+          name: '1.fastq',
+          path: path.join(inputFolder, 'pass', '1.fastq'),
+          relative: '/pass/1.fastq',
+          size: 0,
+          id: 'FILE_7',
+        },
+      ]);
+    });
+
+    await fs.remove(inputFolder);
+  });
+
+  it('MC-7214 should skip both fail and fastq_fail', async () => {
     const inputFolder = path.join(tmpInputDir.name, 'data');
     const failFolder = path.join(inputFolder, 'fail');
     const fastqFailFolder = path.join(inputFolder, 'fastq_fail');
@@ -103,19 +153,20 @@ describe('utils-fs.loadInputFiles', () => {
     };
 
     await utils.loadInputFiles(opts).then(async files => {
-      assert.deepEqual(files, [{
+      assert.deepEqual(files, [
+        {
           name: '1.fastq',
           path: path.join(inputFolder, '1.fastq'),
           relative: '/1.fastq',
           size: 0,
-          id: 'FILE_6',
+          id: 'FILE_8',
         },
         {
           name: '1.fastq',
           path: path.join(inputFolder, 'pass', '1.fastq'),
           relative: '/pass/1.fastq',
           size: 0,
-          id: 'FILE_7',
+          id: 'FILE_9',
         },
       ]);
     });
