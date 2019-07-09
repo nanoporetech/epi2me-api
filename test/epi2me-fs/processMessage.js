@@ -36,9 +36,15 @@ describe('epi2me-api.processMessage', () => {
   });
 
   it('should handle bad message json', done => {
-    const client = clientFactory({ downloadMode: 'telemetry' });
+    const client = clientFactory({
+      downloadMode: 'telemetry',
+    });
+    client.telemetryLogStream = fs.createWriteStream('/dev/null');
+
     const stub = sinon.stub(client, 'deleteMessage').resolves();
-    const msg = { Body: '{message: body}' };
+    const msg = {
+      Body: '{message: body}',
+    };
 
     assert.doesNotThrow(() => {
       client.processMessage(msg, () => {});
@@ -51,7 +57,10 @@ describe('epi2me-api.processMessage', () => {
   });
 
   it('should parse message json', done => {
-    const client = clientFactory({ downloadMode: 'telemetry' });
+    const client = clientFactory({
+      downloadMode: 'telemetry',
+    });
+    client.telemetryLogStream = fs.createWriteStream('/dev/null');
 
     sinon.stub(client, 'sessionedS3').rejects(new Error('error message'));
 
@@ -74,6 +83,8 @@ describe('epi2me-api.processMessage', () => {
       downloadMode: 'data+telemetry',
       outputFolder: tmpDir.name,
     });
+    client.telemetryLogStream = fs.createWriteStream('/dev/null');
+
     const s3 = new AWS.S3();
 
     sinon.stub(client, 'sessionedS3').resolves(s3);
@@ -115,6 +126,8 @@ describe('epi2me-api.processMessage', () => {
       downloadMode: 'data+telemetry',
       outputFolder: tmpDir.name,
     });
+    client.telemetryLogStream = fs.createWriteStream('/dev/null');
+
     const s3 = new AWS.S3();
     sinon.stub(client, 'sessionedS3').resolves(s3);
     sinon.stub(client, 'initiateDownloadStream').resolves();
@@ -188,6 +201,8 @@ describe('epi2me-api.processMessage', () => {
       downloadMode: 'data+telemetry',
       outputFolder: tmpDir.name,
     });
+    client.telemetryLogStream = fs.createWriteStream('/dev/null');
+
     const s3 = new AWS.S3();
     sinon.stub(client, 'sessionedS3').resolves(s3);
     sinon.stub(client, 'initiateDownloadStream').resolves();
@@ -343,6 +358,7 @@ describe('epi2me-api.processMessage', () => {
     } catch (err) {
       assert.fail(err);
     }
+
     assert.equal(
       client.initiateDownloadStream.args[0][2],
       path.join(tmpDir.name, 'PASS/fastq_runid_738d663ef9214e590fb4806bf5aed784b941fd48_1.fastq.bam'),

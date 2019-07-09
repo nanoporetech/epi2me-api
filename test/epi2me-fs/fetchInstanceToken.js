@@ -42,21 +42,6 @@ describe('epi2me.fetchInstanceToken', () => {
     assert(String(err).match(/must specify id_workflow_instance/), 'correct error thrown');
   });
 
-  it('should not throw if id_workflow_instance and token valid', async () => {
-    const client = clientFactory({
-      id_workflow_instance: 5,
-    });
-
-    try {
-      client.states.sts_expiration = 10000 + Date.now();
-      await client.fetchInstanceToken();
-    } catch (e) {
-      assert.fail(e);
-    }
-
-    // error not thrown
-  });
-
   it('should request a token if not present', async () => {
     const client = clientFactory({
       id_workflow_instance: 5,
