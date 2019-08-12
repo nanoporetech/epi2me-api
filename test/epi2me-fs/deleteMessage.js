@@ -15,6 +15,7 @@ describe('epi2me.deleteMessage', () => {
             info: sinon.stub(),
             warn: sinon.stub(),
             error: sinon.stub(),
+            json: sinon.stub(),
           },
         },
         opts,
@@ -46,7 +47,9 @@ describe('epi2me.deleteMessage', () => {
     }));
 
     try {
-      await client.deleteMessage({ message: 'test message' });
+      await client.deleteMessage({
+        message: 'test message',
+      });
     } catch (error) {
       assert.fail(error);
     }
@@ -71,7 +74,10 @@ describe('epi2me.deleteMessage', () => {
     }));
 
     try {
-      await client.deleteMessage({ message: 'test message', ReceiptHandle: 'abcd-1234' });
+      await client.deleteMessage({
+        message: 'test message',
+        ReceiptHandle: 'abcd-1234',
+      });
     } catch (error) {
       assert.fail(error);
     }
@@ -98,7 +104,10 @@ describe('epi2me.deleteMessage', () => {
     }));
 
     try {
-      await client.deleteMessage({ message: 'test message', ReceiptHandle: 'abcd-1234' });
+      await client.deleteMessage({
+        message: 'test message',
+        ReceiptHandle: 'abcd-1234',
+      });
     } catch (error) {
       assert.ok(String(error).match(/deleteMessage failed/), 'thrown error message');
     }
@@ -119,7 +128,10 @@ describe('epi2me.deleteMessage', () => {
     sinon.stub(sqs, 'deleteMessage').throws(new Error('deleteMessage failed'));
 
     try {
-      await client.deleteMessage({ message: 'test message', ReceiptHandle: 'abcd-1234' });
+      await client.deleteMessage({
+        message: 'test message',
+        ReceiptHandle: 'abcd-1234',
+      });
     } catch (error) {
       assert.ok(String(error).match(/deleteMessage failed/), 'thrown error message');
     }
@@ -140,7 +152,10 @@ describe('epi2me.deleteMessage', () => {
     const deleteMessage = sinon.stub();
 
     try {
-      await client.deleteMessage({ message: 'test message', ReceiptHandle: 'abcd-1234' });
+      await client.deleteMessage({
+        message: 'test message',
+        ReceiptHandle: 'abcd-1234',
+      });
     } catch (error) {
       assert.ok(String(error).match(/could not connect/), 'thrown error message');
     }
@@ -161,10 +176,15 @@ describe('epi2me.deleteMessage', () => {
     sinon.stub(client, 'discoverQueue').rejects('could not connect');
     const deleteMessage = sinon.stub();
 
-    client.states.download.failure = { 'could not connect': 7 };
+    client.states.download.failure = {
+      'could not connect': 7,
+    };
 
     try {
-      await client.deleteMessage({ message: 'test message', ReceiptHandle: 'abcd-1234' });
+      await client.deleteMessage({
+        message: 'test message',
+        ReceiptHandle: 'abcd-1234',
+      });
     } catch (error) {
       assert.ok(String(error).match(/could not connect/), 'thrown error message');
     }

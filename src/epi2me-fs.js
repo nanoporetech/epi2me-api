@@ -407,9 +407,7 @@ export default class EPI2ME_FS extends EPI2ME {
     if ('max_files' in settings) {
       maxFiles = parseInt(settings.max_files, 10);
       if (files.length > maxFiles) {
-        msg = `ERROR: ${
-          files.length
-        } files found. Workflow can only accept ${maxFiles}. Please move the extra files away.`;
+        msg = `ERROR: ${files.length} files found. Workflow can only accept ${maxFiles}. Please move the extra files away.`;
         this.log.error(msg);
         this.states.warnings.push(msg);
         return Promise.resolve();

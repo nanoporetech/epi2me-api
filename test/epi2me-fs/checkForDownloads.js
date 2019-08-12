@@ -16,6 +16,7 @@ describe('epi2me.checkForDownloads', () => {
             info: sinon.stub(),
             warn,
             error: sinon.stub(),
+            json: sinon.stub(),
           },
         },
         opts,
@@ -118,14 +119,18 @@ describe('epi2me.checkForDownloads', () => {
     }
 
     assert(warn.lastCall.args[0].match(/checkForDownloads error/));
-    assert.deepEqual(client.states.download.failure, { 'Error: discoverQueue failed': 1 });
+    assert.deepEqual(client.states.download.failure, {
+      'Error: discoverQueue failed': 1,
+    });
     assert.equal(client.checkForDownloadsRunning, false, 'semaphore unset');
   });
 
   it('should handle subsequent error', async () => {
     const client = clientFactory();
     sinon.stub(client, 'discoverQueue').rejects(new Error('discoverQueue failed'));
-    client.states.download.failure = { 'Error: discoverQueue failed': 1 };
+    client.states.download.failure = {
+      'Error: discoverQueue failed': 1,
+    };
 
     try {
       await client.checkForDownloads();
@@ -134,7 +139,9 @@ describe('epi2me.checkForDownloads', () => {
     }
 
     assert(warn.lastCall.args[0].match(/checkForDownloads error/));
-    assert.deepEqual(client.states.download.failure, { 'Error: discoverQueue failed': 2 });
+    assert.deepEqual(client.states.download.failure, {
+      'Error: discoverQueue failed': 2,
+    });
     assert.equal(client.checkForDownloadsRunning, false, 'semaphore unset');
   });
 });

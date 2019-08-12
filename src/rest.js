@@ -345,9 +345,7 @@ export default class REST {
     if (query && query.run_id) {
       try {
         const json = await utils.get(
-          `workflow_instance/wi?show=all&columns[0][name]=run_id;columns[0][searchable]=true;columns[0][search][regex]=true;columns[0][search][value]=${
-            query.run_id
-          };`,
+          `workflow_instance/wi?show=all&columns[0][name]=run_id;columns[0][searchable]=true;columns[0][search][regex]=true;columns[0][search][value]=${query.run_id};`,
           this.options,
         );
         const mapped = json.data.map(o => ({

@@ -18,6 +18,7 @@ describe('epi2me.stopEverything', () => {
             info: sinon.stub(),
             warn: sinon.stub(),
             error: sinon.stub(),
+            json: sinon.stub(),
           },
         },
         opts,
@@ -135,7 +136,9 @@ describe('epi2me.stopEverything', () => {
   });
 */
   it('should request stopWorkflow with callback', async () => {
-    const client = clientFactory({ id_workflow_instance: 12345 });
+    const client = clientFactory({
+      id_workflow_instance: 12345,
+    });
     const stub1 = sinon.stub(client.REST, 'stopWorkflow').resolves();
 
     try {
@@ -148,7 +151,9 @@ describe('epi2me.stopEverything', () => {
   });
 
   it('should request stopWorkflow without callback', async () => {
-    const client = clientFactory({ id_workflow_instance: 12345 });
+    const client = clientFactory({
+      id_workflow_instance: 12345,
+    });
     const stub1 = sinon.stub(client.REST, 'stopWorkflow').resolves();
 
     try {

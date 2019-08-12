@@ -11,6 +11,7 @@ describe('session fetchInstanceToken method', () => {
         warn: sinon.stub(),
         error: sinon.stub(),
         debug: sinon.stub(),
+        json: sinon.stub(),
       },
     });
   });
