@@ -17,6 +17,7 @@ describe('epi2me.uploadComplete', () => {
             info: sinon.stub(),
             warn: sinon.stub(),
             error: sinon.stub(),
+            json: sinon.stub(),
           },
         },
         opts,

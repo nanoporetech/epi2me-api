@@ -15,6 +15,7 @@ describe('epi2me.fetchInstanceToken', () => {
             info: sinon.stub(),
             warn: sinon.stub(),
             error: sinon.stub(),
+            json: sinon.stub(),
           },
         },
         opts,

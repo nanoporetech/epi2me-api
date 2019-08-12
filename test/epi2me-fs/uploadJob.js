@@ -16,6 +16,7 @@ describe('epi2me.uploadJob', () => {
             info: sinon.stub(),
             warn: sinon.stub(),
             error: sinon.stub(),
+            json: sinon.stub(),
           },
         },
         opts,
@@ -32,7 +33,10 @@ describe('epi2me.uploadJob', () => {
     //    client.states.upload.enqueued = { files: 10, reads: 20 };
 
     try {
-      const x = { skip: true, path: 'path/to/file.fastq' };
+      const x = {
+        skip: true,
+        path: 'path/to/file.fastq',
+      };
       await client.uploadJob(x);
     } catch (e) {
       assert.fail(e);
@@ -50,7 +54,13 @@ describe('epi2me.uploadJob', () => {
     //    client.states.upload.enqueued = { files: 10, reads: 20 };
 
     try {
-      const x = { skip: true, path: 'path/to/file.fastq', stats: { reads: 5 } };
+      const x = {
+        skip: true,
+        path: 'path/to/file.fastq',
+        stats: {
+          reads: 5,
+        },
+      };
       await client.uploadJob(x);
     } catch (e) {
       assert.fail(e);
@@ -69,7 +79,13 @@ describe('epi2me.uploadJob', () => {
     //    client.states.upload.queueLength = { files: 10 };
 
     try {
-      const x = { skip: true, path: 'path/to/file.fastq', stats: { reads: 5 } };
+      const x = {
+        skip: true,
+        path: 'path/to/file.fastq',
+        stats: {
+          reads: 5,
+        },
+      };
       await client.uploadJob(x);
     } catch (e) {
       assert.fail(e);
@@ -88,7 +104,9 @@ describe('epi2me.uploadJob', () => {
     delete client.states.upload.failure;
 
     try {
-      const x = { id: 72 };
+      const x = {
+        id: 72,
+      };
       await client.uploadJob(x);
       clock.tick(1000);
     } catch (err) {
@@ -107,7 +125,9 @@ describe('epi2me.uploadJob', () => {
     client.states.upload.failure = {}; // empty error tally
 
     try {
-      const x = { id: 72 };
+      const x = {
+        id: 72,
+      };
       await client.uploadJob(x);
       clock.tick(1000);
     } catch (err) {
@@ -115,7 +135,13 @@ describe('epi2me.uploadJob', () => {
     }
 
     assert(client.log.error.lastCall.args[0].match(/uploadHandler failed/), 'error message propagated');
-    assert.deepEqual(client.states.upload.failure, { 'Error: uploadHandler failed': 1 }, 'error counted');
+    assert.deepEqual(
+      client.states.upload.failure,
+      {
+        'Error: uploadHandler failed': 1,
+      },
+      'error counted',
+    );
 
     clock.restore();
   });
@@ -125,10 +151,14 @@ describe('epi2me.uploadJob', () => {
     const client = clientFactory();
 
     sinon.stub(client, 'uploadHandler').rejects(new Error('uploadHandler failed'));
-    client.states.upload.failure = { 'Error: uploadHandler failed': 7 }; // empty error tally
+    client.states.upload.failure = {
+      'Error: uploadHandler failed': 7,
+    }; // empty error tally
 
     try {
-      const x = { id: 72 };
+      const x = {
+        id: 72,
+      };
       await client.uploadJob(x);
       clock.tick(1000);
     } catch (e) {
@@ -136,7 +166,13 @@ describe('epi2me.uploadJob', () => {
     }
 
     assert(client.log.error.lastCall.args[0].match(/uploadHandler failed/), 'error message propagated');
-    assert.deepEqual(client.states.upload.failure, { 'Error: uploadHandler failed': 8 }, 'error counted');
+    assert.deepEqual(
+      client.states.upload.failure,
+      {
+        'Error: uploadHandler failed': 8,
+      },
+      'error counted',
+    );
 
     clock.restore();
   });
@@ -148,7 +184,9 @@ describe('epi2me.uploadJob', () => {
     sinon.stub(client, 'uploadHandler').callsFake(file => Promise.resolve(file));
 
     try {
-      const x = { id: 72 };
+      const x = {
+        id: 72,
+      };
       await client.uploadJob(x);
       clock.tick(1000);
     } catch (e) {
@@ -166,10 +204,17 @@ describe('epi2me.uploadJob', () => {
 
     sinon.stub(client, 'uploadHandler').callsFake(file => Promise.resolve(file));
     // client.states.upload.queueLength = { reads: 8192 };
-    client.states.upload.success = { files: 25 };
+    client.states.upload.success = {
+      files: 25,
+    };
 
     try {
-      const x = { id: 72, stats: { reads: 4096 } };
+      const x = {
+        id: 72,
+        stats: {
+          reads: 4096,
+        },
+      };
       await client.uploadJob(x);
       clock.tick(1000);
     } catch (e) {
@@ -183,17 +228,30 @@ describe('epi2me.uploadJob', () => {
         download: {
           fail: 0,
           progress: {},
-          success: { files: 0, bytes: 0, reads: 0 },
+          success: {
+            files: 0,
+            bytes: 0,
+            reads: 0,
+          },
           types: {},
           niceTypes: '',
         },
         upload: {
           filesCount: 0, // dirty
-          success: { files: 26, reads: 4096, niceSize: '0', niceReads: '4.1K' },
+          success: {
+            files: 26,
+            reads: 4096,
+            niceSize: '0',
+            niceReads: '4.1K',
+          },
           // total: { files: 0, bytes: 0 },
           niceTypes: '',
           types: {},
-          progress: { bytes: 0, total: 0, niceSize: '0' },
+          progress: {
+            bytes: 0,
+            total: 0,
+            niceSize: '0',
+          },
         },
         warnings: [],
       },

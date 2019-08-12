@@ -9,8 +9,8 @@ describe('epi2me.autoStart', () => {
         debug: sinon.stub(),
         info: sinon.stub(),
         warn: sinon.stub(),
-        log: sinon.stub(),
         error: sinon.stub(),
+        json: sinon.stub(),
       },
     });
 

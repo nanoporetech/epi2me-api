@@ -8,6 +8,7 @@ describe('epi2me.enqueueUploadFiles', () => {
   let info;
   let warn;
   let error;
+  let json;
   let stubs;
 
   const clientFactory = opts =>
@@ -20,6 +21,7 @@ describe('epi2me.enqueueUploadFiles', () => {
             info,
             warn,
             error,
+            json,
           },
         },
         opts,
@@ -32,6 +34,7 @@ describe('epi2me.enqueueUploadFiles', () => {
     info = sinon.stub();
     warn = sinon.stub();
     error = sinon.stub();
+    json = sinon.stub();
     stubs = [];
   });
   afterEach(() => {

@@ -24,10 +24,10 @@ export default class EPI2ME {
     }
 
     if (opts.log) {
-      if (every([opts.log.info, opts.log.warn, opts.log.error, opts.log.debug], isFunction)) {
+      if (every([opts.log.info, opts.log.warn, opts.log.error, opts.log.debug, opts.log.json], isFunction)) {
         this.log = opts.log;
       } else {
-        throw new Error('expected log object to have "error", "debug", "info" and "warn" methods');
+        throw new Error('expected log object to have error, debug, info, warn and json methods');
       }
     } else {
       this.log = {
@@ -43,6 +43,9 @@ export default class EPI2ME {
         },
         error: msg => {
           console.error(`[${new Date().toISOString()}] ERROR: ${msg}`);
+        },
+        json: obj => {
+          console.log(JSON.stringify(obj));
         },
       };
     }
@@ -265,7 +268,12 @@ export default class EPI2ME {
 
   reportProgress() {
     const { upload, download } = this.states;
-    this.log.info(`Progress: ${JSON.stringify({ progress: { download, upload } })}`);
+    this.log.json({
+      progress: {
+        download,
+        upload,
+      },
+    });
   }
 
   storeState(direction, table, op, newDataIn) {

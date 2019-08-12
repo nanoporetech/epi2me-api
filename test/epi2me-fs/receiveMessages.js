@@ -1,18 +1,21 @@
 import assert from 'assert';
 import sinon from 'sinon';
-import bunyan from 'bunyan';
 import EPI2ME from '../../src/epi2me-fs';
 
 describe('epi2me.receiveMessages', () => {
-  let ringbuf;
-  let log;
   let client;
   let clock;
 
   beforeEach(() => {
-    ringbuf = new bunyan.RingBuffer({ limit: 100 });
-    log = bunyan.createLogger({ name: 'log', stream: ringbuf });
-    client = new EPI2ME({ log });
+    client = new EPI2ME({
+      log: {
+        info: sinon.stub(),
+        warn: sinon.stub(),
+        error: sinon.stub(),
+        debug: sinon.stub(),
+        json: sinon.stub(),
+      },
+    });
     clock = sinon.useFakeTimers();
   });
 
@@ -26,7 +29,8 @@ describe('epi2me.receiveMessages', () => {
     } catch (e) {
       assert.fail(e);
     }
-    assert.equal(JSON.parse(ringbuf.records[0]).msg, 'complete (empty)');
+
+    assert.equal(client.log.info.lastCall.args, 'complete (empty)');
   });
 
   it('should queue and process download messages using downloadWorkerPool', async () => {
@@ -40,7 +44,22 @@ describe('epi2me.receiveMessages', () => {
     });
 
     try {
-      client.receiveMessages({ Messages: [{ MessageId: 1 }, { MessageId: 2 }, { MessageId: 3 }, { MessageId: 4 }] }); // no awaiting here so we can resolve promises with a clock tick
+      client.receiveMessages({
+        Messages: [
+          {
+            MessageId: 1,
+          },
+          {
+            MessageId: 2,
+          },
+          {
+            MessageId: 3,
+          },
+          {
+            MessageId: 4,
+          },
+        ],
+      }); // no awaiting here so we can resolve promises with a clock tick
     } catch (e) {
       assert.fail(e);
     }

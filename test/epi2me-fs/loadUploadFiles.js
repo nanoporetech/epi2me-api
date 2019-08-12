@@ -16,6 +16,7 @@ describe('epi2me.loadUploadFiles', () => {
             info: sinon.stub(),
             warn: sinon.stub(),
             error: sinon.stub(),
+            json: sinon.stub(),
           },
         },
         opts,

@@ -14,6 +14,7 @@ describe('epi2me.discoverQueue', () => {
             info: sinon.stub(),
             warn: sinon.stub(),
             error: sinon.stub(),
+            json: sinon.stub(),
           },
         },
         opts,
@@ -24,7 +25,10 @@ describe('epi2me.discoverQueue', () => {
     const client = clientFactory();
     sinon.stub(client, 'sessionedSQS').callsFake(() => ({
       getQueueUrl: () => ({
-        promise: () => Promise.resolve({ QueueUrl: 'https://my.cloud/queues/my_queue' }),
+        promise: () =>
+          Promise.resolve({
+            QueueUrl: 'https://my.cloud/queues/my_queue',
+          }),
       }),
     }));
 
@@ -44,7 +48,10 @@ describe('epi2me.discoverQueue', () => {
 
     sinon.stub(client, 'sessionedSQS').callsFake(() => ({
       getQueueUrl: () => ({
-        promise: () => Promise.resolve({ QueueUrl: 'https://my.cloud/queues/my_queue' }),
+        promise: () =>
+          Promise.resolve({
+            QueueUrl: 'https://my.cloud/queues/my_queue',
+          }),
       }),
     }));
 
