@@ -65,6 +65,10 @@ const epi2meFull = {
       file: path.join(path.dirname(pkg.module), 'index.es.js'),
       format: 'es',
     },
+    {
+      file: path.join(path.dirname(pkg.main), 'profile.js'), // standalone profile with fs but no sqlite
+      format: 'cjs',
+    },
   ],
   external,
   plugins: [
