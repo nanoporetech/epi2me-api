@@ -16,6 +16,7 @@ import _REST from './rest-fs';
 import filestats from './filestats';
 import EPI2ME from './epi2me';
 import DB from './db';
+import Profile from './profile';
 
 const rootDir = () => {
   /* Windows: C:\Users\rmp\AppData\EPI2ME
@@ -1189,3 +1190,4 @@ EPI2ME_FS.version = utils.version;
 EPI2ME_FS.REST = _REST;
 EPI2ME_FS.utils = utils;
 EPI2ME_FS.EPI2ME_HOME = rootDir();
+EPI2ME_FS.Profile = Profile;
