@@ -1,8 +1,6 @@
 import fs from 'fs-extra';
 import path from 'path';
-import {
-  merge
-} from 'lodash';
+import { merge } from 'lodash';
 
 function profilePath() {
   return path.join(process.env.HOME, '.epi2me.json');
