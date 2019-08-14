@@ -65,10 +65,6 @@ const epi2meFull = {
       file: path.join(path.dirname(pkg.module), 'index.es.js'),
       format: 'es',
     },
-    {
-      file: path.join(path.dirname(pkg.main), 'profile.js'), // standalone profile with fs but no sqlite
-      format: 'cjs',
-    },
   ],
   external,
   plugins: [
@@ -84,6 +80,35 @@ const epi2meFull = {
       outputFolder: 'dist',
       baseContents: {
         name: pkg.name,
+        private: true,
+        version: pkg.verbose,
+      },
+    }),
+  ],
+};
+
+const epi2meProfile = {
+  input: 'src/profile.js',
+  output: [
+    {
+      file: path.join(path.dirname(pkg.main), 'profile/index.js'),
+      format: 'cjs',
+    },
+  ],
+  external,
+  plugins: [
+    ...plugins,
+    copy({
+      files: ['./README.md', './LICENCE'],
+      dest: 'dist/profile',
+      options: {
+        verbose: true,
+      },
+    }),
+    generatePackageJson({
+      outputFolder: 'dist/profile',
+      baseContents: {
+        name: 'profile',
         private: true,
         version: pkg.verbose,
       },
@@ -117,4 +142,4 @@ const epi2meWeb = {
   ],
 };
 
-export default [epi2meFull, epi2meWeb];
+export default [epi2meFull, epi2meProfile, epi2meWeb];
