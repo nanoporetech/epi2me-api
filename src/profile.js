@@ -1,14 +1,11 @@
+import { homedir } from 'os';
 import fs from 'fs-extra';
 import path from 'path';
 import { merge } from 'lodash';
 
-function profilePath() {
-  return path.join(process.env.HOME, '.epi2me.json');
-}
-
 export default class Profile {
   constructor(prefsFile) {
-    this.prefsFile = prefsFile || profilePath();
+    this.prefsFile = prefsFile || Profile.profilePath();
     this.profileCache = {};
     try {
       const allProfiles = fs.readJSONSync(this.prefsFile);
@@ -16,6 +13,10 @@ export default class Profile {
     } catch (ignore) {
       // no file or corrupt file - ignore
     }
+  }
+
+  static profilePath() {
+    return path.join(homedir(), '.epi2me.json');
   }
 
   profile(id, obj) {
