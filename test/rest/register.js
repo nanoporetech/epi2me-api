@@ -24,6 +24,16 @@ describe('rest.register', () => {
     });
   });
 
+  describe('live.register', () => {
+    it('is a proper run', async () => {
+      const code = 'vzc0w0';
+      await rest.register(code, (e, creds) => {
+        console.log('EEE', e);
+        console.log('Creds', creds);
+      });
+    });
+  });
+
   it('must invoke post with details', async () => {
     const stub = sinon.stub(utils, 'put').resolves({});
     stubs.push(stub);
