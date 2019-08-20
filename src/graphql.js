@@ -4,7 +4,7 @@
  */
 
 import os from 'os';
-import { merge, filter, assign } from 'lodash';
+import { assign } from 'lodash';
 import gql from 'graphql-tag';
 import utils from './utils';
 import { local, url as baseURL, user_agent as userAgent, signing } from './default_options.json';

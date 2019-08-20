@@ -63,10 +63,8 @@ describe('stubbed tests', () => {
       const gql = makeGQL();
       const response = { data: { allWorkflows: [{ idWorkflow: 1 }] } };
       stubs.push(sinon.stub(client, 'query').resolves(response));
-      gql
-        .workflows()
-        .then(({ data }) => assert.strictEqual(data, response.data))
-        .catch(err => console.log(err));
+      gql.workflows().then(({ data }) => assert.strictEqual(data, response.data));
+      // .catch(err => console.log(err));
     });
   });
 
@@ -75,10 +73,8 @@ describe('stubbed tests', () => {
       const gql = makeGQL();
       const response = { data: { allWorkflows: [{ idWorkflow: 1 }] } };
       stubs.push(sinon.stub(client, 'query').resolves(response));
-      gql
-        .workflows({ page: 2 })
-        .then(({ data }) => assert.strictEqual(data, response.data))
-        .catch(err => console.log(err));
+      gql.workflows({ page: 2 }).then(({ data }) => assert.strictEqual(data, response.data));
+      // .catch(err => console.log(err));
     });
   });
 
@@ -87,10 +83,8 @@ describe('stubbed tests', () => {
       const gql = makeGQL();
       const response = { data: { workflow: { idWorkflow: '49' } } };
       stubs.push(sinon.stub(client, 'query').resolves(response));
-      gql
-        .workflow({ idWorkflow: '49' })
-        .then(({ data }) => assert.strictEqual(data, response.data))
-        .catch(err => console.log(err));
+      gql.workflow({ idWorkflow: '49' }).then(({ data }) => assert.strictEqual(data, response.data));
+      // .catch(err => console.log(err));
     });
   });
 
@@ -99,10 +93,8 @@ describe('stubbed tests', () => {
       const gql = makeGQL();
       const response = { data: { allWorkflows: [{ idWorkflow: 1 }] } };
       stubs.push(sinon.stub(client, 'query').resolves(response));
-      gql
-        .workflowInstances()
-        .then(({ data }) => assert.strictEqual(data, response.data))
-        .catch(err => console.log(err));
+      gql.workflowInstances().then(({ data }) => assert.strictEqual(data, response.data));
+      // .catch(err => console.log(err));
     });
   });
 
@@ -121,7 +113,7 @@ describe('stubbed tests', () => {
       await gql
         .workflowInstance({ idWorkflowInstance: 121 })
         .then(({ data }) => assert.strictEqual(data, response.data))
-        .catch(err => console.log(err));
+      // .catch(err => console.log(err));
     });
   });
 
@@ -133,7 +125,7 @@ describe('stubbed tests', () => {
       gql
         .startWorkflow({ idWorkflow: 1403, computeAccountId: 1 })
         .then(({ data }) => assert.strictEqual(data, response.data))
-        .catch(err => console.log(err.networkError.result));
+      // .catch(err => console.log(err.networkError.result));
     });
   });
 });
