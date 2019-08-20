@@ -63,7 +63,7 @@ describe('stubbed tests', () => {
       const gql = makeGQL();
       const response = { data: { allWorkflows: [{ idWorkflow: 1 }] } };
       stubs.push(sinon.stub(client, 'query').resolves(response));
-      await gql
+      gql
         .workflows()
         .then(({ data }) => assert.strictEqual(data, response.data))
         .catch(err => console.log(err));
@@ -71,26 +71,69 @@ describe('stubbed tests', () => {
   });
 
   describe('graphql.workflows.page2', () => {
-    it('retrieves workflows', async () => {
+    it('retrieves workflows second page', async () => {
       const gql = makeGQL();
       const response = { data: { allWorkflows: [{ idWorkflow: 1 }] } };
       stubs.push(sinon.stub(client, 'query').resolves(response));
-      await gql
+      gql
         .workflows({ page: 2 })
         .then(({ data }) => assert.strictEqual(data, response.data))
         .catch(err => console.log(err));
     });
   });
 
-  describe('graphql.retrieve_workflow', () => {
-    it('retrieves workflow', async () => {
+  describe('graphql.retrieves.workflow', () => {
+    it('retrieves single workflow', async () => {
       const gql = makeGQL();
       const response = { data: { workflow: { idWorkflow: '49' } } };
       stubs.push(sinon.stub(client, 'query').resolves(response));
-      await gql
+      gql
         .workflow({ idWorkflow: '49' })
         .then(({ data }) => assert.strictEqual(data, response.data))
         .catch(err => console.log(err));
+    });
+  });
+
+  describe('graphql.workflowInstances', () => {
+    it('retrieves workflow instances', async () => {
+      const gql = makeGQL();
+      const response = { data: { allWorkflows: [{ idWorkflow: 1 }] } };
+      stubs.push(sinon.stub(client, 'query').resolves(response));
+      gql
+        .workflowInstances()
+        .then(({ data }) => assert.strictEqual(data, response.data))
+        .catch(err => console.log(err));
+    });
+  });
+
+  describe('graphql.retrieves.workflowInstance', () => {
+    it('retrieves a single workflow instance', async () => {
+      const gql = makeGQL();
+      const response = {
+        data: {
+          idWorkflowInstance: '1',
+          outputqueue: null,
+          startDate: '2014-03-28T22:58:24+00:00',
+          __typename: 'WorkflowInstanceType',
+        },
+      };
+      stubs.push(sinon.stub(client, 'query').resolves(response));
+      await gql
+        .workflowInstance({ idWorkflowInstance: 121 })
+        .then(({ data }) => assert.strictEqual(data, response.data))
+        .catch(err => console.log(err));
+    });
+  });
+
+  describe('graphql.startWorkflow', () => {
+    it('starts a workflow instances', async () => {
+      const gql = makeGQL();
+      const response = { data: { startWorkflow: { idWorkflowInstance: 1 } } };
+      stubs.push(sinon.stub(client, 'mutate').resolves(response));
+      gql
+        .startWorkflow({ idWorkflow: 1403, computeAccountId: 1 })
+        .then(({ data }) => assert.strictEqual(data, response.data))
+        .catch(err => console.log(err.networkError.result));
     });
   });
 });

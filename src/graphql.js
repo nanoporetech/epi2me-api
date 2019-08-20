@@ -10,6 +10,8 @@ import utils from './utils';
 import { local, url as baseURL, user_agent as userAgent, signing } from './default_options.json';
 import client from './gql-client';
 import PageFragment from './fragments/PageFragment';
+import WorkflowFragment from './fragments/WorkflowFragment';
+import WorkflowInstanceFragment from './fragments/WorkflowInstanceFragment';
 
 export default class GraphQL {
   constructor(options) {
@@ -29,16 +31,13 @@ export default class GraphQL {
     this.client = client;
   }
 
-  async workflows(variables) {
+  workflows(variables) {
     const query = gql`
       query allWorkflows($page: Int) {
         allWorkflows(page: $page) {
           ${PageFragment}
           results {
-            idWorkflow
-            name
-            description
-            summary
+            ${WorkflowFragment}
           }
         }
       }
@@ -46,19 +45,74 @@ export default class GraphQL {
     return this.client.query({ query, variables });
   }
 
-  async workflow(variables) {
+  workflow(variables) {
     const query = gql`
       query workflow($idWorkflow: ID!) {
         workflow(idWorkflow: $idWorkflow) {
-          idWorkflow
-          name
-          description
-          summary
+          ${WorkflowFragment}
         }
       }
     `;
     return this.client.query({ query, variables });
   }
+
+  workflowInstances(variables) {
+    const query = gql`
+      query allWorkflowInstances($page: Int) {
+        allWorkflowInstances(page: $page) {
+          ${PageFragment}
+          results {
+            ${WorkflowInstanceFragment}
+          }
+        }
+      }
+    `;
+    return this.client.query({ query, variables });
+  }
+
+  workflowInstance(variables) {
+    const query = gql`
+      query workflowInstance($idWorkflowInstance: ID!) {
+        workflowInstance(idWorkflowInstance: $idWorkflowInstance) {
+          ${WorkflowInstanceFragment}
+        }
+      }
+    `;
+    return this.client.query({ query, variables });
+  }
+
+  startWorkflow(variables) {
+    const mutation = gql`
+      mutation startWorkflow(
+        $idWorkflow: ID!
+        $computeAccountId: Int!
+        $storageAccountId: Int
+        $isConsentedHuman: Int = 0
+      ) {
+        startWorkflowInstance(
+          idWorkflow: $idWorkflow
+          computeAccountId: $computeAccountId
+          storageAccountId: $storageAccountId
+          isConsentedHuman: $isConsentedHuman
+        ) {
+          bucket
+          idUser
+          idWorkflowInstance
+          inputqueue
+          outputqueue
+          region
+          keyId
+          chain
+        }
+      }
+    `;
+    return this.client.mutate({ mutation, variables });
+  }
+
+  // dataset(s)
+  // show=show
+
+  // user - me
 
   async register(code, second, third) {
     // Output
@@ -88,6 +142,10 @@ export default class GraphQL {
       return cb ? cb(err) : Promise.reject(err);
     }
   }
+
+  // status
+
+  // amiImage(s)
 
   // async registerMutation(code, second, third) {
   // Still in place but unused
