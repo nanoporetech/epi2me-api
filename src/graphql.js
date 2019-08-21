@@ -109,10 +109,10 @@ export default class GraphQL {
     return this.client.mutate({ mutation, variables });
   }
 
+  // user - me
+
   // dataset(s)
   // show=show
-
-  // user - me
 
   async register(code, second, third) {
     // Output
