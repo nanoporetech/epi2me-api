@@ -5,10 +5,11 @@ import { merge } from 'lodash';
 import DEFAULTS from './default_options.json';
 
 export default class Profile {
-  constructor(prefsFile) {
+  constructor(prefsFile, raiseExceptions) {
     this.prefsFile = prefsFile || Profile.profilePath();
     this.profileCache = {};
     this.defaultEndpoint = process.env.METRICHOR || DEFAULTS.endpoint;
+    this.raiseExceptions = raiseExceptions;
 
     try {
       const allProfiles = fs.readJSONSync(this.prefsFile);
@@ -16,8 +17,10 @@ export default class Profile {
       if (allProfiles.endpoint) {
         this.defaultEndpoint = allProfiles.endpoint;
       }
-    } catch (ignore) {
-      // no file or corrupt file - ignore
+    } catch (err) {
+      if (this.raiseExceptions) {
+        throw err;
+      }
     }
   }
 
@@ -30,9 +33,15 @@ export default class Profile {
       const profileCache = merge(this.profileCache, {
         [id]: obj,
       });
-      fs.writeJSONSync(this.prefsFile, {
-        profiles: profileCache,
-      });
+      try {
+        fs.writeJSONSync(this.prefsFile, {
+          profiles: profileCache,
+        });
+      } catch (err) {
+        if (this.raiseExceptions) {
+          throw err;
+        }
+      }
       this.profileCache = profileCache;
     }
 
