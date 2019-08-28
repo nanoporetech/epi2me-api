@@ -173,4 +173,70 @@ describe('utils-fs.loadInputFiles', () => {
 
     await fs.remove(inputFolder);
   });
+
+  it('MC-6727 should support array of desirable types (and "." addition)', async () => {
+    const inputFolder = path.join(tmpInputDir.name, 'data');
+    const oneFolder = path.join(inputFolder, 'one');
+    const twoFolder = path.join(inputFolder, 'two');
+    const passFolder = path.join(inputFolder, 'pass');
+    fs.mkdirpSync(inputFolder);
+    fs.mkdirpSync(oneFolder);
+    fs.mkdirpSync(twoFolder);
+    fs.mkdirpSync(passFolder);
+
+    /**
+     * Test folder structure:
+     * data/1.txt
+     * data/fail/1.fast5
+     * data/fastq_fail/1.fastq
+     * data/pass/1.fastq
+     */
+    fs.writeFileSync(path.join(oneFolder, '1.txt'), '');
+    fs.writeFileSync(path.join(twoFolder, '1.fast5'), '');
+    fs.writeFileSync(path.join(passFolder, '1.fq'), '');
+    fs.writeFileSync(path.join(passFolder, '1.fq.gz'), '');
+    fs.writeFileSync(path.join(inputFolder, '1.fastq'), '');
+    fs.writeFileSync(path.join(inputFolder, '1.fastq.gz'), '');
+
+    const opts = {
+      inputFolder,
+      outputFolder: path.join(inputFolder, 'output'),
+      filetype: ['.fastq', '.fastq.gz', 'fq', 'fq.gz'],
+    };
+
+    await utils.loadInputFiles(opts).then(async files => {
+      assert.deepEqual(files, [
+        {
+          name: '1.fastq',
+          path: path.join(inputFolder, '1.fastq'),
+          relative: '/1.fastq',
+          size: 0,
+          id: 'FILE_10',
+        },
+        {
+          name: '1.fastq.gz',
+          path: path.join(inputFolder, '1.fastq.gz'),
+          relative: '/1.fastq.gz',
+          size: 0,
+          id: 'FILE_11',
+        },
+        {
+          name: '1.fq',
+          path: path.join(inputFolder, 'pass', '1.fq'),
+          relative: '/pass/1.fq',
+          size: 0,
+          id: 'FILE_12',
+        },
+        {
+          name: '1.fq.gz',
+          path: path.join(inputFolder, 'pass', '1.fq.gz'),
+          relative: '/pass/1.fq.gz',
+          size: 0,
+          id: 'FILE_13',
+        },
+      ]);
+    });
+
+    await fs.remove(inputFolder);
+  });
 });
