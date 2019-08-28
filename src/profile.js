@@ -8,7 +8,7 @@ export default class Profile {
   constructor(prefsFile, raiseExceptions) {
     this.prefsFile = prefsFile || Profile.profilePath();
     this.profileCache = {};
-    this.defaultEndpoint = process.env.METRICHOR || DEFAULTS.endpoint;
+    this.defaultEndpoint = process.env.METRICHOR || DEFAULTS.endpoint || DEFAULTS.url;
     this.raiseExceptions = raiseExceptions;
 
     try {
