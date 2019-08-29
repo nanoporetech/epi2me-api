@@ -4,34 +4,48 @@
  */
 
 import os from 'os';
-import { assign } from 'lodash';
+import { assign, merge } from 'lodash';
 import gql from 'graphql-tag';
 import utils from './utils';
-import { local, url as baseURL, user_agent as userAgent, signing } from './default_options.json';
+import { local, gqlUrl as baseUrl, user_agent as userAgent, signing } from './default_options.json';
 import client from './gql-client';
 import PageFragment from './fragments/PageFragment';
 import WorkflowFragment from './fragments/WorkflowFragment';
 import WorkflowInstanceFragment from './fragments/WorkflowInstanceFragment';
 
 export default class GraphQL {
-  constructor(options) {
+  constructor(profile) {
     // {log, ...options}) {
+
+    console.log(profile);
     this.options = assign(
       {
         agent_version: utils.version,
         local,
-        url: baseURL,
+        url: baseUrl,
         user_agent: userAgent,
         signing,
       },
-      options,
+      profile,
     );
 
     this.log = this.options.log;
     this.client = client;
   }
 
-  workflows(variables) {
+  createContext(contextIn) {
+    // Merge any passed in context with requiredContext
+    // such as apikeys
+    // const { apikey, apisecret } = this.profile.credentials;
+    // const requiredContext = {
+    //   apikey,
+    //   apisecret,
+    // };
+    // console.log('PROFILE ', this.options.profile);
+    return merge(this.options.profile, contextIn);
+  }
+
+  workflows(context = {}, variables = {}) {
     const query = gql`
       query allWorkflows($page: Int) {
         allWorkflows(page: $page) {
@@ -42,7 +56,9 @@ export default class GraphQL {
         }
       }
     `;
-    return this.client.query({ query, variables });
+    const requestContext = this.createContext(context);
+    // console.log(requestContext);
+    return this.client.query({ query, variables, context: requestContext });
   }
 
   workflow(variables) {
