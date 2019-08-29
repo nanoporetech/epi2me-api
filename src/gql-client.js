@@ -17,7 +17,7 @@ const fetcher = buildAxiosFetch(axios);
 const customFetcher = (uri, requestOptions) => {
   // console.log('REQUEST OPTIONS: ', requestOptions);
   const { apikey, apisecret } = requestOptions.headers.keys;
-  delete requestOptions.headers.keys;
+  delete requestOptions.headers.keys; // eslint-disable-line no-param-reassign
   gqlUtils.setHeaders(requestOptions, {
     // Local
     // apikey: 'bd2e57b8cbaffe1c957616c4afca0f6734ae9012',
@@ -44,7 +44,7 @@ const customFetcher = (uri, requestOptions) => {
 // const httpLink = createHttpLink({ url, fetch: buildAxiosFetch(axios) });
 // const httpLink = createHttpLink({ uri: `${gqlUrl}/graphql`, fetch: customFetcher });
 
-const link = new ApolloLink((operation, forward) => {
+const link = new ApolloLink(operation => {
   // console.log('context: ', operation.getContext(), '\n context ends');
   const url = operation.getContext().uri || gqlUrl;
   const { apikey, apisecret } = operation.getContext();

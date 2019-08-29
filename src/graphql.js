@@ -17,7 +17,7 @@ export default class GraphQL {
   constructor(profile) {
     // {log, ...options}) {
 
-    console.log(profile);
+    // console.log(profile);
     this.options = assign(
       {
         agent_version: utils.version,
