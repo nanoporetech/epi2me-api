@@ -3,8 +3,9 @@ import assert from 'assert';
 import bunyan from 'bunyan';
 import { merge } from 'lodash';
 import axios from 'axios';
-import GraphQL from '../../src/graphql';
 
+import DEFAULTS from '../../src/default_options.json';
+import GraphQL from '../../src/graphql';
 import client from '../../src/gql-client';
 import utils from '../../src/utils';
 import gqlUtils from '../../src/gql-utils';
@@ -181,7 +182,7 @@ describe('stubbed tests', () => {
 // });
 
 describe('graphql.unittests', () => {
-  it('gqlUtils.setHeaders works as expected', () => {
+  it('gqlUtils.setHeaders adds correct headers', () => {
     const req = {
       headers: {},
       body: 'gqlQueryHere',
@@ -191,16 +192,41 @@ describe('graphql.unittests', () => {
       apisecret: 'vo6QhSWdu9MqKQk9IC1ql9X7jI9zU1ptN9pqrJ0kPJ4fANYcGvKbB4Pp9QMG164J',
       signing: true,
     };
+    // sinon.useFakeTimers();
+    gqlUtils.setHeaders(req, options);
+    assert.deepEqual(Object.keys(req.headers), [
+      'Accept',
+      'Content-Type',
+      'X-EPI2ME-CLIENT',
+      'X-EPI2ME-VERSION',
+      'X-EPI2ME-APIKEY',
+      'X-EPI2ME-SIGNATUREDATE',
+      'X-EPI2ME-SIGNATUREV0',
+    ]);
+    // sinon.restore();
+  });
+  it('gqlUtils.internal.sign correctly signs a request', () => {
+    const req = {
+      headers: {},
+      body: 'gqlQueryHere',
+    };
+    const options = {
+      apikey: 'a0207e050372b7b0b10cdce458e9e7f3a9cb3bd6',
+      apisecret: 'vo6QhSWdu9MqKQk9IC1ql9X7jI9zU1ptN9pqrJ0kPJ4fANYcGvKbB4Pp9QMG164J',
+      signing: true,
+      user_agent: DEFAULTS.user_agent,
+      agent_version: '2019.8.30-1719',
+    };
     sinon.useFakeTimers();
     gqlUtils.setHeaders(req, options);
     assert.deepEqual(req.headers, {
       Accept: 'application/json',
       'Content-Type': 'application/json',
-      'X-EPI2ME-CLIENT': 'api',
-      'X-EPI2ME-VERSION': '2019.8.29-1059',
+      'X-EPI2ME-CLIENT': 'EPI2ME API',
+      'X-EPI2ME-VERSION': '2019.8.30-1719',
       'X-EPI2ME-APIKEY': 'a0207e050372b7b0b10cdce458e9e7f3a9cb3bd6',
       'X-EPI2ME-SIGNATUREDATE': '1970-01-01T00:00:00.000Z',
-      'X-EPI2ME-SIGNATUREV0': '108376af0fb975c3791032746befa7a2a3b8a63a',
+      'X-EPI2ME-SIGNATUREV0': 'ffebfac74151ebd7fca9c67bb1974ac623e0ea50',
     });
     sinon.restore();
   });
@@ -222,6 +248,7 @@ describe('graphql.unittests', () => {
   });
 });
 
+// Check actual signing works as expected
 // Test that keys are deleted from headers by customFetcher
 // Test changing a profile
 // Test hitting right uri - can be passed in context
