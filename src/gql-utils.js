@@ -42,7 +42,7 @@ const gqlUtils = (function magic() {
   return {
     version: VERSION,
     setHeaders: (req, optionsIn) => {
-      const { log } = merge({ log: { debug: () => { } } }, optionsIn);
+      const { log } = merge({ log: { debug: () => {} } }, optionsIn);
       // common headers required for everything
       let options = optionsIn;
       if (!options) {
