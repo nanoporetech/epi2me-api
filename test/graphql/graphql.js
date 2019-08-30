@@ -2,10 +2,13 @@ import sinon from 'sinon';
 import assert from 'assert';
 import bunyan from 'bunyan';
 import { merge } from 'lodash';
+import axios from 'axios';
 import GraphQL from '../../src/graphql';
 
 import client from '../../src/gql-client';
 import utils from '../../src/utils';
+import gqlUtils from '../../src/gql-utils';
+import customFetcher from '../../src/fetcher';
 
 const makeGQL = profile => {
   const ringbuf = new bunyan.RingBuffer({ limit: 100 });
@@ -146,7 +149,7 @@ describe('stubbed tests', () => {
   });
 });
 
-// // For end to end testing
+// For end to end testing
 // describe('graphql.e2e', () => {
 //   // it('registers', async () => {
 //   //   const gql = makeRegisteredGQL();
@@ -177,7 +180,48 @@ describe('stubbed tests', () => {
 //   });
 // });
 
-// Test signing a request - apollo execute
-// Test hitting right uri - can be passed in context
-// Test changing a profile
+describe('graphql.unittests', () => {
+  it('gqlUtils.setHeaders works as expected', () => {
+    const req = {
+      headers: {},
+      body: 'gqlQueryHere',
+    };
+    const options = {
+      apikey: 'a0207e050372b7b0b10cdce458e9e7f3a9cb3bd6',
+      apisecret: 'vo6QhSWdu9MqKQk9IC1ql9X7jI9zU1ptN9pqrJ0kPJ4fANYcGvKbB4Pp9QMG164J',
+      signing: true,
+    };
+    sinon.useFakeTimers();
+    gqlUtils.setHeaders(req, options);
+    assert.deepEqual(req.headers, {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'X-EPI2ME-CLIENT': 'api',
+      'X-EPI2ME-VERSION': '2019.8.29-1059',
+      'X-EPI2ME-APIKEY': 'a0207e050372b7b0b10cdce458e9e7f3a9cb3bd6',
+      'X-EPI2ME-SIGNATUREDATE': '1970-01-01T00:00:00.000Z',
+      'X-EPI2ME-SIGNATUREV0': '108376af0fb975c3791032746befa7a2a3b8a63a',
+    });
+    sinon.restore();
+  });
+  it('custom fetcher calls setHeaders', () => {
+    const uri = 'https://graphql.epi2me.nanoporetech.com';
+    const requestOptions = {
+      headers: {
+        keys: {
+          apikey: 'a0207e050372b7b0b10cdce458e9e7f3a9cb3bd6',
+          apisecret: 'vo6QhSWdu9MqKQk9IC1ql9X7jI9zU1ptN9pqrJ0kPJ4fANYcGvKbB4Pp9QMG164J',
+        },
+      },
+    };
+    sinon.stub(axios, 'request').resolves({ data: { random: 'data' }, headers: {} });
+    const setHeadersStub = sinon.stub(gqlUtils, 'setHeaders');
+    customFetcher(uri, requestOptions);
+    assert(setHeadersStub.called);
+    sinon.restore();
+  });
+});
+
 // Test that keys are deleted from headers by customFetcher
+// Test changing a profile
+// Test hitting right uri - can be passed in context
