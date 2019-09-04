@@ -239,4 +239,31 @@ describe('utils-fs.loadInputFiles', () => {
 
     await fs.remove(inputFolder);
   });
+
+  it('MC-6788 should support recursive find through a file', async () => {
+    const inputFolder = path.join(tmpInputDir.name, 'data');
+    const inputFile = path.join(inputFolder, 'SeqLenti fasta reformat.fasta');
+    fs.mkdirpSync(inputFolder);
+    fs.writeFileSync(inputFile, '');
+
+    const opts = {
+      inputFolder: inputFile,
+      outputFolder: path.join(inputFolder, 'output'),
+      filetype: ['.fasta', '.fasta.gz', 'fa', 'fa.gz'],
+    };
+
+    await utils.loadInputFiles(opts).then(async files => {
+      assert.deepEqual(files, [
+        {
+          name: 'SeqLenti fasta reformat.fasta',
+          path: path.join(inputFolder, 'SeqLenti fasta reformat.fasta'),
+          relative: '/SeqLenti fasta reformat.fasta',
+          size: 0,
+          id: 'FILE_14',
+        },
+      ]);
+    });
+
+    await fs.remove(inputFolder);
+  });
 });
