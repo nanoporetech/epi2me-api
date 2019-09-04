@@ -58,8 +58,10 @@ utils.getFileID = () => {
   return `FILE_${IdCounter}`;
 };
 
-utils.lsRecursive = async (rootFolder, item, exclusionFilter) => {
+utils.lsRecursive = async (rootFolderIn, item, exclusionFilter) => {
+  let rootFolder = rootFolderIn;
   const stat = fs.statSync(item); // hmm. prefer database over fs statting?
+
   if (exclusionFilter) {
     const result = await exclusionFilter(item, stat);
     if (result) {
@@ -84,13 +86,18 @@ utils.lsRecursive = async (rootFolder, item, exclusionFilter) => {
       });
   }
 
-  return {
-    name: path.parse(item).base, // "my.fastq"
-    path: item, // "/Users/rpettett/test_sets/zymo/demo/INPUT_PREFIX/my.fastq"
-    relative: item.replace(rootFolder, ''), // "INPUT_PREFIX/my.fastq"
-    size: stat.size,
-    id: utils.getFileID(),
-  };
+  if (stat.isFile() && rootFolder === item) {
+    rootFolder = path.dirname(item);
+  }
+  return [
+    {
+      name: path.parse(item).base, // "my.fastq"
+      path: item, // "/Users/rpettett/test_sets/zymo/demo/INPUT_PREFIX/my.fastq"
+      relative: item.replace(rootFolder, ''), // "INPUT_PREFIX/my.fastq"
+      size: stat.size,
+      id: utils.getFileID(),
+    },
+  ];
 };
 
 utils.loadInputFiles = async ({ inputFolder, outputFolder, filetype: filetypesIn }, log, extraFilter) => {
