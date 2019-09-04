@@ -1,6 +1,7 @@
 {
   "local": false,
   "url": "https://epi2me.nanoporetech.com",
+  "gqlUrl": "https://graphql.epi2me-dev.nanoporetech.com",
   "user_agent": "EPI2ME API",
   "region": "eu-west-1",
   "sessionGrace": 5,
@@ -14,6 +15,6 @@
   "waitTokenError": 30,
   "transferPoolSize": 3,
   "downloadMode": "data+telemetry",
-  "filetype": ".fastq",
+  "filetype": [".fastq", ".fq", ".fastq.gz", ".fq.gz"],
   "signing": true
 }

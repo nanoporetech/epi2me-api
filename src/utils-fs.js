@@ -93,7 +93,7 @@ utils.lsRecursive = async (rootFolder, item, exclusionFilter) => {
   };
 };
 
-utils.loadInputFiles = async ({ inputFolder, outputFolder, filetype: filetypeIn }, log, extraFilter) => {
+utils.loadInputFiles = async ({ inputFolder, outputFolder, filetype: filetypesIn }, log, extraFilter) => {
   /**
    * Entry point for new .fast5 / .fastq files.
    *  - Scan the input folder files
@@ -106,10 +106,14 @@ utils.loadInputFiles = async ({ inputFolder, outputFolder, filetype: filetypeIn 
   // exclude all files and folders meet any of these criteria:
 
   // todo: need to support an array of types, e.g. [fasta, fa, fa.gz]
-  let filetype = filetypeIn;
-  if (filetypeIn && filetypeIn.indexOf('.') !== 0) {
-    filetype = `.${filetypeIn}`;
+  let filetypes = filetypesIn;
+  if (!(filetypes instanceof Array)) {
+    // MC-6727 support array of types: backwards compatibility support for single string value
+    filetypes = [filetypes];
   }
+  filetypes = filetypes.map(ft => {
+    return ft && ft.indexOf('.') !== 0 ? `.${ft}` : ft;
+  });
 
   const exclusionFilter = async (file, stat) => {
     const basename = path.basename(file);
@@ -125,9 +129,10 @@ utils.loadInputFiles = async ({ inputFolder, outputFolder, filetype: filetypeIn 
           : resolve('basic ok');
       }),
       new Promise((resolve, reject) => {
+        const filetypeRe = filetypes.length ? new RegExp(`(?:${filetypes.join('|')})$`) : null;
         return file.split(path.sep).filter(x => x.match(/^[.]/)).length || // MC-6941 do not upload from any location beginning with dot
           (outputFolder && basename === path.basename(outputFolder)) ||
-          (filetype && path.extname(file) !== filetype && stat.isFile()) // exclude any file not matching wanted file extension
+          (filetypeRe && !file.match(filetypeRe) && stat.isFile()) // exclude any file not matching wanted file extension
           ? reject(new Error(`${file} failed extended filename`))
           : resolve('extended ok');
       }),
