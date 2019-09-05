@@ -17,7 +17,7 @@ utils.pipe = async (uriIn, filepath, options, progressCb) => {
   uri = uri.replace(/\/+/g, '/'); // clip multiple slashes
   const call = srv + uri;
   const req = {
-    uri: call,
+    url: call,
     gzip: true,
     headers: {
       'Accept-Encoding': 'gzip',
@@ -39,7 +39,7 @@ utils.pipe = async (uriIn, filepath, options, progressCb) => {
   const p = new Promise(async (resolve, reject) => {
     try {
       const writer = fs.createWriteStream(filepath);
-      const res = await axios.get(req.uri, req);
+      const res = await axios.get(req.url, req);
       res.data.pipe(writer);
 
       writer.on('finish', resolve(filepath));

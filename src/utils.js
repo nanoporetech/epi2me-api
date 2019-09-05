@@ -100,7 +100,14 @@ const utils = (function magic() {
   return {
     version: VERSION,
     headers: (req, optionsIn) => {
-      const { log } = merge({ log: { debug: () => {} } }, optionsIn);
+      const { log } = merge(
+        {
+          log: {
+            debug: () => {},
+          },
+        },
+        optionsIn,
+      );
       // common headers required for everything
       let options = optionsIn;
       if (!options) {
@@ -130,7 +137,10 @@ const utils = (function magic() {
         const pass = matches[3];
         const host = matches[4];
         const port = matches[5];
-        const proxy = { host, port };
+        const proxy = {
+          host,
+          port,
+        };
 
         if (user && pass) {
           proxy.proxyAuth = `${user}:${pass}`;
@@ -138,10 +148,14 @@ const utils = (function magic() {
 
         if (options.proxy.match(/^https/)) {
           log.debug(`using HTTPS over HTTPS proxy`, JSON.stringify(proxy)); // nb. there's no CA/cert handling for self-signed certs
-          req.httpsAgent = tunnel.httpsOverHttps({ proxy });
+          req.httpsAgent = tunnel.httpsOverHttps({
+            proxy,
+          });
         } else {
           log.debug(`using HTTPS over HTTP proxy`, JSON.stringify(proxy));
-          req.httpsAgent = tunnel.httpsOverHttp({ proxy });
+          req.httpsAgent = tunnel.httpsOverHttp({
+            proxy,
+          });
         }
         req.proxy = false; // do not double-interpret proxy settings
       }
@@ -149,7 +163,14 @@ const utils = (function magic() {
 
     get: async (uriIn, options) => {
       // do something to get/set data in epi2me
-      const { log } = merge({ log: { debug: () => {} } }, options);
+      const { log } = merge(
+        {
+          log: {
+            debug: () => {},
+          },
+        },
+        options,
+      );
       let call;
 
       let srv = options.url;
@@ -163,7 +184,10 @@ const utils = (function magic() {
         call = uri;
       }
 
-      const req = { url: call, gzip: true };
+      const req = {
+        url: call,
+        gzip: true,
+      };
       utils.headers(req, options);
 
       let res;
@@ -177,7 +201,14 @@ const utils = (function magic() {
     },
 
     post: async (uriIn, obj, options) => {
-      const { log } = merge({ log: { debug: () => {} } }, options);
+      const { log } = merge(
+        {
+          log: {
+            debug: () => {},
+          },
+        },
+        options,
+      );
       let srv = options.url;
       srv = srv.replace(/\/+$/, ''); // clip trailing slashes
       const uri = uriIn.replace(/\/+/g, '/'); // clip multiple slashes
@@ -192,7 +223,12 @@ const utils = (function magic() {
       if (options.legacy_form) {
         // include legacy form parameters
         const params = [];
-        const form = merge({ json: JSON.stringify(obj) }, obj);
+        const form = merge(
+          {
+            json: JSON.stringify(obj),
+          },
+          obj,
+        );
         Object.keys(form)
           .sort()
           .forEach(attr => {
@@ -218,7 +254,14 @@ const utils = (function magic() {
     },
 
     put: async (uriIn, id, obj, options) => {
-      const { log } = merge({ log: { debug: () => {} } }, options);
+      const { log } = merge(
+        {
+          log: {
+            debug: () => {},
+          },
+        },
+        options,
+      );
       let srv = options.url;
       srv = srv.replace(/\/+$/, ''); // clip trailing slashes
       const uri = uriIn.replace(/\/+/g, '/'); // clip multiple slashes
@@ -233,7 +276,12 @@ const utils = (function magic() {
       if (options.legacy_form) {
         // include legacy form parameters
         const params = [];
-        const form = merge({ json: JSON.stringify(obj) }, obj);
+        const form = merge(
+          {
+            json: JSON.stringify(obj),
+          },
+          obj,
+        );
         Object.keys(form)
           .sort()
           .forEach(attr => {
