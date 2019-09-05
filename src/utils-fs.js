@@ -42,8 +42,12 @@ utils.pipe = async (uriIn, filepath, options, progressCb) => {
       const res = await axios.get(req.url, req);
       res.data.pipe(writer);
 
-      writer.on('finish', resolve(filepath));
-      writer.on('error', reject(new Error('writer failed')));
+      writer.on('finish', () => {
+        resolve(filepath);
+      });
+      writer.on('error', error => {
+        reject(new Error(`writer failed ${String(error)}`));
+      });
     } catch (err) {
       reject(err);
     }
