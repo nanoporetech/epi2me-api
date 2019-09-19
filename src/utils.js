@@ -12,9 +12,6 @@ import { version as VERSION } from '../package.json';
 
 axios.defaults.validateStatus = status => status <= 504; // Reject only if the status code is greater than or equal to 500
 
-const UNITS = ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z'];
-const DIV = 1000;
-
 const utils = (function magic() {
   const internal = {
     sign: (req, optionsIn) => {
@@ -304,25 +301,6 @@ const utils = (function magic() {
         return Promise.reject(err);
       }
       return internal.responseHandler(res, options);
-    },
-
-    niceSize(sizeIn, unitidxIn) {
-      let unitidx = unitidxIn || 0;
-      let size = sizeIn || 0;
-
-      if (size > DIV) {
-        size /= DIV;
-        unitidx += 1;
-        if (unitidx >= UNITS.length) {
-          return '???';
-        }
-        return this.niceSize(size, unitidx);
-      }
-
-      if (unitidx === 0) {
-        return `${size}${UNITS[unitidx]}`;
-      }
-      return `${size.toFixed(1)}${UNITS[unitidx]}`;
     },
   };
 })();
