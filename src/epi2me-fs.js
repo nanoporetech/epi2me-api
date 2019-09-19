@@ -17,6 +17,7 @@ import filestats from './filestats';
 import EPI2ME from './epi2me';
 import DB from './db';
 import Profile from './profile';
+import niceSize from './niceSize';
 
 const rootDir = () => {
   /* Windows: C:\Users\rmp\AppData\EPI2ME
@@ -362,6 +363,8 @@ export default class EPI2ME_FS extends EPI2ME {
 
     if (!isArray(files) || !files.length) return Promise.resolve();
 
+    this.log.info(`Enqueuing files: ${files.map(file => file.path)}.`);
+
     if ('workflow' in this.config) {
       if ('workflow_attributes' in this.config.workflow) {
         // started from GUI agent
@@ -425,16 +428,16 @@ export default class EPI2ME_FS extends EPI2ME {
 
       if (maxFiles && this.states.upload.filesCount > maxFiles) {
         // too many files processed
-        msg = `Maximum ${maxFiles} file(s) already uploaded. Marking ${file.name} as skipped`;
+        msg = `Maximum ${maxFiles} file(s) already uploaded. Marking ${file.relative} as skipped`;
         this.log.error(msg);
         this.states.warnings.push(msg);
         this.states.upload.filesCount -= 1;
         file.skip = 'SKIP_TOO_MANY';
       } else if (maxFileSize && file.size > maxFileSize) {
         // file too big to process
-        msg = `${file.name} is over ${maxFileSize
-          .toString()
-          .replace(/\B(?=(\d{3})+(?!\d))/g, ',')}. Marking as skipped`;
+        msg = `The file "${file.relative}" is bigger than the maximum size limit (${niceSize(
+          maxFileSize,
+        )}B). It will be skipped.`;
         file.skip = 'SKIP_TOO_BIG';
         this.states.upload.filesCount -= 1;
 

@@ -11,6 +11,7 @@ import AWS from 'aws-sdk';
 import proxy from 'proxy-agent';
 import Promise from 'core-js/features/promise'; // shim Promise.finally() for nw 0.29.4 nodejs
 import utils from './utils';
+import niceSize from './niceSize';
 import _REST from './rest';
 import DEFAULTS from './default_options.json';
 
@@ -301,14 +302,14 @@ export default class EPI2ME {
     }
 
     try {
-      this.states[direction].success.niceReads = utils.niceSize(this.states[direction].success.reads);
+      this.states[direction].success.niceReads = niceSize(this.states[direction].success.reads);
     } catch (ignore) {
       this.states[direction].success.niceReads = 0;
     }
 
     try {
       // complete plus in-transit
-      this.states[direction].progress.niceSize = utils.niceSize(
+      this.states[direction].progress.niceSize = niceSize(
         this.states[direction].success.bytes + this.states[direction].progress.bytes || 0,
       );
     } catch (ignore) {
@@ -317,7 +318,7 @@ export default class EPI2ME {
 
     try {
       // complete
-      this.states[direction].success.niceSize = utils.niceSize(this.states[direction].success.bytes);
+      this.states[direction].success.niceSize = niceSize(this.states[direction].success.bytes);
     } catch (ignore) {
       this.states[direction].success.niceSize = 0;
     }
