@@ -359,7 +359,6 @@ export default class EPI2ME_FS extends EPI2ME {
     let maxFiles = 0;
     let maxFileSize = 0;
     let settings = {};
-    let msg;
 
     if (!isArray(files) || !files.length) return Promise.resolve();
 
@@ -396,9 +395,12 @@ export default class EPI2ME_FS extends EPI2ME {
     if ('requires_storage' in settings) {
       if (settings.requires_storage) {
         if (!('storage_account' in this.config.workflow)) {
-          msg = 'ERROR: Workflow requires storage enabled. Please provide a valid storage account [ --storage ].';
-          this.log.error(msg);
-          this.states.warnings.push(msg);
+          const warning = {
+            msg: 'ERROR: Workflow requires storage enabled. Please provide a valid storage account [ --storage ].',
+            type: 'WARNING_STORAGE_ENABLED',
+          };
+          this.log.error(warning.msg);
+          this.states.warnings.push(warning);
           return Promise.resolve();
         }
       }
@@ -411,9 +413,12 @@ export default class EPI2ME_FS extends EPI2ME {
     if ('max_files' in settings) {
       maxFiles = parseInt(settings.max_files, 10);
       if (files.length > maxFiles) {
-        msg = `ERROR: ${files.length} files found. Workflow can only accept ${maxFiles}. Please move the extra files away.`;
-        this.log.error(msg);
-        this.states.warnings.push(msg);
+        const warning = {
+          msg: `ERROR: ${files.length} files found. Workflow can only accept ${maxFiles}. Please move the extra files away.`,
+          type: 'WARNING_FILE_TOO_MANY',
+        };
+        this.log.error(warning.msg);
+        this.states.warnings.push(warning);
         return Promise.resolve();
       }
     }
@@ -428,21 +433,26 @@ export default class EPI2ME_FS extends EPI2ME {
 
       if (maxFiles && this.states.upload.filesCount > maxFiles) {
         // too many files processed
-        msg = `Maximum ${maxFiles} file(s) already uploaded. Marking ${file.relative} as skipped`;
-        this.log.error(msg);
-        this.states.warnings.push(msg);
+        const warning = {
+          msg: `Maximum ${maxFiles} file(s) already uploaded. Marking ${file.relative} as skipped.`,
+          type: 'WARNING_FILE_TOO_MANY',
+        };
+        this.log.error(warning.msg);
+        this.states.warnings.push(warning);
         this.states.upload.filesCount -= 1;
         file.skip = 'SKIP_TOO_MANY';
       } else if (maxFileSize && file.size > maxFileSize) {
         // file too big to process
-        msg = `The file "${file.relative}" is bigger than the maximum size limit (${niceSize(
-          maxFileSize,
-        )}B). It will be skipped.`;
+        const warning = {
+          msg: `The file "${file.relative}" is bigger than the maximum size limit (${niceSize(
+            maxFileSize,
+          )}B). It will be skipped.`,
+          type: 'WARNING_FILE_TOO_BIG',
+        };
         file.skip = 'SKIP_TOO_BIG';
         this.states.upload.filesCount -= 1;
-
-        this.log.error(msg);
-        this.states.warnings.push(msg);
+        this.log.error(warning.msg);
+        this.states.warnings.push(warning);
       } else {
         try {
           // normal handling for all file types
