@@ -441,6 +441,16 @@ export default class EPI2ME_FS extends EPI2ME {
         this.states.warnings.push(warning);
         this.states.upload.filesCount -= 1;
         file.skip = 'SKIP_TOO_MANY';
+      } else if (file.size === 0) {
+        // empty file
+        const warning = {
+          msg: `The file "${file.relative}" is empty. It will be skipped.`,
+          type: 'WARNING_FILE_EMPTY',
+        };
+        file.skip = 'SKIP_EMPTY';
+        this.states.upload.filesCount -= 1;
+        this.log.error(warning.msg);
+        this.states.warnings.push(warning);
       } else if (maxFileSize && file.size > maxFileSize) {
         // file too big to process
         const warning = {
