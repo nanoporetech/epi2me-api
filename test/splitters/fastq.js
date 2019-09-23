@@ -85,6 +85,10 @@ describe('epi2me.splitters.fastq', () => {
       },
       'split if over maxchunksize',
     );
+    assert.equal(fs.statSync(`${dirname}/${basename}_1.txt`).size, 28);
+    assert.equal(fs.statSync(`${dirname}/${basename}_2.txt`).size, 35);
+    assert.equal(fs.statSync(`${dirname}/${basename}_3.txt`).size, 28);
+    assert.equal(fs.statSync(`${dirname}/${basename}_4.txt`).size, 35);
   });
 
   it('should split if over maxchunkreads', async () => {
@@ -113,5 +117,7 @@ describe('epi2me.splitters.fastq', () => {
       },
       'split if over maxchunksize',
     );
+    assert.equal(fs.statSync(`${dirname}/${basename}_1.txt`).size, 63);
+    assert.equal(fs.statSync(`${dirname}/${basename}_2.txt`).size, 63);
   });
 });
