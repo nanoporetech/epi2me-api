@@ -4,8 +4,8 @@ import tmp from 'tmp';
 import fs from 'fs-extra';
 import filestats from '../../src/filestats/fastq';
 
-describe('epi2me.filestats', () => {
-  describe('fastq', async () => {
+describe('epi2me.filestats.fastq', () => {
+  it('should pass', async () => {
     const tmpfile = path.join(tmp.dirSync().name, 'foo.txt');
     fs.writeFileSync(tmpfile, '@A_read\nACTGCATG\n+\n12345678\n@A_nother_read\n+\nACTGACTG\n12345678\n');
 
@@ -15,10 +15,14 @@ describe('epi2me.filestats', () => {
     } catch (e) {
       assert.fail(e);
     }
-    assert.deepEqual(struct, { type: 'fastq', bytes: 63, reads: 2 });
+    assert.deepEqual(struct, {
+      type: 'fastq',
+      bytes: 63,
+      reads: 2,
+    });
   });
 
-  describe('fastq failure', async () => {
+  it('should fail', async () => {
     const tmpfile = path.join(tmp.dirSync().name, 'bar.txt');
 
     try {
