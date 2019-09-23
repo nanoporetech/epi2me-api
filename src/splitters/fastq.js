@@ -1,11 +1,16 @@
 import fs from 'fs-extra';
 import path from 'path';
 import readline from 'readline';
+import { merge } from 'lodash';
 
-export default function(filePath, maxChunkBytes) {
+const linesPerRead = 4;
+
+export default function(filePath, opts) {
+  const { maxChunkBytes, maxChunkReads } = merge({}, opts);
+
   return new Promise(async (resolve, reject) => {
-    if (!maxChunkBytes) {
-      // not splitting - no size given
+    if (!maxChunkBytes && !maxChunkReads) {
+      // not splitting - no size or count given
       resolve({
         source: filePath,
         split: false,
@@ -15,7 +20,7 @@ export default function(filePath, maxChunkBytes) {
     }
 
     const stat = await fs.stat(filePath);
-    if (stat.size < maxChunkBytes) {
+    if (maxChunkBytes && stat.size < maxChunkBytes) {
       // not splitting
       resolve({
         source: filePath,
@@ -28,6 +33,8 @@ export default function(filePath, maxChunkBytes) {
     let chunkId = 1;
     let outputStream;
     let chunkBytes = 0;
+    let chunkLines = 0;
+    let chunkReads = 1;
     const chunks = [];
 
     const newChunk = () => {
@@ -39,8 +46,12 @@ export default function(filePath, maxChunkBytes) {
 
       chunkId += 1;
       chunkBytes = 0;
+      chunkReads = 0;
+      chunkLines = 0;
       chunks.push(path.join(dirname, chunkName));
-      return fs.createWriteStream(path.join(dirname, chunkName));
+      const os = fs.createWriteStream(path.join(dirname, chunkName));
+      os.mywriters = [];
+      return os;
     };
 
     readline
@@ -49,9 +60,10 @@ export default function(filePath, maxChunkBytes) {
         //    output: process.stdout,
         //    console: false
       })
-      .on('close', () => {
+      .on('close', async () => {
         // N.B. end event for readline is "close" not "end"
         if (outputStream) {
+          await Promise.all(outputStream.mywriters);
           outputStream.close();
         }
         resolve({
@@ -60,12 +72,30 @@ export default function(filePath, maxChunkBytes) {
           chunks,
         });
       })
-      .on('line', line => {
-        if (!outputStream || (line.substr(0, 1) === '@' && chunkBytes > maxChunkBytes)) {
+      .on('line', async line => {
+        const startRead = !(chunkLines % linesPerRead);
+
+        // check if we need to start a new file
+        if (
+          !outputStream ||
+          (startRead &&
+            ((maxChunkBytes && chunkBytes > maxChunkBytes) || (maxChunkReads && chunkReads >= maxChunkReads)))
+        ) {
           outputStream = newChunk();
         }
-        outputStream.write(`${line}\n`);
+
+        const p = new Promise(resolveWrite => {
+          // write out the current line
+          outputStream.write(`${line}\n`, resolveWrite);
+        });
+        outputStream.mywriters.push(p); // how heavy is an array of 4000 promises?
+
+        // update byte- & read- tallies
         chunkBytes += line.length;
+        chunkLines += 1;
+        if (startRead) {
+          chunkReads += 1;
+        }
       })
       .on('error', reject);
   });
