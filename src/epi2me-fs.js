@@ -434,7 +434,7 @@ export default class EPI2ME_FS extends EPI2ME {
 
     const inputBatchQueue = files.map(async fileIn => {
       const file = fileIn;
-      this.log.info(`INPUTBATCHQUEUE ${file.path}, ${maxFileSize}, ${file.size}`);
+
       if (maxFiles && this.states.upload.filesCount > maxFiles) {
         //
         // too many files processed
@@ -491,6 +491,7 @@ export default class EPI2ME_FS extends EPI2ME {
             return filestats(chunkFile)
               .then(stats => {
                 chunkStruct.stats = stats;
+                chunkStruct.size = stats.bytes;
                 return chunkStruct;
               })
               .catch(e => {
