@@ -18,7 +18,7 @@ describe('epi2me.filestats.fasta', () => {
     assert.deepEqual(struct, {
       type: 'fasta',
       bytes: 41,
-      sequences: 2
+      sequences: 2,
     });
   });
 

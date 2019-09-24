@@ -1,6 +1,6 @@
 import fs from 'fs-extra';
 
-export default function (filePath) {
+export default function(filePath) {
   return new Promise(async (resolve, reject) => {
     const linesPerRead = 4;
     let lineCount = 1;

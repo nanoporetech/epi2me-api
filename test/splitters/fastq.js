@@ -38,7 +38,9 @@ describe('epi2me.splitters.fastq', () => {
 
     let struct;
     try {
-      struct = await splitter(tmpfile, 10000);
+      struct = await splitter(tmpfile, {
+        maxChunkBytes: 10000,
+      });
     } catch (e) {
       assert.fail(e);
     }
