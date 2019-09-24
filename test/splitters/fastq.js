@@ -19,8 +19,7 @@ describe('epi2me.splitters.fastq', () => {
       assert.fail(e);
     }
     assert.deepEqual(
-      struct,
-      {
+      struct, {
         source: tmpfile,
         split: false,
         chunks: [tmpfile],
@@ -45,8 +44,7 @@ describe('epi2me.splitters.fastq', () => {
       assert.fail(e);
     }
     assert.deepEqual(
-      struct,
-      {
+      struct, {
         source: tmpfile,
         split: false,
         chunks: [tmpfile],
@@ -74,8 +72,7 @@ describe('epi2me.splitters.fastq', () => {
     const basename = path.basename(tmpfile, '.txt');
 
     assert.deepEqual(
-      struct,
-      {
+      struct, {
         source: tmpfile,
         split: true,
         chunks: [
@@ -111,15 +108,14 @@ describe('epi2me.splitters.fastq', () => {
     const dirname = path.dirname(tmpfile);
     const basename = path.basename(tmpfile, '.txt');
     assert.deepEqual(
-      struct,
-      {
+      struct, {
         source: tmpfile,
         split: true,
         chunks: [`${dirname}/${basename}_1.txt`, `${dirname}/${basename}_2.txt`],
       },
       'split if over maxchunksize',
     );
-    assert.equal(fs.statSync(`${dirname}/${basename}_1.txt`).size, 63);
-    assert.equal(fs.statSync(`${dirname}/${basename}_2.txt`).size, 63);
+    assert.equal(fs.statSync(`${dirname}/${basename}_1.txt`).size, 63, `${dirname}/${basename}_1.txt size ${fs.statSync(`${dirname}/${basename}_1.txt`).size}`);
+    assert.equal(fs.statSync(`${dirname}/${basename}_2.txt`).size, 63, `${dirname}/${basename}_2.txt size ${fs.statSync(`${dirname}/${basename}_2.txt`).size}`);
   });
 });
