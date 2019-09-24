@@ -62,8 +62,8 @@ export default class EPI2ME_FS extends EPI2ME {
     }
 
     this.config.workflow = JSON.parse(JSON.stringify(workflowConfig)); // object copy
-    this.log.info('instance', JSON.stringify(instance));
-    this.log.info('workflow config', JSON.stringify(this.config.workflow));
+    this.log.info(`instance ${JSON.stringify(instance)}`);
+    this.log.info(`workflow config ${JSON.stringify(this.config.workflow)}`);
     return this.autoConfigure(instance, cb);
   }
 
@@ -86,8 +86,8 @@ export default class EPI2ME_FS extends EPI2ME {
 
     /* it could be useful to populate this as autoStart does */
     this.config.workflow = this.config.workflow || {};
-    this.log.debug('instance', JSON.stringify(instance));
-    this.log.debug('workflow config', JSON.stringify(this.config.workflow));
+    this.log.debug(`instance ${JSON.stringify(instance)}`);
+    this.log.debug(`workflow config ${JSON.stringify(this.config.workflow)}`);
 
     return this.autoConfigure(instance, cb);
   }
@@ -363,7 +363,7 @@ export default class EPI2ME_FS extends EPI2ME {
 
     if (!isArray(files) || !files.length) return Promise.resolve();
 
-    this.log.info(`Enqueuing files: ${files.map(file => file.path)}.`);
+    this.log.info(`enqueueUploadFiles ${files.length} files: ${files.map(file => file.path)}.`);
 
     if ('workflow' in this.config) {
       if ('workflow_attributes' in this.config.workflow) {
@@ -393,6 +393,8 @@ export default class EPI2ME_FS extends EPI2ME {
       }
     }
 
+    this.log.info(`enqueueUploadFiles settings ${JSON.stringify(settings)}`);
+
     if ('requires_storage' in settings) {
       if (settings.requires_storage) {
         if (!('storage_account' in this.config.workflow)) {
@@ -409,10 +411,13 @@ export default class EPI2ME_FS extends EPI2ME {
 
     if ('max_size' in settings) {
       maxFileSize = parseInt(settings.max_size, 10);
+      this.log.info(`enqueueUploadFiles restricting file size to ${maxFileSize}`);
     }
 
     if ('max_files' in settings) {
       maxFiles = parseInt(settings.max_files, 10);
+      this.log.info(`enqueueUploadFiles restricting file count to ${maxFiles}`);
+
       if (files.length > maxFiles) {
         const warning = {
           msg: `ERROR: ${files.length} files found. Workflow can only accept ${maxFiles}. Please move the extra files away.`,
@@ -424,23 +429,22 @@ export default class EPI2ME_FS extends EPI2ME {
       }
     }
 
-    this.log.info(`upload: enqueueUploadFiles: ${files.length} new files`);
-
     //    this.uploadState('filesCount', 'incr', { files: files.length });
     this.states.upload.filesCount += files.length; // total count of files for an instance
 
     const inputBatchQueue = files.map(async fileIn => {
       const file = fileIn;
-
+      this.log.info(`INPUTBATCHQUEUE ${file.path}, ${maxFileSize}, ${file.size}`);
       if (maxFiles && this.states.upload.filesCount > maxFiles) {
         //
         // too many files processed
         //
+        const msg = `Maximum ${maxFiles} file(s) already uploaded. Marking ${file.relative} as skipped.`;
         const warning = {
-          msg: `Maximum ${maxFiles} file(s) already uploaded. Marking ${file.relative} as skipped.`,
+          msg,
           type: 'WARNING_FILE_TOO_MANY',
         };
-        this.log.error(warning.msg);
+        this.log.error(msg);
         this.states.warnings.push(warning);
         this.states.upload.filesCount -= 1;
         file.skip = 'SKIP_TOO_MANY';
@@ -448,68 +452,82 @@ export default class EPI2ME_FS extends EPI2ME {
         //
         // zero-sized file
         //
+        const msg = `The file "${file.relative}" is empty. It will be skipped.`;
         const warning = {
-          msg: `The file "${file.relative}" is empty. It will be skipped.`,
+          msg,
           type: 'WARNING_FILE_EMPTY',
         };
         file.skip = 'SKIP_EMPTY';
         this.states.upload.filesCount -= 1;
-        this.log.error(warning.msg);
+        this.log.error(msg);
         this.states.warnings.push(warning);
-      } else if (file.path && file.path.match(/\.fastq$/) && maxFileSize && file.size > maxFileSize) {
+      } else if (file.path && file.path.match(/\.(?:fastq|fq)$/) && maxFileSize && file.size > maxFileSize) {
         //
         // file too big to process but can be split
         //
+        const msg = `${file.relative} is too big and is going to be split`;
+        this.log.warn(msg);
         const warning = {
-          msg: `${file.relative} is too big and is going to be split`,
+          msg,
           type: 'WARNING_FILE_SPLIT',
         };
         this.states.warnings.push(warning);
 
         const splitChunks = await splitter(file.path, {
-          maxReadCount: 4000,
+          maxChunkReads: 4000, // nb. this doesn't use maxFileSize. Should it be a new attribute epi2me:max_reads, or support both?
         });
-        const brokenPromises = splitChunks
-          .map(async item => {
-            const o = {
-              name: path.parse(item).base, // "my.fastq"
-              path: item, // "/Users/rpettett/test_sets/zymo/demo/INPUT_PREFIX/my.fastq"
-              relative: item.replace(this.config.options.inputFolder, ''), // "INPUT_PREFIX/my.fastq"
-              id: utils.getFileID(),
+        const fileId = utils.getFileID();
+        let chunkId = 1;
+        const brokenPromises = splitChunks.chunks
+          .map(async chunkFile => {
+            const chunkStruct = {
+              name: path.parse(chunkFile).base, // "my.fastq"
+              path: chunkFile, // "/Users/rpettett/test_sets/zymo/demo/INPUT_PREFIX/my.fastq"
+              relative: chunkFile.replace(this.config.options.inputFolder, ''), // "INPUT_PREFIX/my.fastq"
+              id: `${fileId}_${chunkId}`,
             };
+            chunkId += 1;
 
-            return filestats(item)
+            return filestats(chunkFile)
               .then(stats => {
-                o.size = stats.size;
+                chunkStruct.stats = stats;
+                return chunkStruct;
               })
               .catch(e => {
-                this.error(`failed to stat chunk ${o.path}: ${String(e)}`);
+                this.error(`failed to stat chunk ${chunkFile}: ${String(e)}`);
               });
           })
-          .map(chunk => {
-            return this.uploadJob(chunk)
-              .then(() => {
-                fs.unlink(chunk.path);
-              })
-              .catch(e => {
-                this.error(`failed to unlink chunk ${chunk.path}: ${String(e)}`);
-              });
+          .map(chunkPromise => {
+            return chunkPromise.then(chunkStruct => {
+              this.log.info(`chunk ${JSON.stringify(chunkStruct)}`);
+              return this.uploadJob(chunkStruct)
+                .then(() => {
+                  return fs.unlink(chunkStruct.path);
+                })
+                .catch(e => {
+                  this.error(`failed to unlink chunk ${chunkStruct.path}: ${String(e)}`);
+                });
+            });
           });
         // todo: need to mark the file as complete in the database; probably a good idea to mark it as chunked
-        return Promise.all(brokenPromises);
+        return Promise.all(brokenPromises).then(() => {
+          // mark the original file as done
+          return this.db.uploadFile(file.path);
+        });
       } else if (maxFileSize && file.size > maxFileSize) {
         //
         // file too big to process and unable to split
         //
+        const msg = `The file "${file.relative}" is bigger than the maximum size limit (${niceSize(
+          maxFileSize,
+        )}B). It will be skipped.`;
         const warning = {
-          msg: `The file "${file.relative}" is bigger than the maximum size limit (${niceSize(
-            maxFileSize,
-          )}B). It will be skipped.`,
+          msg,
           type: 'WARNING_FILE_TOO_BIG',
         };
         file.skip = 'SKIP_TOO_BIG';
         this.states.upload.filesCount -= 1;
-        this.log.error(warning.msg);
+        this.log.error(msg);
         this.states.warnings.push(warning);
       } else {
         try {
@@ -1096,12 +1114,7 @@ export default class EPI2ME_FS extends EPI2ME {
           try {
             await this.session([managedUpload.service]); // MC-7129 force refresh token on the MANAGED UPLOAD instance of the s3 service
           } catch (e) {
-            this.log.warn(
-              {
-                error: String(e),
-              },
-              'Error refreshing token',
-            );
+            this.log.warn(`Error refreshing token: ${String(e)}`);
           }
         });
 
