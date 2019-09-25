@@ -1,12 +1,18 @@
 import fs from 'fs-extra';
 import path from 'path';
 import readline from 'readline';
-import { merge } from 'lodash';
+import zlib from 'zlib';
+import {
+  merge
+} from 'lodash';
 
 const linesPerRead = 4;
 
-export default function(filePath, opts) {
-  const { maxChunkBytes, maxChunkReads } = merge({}, opts);
+export default function (filePath, opts) {
+  const {
+    maxChunkBytes,
+    maxChunkReads
+  } = merge({}, opts);
 
   return new Promise(async (resolve, reject) => {
     if (!maxChunkBytes && !maxChunkReads) {
@@ -56,7 +62,7 @@ export default function(filePath, opts) {
 
     readline
       .createInterface({
-        input: fs.createReadStream(filePath),
+        input: fs.createReadStream(filePath).pipe(zlib.createGunzip())
       })
       .on('close', async () => {
         // N.B. end event for readline is "close" not "end"

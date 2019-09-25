@@ -6,15 +6,22 @@
  *
  */
 
-import { merge, isArray } from 'lodash';
+import {
+  merge,
+  isArray
+} from 'lodash';
 import fs from 'fs-extra'; /* MC-565 handle EMFILE & EXDIR gracefully; use Promises */
-import { EOL, homedir } from 'os';
+import {
+  EOL,
+  homedir
+} from 'os';
 import path from 'path';
 import Promise from 'core-js/features/promise'; // shim Promise.finally() for nw 0.29.4 nodejs
 import utils from './utils-fs';
 import _REST from './rest-fs';
 import filestats from './filestats';
-import splitter from './splitters/fastq';
+import fastqSplitter from './splitters/fastq';
+import fastqGzipSplitter from './splitters/fastq-gz';
 import EPI2ME from './epi2me';
 import DB from './db';
 import Profile from './profile';
@@ -39,9 +46,7 @@ export default class EPI2ME_FS extends EPI2ME {
 
     // overwrite non-fs REST object
     this.REST = new _REST(
-      merge(
-        {},
-        {
+      merge({}, {
           log: this.log,
         },
         this.config.options,
@@ -144,8 +149,7 @@ export default class EPI2ME_FS extends EPI2ME {
     const thisInstanceDir = path.join(instancesDir, this.config.instance.id_workflow_instance);
     // set up new tracking database
     this.db = new DB(
-      thisInstanceDir,
-      {
+      thisInstanceDir, {
         idWorkflowInstance: this.config.instance.id_workflow_instance,
         inputFolder: this.config.options.inputFolder,
       },
@@ -153,9 +157,9 @@ export default class EPI2ME_FS extends EPI2ME {
     );
 
     // MC-1828 - include instance id in telemetry file name
-    const fileName = this.config.instance.id_workflow_instance
-      ? `telemetry-${this.config.instance.id_workflow_instance}.log`
-      : 'telemetry.log';
+    const fileName = this.config.instance.id_workflow_instance ?
+      `telemetry-${this.config.instance.id_workflow_instance}.log` :
+      'telemetry.log';
     const telemetryLogFolder = path.join(this.config.options.outputFolder, 'epi2me-logs');
     const telemetryLogPath = path.join(telemetryLogFolder, fileName);
 
@@ -278,9 +282,9 @@ export default class EPI2ME_FS extends EPI2ME {
         .promise();
     } catch (receiveMessageException) {
       this.log.error(`receiveMessage exception: ${String(receiveMessageException)}`);
-      this.states.download.failure[receiveMessageException] = this.states.download.failure[receiveMessageException]
-        ? this.states.download.failure[receiveMessageException] + 1
-        : 1;
+      this.states.download.failure[receiveMessageException] = this.states.download.failure[receiveMessageException] ?
+        this.states.download.failure[receiveMessageException] + 1 :
+        1;
       return Promise.reject(receiveMessageException);
     }
 
@@ -371,7 +375,9 @@ export default class EPI2ME_FS extends EPI2ME {
         settings = this.config.workflow.workflow_attributes;
       } else if ('attributes' in this.config.workflow) {
         // started from CLI
-        let { attributes: attrs } = this.config.workflow.attributes;
+        let {
+          attributes: attrs
+        } = this.config.workflow.attributes;
         if (!attrs) {
           attrs = {};
         }
@@ -461,7 +467,7 @@ export default class EPI2ME_FS extends EPI2ME {
         this.states.upload.filesCount -= 1;
         this.log.error(msg);
         this.states.warnings.push(warning);
-      } else if (file.path && file.path.match(/\.(?:fastq|fq)$/) && maxFileSize && file.size > maxFileSize) {
+      } else if (file.path && file.path.match(/\.(?:fastq|fq)(?:\.gz)?$/) && maxFileSize && file.size > maxFileSize) {
         //
         // file too big to process but can be split
         //
@@ -473,6 +479,7 @@ export default class EPI2ME_FS extends EPI2ME {
         };
         this.states.warnings.push(warning);
 
+        const splitter = file.path.match(/\.gz$/) ? fastqGzipSplitter : fastqSplitter;
         const splitChunks = await splitter(file.path, {
           maxChunkReads: 4000, // nb. this doesn't use maxFileSize. Should it be a new attribute epi2me:max_reads, or support both?
         });
@@ -481,7 +488,7 @@ export default class EPI2ME_FS extends EPI2ME {
         const brokenPromises = splitChunks.chunks
           .map(async chunkFile => {
             const chunkStruct = {
-              name: path.parse(chunkFile).base, // "my.fastq"
+              name: path.basename(chunkFile), // "my.fastq"
               path: chunkFile, // "/Users/rpettett/test_sets/zymo/demo/INPUT_PREFIX/my.fastq"
               relative: chunkFile.replace(this.config.options.inputFolder, ''), // "INPUT_PREFIX/my.fastq"
               id: `${fileId}_${chunkId}`,
@@ -583,16 +590,15 @@ export default class EPI2ME_FS extends EPI2ME {
         this.states.upload.failure = {};
       }
 
-      this.states.upload.failure[errorMsg] = this.states.upload.failure[errorMsg]
-        ? this.states.upload.failure[errorMsg] + 1
-        : 1;
+      this.states.upload.failure[errorMsg] = this.states.upload.failure[errorMsg] ?
+        this.states.upload.failure[errorMsg] + 1 :
+        1;
     } else {
       // this.uploadState('queueLength', 'decr', file2.stats); // this.states.upload.queueLength = this.states.upload.queueLength ? this.states.upload.queueLength - readCount : 0;
       this.uploadState(
         'success',
         'incr',
-        merge(
-          {
+        merge({
             files: 1,
           },
           file2.stats,
@@ -675,7 +681,9 @@ export default class EPI2ME_FS extends EPI2ME {
 
     /* MC-405 telemetry log to file */
     if (messageBody.telemetry) {
-      const { telemetry } = messageBody;
+      const {
+        telemetry
+      } = messageBody;
 
       if (telemetry.tm_path) {
         try {
@@ -748,9 +756,9 @@ export default class EPI2ME_FS extends EPI2ME {
         this.config &&
         this.config.workflow &&
         this.config.workflow.settings &&
-        this.config.workflow.settings.output_format
-          ? this.config.workflow.settings.output_format
-          : [];
+        this.config.workflow.settings.output_format ?
+        this.config.workflow.settings.output_format :
+        [];
       if (typeof extra === 'string' || extra instanceof String) {
         extra = extra.trim().split(/[\s,]+/); // do not use commas in file extensions. Ha.ha.
       }
@@ -772,8 +780,7 @@ export default class EPI2ME_FS extends EPI2ME {
           // initiateDownloadStream with another Promise which permits fetch-with-suffix failures
           return new Promise(async (resolve, reject) => {
             try {
-              await this.initiateDownloadStream(
-                {
+              await this.initiateDownloadStream({
                   bucket: messageBody.bucket,
                   path: fetchObject,
                 },
@@ -809,9 +816,9 @@ export default class EPI2ME_FS extends EPI2ME {
     } else {
       // telemetry-only mode uses readcount from message
       const readCount =
-        messageBody.telemetry.batch_summary && messageBody.telemetry.batch_summary.reads_num
-          ? messageBody.telemetry.batch_summary.reads_num
-          : 1;
+        messageBody.telemetry.batch_summary && messageBody.telemetry.batch_summary.reads_num ?
+        messageBody.telemetry.batch_summary.reads_num :
+        1;
 
       this.downloadState('success', 'incr', {
         files: 1,
@@ -921,8 +928,7 @@ export default class EPI2ME_FS extends EPI2ME {
           this.downloadState(
             'success',
             'incr',
-            merge(
-              {
+            merge({
                 files: 1,
               },
               stats,
@@ -977,8 +983,7 @@ export default class EPI2ME_FS extends EPI2ME {
         const queueUrl = this.config.instance.outputQueueURL;
         const receiptHandle = message.ReceiptHandle;
 
-        this.log.debug(
-          {
+        this.log.debug({
             message_id: message.MessageId,
           },
           'updateVisibility',
@@ -993,8 +998,7 @@ export default class EPI2ME_FS extends EPI2ME {
             })
             .promise();
         } catch (err) {
-          this.log.error(
-            {
+          this.log.error({
               message_id: message.MessageId,
               queue: queueUrl,
               error: err,
@@ -1038,11 +1042,11 @@ export default class EPI2ME_FS extends EPI2ME {
       .replace(/\//g, '_'); // MC-7204, MC-7206 - this needs to be unpicked in future
 
     const objectId = [
-      this.config.instance.bucketFolder,
-      'component-0',
-      mangledRelative, // prefix
-      mangledRelative, // objectname //      encodeURIComponent(file.relative.replace(/^[\\/]+/, '').replace(/\\/g, '/')), // MC-7204 - escaped slashes not handled by cgd 3.0.7
-    ]
+        this.config.instance.bucketFolder,
+        'component-0',
+        mangledRelative, // prefix
+        mangledRelative, // objectname //      encodeURIComponent(file.relative.replace(/^[\\/]+/, '').replace(/\\/g, '/')), // MC-7204 - escaped slashes not handled by cgd 3.0.7
+      ]
       .join('/')
       .replace(/\/+/g, '/');
 
@@ -1247,13 +1251,13 @@ export default class EPI2ME_FS extends EPI2ME {
 
       toFetch.push(
         this.REST.fetchContent(url)
-          .then(body => {
-            fs.writeJSONSync(fn, body);
-            this.log.debug(`fetched telemetry summary ${fn}`);
-          })
-          .catch(e => {
-            this.log.debug(`Error fetching telemetry: ${String(e)}`);
-          }),
+        .then(body => {
+          fs.writeJSONSync(fn, body);
+          this.log.debug(`fetched telemetry summary ${fn}`);
+        })
+        .catch(e => {
+          this.log.debug(`Error fetching telemetry: ${String(e)}`);
+        }),
       );
     });
 
