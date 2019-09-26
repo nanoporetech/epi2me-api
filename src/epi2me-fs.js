@@ -363,6 +363,8 @@ export default class EPI2ME_FS extends EPI2ME {
   async enqueueUploadFiles(files) {
     let maxFiles = 0;
     let maxFileSize = 0;
+    let splitSize = 0;
+    let splitReads = 0;
     let settings = {};
 
     if (!isArray(files) || !files.length) return Promise.resolve();
@@ -382,13 +384,11 @@ export default class EPI2ME_FS extends EPI2ME {
           attrs = {};
         }
 
-        if ('epi2me:max_size' in attrs) {
-          settings.max_size = parseInt(attrs['epi2me:max_size'], 10);
-        }
-
-        if ('epi2me:max_files' in attrs) {
-          settings.max_files = parseInt(attrs['epi2me:max_files'], 10);
-        }
+        ['max_size', 'max_files', 'split_size', 'split_reads'].forEach(attr => {
+          if(`epi2me:${attr}` in attrs) {
+            settings[attr] = parseInt(attrs[`epi2me:${attr}`], 10);
+          }
+        })
 
         if ('epi2me:category' in attrs) {
           const epi2meCategory = attrs['epi2me:category'];
@@ -413,6 +413,16 @@ export default class EPI2ME_FS extends EPI2ME {
           return Promise.resolve();
         }
       }
+    }
+
+    if ('split_size' in settings) {
+      splitSize = parseInt(settings.split_size, 10);
+      this.log.info(`enqueueUploadFiles splitting supported files at ${splitSize} bytes`);
+    }
+
+    if ('split_reads' in settings) {
+      splitReads = parseInt(settings.split_reads, 10);
+      this.log.info(`enqueueUploadFiles splitting supported files at ${splitReads} reads`);
     }
 
     if ('max_size' in settings) {
@@ -467,7 +477,7 @@ export default class EPI2ME_FS extends EPI2ME {
         this.states.upload.filesCount -= 1;
         this.log.error(msg);
         this.states.warnings.push(warning);
-      } else if (file.path && file.path.match(/\.(?:fastq|fq)(?:\.gz)?$/) && maxFileSize && file.size > maxFileSize) {
+      } else if (file.path && file.path.match(/\.(?:fastq|fq)(?:\.gz)?$/) && ((splitSize && file.size > splitSize) || (splitReads && file.reads && file.reads > splitReads))) {
         //
         // file too big to process but can be split
         //
@@ -479,10 +489,9 @@ export default class EPI2ME_FS extends EPI2ME {
         };
         this.states.warnings.push(warning);
 
+        const splitStyle = (splitSize ? {maxChunkBytes: splitSize} : { maxChunkReads: splitReads});
         const splitter = file.path.match(/\.gz$/) ? fastqGzipSplitter : fastqSplitter;
-        const splitChunks = await splitter(file.path, {
-          maxChunkReads: 4000, // nb. this doesn't use maxFileSize. Should it be a new attribute epi2me:max_reads, or support both?
-        });
+        const splitChunks = await splitter(file.path, splitStyle);
         const fileId = utils.getFileID();
         let chunkId = 1;
         const brokenPromises = splitChunks.chunks
