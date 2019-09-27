@@ -385,7 +385,7 @@ export default class EPI2ME_FS extends EPI2ME {
         }
 
         ['max_size', 'max_files', 'split_size', 'split_reads'].forEach(attr => {
-          if(`epi2me:${attr}` in attrs) {
+          if (`epi2me:${attr}` in attrs) {
             settings[attr] = parseInt(attrs[`epi2me:${attr}`], 10);
           }
         })
@@ -464,6 +464,7 @@ export default class EPI2ME_FS extends EPI2ME {
         this.states.warnings.push(warning);
         this.states.upload.filesCount -= 1;
         file.skip = 'SKIP_TOO_MANY';
+
       } else if (file.size === 0) {
         //
         // zero-sized file
@@ -477,6 +478,7 @@ export default class EPI2ME_FS extends EPI2ME {
         this.states.upload.filesCount -= 1;
         this.log.error(msg);
         this.states.warnings.push(warning);
+
       } else if (file.path && file.path.match(/\.(?:fastq|fq)(?:\.gz)?$/) && ((splitSize && file.size > splitSize) || (splitReads && file.reads && file.reads > splitReads))) {
         //
         // file too big to process but can be split
@@ -489,48 +491,44 @@ export default class EPI2ME_FS extends EPI2ME {
         };
         this.states.warnings.push(warning);
 
-        const splitStyle = (splitSize ? {maxChunkBytes: splitSize} : { maxChunkReads: splitReads});
+        const splitStyle = (splitSize ? {
+          maxChunkBytes: splitSize
+        } : {
+          maxChunkReads: splitReads
+        });
         const splitter = file.path.match(/\.gz$/) ? fastqGzipSplitter : fastqSplitter;
-        const splitChunks = await splitter(file.path, splitStyle);
+
         const fileId = utils.getFileID();
         let chunkId = 1;
-        const brokenPromises = splitChunks.chunks
-          .map(async chunkFile => {
-            const chunkStruct = {
-              name: path.basename(chunkFile), // "my.fastq"
-              path: chunkFile, // "/Users/rpettett/test_sets/zymo/demo/INPUT_PREFIX/my.fastq"
-              relative: chunkFile.replace(this.config.options.inputFolder, ''), // "INPUT_PREFIX/my.fastq"
-              id: `${fileId}_${chunkId}`,
-            };
-            chunkId += 1;
-
-            return filestats(chunkFile)
-              .then(stats => {
-                chunkStruct.stats = stats;
-                chunkStruct.size = stats.bytes;
-                return chunkStruct;
-              })
-              .catch(e => {
-                this.error(`failed to stat chunk ${chunkFile}: ${String(e)}`);
-              });
-          })
-          .map(chunkPromise => {
-            return chunkPromise.then(chunkStruct => {
+        const chunkHandler = async chunkFile => {
+          chunkId += 1;
+          return filestats(chunkFile)
+            .then(stats => {
+              return {
+                name: path.basename(chunkFile), // "my.fastq"
+                path: chunkFile, // "/Users/rpettett/test_sets/zymo/demo/INPUT_PREFIX/my.fastq"
+                relative: chunkFile.replace(this.config.options.inputFolder, ''), // "INPUT_PREFIX/my.fastq"
+                id: `${fileId}_${chunkId}`,
+                stats,
+                size: stats.bytes
+              };
+            })
+            .then(chunkStruct => {
               this.log.info(`chunk ${JSON.stringify(chunkStruct)}`);
               return this.uploadJob(chunkStruct)
                 .then(() => {
                   return fs.unlink(chunkStruct.path);
                 })
                 .catch(e => {
-                  this.error(`failed to unlink chunk ${chunkStruct.path}: ${String(e)}`);
+                  this.error(`failed to handle chunk ${chunkFile}: ${String(e)}`);
                 });
             });
-          });
-        // todo: need to mark the file as complete in the database; probably a good idea to mark it as chunked
-        return Promise.all(brokenPromises).then(() => {
-          // mark the original file as done
-          return this.db.uploadFile(file.path);
-        });
+        };
+
+        await splitter(file.path, splitStyle, chunkHandler);
+
+        // mark the original file as done
+        return this.db.uploadFile(file.path);
       } else if (maxFileSize && file.size > maxFileSize) {
         //
         // file too big to process and unable to split
@@ -766,8 +764,7 @@ export default class EPI2ME_FS extends EPI2ME {
         this.config.workflow &&
         this.config.workflow.settings &&
         this.config.workflow.settings.output_format ?
-        this.config.workflow.settings.output_format :
-        [];
+        this.config.workflow.settings.output_format : [];
       if (typeof extra === 'string' || extra instanceof String) {
         extra = extra.trim().split(/[\s,]+/); // do not use commas in file extensions. Ha.ha.
       }

@@ -14,12 +14,15 @@ describe('epi2me.splitters.fastq', () => {
 
     let struct;
     try {
-      struct = await splitter(tmpfile);
+      struct = await splitter(tmpfile, null, () => {
+        return Promise.resolve();
+      });
     } catch (e) {
       assert.fail(e);
     }
     assert.deepEqual(
-      struct, {
+      struct,
+      {
         source: tmpfile,
         split: false,
         chunks: [tmpfile],
@@ -37,14 +40,21 @@ describe('epi2me.splitters.fastq', () => {
 
     let struct;
     try {
-      struct = await splitter(tmpfile, {
-        maxChunkBytes: 10000,
-      });
+      struct = await splitter(
+        tmpfile,
+        {
+          maxChunkBytes: 10000,
+        },
+        () => {
+          return Promise.resolve();
+        },
+      );
     } catch (e) {
       assert.fail(e);
     }
     assert.deepEqual(
-      struct, {
+      struct,
+      {
         source: tmpfile,
         split: false,
         chunks: [tmpfile],
@@ -62,17 +72,23 @@ describe('epi2me.splitters.fastq', () => {
 
     let struct;
     try {
-      struct = await splitter(tmpfile, {
-        maxChunkBytes: 5,
-      }); // tiny maxchunk size is equivalent to split on every read
+      struct = await splitter(
+        tmpfile,
+        {
+          maxChunkBytes: 5,
+        },
+        () => {
+          return Promise.resolve();
+        },
+      ); // tiny maxchunk size is equivalent to split on every read
     } catch (e) {
       assert.fail(e);
     }
     const dirname = path.dirname(tmpfile);
     const basename = path.basename(tmpfile, '.txt');
-
     assert.deepEqual(
-      struct, {
+      struct,
+      {
         source: tmpfile,
         split: true,
         chunks: [
@@ -99,23 +115,39 @@ describe('epi2me.splitters.fastq', () => {
 
     let struct;
     try {
-      struct = await splitter(tmpfile, {
-        maxChunkReads: 2,
-      }); // tiny maxchunk size is equivalent to split on every read
+      struct = await splitter(
+        tmpfile,
+        {
+          maxChunkReads: 2,
+        },
+        () => {
+          return Promise.resolve();
+        },
+      ); // tiny maxchunk size is equivalent to split on every read
     } catch (e) {
       assert.fail(e);
     }
     const dirname = path.dirname(tmpfile);
     const basename = path.basename(tmpfile, '.txt');
+
     assert.deepEqual(
-      struct, {
+      struct,
+      {
         source: tmpfile,
         split: true,
         chunks: [`${dirname}/${basename}_1.txt`, `${dirname}/${basename}_2.txt`],
       },
       'split if over maxchunksize',
     );
-    assert.equal(fs.statSync(`${dirname}/${basename}_1.txt`).size, 63, `${dirname}/${basename}_1.txt size ${fs.statSync(`${dirname}/${basename}_1.txt`).size}`);
-    assert.equal(fs.statSync(`${dirname}/${basename}_2.txt`).size, 63, `${dirname}/${basename}_2.txt size ${fs.statSync(`${dirname}/${basename}_2.txt`).size}`);
+    assert.equal(
+      fs.statSync(`${dirname}/${basename}_1.txt`).size,
+      63,
+      `${dirname}/${basename}_1.txt size ${fs.statSync(`${dirname}/${basename}_1.txt`).size}`,
+    );
+    assert.equal(
+      fs.statSync(`${dirname}/${basename}_2.txt`).size,
+      63,
+      `${dirname}/${basename}_2.txt size ${fs.statSync(`${dirname}/${basename}_2.txt`).size}`,
+    );
   });
 });
