@@ -1,106 +1,139 @@
 import fs from 'fs-extra';
 import path from 'path';
 import readline from 'readline';
+import { merge } from 'lodash';
+import stream from 'stream';
 import zlib from 'zlib';
-import {
-  merge
-} from 'lodash';
 
 const linesPerRead = 4;
 
-export default function (filePath, opts) {
-  const {
-    maxChunkBytes,
-    maxChunkReads
-  } = merge({}, opts);
+export default async function(filePath, opts, handler) {
+  const { maxChunkBytes, maxChunkReads } = merge({}, opts);
 
-  return new Promise(async (resolve, reject) => {
-    if (!maxChunkBytes && !maxChunkReads) {
-      // not splitting - no size or count given
-      resolve({
+  if (!maxChunkBytes && !maxChunkReads) {
+    // not splitting - no size or count given
+    return handler(filePath).then(() => {
+      return {
         source: filePath,
         split: false,
         chunks: [filePath],
-      });
-      return;
-    }
+      };
+    });
+  }
 
-    const stat = await fs.stat(filePath);
-    if (maxChunkBytes && stat.size < maxChunkBytes) {
-      // not splitting
-      resolve({
+  const stat = await fs.stat(filePath);
+  if (maxChunkBytes && stat.size < maxChunkBytes) {
+    // not splitting
+    return handler(filePath).then(() => {
+      return {
         source: filePath,
         split: false,
         chunks: [filePath],
+      };
+    });
+  }
+
+  const brokenPromises = [];
+  let splitResolver;
+  let splitRejecter;
+  const splitPromise = new Promise((resolve, reject) => {
+    splitResolver = resolve;
+    splitRejecter = reject;
+  });
+  const splitStreamFactory = (basepath, extension) => {
+    let lineCounter = 0;
+    let byteCounter = 0;
+    let readCounter = 0;
+
+    const chunkStreamFactory = (mychunk, resolve, reject) => {
+      const chunkPath = `${basepath}_${mychunk}${extension}`;
+
+      const str = fs.createWriteStream(chunkPath);
+
+      str.on('close', () => {
+        handler(chunkPath)
+          .then(() => {
+            resolve({
+              source: chunkPath,
+              split: false,
+            });
+          })
+          .catch(reject);
       });
-      return;
-    }
 
-    let chunkId = 1;
-    let outputStream;
-    let chunkBytes = 0;
-    let chunkLines = 0;
-    let chunkReads = 1;
-    const chunks = [];
-
-    const newChunk = () => {
-      const dirname = path.dirname(filePath);
-      const filename = path.basename(filePath);
-      const basename = filename.match(/^[^.]+/)[0];
-      const extname = filename.replace(basename, '');
-      const chunkName = `${basename}_${chunkId}${extname}`;
-
-      chunkId += 1;
-      chunkBytes = 0;
-      chunkReads = 0;
-      chunkLines = 0;
-      chunks.push(path.join(dirname, chunkName));
-      const os = fs.createWriteStream(path.join(dirname, chunkName));
-      os.mywriters = [];
-      return os;
+      return str;
     };
 
-    readline
-      .createInterface({
-        input: fs.createReadStream(filePath).pipe(zlib.createGunzip())
-      })
-      .on('close', async () => {
-        // N.B. end event for readline is "close" not "end"
-        if (outputStream) {
-          await Promise.all(outputStream.mywriters);
-          outputStream.close();
-        }
-        resolve({
-          source: filePath,
-          split: true,
-          chunks,
-        });
-      })
-      .on('line', async line => {
-        const startRead = !(chunkLines % linesPerRead);
+    let chunkStream;
+    let chunkId = 1;
 
-        // check if we need to start a new file
+    const str = new stream.Writable({
+      write: async (chunk, encoding, next) => {
         if (
-          !outputStream ||
-          (startRead &&
-            ((maxChunkBytes && chunkBytes > maxChunkBytes) || (maxChunkReads && chunkReads >= maxChunkReads)))
+          !chunkStream ||
+          (!(lineCounter % linesPerRead) &&
+            ((maxChunkReads && readCounter >= maxChunkReads) || (maxChunkBytes && byteCounter > maxChunkBytes)))
         ) {
-          outputStream = newChunk();
-        }
+          if (chunkStream) {
+            chunkStream.end();
+            readCounter = 0;
+            byteCounter = 0;
+            lineCounter = 0;
+          }
 
-        const p = new Promise(resolveWrite => {
-          // write out the current line
-          outputStream.write(`${line}\n`, resolveWrite);
-        });
-        outputStream.mywriters.push(p); // how heavy is an array of 4000 promises?
-
-        // update byte- & read- tallies
-        chunkBytes += line.length;
-        chunkLines += 1;
-        if (startRead) {
-          chunkReads += 1;
+          const setupPromise = new Promise(setupDone => {
+            brokenPromises.push(
+              new Promise((resolve, reject) => {
+                const newStream = chunkStreamFactory(chunkId, resolve, reject);
+                setupDone(newStream);
+              }),
+            );
+          });
+          // ensure chunk setup has been done by the time we chunkStream.write
+          chunkStream = await setupPromise;
+          chunkId += 1;
         }
-      })
-      .on('error', reject);
-  });
+        chunkStream.write(chunk, encoding, next);
+
+        lineCounter += 1;
+        byteCounter += chunk.length;
+        if (!(lineCounter % linesPerRead)) {
+          readCounter += 1;
+        }
+      },
+    });
+
+    str.on('finish', () => {
+      chunkStream.end();
+      Promise.all(brokenPromises)
+        .then(results => {
+          splitResolver({
+            source: filePath,
+            split: true,
+            chunks: results.map(o => o.source),
+          });
+        })
+        .catch(splitRejecter);
+    });
+    return str;
+  };
+
+  const dirname = path.dirname(filePath);
+  const filename = path.basename(filePath);
+  const basename = filename.match(/^[^.]+/)[0];
+  const extname = filename.replace(basename, '');
+  const out = splitStreamFactory(path.join(dirname, basename), extname);
+
+  readline
+    .createInterface({
+      input: fs.createReadStream(filePath).pipe(zlib.createGunzip()),
+    })
+    .on('line', line => {
+      out.write(`${line}\n`); // os.EOL ?
+    })
+    .on('close', async () => {
+      out.end();
+    });
+
+  return splitPromise;
 }
