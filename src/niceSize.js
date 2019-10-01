@@ -4,7 +4,7 @@ const niceSize = (sizeIn, unitidxIn) => {
   let unitidx = unitidxIn || 0;
   let size = sizeIn || 0;
 
-  if (size > DIV) {
+  if (size >= DIV) {
     size /= DIV;
     unitidx += 1;
 
