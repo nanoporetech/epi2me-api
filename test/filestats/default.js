@@ -4,8 +4,8 @@ import tmp from 'tmp';
 import fs from 'fs-extra';
 import filestats from '../../src/filestats/default';
 
-describe('epi2me.filestats', () => {
-  describe('default', async () => {
+describe('epi2me.filestats.default', () => {
+  it('should default', async () => {
     const tmpfile = path.join(tmp.dirSync().name, 'foo.txt');
     fs.writeFileSync(tmpfile, 'foobar');
 
@@ -15,10 +15,13 @@ describe('epi2me.filestats', () => {
     } catch (e) {
       assert.fail(e);
     }
-    assert.deepEqual(struct, { type: 'bytes', bytes: 6 });
+    assert.deepEqual(struct, {
+      type: 'bytes',
+      bytes: 6,
+    });
   });
 
-  describe('default failure', async () => {
+  it('should default failure', async () => {
     const tmpfile = path.join(tmp.dirSync().name, 'bar.txt');
 
     try {
