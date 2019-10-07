@@ -1,6 +1,6 @@
 import sqlite from 'sqlite';
-import { mkdirp } from 'fs-extra';
 import { remove, merge } from 'lodash';
+import fs from 'fs-extra';
 import path from 'path';
 import pkg from '../package.json';
 
@@ -14,7 +14,8 @@ export default class db {
 
     log.debug(`setting up ${dbRoot}/db.sqlite for ${idWorkflowInstance}`);
 
-    this.db = mkdirp(dbRoot)
+    this.db = fs
+      .mkdirp(dbRoot)
       .then(() => {
         this.log.debug(`opening ${dbRoot}/db.sqlite`);
         return sqlite
@@ -39,6 +40,9 @@ export default class db {
                   }),
                 dbh.run("CREATE TABLE IF NOT EXISTS uploads (filename CHAR(255) DEFAULT '' NOT NULL PRIMARY KEY)"),
                 dbh.run("CREATE TABLE IF NOT EXISTS skips (filename CHAR(255) DEFAULT '' NOT NULL PRIMARY KEY)"),
+                dbh.run(
+                  "CREATE TABLE IF NOT EXISTS splits (filename CHAR(255) DEFAULT '' NOT NULL PRIMARY KEY, parent CHAR(255) DEFAULT '' NOT NULL, start DATETIME NOT NULL, end DATETIME)",
+                ),
               ]);
 
               return Promise.resolve(dbh);
@@ -64,6 +68,23 @@ export default class db {
     const dbh = await this.db;
     const relative = filename.replace(new RegExp(`^${this.options.inputFolder}`), '');
     return dbh.run('INSERT INTO skips VALUES(?)', relative);
+  }
+
+  async splitFile(child, parent) {
+    const dbh = await this.db;
+    const relativeChild = child.replace(new RegExp(`^${this.options.inputFolder}`), '');
+    const relativeParent = parent.replace(new RegExp(`^${this.options.inputFolder}`), '');
+    return dbh.run('INSERT INTO splits VALUES(?, ?, NOW(), NULL)', relativeChild, relativeParent);
+  }
+
+  async splitClean() {
+    const dbh = await this.db;
+    return dbh.get('SELECT filename FROM splits WHERE end IS NULL').then(toClean => {
+      const cleanupPromises = toClean.map(filename => {
+        return fs.unlink(path.join(this.options.inputFolder, filename)).catch(() => {}); // should this module really be responsible for this cleanup operation?
+      });
+      return Promise.all(cleanupPromises);
+    });
   }
 
   async seenUpload(filename) {

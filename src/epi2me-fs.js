@@ -228,6 +228,16 @@ export default class EPI2ME_FS extends EPI2ME {
     return Promise.resolve(instance);
   }
 
+  async stopEverything() {
+    await super.stopEverything();
+
+    this.log.debug('clearing split files');
+    if(this.db) {
+      return this.db.splitClean(); // remove any split files whose transfers were disrupted and which didn't self-clean
+    }
+    return Promise.resolve();
+  }
+
   async checkForDownloads() {
     if (this.checkForDownloadsRunning) {
       return Promise.resolve();
@@ -515,6 +525,7 @@ export default class EPI2ME_FS extends EPI2ME {
             })
             .then(chunkStruct => {
               this.log.info(`chunk ${JSON.stringify(chunkStruct)}`);
+              this.db.splitFile(chunkStruct.path, file.path); // mark start of chunk transfer
               return this.uploadJob(chunkStruct)
                 .then(() => {
                   return fs.unlink(chunkStruct.path);
