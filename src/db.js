@@ -80,6 +80,12 @@ export default class db {
   async splitClean() {
     const dbh = await this.db;
     return dbh.get('SELECT filename FROM splits WHERE end IS NULL').then(toClean => {
+      if (!toClean) {
+        this.log.info('no split files to clean');
+        return Promise.resolve();
+      }
+      this.log.debug(`going to clean: ${JSON.stringify(toClean)}`);
+      this.log.info(`cleaning ${toClean.length} split files`);
       const cleanupPromises = toClean.map(filename => {
         return fs.unlink(path.join(this.options.inputFolder, filename)).catch(() => {}); // should this module really be responsible for this cleanup operation?
       });
