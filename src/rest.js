@@ -12,7 +12,13 @@ export default class REST {
   constructor(options) {
     // {log, ...options}) {
     this.options = assign(
-      { agent_version: utils.version, local, url: baseURL, user_agent: userAgent, signing },
+      {
+        agent_version: utils.version,
+        local,
+        url: baseURL,
+        user_agent: userAgent,
+        signing,
+      },
       options,
     );
 
@@ -44,7 +50,15 @@ export default class REST {
     let data;
 
     if (this.options.local) {
-      data = { accounts: [{ id_user_account: 'none', number: 'NONE', name: 'None' }] }; // fake user with accounts
+      data = {
+        accounts: [
+          {
+            id_user_account: 'none',
+            number: 'NONE',
+            name: 'None',
+          },
+        ],
+      }; // fake user with accounts
     } else {
       try {
         data = await utils.get('user', this.options);
@@ -68,8 +82,12 @@ export default class REST {
     try {
       const data = await utils.post(
         'token',
-        merge(opts, { id_workflow_instance: id }),
-        assign({}, this.options, { legacy_form: true }),
+        merge(opts, {
+          id_workflow_instance: id,
+        }),
+        assign({}, this.options, {
+          legacy_form: true,
+        }),
       );
       return Promise.resolve(data);
     } catch (err) {
@@ -81,8 +99,12 @@ export default class REST {
     try {
       const data = await utils.post(
         'token/install',
-        { id_workflow: id },
-        assign({}, this.options, { legacy_form: true }),
+        {
+          id_workflow: id,
+        },
+        assign({}, this.options, {
+          legacy_form: true,
+        }),
       );
       return cb ? cb(null, data) : Promise.resolve(data);
     } catch (err) {
@@ -265,7 +287,9 @@ export default class REST {
     }
 
     // placeholder
-    merge(workflow, { params: {} });
+    merge(workflow, {
+      params: {},
+    });
 
     try {
       const workflowConfig = await utils.get(`workflow/config/${id}`, this.options);
@@ -279,30 +303,35 @@ export default class REST {
     }
 
     // MC-6483 - fetch ajax options for "AJAX drop down widget"
-    const toFetch = filter(workflow.params, { widget: 'ajax_dropdown' });
+    const toFetch = filter(workflow.params, {
+      widget: 'ajax_dropdown',
+    });
 
     const promises = [
       ...toFetch.map((iterObj, i) => {
         const param = toFetch[i]; // so we can explicitly reassign to the iterator without eslint complaints
-        return new Promise(async (resolve, reject) => {
+        return new Promise((resolve, reject) => {
           const uri = param.values.source.replace('{{EPI2ME_HOST}}', '').replace(/&?apikey=\{\{EPI2ME_API_KEY\}\}/, '');
 
-          try {
-            const workflowParam = await utils.get(uri, this.options); // e.g. {datasets:[...]} from the /dataset.json list response
-            const dataRoot = workflowParam[param.values.data_root]; // e.g. [{dataset},{dataset}]
+          utils
+            .get(uri, this.options) // e.g. {datasets:[...]} from the /dataset.json list response
+            .then(workflowParam => {
+              const dataRoot = workflowParam[param.values.data_root]; // e.g. [{dataset},{dataset}]
 
-            if (dataRoot) {
-              param.values = dataRoot.map(o => ({
-                // does this really end up back in workflow object?
-                label: o[param.values.items.label_key],
-                value: o[param.values.items.value_key],
-              }));
-            }
-            return resolve();
-          } catch (err) {
-            this.log.error(`failed to fetch ${uri}`);
-            return reject(err);
-          }
+              if (dataRoot) {
+                param.values = dataRoot.map(o => ({
+                  // does this really end up back in workflow object?
+                  label: o[param.values.items.label_key],
+                  value: o[param.values.items.value_key],
+                }));
+              }
+              return resolve();
+            })
+
+            .catch(err => {
+              this.log.error(`failed to fetch ${uri}`);
+              return reject(err);
+            });
         });
       }),
     ];
@@ -317,7 +346,14 @@ export default class REST {
   }
 
   async startWorkflow(config, cb) {
-    return utils.post('workflow_instance', config, assign({}, this.options, { legacy_form: true }), cb);
+    return utils.post(
+      'workflow_instance',
+      config,
+      assign({}, this.options, {
+        legacy_form: true,
+      }),
+      cb,
+    );
   }
 
   stopWorkflow(idWorkflowInstance, cb) {
@@ -325,7 +361,9 @@ export default class REST {
       'workflow_instance/stop',
       idWorkflowInstance,
       null,
-      assign({}, this.options, { legacy_form: true }),
+      assign({}, this.options, {
+        legacy_form: true,
+      }),
       cb,
     );
   }
@@ -400,7 +438,9 @@ export default class REST {
         {
           description: description || `${os.userInfo().username}@${os.hostname()}`,
         },
-        assign({}, this.options, { signing: false }),
+        assign({}, this.options, {
+          signing: false,
+        }),
       );
       return cb ? cb(null, obj) : Promise.resolve(obj);
     } catch (err) {
@@ -456,7 +496,12 @@ export default class REST {
   }
 
   async fetchContent(url, cb) {
-    const options = assign({}, this.options, { skip_url_mangle: true, headers: { 'Content-Type': '' } });
+    const options = assign({}, this.options, {
+      skip_url_mangle: true,
+      headers: {
+        'Content-Type': '',
+      },
+    });
     try {
       const result = await utils.get(url, options);
       return cb ? cb(null, result) : Promise.resolve(result);

@@ -1,7 +1,7 @@
 import fs from 'fs-extra';
 
 export default function(filePath) {
-  return new Promise(async (resolve, reject) => {
+  return new Promise((resolve, reject) => {
     const linesPerRead = 4;
     let lineCount = 1;
     let idx;
@@ -10,7 +10,7 @@ export default function(filePath) {
     };
 
     try {
-      stat = await fs.stat(filePath);
+      stat = fs.statSync(filePath);
     } catch (e) {
       reject(e);
       return;
