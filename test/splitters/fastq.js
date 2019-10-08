@@ -2,9 +2,18 @@ import assert from 'assert';
 import path from 'path';
 import tmp from 'tmp';
 import fs from 'fs-extra';
+import sinon from 'sinon';
 import splitter from '../../src/splitters/fastq';
 
 describe('epi2me.splitters.fastq', () => {
+  beforeEach(() => {
+    sinon.stub(fs, 'unlink').resolves();
+  });
+
+  afterEach(() => {
+    fs.unlink.restore();
+  });
+
   it('should not split if no maxchunksize', async () => {
     const tmpfile = path.join(tmp.dirSync().name, 'foo.txt');
     fs.writeFileSync(

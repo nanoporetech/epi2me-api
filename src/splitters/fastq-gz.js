@@ -33,6 +33,7 @@ export default async function(filePath, opts, handler) {
     });
   }
 
+  let stopping = false;
   const brokenPromises = [];
   let splitResolver;
   let splitRejecter;
@@ -46,11 +47,15 @@ export default async function(filePath, opts, handler) {
     let readCounter = 0;
 
     const chunkStreamFactory = (mychunk, resolve, reject) => {
+      if (stopping) {
+        reject(new Error('stopped'));
+        return null;
+      }
+
       const chunkPath = `${basepath}_${mychunk}${extension}`;
+      const chunkWriteStream = fs.createWriteStream(chunkPath);
 
-      const str = fs.createWriteStream(chunkPath);
-
-      str.on('close', () => {
+      chunkWriteStream.on('close', () => {
         handler(chunkPath)
           .then(() => {
             resolve({
@@ -58,10 +63,20 @@ export default async function(filePath, opts, handler) {
               split: false,
             });
           })
-          .catch(reject);
+          .catch(err => {
+            // if handler raised an exception and it was because the instance was stopped, don't try and continue with anything else - close the readline and be done.
+            if (String(err) === 'Error: stopped') {
+              stopping = true;
+              return;
+            }
+            reject(err);
+          })
+          .finally(() => {
+            fs.unlink(chunkPath).catch(() => {}); // can't log a warning here - no logger
+          });
       });
 
-      return str;
+      return chunkWriteStream;
     };
 
     let chunkStream;
@@ -69,6 +84,13 @@ export default async function(filePath, opts, handler) {
 
     const str = new stream.Writable({
       write: async (chunk, encoding, next) => {
+        if (stopping) {
+          if (chunkStream) {
+            chunkStream.end();
+          }
+          return;
+        }
+
         if (
           !chunkStream ||
           (!(lineCounter % linesPerRead) &&
@@ -97,7 +119,7 @@ export default async function(filePath, opts, handler) {
 
         lineCounter += 1;
         byteCounter += chunk.length;
-        if (!(lineCounter % linesPerRead)) {
+        if (lineCounter % linesPerRead === 0) {
           readCounter += 1;
         }
       },
@@ -129,7 +151,11 @@ export default async function(filePath, opts, handler) {
       input: fs.createReadStream(filePath).pipe(zlib.createGunzip()),
     })
     .on('line', line => {
-      out.write(`${line}\n`); // os.EOL ?
+      if (stopping) {
+        out.end();
+      } else {
+        out.write(`${line}\n`); // os.EOL ?
+      }
     })
     .on('close', async () => {
       out.end();

@@ -74,20 +74,33 @@ export default class db {
     const dbh = await this.db;
     const relativeChild = child.replace(new RegExp(`^${this.options.inputFolder}`), '');
     const relativeParent = parent.replace(new RegExp(`^${this.options.inputFolder}`), '');
-    return dbh.run('INSERT INTO splits VALUES(?, ?, NOW(), NULL)', relativeChild, relativeParent);
+    return dbh.run('INSERT INTO splits VALUES(?, ?, CURRENT_TIMESTAMP, NULL)', relativeChild, relativeParent);
+  }
+
+  async splitDone(child) {
+    const dbh = await this.db;
+    const relativeChild = child.replace(new RegExp(`^${this.options.inputFolder}`), '');
+    return dbh.run('UPDATE splits SET end=CURRENT_TIMESTAMP WHERE filename=?', relativeChild);
   }
 
   async splitClean() {
     const dbh = await this.db;
-    return dbh.get('SELECT filename FROM splits WHERE end IS NULL').then(toClean => {
+    return dbh.all('SELECT filename FROM splits WHERE end IS NULL').then(toClean => {
       if (!toClean) {
         this.log.info('no split files to clean');
         return Promise.resolve();
       }
-      this.log.debug(`going to clean: ${JSON.stringify(toClean)}`);
+
       this.log.info(`cleaning ${toClean.length} split files`);
-      const cleanupPromises = toClean.map(filename => {
-        return fs.unlink(path.join(this.options.inputFolder, filename)).catch(() => {}); // should this module really be responsible for this cleanup operation?
+      this.log.debug(
+        `going to clean: ${toClean
+          .map(o => {
+            return o.filename;
+          })
+          .join(' ')}`,
+      );
+      const cleanupPromises = toClean.map(cleanObj => {
+        return fs.unlink(path.join(this.options.inputFolder, cleanObj.filename)).catch(() => {}); // should this module really be responsible for this cleanup operation?
       });
       return Promise.all(cleanupPromises);
     });

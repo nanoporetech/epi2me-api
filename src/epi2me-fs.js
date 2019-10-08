@@ -6,17 +6,12 @@
  *
  */
 
-import {
-  merge,
-  isArray
-} from 'lodash';
+import { merge, isArray } from 'lodash';
 import fs from 'fs-extra'; /* MC-565 handle EMFILE & EXDIR gracefully; use Promises */
-import {
-  EOL,
-  homedir
-} from 'os';
+import { EOL, homedir } from 'os';
 import path from 'path';
 import Promise from 'core-js/features/promise'; // shim Promise.finally() for nw 0.29.4 nodejs
+// import Queue from 'queue-promise';
 import utils from './utils-fs';
 import _REST from './rest-fs';
 import filestats from './filestats';
@@ -26,6 +21,7 @@ import EPI2ME from './epi2me';
 import DB from './db';
 import Profile from './profile';
 import niceSize from './niceSize';
+import PromisePipeline from './promise-pipeline';
 
 const rootDir = () => {
   /* Windows: C:\Users\rmp\AppData\EPI2ME
@@ -46,7 +42,9 @@ export default class EPI2ME_FS extends EPI2ME {
 
     // overwrite non-fs REST object
     this.REST = new _REST(
-      merge({}, {
+      merge(
+        {},
+        {
           log: this.log,
         },
         this.config.options,
@@ -149,7 +147,8 @@ export default class EPI2ME_FS extends EPI2ME {
     const thisInstanceDir = path.join(instancesDir, this.config.instance.id_workflow_instance);
     // set up new tracking database
     this.db = new DB(
-      thisInstanceDir, {
+      thisInstanceDir,
+      {
         idWorkflowInstance: this.config.instance.id_workflow_instance,
         inputFolder: this.config.options.inputFolder,
       },
@@ -157,9 +156,9 @@ export default class EPI2ME_FS extends EPI2ME {
     );
 
     // MC-1828 - include instance id in telemetry file name
-    const fileName = this.config.instance.id_workflow_instance ?
-      `telemetry-${this.config.instance.id_workflow_instance}.log` :
-      'telemetry.log';
+    const fileName = this.config.instance.id_workflow_instance
+      ? `telemetry-${this.config.instance.id_workflow_instance}.log`
+      : 'telemetry.log';
     const telemetryLogFolder = path.join(this.config.options.outputFolder, 'epi2me-logs');
     const telemetryLogPath = path.join(telemetryLogFolder, fileName);
 
@@ -182,16 +181,29 @@ export default class EPI2ME_FS extends EPI2ME {
 
     // MC-7056 periodically fetch summary telemetry for local reporting purposes
     this.timers.summaryTelemetryInterval = setInterval(() => {
+      if (this.stopped) {
+        clearInterval(this.timers.summaryTelemetryInterval);
+        return;
+      }
       this.fetchTelemetry();
     }, this.config.options.downloadCheckInterval * 10000); // 10x slower than downloadChecks - is this reasonable?
 
     // MC-2068 - Don't use an interval.
     this.timers.downloadCheckInterval = setInterval(() => {
+      if (this.stopped) {
+        clearInterval(this.timers.downloadCheckInterval);
+        return;
+      }
       this.checkForDownloads();
     }, this.config.options.downloadCheckInterval * 1000);
 
     // MC-1795 - stop workflow when instance has been stopped remotely
     this.timers.stateCheckInterval = setInterval(async () => {
+      if (this.stopped) {
+        clearInterval(this.timers.stateCheckInterval);
+        return;
+      }
+
       try {
         const instanceObj = await this.REST.workflowInstance(this.config.instance.id_workflow_instance);
         if (instanceObj.state === 'stopped') {
@@ -229,10 +241,10 @@ export default class EPI2ME_FS extends EPI2ME {
   }
 
   async stopEverything() {
-    await super.stopEverything();
+    await super.stopEverything(); // sets this.stopped = true
 
     this.log.debug('clearing split files');
-    if(this.db) {
+    if (this.db) {
       return this.db.splitClean(); // remove any split files whose transfers were disrupted and which didn't self-clean
     }
     return Promise.resolve();
@@ -292,9 +304,9 @@ export default class EPI2ME_FS extends EPI2ME {
         .promise();
     } catch (receiveMessageException) {
       this.log.error(`receiveMessage exception: ${String(receiveMessageException)}`);
-      this.states.download.failure[receiveMessageException] = this.states.download.failure[receiveMessageException] ?
-        this.states.download.failure[receiveMessageException] + 1 :
-        1;
+      this.states.download.failure[receiveMessageException] = this.states.download.failure[receiveMessageException]
+        ? this.states.download.failure[receiveMessageException] + 1
+        : 1;
       return Promise.reject(receiveMessageException);
     }
 
@@ -379,7 +391,7 @@ export default class EPI2ME_FS extends EPI2ME {
 
     if (!isArray(files) || !files.length) return Promise.resolve();
 
-    this.log.info(`enqueueUploadFiles ${files.length} files: ${files.map(file => file.path)}.`);
+    this.log.info(`enqueueUploadFiles ${files.length} files: ${files.map(file => file.path).join(' ')}.`);
 
     if ('workflow' in this.config) {
       if ('workflow_attributes' in this.config.workflow) {
@@ -387,9 +399,7 @@ export default class EPI2ME_FS extends EPI2ME {
         settings = this.config.workflow.workflow_attributes;
       } else if ('attributes' in this.config.workflow) {
         // started from CLI
-        let {
-          attributes: attrs
-        } = this.config.workflow.attributes;
+        let { attributes: attrs } = this.config.workflow;
         if (!attrs) {
           attrs = {};
         }
@@ -398,7 +408,7 @@ export default class EPI2ME_FS extends EPI2ME {
           if (`epi2me:${attr}` in attrs) {
             settings[attr] = parseInt(attrs[`epi2me:${attr}`], 10);
           }
-        })
+        });
 
         if ('epi2me:category' in attrs) {
           const epi2meCategory = attrs['epi2me:category'];
@@ -474,7 +484,6 @@ export default class EPI2ME_FS extends EPI2ME {
         this.states.warnings.push(warning);
         this.states.upload.filesCount -= 1;
         file.skip = 'SKIP_TOO_MANY';
-
       } else if (file.size === 0) {
         //
         // zero-sized file
@@ -488,8 +497,11 @@ export default class EPI2ME_FS extends EPI2ME {
         this.states.upload.filesCount -= 1;
         this.log.error(msg);
         this.states.warnings.push(warning);
-
-      } else if (file.path && file.path.match(/\.(?:fastq|fq)(?:\.gz)?$/) && ((splitSize && file.size > splitSize) || (splitReads && file.reads && file.reads > splitReads))) {
+      } else if (
+        file.path &&
+        file.path.match(/\.(?:fastq|fq)(?:\.gz)?$/) &&
+        ((splitSize && file.size > splitSize) || (splitReads && file.reads && file.reads > splitReads))
+      ) {
         //
         // file too big to process but can be split
         //
@@ -501,16 +513,30 @@ export default class EPI2ME_FS extends EPI2ME {
         };
         this.states.warnings.push(warning);
 
-        const splitStyle = (splitSize ? {
-          maxChunkBytes: splitSize
-        } : {
-          maxChunkReads: splitReads
-        });
+        const splitStyle = splitSize
+          ? {
+              maxChunkBytes: splitSize,
+            }
+          : {
+              maxChunkReads: splitReads,
+            };
         const splitter = file.path.match(/\.gz$/) ? fastqGzipSplitter : fastqSplitter;
 
         const fileId = utils.getFileID();
-        let chunkId = 1;
+        const queue = new PromisePipeline({
+          bandwidth: 2,
+        });
+        let chunkId = 0;
         const chunkHandler = async chunkFile => {
+          // mark start of chunk transfer. do it before the stop check so it's cleaned up correctly if stopped early
+          await this.db.splitFile(chunkFile, file.path);
+
+          if (this.stopped) {
+            queue.stop();
+            this.log.info(`stopped, so skipping ${chunkFile}`);
+            return Promise.reject(new Error(`stopped`));
+          }
+
           chunkId += 1;
           return filestats(chunkFile)
             .then(stats => {
@@ -520,23 +546,46 @@ export default class EPI2ME_FS extends EPI2ME {
                 relative: chunkFile.replace(this.config.options.inputFolder, ''), // "INPUT_PREFIX/my.fastq"
                 id: `${fileId}_${chunkId}`,
                 stats,
-                size: stats.bytes
+                size: stats.bytes,
               };
             })
             .then(chunkStruct => {
-              this.log.info(`chunk ${JSON.stringify(chunkStruct)}`);
-              this.db.splitFile(chunkStruct.path, file.path); // mark start of chunk transfer
-              return this.uploadJob(chunkStruct)
-                .then(() => {
-                  return fs.unlink(chunkStruct.path);
-                })
-                .catch(e => {
-                  this.error(`failed to handle chunk ${chunkFile}: ${String(e)}`);
+              const p = new Promise(chunkResolve => {
+                queue.enqueue(() => {
+                  this.log.info(`chunk upload starting ${chunkStruct.id} ${chunkStruct.path}`);
+                  // this function may have been sat in a queue for a while, so check 'stopped' state again
+                  if (this.stopped) {
+                    this.log.info(`chunk upload skipped (stopped) ${chunkStruct.id} ${chunkStruct.path}`);
+                    queue.stop();
+                    //                    queue.clear();
+                    chunkResolve();
+                    return Promise.resolve(); // .reject(new Error('stopped'));
+                  }
+
+                  return this.uploadJob(chunkStruct)
+                    .then(() => {
+                      return this.db.splitDone(chunkStruct.path);
+                    })
+                    .catch(e => {
+                      this.log.error(`chunk upload failed ${chunkStruct.id} ${chunkStruct.path}: ${String(e)}`);
+                    })
+                    .finally(chunkResolve);
                 });
+              });
+              return p;
             });
         };
 
-        await splitter(file.path, splitStyle, chunkHandler);
+        try {
+          await splitter(file.path, splitStyle, chunkHandler);
+          queue.stop();
+        } catch (splitterError) {
+          queue.stop();
+          if (String(splitterError) === 'Error: stopped') {
+            return Promise.resolve();
+          }
+          throw splitterError;
+        }
 
         // mark the original file as done
         return this.db.uploadFile(file.path);
@@ -560,7 +609,7 @@ export default class EPI2ME_FS extends EPI2ME {
           // normal handling for all file types
           file.stats = await filestats(file.path);
         } catch (e) {
-          this.error(`failed to stat ${file.path}: ${String(e)}`);
+          this.log.error(`failed to stat ${file.path}: ${String(e)}`);
         }
       }
 
@@ -608,15 +657,16 @@ export default class EPI2ME_FS extends EPI2ME {
         this.states.upload.failure = {};
       }
 
-      this.states.upload.failure[errorMsg] = this.states.upload.failure[errorMsg] ?
-        this.states.upload.failure[errorMsg] + 1 :
-        1;
+      this.states.upload.failure[errorMsg] = this.states.upload.failure[errorMsg]
+        ? this.states.upload.failure[errorMsg] + 1
+        : 1;
     } else {
       // this.uploadState('queueLength', 'decr', file2.stats); // this.states.upload.queueLength = this.states.upload.queueLength ? this.states.upload.queueLength - readCount : 0;
       this.uploadState(
         'success',
         'incr',
-        merge({
+        merge(
+          {
             files: 1,
           },
           file2.stats,
@@ -661,7 +711,10 @@ export default class EPI2ME_FS extends EPI2ME {
         })
         .finally(() => {
           clearTimeout(timeoutHandle);
-          delete this.downloadWorkerPool[message.MessageId];
+          if (message) {
+            // message is null if split file & stopping
+            delete this.downloadWorkerPool[message.MessageId];
+          }
         });
     });
 
@@ -699,9 +752,7 @@ export default class EPI2ME_FS extends EPI2ME {
 
     /* MC-405 telemetry log to file */
     if (messageBody.telemetry) {
-      const {
-        telemetry
-      } = messageBody;
+      const { telemetry } = messageBody;
 
       if (telemetry.tm_path) {
         try {
@@ -774,8 +825,9 @@ export default class EPI2ME_FS extends EPI2ME {
         this.config &&
         this.config.workflow &&
         this.config.workflow.settings &&
-        this.config.workflow.settings.output_format ?
-        this.config.workflow.settings.output_format : [];
+        this.config.workflow.settings.output_format
+          ? this.config.workflow.settings.output_format
+          : [];
       if (typeof extra === 'string' || extra instanceof String) {
         extra = extra.trim().split(/[\s,]+/); // do not use commas in file extensions. Ha.ha.
       }
@@ -797,7 +849,8 @@ export default class EPI2ME_FS extends EPI2ME {
           // initiateDownloadStream with another Promise which permits fetch-with-suffix failures
           return new Promise(async (resolve, reject) => {
             try {
-              await this.initiateDownloadStream({
+              await this.initiateDownloadStream(
+                {
                   bucket: messageBody.bucket,
                   path: fetchObject,
                 },
@@ -833,9 +886,9 @@ export default class EPI2ME_FS extends EPI2ME {
     } else {
       // telemetry-only mode uses readcount from message
       const readCount =
-        messageBody.telemetry.batch_summary && messageBody.telemetry.batch_summary.reads_num ?
-        messageBody.telemetry.batch_summary.reads_num :
-        1;
+        messageBody.telemetry.batch_summary && messageBody.telemetry.batch_summary.reads_num
+          ? messageBody.telemetry.batch_summary.reads_num
+          : 1;
 
       this.downloadState('success', 'incr', {
         files: 1,
@@ -945,7 +998,8 @@ export default class EPI2ME_FS extends EPI2ME {
           this.downloadState(
             'success',
             'incr',
-            merge({
+            merge(
+              {
                 files: 1,
               },
               stats,
@@ -997,10 +1051,16 @@ export default class EPI2ME_FS extends EPI2ME {
       ); /* download stream timeout in ms */
 
       const updateVisibilityFunc = async () => {
+        if (this.stopped) {
+          clearInterval(this.timers.visibilityIntervals[outputFile]);
+          delete this.timers.visibilityIntervals[outputFile];
+        }
+
         const queueUrl = this.config.instance.outputQueueURL;
         const receiptHandle = message.ReceiptHandle;
 
-        this.log.debug({
+        this.log.debug(
+          {
             message_id: message.MessageId,
           },
           'updateVisibility',
@@ -1015,7 +1075,8 @@ export default class EPI2ME_FS extends EPI2ME {
             })
             .promise();
         } catch (err) {
-          this.log.error({
+          this.log.error(
+            {
               message_id: message.MessageId,
               queue: queueUrl,
               error: err,
@@ -1059,11 +1120,11 @@ export default class EPI2ME_FS extends EPI2ME {
       .replace(/\//g, '_'); // MC-7204, MC-7206 - this needs to be unpicked in future
 
     const objectId = [
-        this.config.instance.bucketFolder,
-        'component-0',
-        mangledRelative, // prefix
-        mangledRelative, // objectname //      encodeURIComponent(file.relative.replace(/^[\\/]+/, '').replace(/\\/g, '/')), // MC-7204 - escaped slashes not handled by cgd 3.0.7
-      ]
+      this.config.instance.bucketFolder,
+      'component-0',
+      mangledRelative, // prefix
+      mangledRelative, // objectname //      encodeURIComponent(file.relative.replace(/^[\\/]+/, '').replace(/\\/g, '/')), // MC-7204 - escaped slashes not handled by cgd 3.0.7
+    ]
       .join('/')
       .replace(/\/+/g, '/');
 
@@ -1126,6 +1187,11 @@ export default class EPI2ME_FS extends EPI2ME {
         const managedUpload = s3.upload(params, options);
 
         managedUpload.on('httpUploadProgress', async progress => {
+          if (this.stopped) {
+            reject(new Error('stopped'));
+            return;
+          }
+
           //          this.log.debug(`upload progress ${progress.key} ${progress.loaded} / ${progress.total}`);
           this.uploadState('progress', 'incr', {
             bytes: progress.loaded - myProgress,
@@ -1268,13 +1334,13 @@ export default class EPI2ME_FS extends EPI2ME {
 
       toFetch.push(
         this.REST.fetchContent(url)
-        .then(body => {
-          fs.writeJSONSync(fn, body);
-          this.log.debug(`fetched telemetry summary ${fn}`);
-        })
-        .catch(e => {
-          this.log.debug(`Error fetching telemetry: ${String(e)}`);
-        }),
+          .then(body => {
+            fs.writeJSONSync(fn, body);
+            this.log.debug(`fetched telemetry summary ${fn}`);
+          })
+          .catch(e => {
+            this.log.debug(`Error fetching telemetry: ${String(e)}`);
+          }),
       );
     });
 
