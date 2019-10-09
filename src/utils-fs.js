@@ -36,21 +36,23 @@ utils.pipe = async (uriIn, filepath, options, progressCb) => {
   }
   req.responseType = 'stream';
 
-  const p = new Promise(async (resolve, reject) => {
-    try {
-      const writer = fs.createWriteStream(filepath);
-      const res = await axios.get(req.url, req);
-      res.data.pipe(writer);
+  const p = new Promise((resolve, reject) => {
+    axios
+      .get(req.url, req)
+      .then(res => {
+        const writer = fs.createWriteStream(filepath);
+        res.data.pipe(writer);
 
-      writer.on('finish', () => {
-        resolve(filepath);
+        writer.on('finish', () => {
+          resolve(filepath);
+        });
+        writer.on('error', error => {
+          reject(new Error(`writer failed ${String(error)}`));
+        });
+      })
+      .catch(err => {
+        reject(err);
       });
-      writer.on('error', error => {
-        reject(new Error(`writer failed ${String(error)}`));
-      });
-    } catch (err) {
-      reject(err);
-    }
   });
 
   return p;

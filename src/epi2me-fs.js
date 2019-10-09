@@ -11,13 +11,17 @@ import fs from 'fs-extra'; /* MC-565 handle EMFILE & EXDIR gracefully; use Promi
 import { EOL, homedir } from 'os';
 import path from 'path';
 import Promise from 'core-js/features/promise'; // shim Promise.finally() for nw 0.29.4 nodejs
+// import Queue from 'queue-promise';
 import utils from './utils-fs';
 import _REST from './rest-fs';
 import filestats from './filestats';
+import fastqSplitter from './splitters/fastq';
+import fastqGzipSplitter from './splitters/fastq-gz';
 import EPI2ME from './epi2me';
 import DB from './db';
 import Profile from './profile';
 import niceSize from './niceSize';
+import PromisePipeline from './promise-pipeline';
 
 const rootDir = () => {
   /* Windows: C:\Users\rmp\AppData\EPI2ME
@@ -61,8 +65,8 @@ export default class EPI2ME_FS extends EPI2ME {
     }
 
     this.config.workflow = JSON.parse(JSON.stringify(workflowConfig)); // object copy
-    this.log.info('instance', JSON.stringify(instance));
-    this.log.info('workflow config', JSON.stringify(this.config.workflow));
+    this.log.info(`instance ${JSON.stringify(instance)}`);
+    this.log.info(`workflow config ${JSON.stringify(this.config.workflow)}`);
     return this.autoConfigure(instance, cb);
   }
 
@@ -85,8 +89,8 @@ export default class EPI2ME_FS extends EPI2ME {
 
     /* it could be useful to populate this as autoStart does */
     this.config.workflow = this.config.workflow || {};
-    this.log.debug('instance', JSON.stringify(instance));
-    this.log.debug('workflow config', JSON.stringify(this.config.workflow));
+    this.log.debug(`instance ${JSON.stringify(instance)}`);
+    this.log.debug(`workflow config ${JSON.stringify(this.config.workflow)}`);
 
     return this.autoConfigure(instance, cb);
   }
@@ -177,16 +181,29 @@ export default class EPI2ME_FS extends EPI2ME {
 
     // MC-7056 periodically fetch summary telemetry for local reporting purposes
     this.timers.summaryTelemetryInterval = setInterval(() => {
+      if (this.stopped) {
+        clearInterval(this.timers.summaryTelemetryInterval);
+        return;
+      }
       this.fetchTelemetry();
     }, this.config.options.downloadCheckInterval * 10000); // 10x slower than downloadChecks - is this reasonable?
 
     // MC-2068 - Don't use an interval.
     this.timers.downloadCheckInterval = setInterval(() => {
+      if (this.stopped) {
+        clearInterval(this.timers.downloadCheckInterval);
+        return;
+      }
       this.checkForDownloads();
     }, this.config.options.downloadCheckInterval * 1000);
 
     // MC-1795 - stop workflow when instance has been stopped remotely
     this.timers.stateCheckInterval = setInterval(async () => {
+      if (this.stopped) {
+        clearInterval(this.timers.stateCheckInterval);
+        return;
+      }
+
       try {
         const instanceObj = await this.REST.workflowInstance(this.config.instance.id_workflow_instance);
         if (instanceObj.state === 'stopped') {
@@ -221,6 +238,16 @@ export default class EPI2ME_FS extends EPI2ME {
       this.config.options.fileCheckInterval * 1000,
     );
     return Promise.resolve(instance);
+  }
+
+  async stopEverything() {
+    await super.stopEverything(); // sets this.stopped = true
+
+    this.log.debug('clearing split files');
+    if (this.db) {
+      return this.db.splitClean(); // remove any split files whose transfers were disrupted and which didn't self-clean
+    }
+    return Promise.resolve();
   }
 
   async checkForDownloads() {
@@ -312,7 +339,7 @@ export default class EPI2ME_FS extends EPI2ME {
 
       let running = 0;
       const chunkFunc = () => {
-        return new Promise(async resolve => {
+        return new Promise(resolve => {
           if (this.stopped) {
             files.length = 0;
             this.log.debug(`upload: skipping, stopped`);
@@ -331,15 +358,15 @@ export default class EPI2ME_FS extends EPI2ME {
           const filesChunk = files.splice(0, this.config.options.transferPoolSize - running); // fill up all available slots
           running += filesChunk.length;
 
-          try {
-            await this.enqueueUploadFiles(filesChunk);
-          } catch (e) {
-            this.log.error(`upload: exception in enqueueUploadFiles: ${String(e)}`);
-          }
-
-          running -= filesChunk.length; // clear the upload slot(s)
-
-          resolve();
+          this.enqueueUploadFiles(filesChunk)
+            .then()
+            .catch(e => {
+              this.log.error(`upload: exception in enqueueUploadFiles: ${String(e)}`);
+            })
+            .finally(() => {
+              running -= filesChunk.length; // clear the upload slot(s)
+              resolve();
+            });
         });
       };
 
@@ -358,11 +385,13 @@ export default class EPI2ME_FS extends EPI2ME {
   async enqueueUploadFiles(files) {
     let maxFiles = 0;
     let maxFileSize = 0;
+    let splitSize = 0;
+    let splitReads = 0;
     let settings = {};
 
     if (!isArray(files) || !files.length) return Promise.resolve();
 
-    this.log.info(`Enqueuing files: ${files.map(file => file.path)}.`);
+    this.log.info(`enqueueUploadFiles ${files.length} files: ${files.map(file => file.path).join(' ')}.`);
 
     if ('workflow' in this.config) {
       if ('workflow_attributes' in this.config.workflow) {
@@ -370,18 +399,16 @@ export default class EPI2ME_FS extends EPI2ME {
         settings = this.config.workflow.workflow_attributes;
       } else if ('attributes' in this.config.workflow) {
         // started from CLI
-        let { attributes: attrs } = this.config.workflow.attributes;
+        let { attributes: attrs } = this.config.workflow;
         if (!attrs) {
           attrs = {};
         }
 
-        if ('epi2me:max_size' in attrs) {
-          settings.max_size = parseInt(attrs['epi2me:max_size'], 10);
-        }
-
-        if ('epi2me:max_files' in attrs) {
-          settings.max_files = parseInt(attrs['epi2me:max_files'], 10);
-        }
+        ['max_size', 'max_files', 'split_size', 'split_reads'].forEach(attr => {
+          if (`epi2me:${attr}` in attrs) {
+            settings[attr] = parseInt(attrs[`epi2me:${attr}`], 10);
+          }
+        });
 
         if ('epi2me:category' in attrs) {
           const epi2meCategory = attrs['epi2me:category'];
@@ -391,6 +418,8 @@ export default class EPI2ME_FS extends EPI2ME {
         }
       }
     }
+
+    this.log.info(`enqueueUploadFiles settings ${JSON.stringify(settings)}`);
 
     if ('requires_storage' in settings) {
       if (settings.requires_storage) {
@@ -406,12 +435,25 @@ export default class EPI2ME_FS extends EPI2ME {
       }
     }
 
+    if ('split_size' in settings) {
+      splitSize = parseInt(settings.split_size, 10);
+      this.log.info(`enqueueUploadFiles splitting supported files at ${splitSize} bytes`);
+    }
+
+    if ('split_reads' in settings) {
+      splitReads = parseInt(settings.split_reads, 10);
+      this.log.info(`enqueueUploadFiles splitting supported files at ${splitReads} reads`);
+    }
+
     if ('max_size' in settings) {
       maxFileSize = parseInt(settings.max_size, 10);
+      this.log.info(`enqueueUploadFiles restricting file size to ${maxFileSize}`);
     }
 
     if ('max_files' in settings) {
       maxFiles = parseInt(settings.max_files, 10);
+      this.log.info(`enqueueUploadFiles restricting file count to ${maxFiles}`);
+
       if (files.length > maxFiles) {
         const warning = {
           msg: `ERROR: ${files.length} files found. Workflow can only accept ${maxFiles}. Please move the extra files away.`,
@@ -423,8 +465,6 @@ export default class EPI2ME_FS extends EPI2ME {
       }
     }
 
-    this.log.info(`upload: enqueueUploadFiles: ${files.length} new files`);
-
     //    this.uploadState('filesCount', 'incr', { files: files.length });
     this.states.upload.filesCount += files.length; // total count of files for an instance
 
@@ -432,43 +472,144 @@ export default class EPI2ME_FS extends EPI2ME {
       const file = fileIn;
 
       if (maxFiles && this.states.upload.filesCount > maxFiles) {
+        //
         // too many files processed
+        //
+        const msg = `Maximum ${maxFiles} file(s) already uploaded. Marking ${file.relative} as skipped.`;
         const warning = {
-          msg: `Maximum ${maxFiles} file(s) already uploaded. Marking ${file.relative} as skipped.`,
+          msg,
           type: 'WARNING_FILE_TOO_MANY',
         };
-        this.log.error(warning.msg);
+        this.log.error(msg);
         this.states.warnings.push(warning);
         this.states.upload.filesCount -= 1;
         file.skip = 'SKIP_TOO_MANY';
       } else if (file.size === 0) {
-        // empty file
+        //
+        // zero-sized file
+        //
+        const msg = `The file "${file.relative}" is empty. It will be skipped.`;
         const warning = {
-          msg: `The file "${file.relative}" is empty. It will be skipped.`,
+          msg,
           type: 'WARNING_FILE_EMPTY',
         };
         file.skip = 'SKIP_EMPTY';
         this.states.upload.filesCount -= 1;
-        this.log.error(warning.msg);
+        this.log.error(msg);
         this.states.warnings.push(warning);
-      } else if (maxFileSize && file.size > maxFileSize) {
-        // file too big to process
+      } else if (
+        file.path &&
+        file.path.match(/\.(?:fastq|fq)(?:\.gz)?$/) &&
+        ((splitSize && file.size > splitSize) || (splitReads && file.reads && file.reads > splitReads))
+      ) {
+        //
+        // file too big to process but can be split
+        //
+        const msg = `${file.relative} is too big and is going to be split`;
+        this.log.warn(msg);
         const warning = {
-          msg: `The file "${file.relative}" is bigger than the maximum size limit (${niceSize(
-            maxFileSize,
-          )}B). It will be skipped.`,
+          msg,
+          type: 'WARNING_FILE_SPLIT',
+        };
+        this.states.warnings.push(warning);
+
+        const splitStyle = splitSize
+          ? {
+              maxChunkBytes: splitSize,
+            }
+          : {
+              maxChunkReads: splitReads,
+            };
+        const splitter = file.path.match(/\.gz$/) ? fastqGzipSplitter : fastqSplitter;
+
+        const fileId = utils.getFileID();
+        const queue = new PromisePipeline({
+          bandwidth: this.config.options.transferPoolSize,
+        });
+        let chunkId = 0;
+        const chunkHandler = async chunkFile => {
+          // mark start of chunk transfer. do it before the stop check so it's cleaned up correctly if stopped early
+          await this.db.splitFile(chunkFile, file.path);
+
+          if (this.stopped) {
+            queue.stop();
+            this.log.info(`stopped, so skipping ${chunkFile}`);
+            return Promise.reject(new Error(`stopped`));
+          }
+
+          chunkId += 1;
+          return filestats(chunkFile)
+            .then(stats => {
+              return {
+                name: path.basename(chunkFile), // "my.fastq"
+                path: chunkFile, // "/Users/rpettett/test_sets/zymo/demo/INPUT_PREFIX/my.fastq"
+                relative: chunkFile.replace(this.config.options.inputFolder, ''), // "INPUT_PREFIX/my.fastq"
+                id: `${fileId}_${chunkId}`,
+                stats,
+                size: stats.bytes,
+              };
+            })
+            .then(chunkStruct => {
+              const p = new Promise(chunkResolve => {
+                queue.enqueue(() => {
+                  this.log.info(`chunk upload starting ${chunkStruct.id} ${chunkStruct.path}`);
+                  // this function may have been sat in a queue for a while, so check 'stopped' state again
+                  if (this.stopped) {
+                    this.log.info(`chunk upload skipped (stopped) ${chunkStruct.id} ${chunkStruct.path}`);
+                    queue.stop();
+                    //                    queue.clear();
+                    chunkResolve();
+                    return Promise.resolve(); // .reject(new Error('stopped'));
+                  }
+
+                  return this.uploadJob(chunkStruct)
+                    .then(() => {
+                      return this.db.splitDone(chunkStruct.path);
+                    })
+                    .catch(e => {
+                      this.log.error(`chunk upload failed ${chunkStruct.id} ${chunkStruct.path}: ${String(e)}`);
+                    })
+                    .finally(chunkResolve);
+                });
+              });
+              return p;
+            });
+        };
+
+        try {
+          await splitter(file.path, splitStyle, chunkHandler);
+          queue.stop();
+        } catch (splitterError) {
+          queue.stop();
+          if (String(splitterError) === 'Error: stopped') {
+            return Promise.resolve();
+          }
+          throw splitterError;
+        }
+
+        // mark the original file as done
+        return this.db.uploadFile(file.path);
+      } else if (maxFileSize && file.size > maxFileSize) {
+        //
+        // file too big to process and unable to split
+        //
+        const msg = `The file "${file.relative}" is bigger than the maximum size limit (${niceSize(
+          maxFileSize,
+        )}B). It will be skipped.`;
+        const warning = {
+          msg,
           type: 'WARNING_FILE_TOO_BIG',
         };
         file.skip = 'SKIP_TOO_BIG';
         this.states.upload.filesCount -= 1;
-        this.log.error(warning.msg);
+        this.log.error(msg);
         this.states.warnings.push(warning);
       } else {
         try {
           // normal handling for all file types
           file.stats = await filestats(file.path);
         } catch (e) {
-          this.error(`failed to stat ${file.path}: ${String(e)}`);
+          this.log.error(`failed to stat ${file.path}: ${String(e)}`);
         }
       }
 
@@ -570,7 +711,10 @@ export default class EPI2ME_FS extends EPI2ME {
         })
         .finally(() => {
           clearTimeout(timeoutHandle);
-          delete this.downloadWorkerPool[message.MessageId];
+          if (message) {
+            // message is null if split file & stopping
+            delete this.downloadWorkerPool[message.MessageId];
+          }
         });
     });
 
@@ -703,25 +847,27 @@ export default class EPI2ME_FS extends EPI2ME {
 
           // we ignore failures to fetch anything with extra suffixes by wrapping
           // initiateDownloadStream with another Promise which permits fetch-with-suffix failures
-          return new Promise(async (resolve, reject) => {
-            try {
-              await this.initiateDownloadStream(
-                {
-                  bucket: messageBody.bucket,
-                  path: fetchObject,
-                },
-                message,
-                fetchFile,
-              );
-            } catch (e) {
-              this.log.error(`Caught exception waiting for initiateDownloadStream: ${String(e)}`);
-              if (suffix) {
-                reject(e);
-              }
-            }
-            resolve();
+          return new Promise((resolve, reject) => {
+            this.initiateDownloadStream(
+              {
+                bucket: messageBody.bucket,
+                path: fetchObject,
+              },
+              message,
+              fetchFile,
+            )
+              .then(resolve)
+              .catch(e => {
+                this.log.error(`Caught exception waiting for initiateDownloadStream: ${String(e)}`);
+                if (suffix) {
+                  reject(e);
+                  return;
+                }
+                resolve();
+              });
           });
         });
+
         await Promise.all(fetchPromises);
       } catch (e) {
         this.log.error(`Exception fetching file batch: ${String(e)}`);
@@ -765,7 +911,7 @@ export default class EPI2ME_FS extends EPI2ME {
   }
 
   async initiateDownloadStream(s3Item, message, outputFile) {
-    return new Promise(async (resolve, reject) => {
+    return new Promise(async (resolve, reject) => { // eslint-disable-line
       let s3;
       try {
         s3 = await this.sessionedS3();
@@ -907,6 +1053,11 @@ export default class EPI2ME_FS extends EPI2ME {
       ); /* download stream timeout in ms */
 
       const updateVisibilityFunc = async () => {
+        if (this.stopped) {
+          clearInterval(this.timers.visibilityIntervals[outputFile]);
+          delete this.timers.visibilityIntervals[outputFile];
+        }
+
         const queueUrl = this.config.instance.outputQueueURL;
         const receiptHandle = message.ReceiptHandle;
 
@@ -1038,6 +1189,11 @@ export default class EPI2ME_FS extends EPI2ME {
         const managedUpload = s3.upload(params, options);
 
         managedUpload.on('httpUploadProgress', async progress => {
+          if (this.stopped) {
+            reject(new Error('stopped'));
+            return;
+          }
+
           //          this.log.debug(`upload progress ${progress.key} ${progress.loaded} / ${progress.total}`);
           this.uploadState('progress', 'incr', {
             bytes: progress.loaded - myProgress,
@@ -1048,12 +1204,7 @@ export default class EPI2ME_FS extends EPI2ME {
           try {
             await this.session([managedUpload.service]); // MC-7129 force refresh token on the MANAGED UPLOAD instance of the s3 service
           } catch (e) {
-            this.log.warn(
-              {
-                error: String(e),
-              },
-              'Error refreshing token',
-            );
+            this.log.warn(`Error refreshing token: ${String(e)}`);
           }
         });
 
