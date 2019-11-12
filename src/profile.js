@@ -7,15 +7,17 @@ import DEFAULTS from './default_options.json';
 export default class Profile {
   constructor(prefsFile, raiseExceptions) {
     this.prefsFile = prefsFile || Profile.profilePath();
-    this.profileCache = {};
+    this.allProfileData = {};
     this.defaultEndpoint = process.env.METRICHOR || DEFAULTS.endpoint || DEFAULTS.url;
     this.raiseExceptions = raiseExceptions;
 
     try {
-      const allProfiles = fs.readJSONSync(this.prefsFile);
-      this.profileCache = merge(allProfiles.profiles, {});
-      if (allProfiles.endpoint) {
-        this.defaultEndpoint = allProfiles.endpoint;
+      this.allProfileData = merge(fs.readJSONSync(this.prefsFile), {
+        profiles: {},
+      });
+
+      if (this.allProfileData.endpoint) {
+        this.defaultEndpoint = this.allProfileData.endpoint;
       }
     } catch (err) {
       if (this.raiseExceptions) {
@@ -30,19 +32,18 @@ export default class Profile {
 
   profile(id, obj) {
     if (id && obj) {
-      const profileCache = merge(this.profileCache, {
-        [id]: obj,
+      merge(this.allProfileData, {
+        profiles: {
+          [id]: obj,
+        },
       });
       try {
-        fs.writeJSONSync(this.prefsFile, {
-          profiles: profileCache,
-        });
+        fs.writeJSONSync(this.prefsFile, this.allProfileData);
       } catch (err) {
         if (this.raiseExceptions) {
           throw err;
         }
       }
-      this.profileCache = profileCache;
     }
 
     if (id) {
@@ -50,7 +51,7 @@ export default class Profile {
         {
           endpoint: this.defaultEndpoint,
         },
-        this.profileCache[id],
+        this.allProfileData.profiles[id],
       );
     }
 
@@ -58,6 +59,6 @@ export default class Profile {
   }
 
   profiles() {
-    return Object.keys(this.profileCache || {});
+    return Object.keys(this.allProfileData.profiles || {});
   }
 }
