@@ -1,17 +1,16 @@
 dist:
-	yarn build:dist
+	npm run build:dist
 
 test:
-	yarn test
+	npm run test
 
 lint:
-	yarn lint
+	npm run lint
 
 cover:
-	yarn cover
+	npm run cover
 
 deps:
 	apt-get install -y --force-yes nodejs jq
-	npm install -g yarn
 
 .PHONY: dist test lint cover test_integration
