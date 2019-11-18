@@ -1,5 +1,5 @@
 {
-  "name": "epi2me-api",
+  "name": "@metrichor/epi2me-api",
   "private": true,
   "dependencies": {
     "aws-sdk": "^2.573.0",
