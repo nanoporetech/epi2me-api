@@ -34,7 +34,6 @@ release:
   script:
     - *deps
     - jq ".version=\"$(echo $CI_COMMIT_TAG | sed 's/release-//g')\"" < package.json > package.json.tmp && mv package.json.tmp package.json
-    - npm run build:version
     - echo "//registry.npmjs.org/:_authToken=\${NPM_TOKEN}" > .npmrc
     - npm publish
   only:
