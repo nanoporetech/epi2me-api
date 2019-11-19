@@ -1,6 +1,6 @@
 {
   "name": "@metrichor/epi2me-api",
-  "version": "2019.11.18-1737",
+  "version": "3.0.1440",
   "license": "MPL-2.0",
   "repository": "https://git.oxfordnanolabs.local/metrichor/api.git",
   "description": "API for communicating with the EPI2ME website(s)",
@@ -14,7 +14,7 @@
     "apollo-link": "^1.2.13",
     "apollo-link-context": "^1.0.19",
     "apollo-link-http": "^1.5.16",
-    "aws-sdk": "^2.573.0",
+    "aws-sdk": "^2.574.0",
     "axios": "^0.19.0",
     "core-js": "^3.2.1",
     "fs-extra": "^8.1.0",
@@ -40,7 +40,7 @@
     "eslint": "6.6.0",
     "eslint-config-airbnb-base": "^14.0.0",
     "eslint-config-defaults": "9.0.0",
-    "eslint-config-prettier": "^6.4.0",
+    "eslint-config-prettier": "^6.7.0",
     "eslint-plugin-babel": "^5.3.0",
     "eslint-plugin-import": "^2.18.2",
     "eslint-plugin-prettier": "^3.1.1",
@@ -50,7 +50,7 @@
     "nyc": "^14.1.1",
     "prettier": "^1.18.2",
     "prettier-eslint": "^9.0.0",
-    "rollup": "^1.23.1",
+    "rollup": "^1.27.2",
     "rollup-plugin-analyzer": "^3.2.1",
     "rollup-plugin-cpy": "^2.0.1",
     "rollup-plugin-eslint": "^7.0.0",
@@ -79,7 +79,7 @@
     ]
   },
   "scripts": {
-    "build:version": "jq \".version=\\\"$(date +%Y.%-m.%-d)-${PATCH:-$(date +%-H%M)}\\\"\" < package.json > package.json.tmp && mv package.json.tmp package.json",
+    "build:version": "jq \".version=\\\"$(jq -r .version package.json | cut -d . -f 1-2).${PATCH:-$(date +%-H%M)}\\\"\" < package.json > package.json.tmp && mv package.json.tmp package.json",
     "lint-js": "eslint --ignore-path .eslintignore --ignore-pattern \"!**/.*\" .",
     "fix-js": "npm run lint-js --fix",
     "lint": "npm run lint-js",
