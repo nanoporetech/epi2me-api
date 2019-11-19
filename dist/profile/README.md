@@ -1,6 +1,6 @@
-<a href="http://metrichor.com"><img src="https://metrichor.com/gfx/logo_print.png" height="74" align="right"></a>
+<a href="http://metrichor.com"><img src="https://epi2me.nanoporetech.com/gfx/logo_print.png" height="74" align="right"></a>
 
-# Metrichor API
+# EPI2ME API
 
 Test Coverage
 master: [![coverage report](https://git.oxfordnanolabs.local/metrichor/api/badges/master/coverage.svg)]
@@ -9,34 +9,35 @@ dev: [![coverage report](https://git.oxfordnanolabs.local/metrichor/api/badges/d
 is hosted on Gitlab-Pages at:
 https://metrichor.git.oxfordnanolabs.local/api/
 
-
 ### Getting Started
+
 ```js
-const API = require('epi2me-api');
-let EPI2ME = new API({
-    "url": "custom EPI2ME host" || "https://epi2me.nanoporetech.com",
-    "apikey": "<your api key>",
-    "inputFolder": "<files to upload>",
-    "uploadedFolder": "<where to move files after uploading>",
-    "outputFolder": "<where to download files>"
-})
+const API = require('@metrichor/epi2me-api');
+const EPI2ME = new API({
+  url: 'custom EPI2ME host' || 'https://epi2me.nanoporetech.com',
+  apikey: '<your api key>',
+  apisecret: '<your api secret>',
+  inputFolder: '<folder path for files to upload>',
+  outputFolder: '<folder path for files to download>',
+});
 // list of all options: ./lib/default_options.json
 
 // list all workflows
-EPI2ME.workflows(callback);
+const workflows = await EPI2ME.workflows();
 
 // list all workflows
-EPI2ME.read_workflow(workflow_id, callback);
+const workflow = await EPI2ME.read_workflow(workflow_id);
 
-// start a newEPI2ME instance: callback(error, instance)
-EPI2ME.start_workflow(workflow_id, callback);
+// start a new EPI2ME instance
+const instance = await EPI2ME.start_workflow(workflow_id);
 
 // stop an instance: callback(error)
-EPI2ME.stop_workflow(instance_id);
+const response = await EPI2ME.stop_workflow(instance_id);
 
 // stop all current uploads / downloads: callback(error)
-EPI2ME.stop_everything();
+await EPI2ME.stop_everything();
 ```
+
 ### Constructor options:
 
 ```
@@ -44,6 +45,7 @@ EPI2ME.stop_everything();
     agent_version
     agent_address                           // Geo location and ip
     apikey
+    apisecret
     proxy
     url
     user_agent
@@ -73,24 +75,27 @@ EPI2ME.stop_everything();
     waitTokenError                          // wait 30 seconds if token fetch threw an error
     downloadTimeout                         // download stream timeout after 300s
     downloadPoolSize                        // MC-505 how many things to download at once
-    filter
-    filterByChannel                         // MC-508 filter downloads by channel
     downloadMode
     deleteOnComplete                        // MC-212
 }
 ```
+
 ### File management
+
 Dealing with the large number of read files is a considerable challenge:
 
 ##### Step 1: Input:
-MinKNOW may batch the files into folders of ~1000. The epi2me-api object will scan the input-folder (including any sub-directories) for .fast5 files. Because of the potential strain the fs.readdir operation puts on the system, it's run as infrequently as possible.
+
+MinKNOW batches files into files of 4000 reads by defailt. The epi2me-api object will scan the input-folder (including any sub-directories) for .fastq or .fast5 files. Because of the potential strain the fs.readdir operation puts on the system, it's run as infrequently as possible.
+
 ```js
 // trigger fs.readdir
-EPI2ME_api.loadUploadFiles()
+EPI2ME_api.loadUploadFiles();
 // once done, it pushes a list of new files into uploadWorkerPool
 ```
 
 Batched folder structure:
+
 ```
 ├── inputFolder
 |   ├──  MinKNOW batch1
@@ -100,6 +105,7 @@ Batched folder structure:
 ```
 
 Flat folder structure:
+
 ```
 ├── inputFolder
 |   ├── *.fast5
@@ -108,7 +114,9 @@ Flat folder structure:
 The EPI2ME api supports both folder structures as input. If the uploadedFolder or the outputFolder are subdirectories of the input folder, the .fast5 files they contain will be excluded.
 
 ##### Step 2: Uploaded
+
 Once a file has been successfully uploaded, it will be moved to the uploadedFolder. The batched folder structure is maintained:
+
 ```
 ├── uploadedFolder
 |   ├──  MinKNOW batch1
@@ -118,7 +126,9 @@ Once a file has been successfully uploaded, it will be moved to the uploadedFold
 ```
 
 ##### Step 3: Download
+
 Once the read has been succesfully processed in the EPI2ME Workflow, a message will appear on the SQS output queue, which is monitored by the epi2me-api. The output file is downloaded to the downloads folder. These files will also be batched into sub-folders whose names are completely arbitrary (and set by the metchor-api). Note that these names are not linked to the batch names created by MinKNOW
+
 ```
 ├── outputFolder
 |   ├── fail
@@ -132,9 +142,11 @@ Once the read has been succesfully processed in the EPI2ME Workflow, a message w
 ```
 
 ###### Notes on EPI2ME Worker Folder Hint
+
 The EPI2ME Worker may pass a specific folder hint in each SQS message (SQS.messageBody.telemetry.hints). If this flag exists, output files will be split according to exit-status into either "pass" or "fail" folders.
 
 There's also the "telemetry.hints.folder" flag, which is used by the Barcoding workflow to split files by barcode:
+
 ```
 ├── outputFolder
 |   ├── BC01

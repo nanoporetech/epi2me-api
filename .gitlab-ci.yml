@@ -58,21 +58,14 @@ pages:
   only:
     - dev
 
-trigger-dev:
+trigger-release:
   stage: triggers
   script:
-   - curl -X POST -F token=$GUI_TOKEN -F ref=dev https://git.oxfordnanolabs.local/api/v3/projects/224/trigger/builds # desktop agent dev
-   - curl -X POST -F token=$CLI_TOKEN -F ref=dev https://git.oxfordnanolabs.local/api/v3/projects/225/trigger/builds # cli agent dev
-# by default agent & cli both pull api#master so strictly, triggering dev builds from api#dev is meaningless...
-#   - curl -X POST -F token=$GUI_TOKEN -F ref=master https://git.oxfordnanolabs.local/api/v3/projects/224/trigger/builds # desktop agent master
-#   - curl -X POST -F token=$CLI_TOKEN -F ref=master https://git.oxfordnanolabs.local/api/v3/projects/225/trigger/builds # cli agent master
+   - curl -X POST -F token=$GUI_TOKEN -F ref=dev https://git.oxfordnanolabs.local/api/v4/projects/224/trigger/pipeline # desktop agent dev
+   - curl -X POST -F token=$CLI_TOKEN -F ref=dev https://git.oxfordnanolabs.local/api/v4/projects/225/trigger/pipeline # cli agent dev
+   - curl -X POST -F token=$GUI_TOKEN -F ref=master https://git.oxfordnanolabs.local/api/v4/projects/224/trigger/pipeline # desktop agent master
+   - curl -X POST -F token=$CLI_TOKEN -F ref=master https://git.oxfordnanolabs.local/api/v4/projects/225/trigger/pipeline # cli agent master
   only:
-   - dev
-
-trigger-testing:
-  stage: triggers
-  script:
-   - curl -X POST -F token=$GUI_TOKEN -F ref=master https://git.oxfordnanolabs.local/api/v3/projects/224/trigger/builds # desktop agent master
-   - curl -X POST -F token=$CLI_TOKEN -F ref=master https://git.oxfordnanolabs.local/api/v3/projects/225/trigger/builds # cli agent master
+    - /^release-\d+\.\d+(?:.\d+)?(?:-\S+)?$/ # use regexp
   only:
-   - master
+    - tags
