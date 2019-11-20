@@ -35,7 +35,7 @@ release:
     - *deps
     - jq ".version=\"$(echo $CI_COMMIT_TAG | sed 's/release-//g')\"" < package.json > package.json.tmp && mv package.json.tmp package.json
     - echo "//registry.npmjs.org/:_authToken=\${NPM_TOKEN}" > .npmrc
-    - npm publish
+    - npm publish --access=public
   only:
     - /^release-\d+\.\d+(?:.\d+)?(?:-\S+)?$/ # use regexp
   only:
