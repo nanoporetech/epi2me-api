@@ -1,7 +1,9 @@
+import { merge } from 'lodash';
+
 export default class PromisePipeline {
-  static MakeQueryablePromise(promise) {
+  static MakeQueryablePromise(promiseIn) {
     // Don't modify any promise that has been already modified.
-    if (promise.isResolved) return promise;
+    if (promiseIn.isResolved) return promiseIn;
 
     // Set initial state
     let isPending = true;
@@ -9,47 +11,60 @@ export default class PromisePipeline {
     let isResolved = false;
 
     // Observe the promise, saving the fulfillment in a closure scope.
-    const improvedPromise = promise.then(
-      v => {
+    const promiseOut = promiseIn
+      .then(v => {
         isResolved = true;
         isPending = false;
         return v;
-      },
-      e => {
+      })
+      .catch(e => {
         isRejected = true;
         isPending = false;
         throw e;
-      },
-    );
+      });
 
-    improvedPromise.isResolved = () => {
+    promiseOut.dependsOn = promiseIn;
+    promiseOut.isResolved = () => {
       return isResolved;
     };
-    improvedPromise.isPending = () => {
+    promiseOut.isPending = () => {
       return isPending;
     };
-    improvedPromise.isRejected = () => {
+    promiseOut.isRejected = () => {
       return isRejected;
     };
-    return improvedPromise;
+    return promiseOut;
   }
 
-  constructor(opts) {
+  constructor(optsIn) {
+    const opts = merge(
+      {
+        bandwidth: 1,
+        interval: 500,
+      },
+      optsIn,
+    );
+    this.bandwidth = opts.bandwidth;
+    this.interval = opts.interval;
     this.pipeline = [];
     this.running = [];
-    this.bandwidth = opts.bandwidth || 1;
-    this.interval = opts.interval || 500;
+    this.completed = 0;
+    this.intervalId = null;
 
     if (!('start' in opts) || opts.start) {
       this.start();
     }
   }
 
-  enqueue(jobGenerator) {
-    this.pipeline.push(jobGenerator);
+  enqueue(promiseMaker) {
+    this.pipeline.push(promiseMaker);
   }
 
   start() {
+    if (this.intervalId) {
+      return;
+    }
+
     this.intervalId = setInterval(() => {
       this.monitorInterval();
     }, this.interval);
@@ -57,12 +72,15 @@ export default class PromisePipeline {
 
   stop() {
     clearInterval(this.intervalId);
+    delete this.intervalId;
   }
 
   state() {
     return {
       queued: this.pipeline.length,
       running: this.running.length,
+      completed: this.completed,
+      state: this.intervalId ? 'running' : 'stopped',
     };
   }
 
@@ -70,22 +88,24 @@ export default class PromisePipeline {
     // remove complete jobs from the pipeline. reverse order so splice doesn't change indices
     const completedPositions = this.running
       .map((o, i) => {
-        return !o.isPending() ? i : null;
+        return o.isPending() ? null : i;
       })
       .filter(o => o)
       .reverse();
 
     completedPositions.forEach(pos => {
       this.running.splice(pos, 1); // remove completed promises in-place
+      this.completed += 1;
     });
 
     const availablePositions = this.bandwidth - this.running.length;
-
     for (let i = 0; i < availablePositions; i += 1) {
       const nextJob = this.pipeline.shift();
+
       if (!nextJob) {
         return;
       }
+
       this.running.push(PromisePipeline.MakeQueryablePromise(nextJob()));
     }
   }
