@@ -6,7 +6,7 @@ import sinon from 'sinon';
 import zlib from 'zlib';
 import splitter from '../../src/splitters/fastq-gz';
 
-describe('epi2me.splitters.fastq', () => {
+describe('epi2me.splitters.fastq-gz', () => {
   beforeEach(() => {
     sinon.stub(fs, 'unlink').resolves();
   });
@@ -79,6 +79,7 @@ describe('epi2me.splitters.fastq', () => {
 
   it('should split if over maxchunksize', async () => {
     const tmpfile = path.join(tmp.dirSync().name, 'foo.fq.gz');
+    console.log(tmpfile);
     await new Promise(resolve => {
       zlib.gzip(
         '@A_read\nACTGCATG\n+\n12345678\n@A_nother_read\n+\nCTGACTGA\n23456781\n@B_read\nTGCATGAC\n+\n34567812\n@B_nother_read\n+\nGACTGACT\n45678123\n',
@@ -116,10 +117,10 @@ describe('epi2me.splitters.fastq', () => {
       },
       'split if over maxchunksize',
     );
-    assert.equal(fs.statSync(`${dirname}/${basename}_1.fq.gz`).size, 28);
-    assert.equal(fs.statSync(`${dirname}/${basename}_2.fq.gz`).size, 35);
-    assert.equal(fs.statSync(`${dirname}/${basename}_3.fq.gz`).size, 28);
-    assert.equal(fs.statSync(`${dirname}/${basename}_4.fq.gz`).size, 35);
+    assert.equal(fs.statSync(`${dirname}/${basename}_1.fq.gz`).size, 48);
+    assert.equal(fs.statSync(`${dirname}/${basename}_2.fq.gz`).size, 52);
+    assert.equal(fs.statSync(`${dirname}/${basename}_3.fq.gz`).size, 48);
+    assert.equal(fs.statSync(`${dirname}/${basename}_4.fq.gz`).size, 52);
   });
 
   it('should split if over maxchunkreads', async () => {
@@ -159,12 +160,12 @@ describe('epi2me.splitters.fastq', () => {
     );
     assert.equal(
       fs.statSync(`${dirname}/${basename}_1.fq.gz`).size,
-      63,
+      71,
       `${dirname}/${basename}_1.fq.gz size ${fs.statSync(`${dirname}/${basename}_1.fq.gz`).size}`,
     );
     assert.equal(
       fs.statSync(`${dirname}/${basename}_2.fq.gz`).size,
-      63,
+      71,
       `${dirname}/${basename}_2.fq.gz size ${fs.statSync(`${dirname}/${basename}_2.fq.gz`).size}`,
     );
   });

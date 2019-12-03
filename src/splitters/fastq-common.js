@@ -3,10 +3,11 @@ import path from 'path';
 import readline from 'readline';
 import { merge } from 'lodash';
 import stream from 'stream';
+import Promise from 'core-js/features/promise'; // shim Promise.finally() for nw 0.29.4 nodejs
 
 const linesPerRead = 4;
 
-export default async function(filePath, opts, handler, inputGenerator) {
+export default async function(filePath, opts, handler, inputGenerator, outputGenerator) {
   const { maxChunkBytes, maxChunkReads } = merge({}, opts);
 
   if (!maxChunkBytes && !maxChunkReads) {
@@ -52,7 +53,7 @@ export default async function(filePath, opts, handler, inputGenerator) {
       }
 
       const chunkPath = `${basepath}_${mychunk}${extension}`;
-      const chunkWriteStream = fs.createWriteStream(chunkPath);
+      const chunkWriteStream = outputGenerator ? outputGenerator(chunkPath) : fs.createWriteStream(chunkPath);
 
       chunkWriteStream.on('close', () => {
         handler(chunkPath)
