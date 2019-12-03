@@ -79,7 +79,6 @@ describe('epi2me.splitters.fastq-gz', () => {
 
   it('should split if over maxchunksize', async () => {
     const tmpfile = path.join(tmp.dirSync().name, 'foo.fq.gz');
-    console.log(tmpfile);
     await new Promise(resolve => {
       zlib.gzip(
         '@A_read\nACTGCATG\n+\n12345678\n@A_nother_read\n+\nCTGACTGA\n23456781\n@B_read\nTGCATGAC\n+\n34567812\n@B_nother_read\n+\nGACTGACT\n45678123\n',
