@@ -14,7 +14,7 @@ stages:
    apt-get update
 
 .deps: &deps |
-   curl -sL https://deb.nodesource.com/setup_8.x > nodejs-repo
+   curl -sL https://deb.nodesource.com/setup_12.x > nodejs-repo
    chmod +x nodejs-repo
    ./nodejs-repo
    rm nodejs-repo
