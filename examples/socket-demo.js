@@ -18,7 +18,6 @@ const epi2me = new EPI2ME({
 });
 
 epi2me.socket().then(socket => {
-  console.log(socket);
   socket.watch(channelName, data => {
     console.log('event', data); // eslint-disable-line
   });

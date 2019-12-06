@@ -33,8 +33,7 @@ describe('epi2me.splitters.fastq-gz', () => {
       assert.fail(e);
     }
     assert.deepEqual(
-      struct,
-      {
+      struct, {
         source: tmpfile,
         split: false,
         chunks: [tmpfile],
@@ -55,8 +54,7 @@ describe('epi2me.splitters.fastq-gz', () => {
     let struct;
     try {
       struct = await splitter(
-        tmpfile,
-        {
+        tmpfile, {
           maxChunkBytes: 10000,
         },
         () => {
@@ -67,8 +65,7 @@ describe('epi2me.splitters.fastq-gz', () => {
       assert.fail(e);
     }
     assert.deepEqual(
-      struct,
-      {
+      struct, {
         source: tmpfile,
         split: false,
         chunks: [tmpfile],
@@ -89,8 +86,7 @@ describe('epi2me.splitters.fastq-gz', () => {
     let struct;
     try {
       struct = await splitter(
-        tmpfile,
-        {
+        tmpfile, {
           maxChunkBytes: 5,
         },
         () => {
@@ -103,8 +99,7 @@ describe('epi2me.splitters.fastq-gz', () => {
     const dirname = path.dirname(tmpfile);
     const basename = path.basename(tmpfile, '.fq.gz');
     assert.deepEqual(
-      struct,
-      {
+      struct, {
         source: tmpfile,
         split: true,
         chunks: [
@@ -116,10 +111,10 @@ describe('epi2me.splitters.fastq-gz', () => {
       },
       'split if over maxchunksize',
     );
-    assert.equal(fs.statSync(`${dirname}/${basename}_1.fq.gz`).size, 48);
-    assert.equal(fs.statSync(`${dirname}/${basename}_2.fq.gz`).size, 52);
-    assert.equal(fs.statSync(`${dirname}/${basename}_3.fq.gz`).size, 48);
-    assert.equal(fs.statSync(`${dirname}/${basename}_4.fq.gz`).size, 52);
+    assert.equal(fs.statSync(`${dirname}/${basename}_1.fq.gz`).size, 48, `${dirname}/${basename}_1.fq.gz`);
+    assert.equal(fs.statSync(`${dirname}/${basename}_2.fq.gz`).size, 52, `${dirname}/${basename}_2.fq.gz`);
+    assert.equal(fs.statSync(`${dirname}/${basename}_3.fq.gz`).size, 48, `${dirname}/${basename}_3.fq.gz`);
+    assert.equal(fs.statSync(`${dirname}/${basename}_4.fq.gz`).size, 52, `${dirname}/${basename}_4.fq.gz`);
   });
 
   it('should split if over maxchunkreads', async () => {
@@ -134,8 +129,7 @@ describe('epi2me.splitters.fastq-gz', () => {
     let struct;
     try {
       struct = await splitter(
-        tmpfile,
-        {
+        tmpfile, {
           maxChunkReads: 2,
         },
         () => {
@@ -149,8 +143,7 @@ describe('epi2me.splitters.fastq-gz', () => {
     const basename = path.basename(tmpfile, '.fq.gz');
 
     assert.deepEqual(
-      struct,
-      {
+      struct, {
         source: tmpfile,
         split: true,
         chunks: [`${dirname}/${basename}_1.fq.gz`, `${dirname}/${basename}_2.fq.gz`],

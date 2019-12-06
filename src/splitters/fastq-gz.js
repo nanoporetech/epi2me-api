@@ -2,7 +2,7 @@ import fs from 'fs-extra';
 import zlib from 'zlib';
 import fastqCommon from './fastq-common';
 
-export default async function(filePath, opts, handler) {
+export default async function (filePath, opts, handler) {
   return fastqCommon(
     filePath,
     opts,
@@ -11,10 +11,13 @@ export default async function(filePath, opts, handler) {
       // reader
       return fs.createReadStream(inputPath).pipe(zlib.createGunzip());
     },
-    outputPath => {
+    (outputPath, closureHandler) => {
       // writer
+      const stream = fs.createWriteStream(outputPath);
+      stream.on("close", closureHandler);
       const gzip = zlib.createGzip();
-      gzip.pipe(fs.createWriteStream(outputPath));
+
+      gzip.pipe(stream);
       return gzip;
     },
   );
