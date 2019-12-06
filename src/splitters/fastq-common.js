@@ -1,14 +1,23 @@
+import readline from 'readline';
 import fs from 'fs-extra';
 import path from 'path';
-import readline from 'readline';
-import { merge } from 'lodash';
-import stream from 'stream';
-import Promise from 'core-js/features/promise'; // shim Promise.finally() for nw 0.29.4 nodejs
+import {
+  merge
+} from 'lodash';
 
-const linesPerRead = 4;
 
-export default async function(filePath, opts, handler, inputGenerator, outputGenerator) {
-  const { maxChunkBytes, maxChunkReads } = merge({}, opts);
+export default async function (filePath, opts, handler, inputGenerator, outputGenerator) {
+  const linesPerRead = 4;
+  const {
+    maxChunkBytes,
+    maxChunkReads
+  } = merge({}, opts);
+
+  const dirname = path.dirname(filePath);
+  const filename = path.basename(filePath);
+  const basename = filename.match(/^[^.]+/)[0];
+  const extname = filename.replace(basename, '');
+  const basepath = path.join(dirname, basename);
 
   if (!maxChunkBytes && !maxChunkReads) {
     // not splitting - no size or count given
@@ -33,133 +42,74 @@ export default async function(filePath, opts, handler, inputGenerator, outputGen
     });
   }
 
-  let stopping = false;
-  const brokenPromises = [];
-  let splitResolver;
-  let splitRejecter;
-  const splitPromise = new Promise((resolve, reject) => {
-    splitResolver = resolve;
-    splitRejecter = reject;
-  });
-  const splitStreamFactory = (basepath, extension) => {
-    let lineCounter = 0;
-    let byteCounter = 0;
-    let readCounter = 0;
-
-    const chunkStreamFactory = (mychunk, resolve, reject) => {
-      if (stopping) {
-        reject(new Error('stopped'));
-        return null;
-      }
-
-      const chunkPath = `${basepath}_${mychunk}${extension}`;
-      const chunkWriteStream = outputGenerator ? outputGenerator(chunkPath) : fs.createWriteStream(chunkPath);
-
-      chunkWriteStream.on('close', () => {
-        handler(chunkPath)
-          .then(() => {
-            resolve({
-              source: chunkPath,
-              split: false,
-            });
-          })
-          .catch(err => {
-            // if handler raised an exception and it was because the instance was stopped, don't try and continue with anything else - close the readline and be done.
-            if (String(err) === 'Error: stopped') {
-              stopping = true;
-              return;
-            }
-            reject(err);
-          })
-          .finally(() => {
-            fs.unlink(chunkPath).catch(() => {}); // can't log a warning here - no logger
-          });
-      });
-
-      return chunkWriteStream;
+  const outerPromise = new Promise((resolveOuter) => {
+    let chunkId = 0;
+    let lineInRead = 0;
+    let readBuf = "";
+    let readsInChunk = 0;
+    let bytesInChunk = 0;
+    let chunkPath;
+    let chunkStream;
+    const resolutionData = {
+      source: filePath,
+      split: true,
+      chunks: []
     };
 
-    let chunkStream;
-    let chunkId = 1;
+    const readHandler = async read => {
 
-    const str = new stream.Writable({
-      write: async (chunk, encoding, next) => {
-        if (stopping) {
-          if (chunkStream) {
-            chunkStream.end();
-          }
-          return;
-        }
+      if (!readsInChunk) {
+        // open new chunk
+        chunkId += 1;
+        chunkPath = `${basepath}_${chunkId}${extname}`;
+        resolutionData.chunks.push(chunkPath);
 
-        if (
-          !chunkStream ||
-          (!(lineCounter % linesPerRead) &&
-            ((maxChunkReads && readCounter >= maxChunkReads) || (maxChunkBytes && byteCounter > maxChunkBytes)))
-        ) {
-          if (chunkStream) {
-            chunkStream.end();
-            readCounter = 0;
-            byteCounter = 0;
-            lineCounter = 0;
-          }
-
-          const setupPromise = new Promise(setupDone => {
-            brokenPromises.push(
-              new Promise((resolve, reject) => {
-                const newStream = chunkStreamFactory(chunkId, resolve, reject);
-                setupDone(newStream);
-              }),
-            );
+        const closeHandler = () => {
+          handler(chunkPath).then(() => {
+            resolveOuter(resolutionData);
           });
-          // ensure chunk setup has been done by the time we chunkStream.write
-          chunkStream = await setupPromise;
-          chunkId += 1;
+        };
+
+        if (outputGenerator) {
+          chunkStream = outputGenerator(chunkPath, closeHandler);
+        } else {
+          chunkStream = fs.createWriteStream(chunkPath);
+          chunkStream.on("close", closeHandler);
         }
-        chunkStream.write(chunk, encoding, next);
-
-        lineCounter += 1;
-        byteCounter += chunk.length;
-        if (lineCounter % linesPerRead === 0) {
-          readCounter += 1;
-        }
-      },
-    });
-
-    str.on('finish', () => {
-      chunkStream.end();
-      Promise.all(brokenPromises)
-        .then(results => {
-          splitResolver({
-            source: filePath,
-            split: true,
-            chunks: results.map(o => o.source),
-          });
-        })
-        .catch(splitRejecter);
-    });
-    return str;
-  };
-
-  const dirname = path.dirname(filePath);
-  const filename = path.basename(filePath);
-  const basename = filename.match(/^[^.]+/)[0];
-  const extname = filename.replace(basename, '');
-  const out = splitStreamFactory(path.join(dirname, basename), extname);
-
-  readline
-    .createInterface({
-      input: inputGenerator(filePath),
-    })
-    .on('line', line => {
-      if (stopping) {
-        out.end();
-      } else {
-        out.write(`${line}\n`); // os.EOL ?
       }
-    })
-    .on('close', async () => {
-      out.end();
-    });
 
-  return splitPromise;
-}
+      readsInChunk += 1;
+      bytesInChunk += read.length;
+
+      chunkStream.write(read, () => {});
+
+      if ((maxChunkBytes && (bytesInChunk >= maxChunkBytes)) ||
+        (maxChunkReads && (readsInChunk >= maxChunkReads))) {
+        // close chunk & reopen
+        readsInChunk = 0;
+        bytesInChunk = 0;
+        chunkStream.end();
+      }
+    };
+
+    const lineHandler = async line => {
+      lineInRead += 1;
+      readBuf += line;
+      readBuf += "\n";
+
+      if (lineInRead >= linesPerRead) {
+        lineInRead = 0;
+        readHandler(readBuf);
+        readBuf = "";
+      }
+    };
+
+    readline
+      .createInterface({
+        input: inputGenerator(filePath),
+      })
+      .on('line', lineHandler);
+  });
+
+  return outerPromise;
+};

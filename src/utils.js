@@ -247,6 +247,10 @@ const utils = (function magic() {
       } catch (err) {
         return Promise.reject(err);
       }
+
+      if (options.handler) {
+        return options.handler(res);
+      }
       return internal.responseHandler(res, options);
     },
 

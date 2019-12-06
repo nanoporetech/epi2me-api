@@ -168,11 +168,6 @@ export default class REST_FS extends REST {
     // download tarball including workflow json
     // allocate install_token with STS credentials
     // initialise coastguard to perform ECR docker pull
-    return utils.pipe(
-      `workflow/bundle/${idWorkflow}.tar.gz`,
-      filepath,
-      this.options,
-      progressCb,
-    );
+    return utils.pipe(`workflow/bundle/${idWorkflow}.tar.gz`, filepath, this.options, progressCb);
   }
 }

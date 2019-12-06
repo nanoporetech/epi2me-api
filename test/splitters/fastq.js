@@ -30,8 +30,7 @@ describe('epi2me.splitters.fastq', () => {
       assert.fail(e);
     }
     assert.deepEqual(
-      struct,
-      {
+      struct, {
         source: tmpfile,
         split: false,
         chunks: [tmpfile],
@@ -50,8 +49,7 @@ describe('epi2me.splitters.fastq', () => {
     let struct;
     try {
       struct = await splitter(
-        tmpfile,
-        {
+        tmpfile, {
           maxChunkBytes: 10000,
         },
         () => {
@@ -62,8 +60,7 @@ describe('epi2me.splitters.fastq', () => {
       assert.fail(e);
     }
     assert.deepEqual(
-      struct,
-      {
+      struct, {
         source: tmpfile,
         split: false,
         chunks: [tmpfile],
@@ -82,8 +79,7 @@ describe('epi2me.splitters.fastq', () => {
     let struct;
     try {
       struct = await splitter(
-        tmpfile,
-        {
+        tmpfile, {
           maxChunkBytes: 5,
         },
         () => {
@@ -96,8 +92,7 @@ describe('epi2me.splitters.fastq', () => {
     const dirname = path.dirname(tmpfile);
     const basename = path.basename(tmpfile, '.txt');
     assert.deepEqual(
-      struct,
-      {
+      struct, {
         source: tmpfile,
         split: true,
         chunks: [
@@ -125,8 +120,7 @@ describe('epi2me.splitters.fastq', () => {
     let struct;
     try {
       struct = await splitter(
-        tmpfile,
-        {
+        tmpfile, {
           maxChunkReads: 2,
         },
         () => {
@@ -140,8 +134,7 @@ describe('epi2me.splitters.fastq', () => {
     const basename = path.basename(tmpfile, '.txt');
 
     assert.deepEqual(
-      struct,
-      {
+      struct, {
         source: tmpfile,
         split: true,
         chunks: [`${dirname}/${basename}_1.txt`, `${dirname}/${basename}_2.txt`],

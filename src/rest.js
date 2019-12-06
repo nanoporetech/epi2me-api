@@ -78,6 +78,20 @@ export default class REST {
     }
   }
 
+  async jwt() {
+    try {
+      const customJWTHandler = res => {
+        return res.headers['x-epi2me-jwt']
+          ? Promise.resolve(res.headers['x-epi2me-jwt'])
+          : Promise.reject(new Error('failed to fetch JWT'));
+      };
+      const data = await utils.post('authenticate', {}, merge({ handler: customJWTHandler }, this.options));
+      return Promise.resolve(data);
+    } catch (err) {
+      return Promise.reject(err);
+    }
+  }
+
   async instanceToken(id, opts) {
     try {
       const data = await utils.post(

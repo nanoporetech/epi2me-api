@@ -18,13 +18,13 @@ describe('epi2me.profile', () => {
 
   it('should yield no profiles', async () => {
     const p = new Profile();
-    assert.deepEqual(p.profiles(), {}, 'no file');
+    assert.deepEqual(p.profiles(), [], 'no file');
   });
 
   it('should yield no profiles', async () => {
     fs.writeJSONSync(tmpProfile, {});
     const p = new Profile();
-    assert.deepEqual(p.profiles(), {}, 'empty file');
+    assert.deepEqual(p.profiles(), [], 'empty file');
   });
 
   it('should yield no profiles', async () => {
@@ -32,7 +32,7 @@ describe('epi2me.profile', () => {
       profiles: {},
     });
     const p = new Profile();
-    assert.deepEqual(p.profiles(), {}, 'empty profiles');
+    assert.deepEqual(p.profiles(), [], 'empty profiles');
   });
 
   it('should yield one profile', async () => {
