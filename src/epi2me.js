@@ -13,6 +13,7 @@ import Promise from 'core-js/features/promise'; // shim Promise.finally() for nw
 import utils from './utils';
 import niceSize from './niceSize';
 import _REST from './rest';
+import Socket from './socket';
 import DEFAULTS from './default_options.json';
 
 export default class EPI2ME {
@@ -105,7 +106,6 @@ export default class EPI2ME {
 
     this.REST = new _REST(
       merge(
-        {},
         {
           log: this.log,
         },
@@ -122,6 +122,24 @@ export default class EPI2ME {
       visibilityIntervals: {},
       summaryTelemetryInterval: null,
     };
+  }
+
+  async socket () {
+    if(this.mySocket) {
+      return this.mySocket;
+    }
+
+    this.mySocket = new Socket(
+      this.REST,
+      merge(
+        {
+          log: this.log,
+        },
+        this.config.options,
+      ),
+    );
+
+    return this.mySocket;
   }
 
   async stopEverything() {

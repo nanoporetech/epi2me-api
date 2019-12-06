@@ -1,6 +1,6 @@
 {
   "name": "@metrichor/epi2me-api",
-  "version": "3.0.1451",
+  "version": "3.0.1027",
   "license": "MPL-2.0",
   "repository": "https://git.oxfordnanolabs.local/metrichor/api.git",
   "description": "API for communicating with the EPI2ME website(s)",
@@ -9,6 +9,7 @@
   "dependencies": {
     "@lifeomic/axios-fetch": "^1.4.1",
     "@types/axios": "^0.14.0",
+    "@types/socket.io-client": "^1.4.32",
     "apollo-cache-inmemory": "^1.6.3",
     "apollo-client": "^2.6.4",
     "apollo-link": "^1.2.13",
@@ -23,6 +24,7 @@
     "lodash": "4.17.15",
     "proxy-agent": "^3.1.1",
     "save": "^2.4.0",
+    "socket.io-client": "^2.3.0",
     "sqlite": "^3.0.3",
     "tunnel": "^0.0.6"
   },
