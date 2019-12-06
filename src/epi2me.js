@@ -6,10 +6,14 @@
  *
  */
 
-import { every, isFunction, defaults, merge } from 'lodash';
+import {
+  every,
+  isFunction,
+  defaults,
+  merge
+} from 'lodash';
 import AWS from 'aws-sdk';
 import proxy from 'proxy-agent';
-import Promise from 'core-js/features/promise'; // shim Promise.finally() for nw 0.29.4 nodejs
 import utils from './utils';
 import niceSize from './niceSize';
 import _REST from './rest';
@@ -105,8 +109,7 @@ export default class EPI2ME {
     };
 
     this.REST = new _REST(
-      merge(
-        {
+      merge({
           log: this.log,
         },
         this.config.options,
@@ -124,15 +127,14 @@ export default class EPI2ME {
     };
   }
 
-  async socket () {
-    if(this.mySocket) {
+  async socket() {
+    if (this.mySocket) {
       return this.mySocket;
     }
 
     this.mySocket = new Socket(
       this.REST,
-      merge(
-        {
+      merge({
           log: this.log,
         },
         this.config.options,
@@ -175,7 +177,9 @@ export default class EPI2ME {
       this.downloadWorkerPool = null;
     }
 
-    const { id_workflow_instance: idWorkflowInstance } = this.config.instance;
+    const {
+      id_workflow_instance: idWorkflowInstance
+    } = this.config.instance;
     if (idWorkflowInstance) {
       try {
         await this.REST.stopWorkflow(idWorkflowInstance);
@@ -286,7 +290,10 @@ export default class EPI2ME {
   }
 
   reportProgress() {
-    const { upload, download } = this.states;
+    const {
+      upload,
+      download
+    } = this.states;
     this.log.json({
       progress: {
         download,
@@ -307,15 +314,15 @@ export default class EPI2ME {
 
     if (op === 'incr') {
       Object.keys(newData).forEach(o => {
-        this.states[direction][table][o] = this.states[direction][table][o]
-          ? this.states[direction][table][o] + parseInt(newData[o], 10)
-          : parseInt(newData[o], 10);
+        this.states[direction][table][o] = this.states[direction][table][o] ?
+          this.states[direction][table][o] + parseInt(newData[o], 10) :
+          parseInt(newData[o], 10);
       });
     } else {
       Object.keys(newData).forEach(o => {
-        this.states[direction][table][o] = this.states[direction][table][o]
-          ? this.states[direction][table][o] - parseInt(newData[o], 10)
-          : -parseInt(newData[o], 10);
+        this.states[direction][table][o] = this.states[direction][table][o] ?
+          this.states[direction][table][o] - parseInt(newData[o], 10) :
+          -parseInt(newData[o], 10);
       });
     }
 
@@ -377,9 +384,9 @@ export default class EPI2ME {
     } catch (error) {
       this.log.error(`deleteMessage exception: ${String(error)}`);
       if (!this.states.download.failure) this.states.download.failure = {};
-      this.states.download.failure[error] = this.states.download.failure[error]
-        ? this.states.download.failure[error] + 1
-        : 1;
+      this.states.download.failure[error] = this.states.download.failure[error] ?
+        this.states.download.failure[error] + 1 :
+        1;
       return Promise.reject(error);
     }
   }

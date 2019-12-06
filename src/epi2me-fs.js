@@ -10,8 +10,6 @@ import { merge, isArray } from 'lodash';
 import fs from 'fs-extra'; /* MC-565 handle EMFILE & EXDIR gracefully; use Promises */
 import { EOL, homedir } from 'os';
 import path from 'path';
-import Promise from 'core-js/features/promise'; // shim Promise.finally() for nw 0.29.4 nodejs
-// import Queue from 'queue-promise';
 import utils from './utils-fs';
 import _REST from './rest-fs';
 import filestats from './filestats';
