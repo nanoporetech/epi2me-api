@@ -80,6 +80,7 @@ export default class Socket {
       return;
     }
 
+    this.log.debug(`socket emit ${chan} ${JSON.stringify(data)}`);
     this.socket.emit(chan, data);
   }
 }

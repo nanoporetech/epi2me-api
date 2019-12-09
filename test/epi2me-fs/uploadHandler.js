@@ -31,7 +31,9 @@ describe('epi2me.uploadHandler', () => {
     );
 
     sinon.stub(client, 'session').resolves();
-
+    sinon.stub(client, 'socket').resolves({
+      emit: () => {},
+    });
     return client;
   };
 

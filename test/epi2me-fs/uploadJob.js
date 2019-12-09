@@ -23,6 +23,9 @@ describe('epi2me.uploadJob', () => {
       ),
     );
     client.db = new DB(tmp.dirSync().name, null, client.log);
+    sinon.stub(client, 'socket').resolves({
+      emit: () => {},
+    });
     return client;
   };
 
