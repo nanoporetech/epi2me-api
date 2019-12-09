@@ -136,7 +136,10 @@ describe('epi2me.deleteMessage', () => {
       assert.ok(String(error).match(/deleteMessage failed/), 'thrown error message');
     }
 
-    assert.ok(client.log.error.args[0][0].match(/exception.*deleteMessage failed/), 'exception message logged');
+    assert.ok(
+      client.log.error.args[0][0].match(/exception.*deleteMessage failed/),
+      `exception message logged. was ${client.log.error.args[0][0]}`,
+    );
   });
 
   it('should invoke sqs.deleteMessage with discovery failure and counter set', async () => {

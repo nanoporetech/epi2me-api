@@ -2,7 +2,7 @@
   "name": "@metrichor/epi2me-api",
   "private": true,
   "dependencies": {
-    "aws-sdk": "^2.574.0",
+    "aws-sdk": "^2.585.0",
     "axios": "^0.19.0",
     "fs-extra": "^8.1.0",
     "lodash": "4.17.15",
