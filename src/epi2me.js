@@ -297,11 +297,6 @@ export default class EPI2ME {
         upload,
       },
     });
-
-    // component_id: "start,stop,fail" // chunk counts. todo: double-check what download.fail really represents
-    this.realtimeFeedback(`workflow_instance:state:${this.config.instance.id_workflow_instance}`, {
-      '0': `${upload.success.files},${download.success.files},${download.fail}`,
-    });
   }
 
   storeState(direction, table, op, newDataIn) {

@@ -8,8 +8,8 @@ import AWS from 'aws-sdk';
 import EPI2ME from '../../src/epi2me-fs';
 
 describe('epi2me-api.processMessage', () => {
-  const clientFactory = opts =>
-    new EPI2ME(
+  const clientFactory = opts => {
+    const client = new EPI2ME(
       merge(
         {
           url: 'https://epi2me-test.local',
@@ -24,6 +24,11 @@ describe('epi2me-api.processMessage', () => {
         opts,
       ),
     );
+    sinon.stub(client, 'socket').resolves({
+      emit: () => {},
+    });
+    return client;
+  };
 
   let stubs;
   beforeEach(() => {

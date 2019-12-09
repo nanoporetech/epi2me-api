@@ -1,6 +1,8 @@
 import assert from 'assert';
 import sinon from 'sinon';
-import { merge } from 'lodash';
+import {
+  merge
+} from 'lodash';
 import AWS from 'aws-sdk';
 import tmp from 'tmp';
 import EPI2ME from '../../src/epi2me-fs';
@@ -9,8 +11,7 @@ import DB from '../../src/db';
 describe('epi2me.uploadComplete', () => {
   const clientFactory = opts => {
     const client = new EPI2ME(
-      merge(
-        {
+      merge({
           url: 'https://epi2me-test.local',
           log: {
             debug: sinon.stub(),
@@ -24,6 +25,9 @@ describe('epi2me.uploadComplete', () => {
       ),
     );
     client.db = new DB(tmp.dirSync().name, null, client.log);
+    sinon.stub(client, 'socket').resolves({
+      emit: () => {},
+    });
     return client;
   };
 
@@ -82,8 +86,7 @@ describe('epi2me.uploadComplete', () => {
 
     sinon.stub(sqs, 'sendMessage').callsFake(obj => {
       assert.deepEqual(
-        JSON.parse(obj.MessageBody),
-        {
+        JSON.parse(obj.MessageBody), {
           bucket: null,
           outputQueue: null,
           remote_addr: null,
@@ -146,8 +149,7 @@ describe('epi2me.uploadComplete', () => {
 
     sinon.stub(sqs, 'sendMessage').callsFake(obj => {
       assert.deepEqual(
-        JSON.parse(obj.MessageBody),
-        {
+        JSON.parse(obj.MessageBody), {
           bucket: null,
           outputQueue: null,
           remote_addr: null,
@@ -204,8 +206,7 @@ describe('epi2me.uploadComplete', () => {
 
     sinon.stub(sqs, 'sendMessage').callsFake(obj => {
       assert.deepEqual(
-        JSON.parse(obj.MessageBody),
-        {
+        JSON.parse(obj.MessageBody), {
           bucket: null,
           outputQueue: null,
           remote_addr: null,
@@ -255,8 +256,7 @@ describe('epi2me.uploadComplete', () => {
     sinon.stub(sqs, 'sendMessage').callsFake(obj => {
       assert.deepEqual(
         JSON.parse(obj.MessageBody).components,
-        [
-          {
+        [{
             id: 1,
             inputQueueName: 'upload-q',
           },
@@ -275,8 +275,7 @@ describe('epi2me.uploadComplete', () => {
     client.uploadMessageQueue = 'upload-q';
     client.downloadMessageQueue = 'download-q';
     client.config.instance.chain = {
-      components: [
-        {
+      components: [{
           id: 1,
           inputQueueName: 'uploadMessageQueue',
         },
@@ -324,8 +323,7 @@ describe('epi2me.uploadComplete', () => {
 
     try {
       await client.uploadComplete(
-        '/aaa-bbb-ccc-123/1/123456/component-0/file.fastq/fastq_fail%2Fcomplex%2Ffile.fastq',
-        {
+        '/aaa-bbb-ccc-123/1/123456/component-0/file.fastq/fastq_fail%2Fcomplex%2Ffile.fastq', {
           id: 'FILE_15',
           path: 'fastq_fail/complex/file.fastq',
         },
@@ -363,8 +361,7 @@ describe('epi2me.uploadComplete', () => {
 
     try {
       await client.uploadComplete(
-        '/aaa-bbb-ccc-123/1/123456/component-0/file.fastq/fastq_fail%2Ccomplex%2Cfile.fastq',
-        {
+        '/aaa-bbb-ccc-123/1/123456/component-0/file.fastq/fastq_fail%2Ccomplex%2Cfile.fastq', {
           id: 'FILE_15',
           path: 'fastq_fail\\complex\\file.fastq',
         },

@@ -106,7 +106,7 @@ export default class EPI2ME_FS extends EPI2ME {
 
     // copy tuples with the same names
 
-    ['id_workflow_instance', 'id_workflow', 'remote_addr', 'key_id', 'bucket', 'user_defined', 'start_date'].forEach(
+    ['id_workflow_instance', 'id_workflow', 'remote_addr', 'key_id', 'bucket', 'user_defined', 'start_date', 'id_user'].forEach(
       f => {
         this.config.instance[f] = instance[f];
       },
@@ -904,6 +904,17 @@ export default class EPI2ME_FS extends EPI2ME {
       this.log.error(`Exception deleting message: ${String(e)}`);
     }
 
+    this.realtimeFeedback(`workflow_instance:state`, {
+      type: 'stop',
+      id_workflow_instance: this.config.instance.id_workflow_instance,
+      id_workflow: this.config.instance.id_workflow,
+      component_id: '0',
+      message_id: merge(message).MessageId,
+      id_user: this.config.instance.id_user,
+    }).catch(e => {
+      this.log.warn(`realtimeFeedback failed: ${String(e)}`);
+    });
+
     /* must signal completion */
     return Promise.resolve();
   }
@@ -1292,12 +1303,13 @@ export default class EPI2ME_FS extends EPI2ME {
       });
     }
 
+    let sentMessage = {};
     try {
       const inputQueueURL = await this.discoverQueue(this.config.instance.inputQueueName);
       const sqs = await this.sessionedSQS();
 
       this.log.info(`${file.id} sending SQS message to input queue`);
-      await sqs
+      sentMessage = await sqs
         .sendMessage({
           QueueUrl: inputQueueURL,
           MessageBody: JSON.stringify(message),
@@ -1307,6 +1319,17 @@ export default class EPI2ME_FS extends EPI2ME {
       this.log.error(`${file.id} exception sending SQS message: ${String(sendMessageException)}`);
       return Promise.reject(sendMessageException);
     }
+
+    this.realtimeFeedback(`workflow_instance:state`, {
+      type: 'start',
+      id_workflow_instance: this.config.instance.id_workflow_instance,
+      id_workflow: this.config.instance.id_workflow,
+      component_id: '0',
+      message_id: merge(sentMessage).MessageId,
+      id_user: this.config.instance.id_user,
+    }).catch(e => {
+      this.log.warn(`realtimeFeedback failed: ${String(e)}`);
+    });
 
     this.log.info(`${file.id} SQS message sent. Mark as uploaded`);
     return this.db.uploadFile(file.path);
