@@ -141,9 +141,9 @@ export default class EPI2ME {
     return this.mySocket;
   }
 
-  async realtimeFeedback(object) {
+  async realtimeFeedback(channel, object) {
     const socket = await this.socket();
-    socket.emit(`workflow_instance:state:${object.id_workflow_instance}`, object);
+    socket.emit(channel, object);
   }
 
   async stopEverything() {
@@ -299,7 +299,7 @@ export default class EPI2ME {
     });
 
     // component_id: "start,stop,fail" // chunk counts. todo: double-check what download.fail really represents
-    this.realtimeFeedback({
+    this.realtimeFeedback(`workflow_instance:state:${this.config.instance.id_workflow_instance}`, {
       '0': `${upload.success.files},${download.success.files},${download.fail}`,
     });
   }
