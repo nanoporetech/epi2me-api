@@ -74,6 +74,41 @@ describe('epi2me.splitters.fastq-gz', () => {
     );
   });
 
+  it('should pretend to split if under maxchunkreads', async () => {
+    const tmpfile = path.join(tmp.dirSync().name, 'foo.fq.gz');
+    await new Promise(resolve => {
+      zlib.gzip(
+        '@A_read\nACTGCATG\n+\n12345678\n@A_nother_read\n+\nCTGACTGA\n23456781\n@B_read\nTGCATGAC\n+\n34567812\n@B_nother_read\n+\nGACTGACT\n45678123\n',
+        (_, buf) => fs.writeFile(tmpfile, buf).then(resolve),
+      );
+    });
+
+    let struct;
+    try {
+      struct = await splitter(
+        tmpfile, {
+          maxChunkReads: 10000,
+        },
+        () => {
+          return Promise.resolve();
+        },
+      );
+    } catch (e) {
+      assert.fail(e);
+    }
+
+    const dirname = path.dirname(tmpfile);
+    const basename = path.basename(tmpfile, '.fq.gz');
+    assert.deepEqual(
+      struct, {
+        source: tmpfile,
+        split: true,
+        chunks: [`${dirname}/${basename}_1.fq.gz`],
+      },
+      'do not split if under maxchunkreads',
+    );
+  });
+
   it('should split if over maxchunksize', async () => {
     const tmpfile = path.join(tmp.dirSync().name, 'foo.fq.gz');
     await new Promise(resolve => {
