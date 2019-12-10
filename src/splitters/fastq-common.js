@@ -115,7 +115,7 @@ export default async function(filePath, opts, handler, inputGenerator, outputGen
       .on('line', lineHandler)
       .on('close', () => {
         chunkStream.end(); // make sure inner chunk is closed off correctly
-        resolveSafety();
+        resolveSafety(); // this shouldn't be required, as the Promise.all follows, but removing it breaks behaviour
         Promise.all(chunkPromises).then(chunks => {
           chunks.shift(); // remove safety
           resolveOuter(
