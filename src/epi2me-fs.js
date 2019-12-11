@@ -6,9 +6,15 @@
  *
  */
 
-import { merge, isArray } from 'lodash';
+import {
+  merge,
+  isArray
+} from 'lodash';
 import fs from 'fs-extra'; /* MC-565 handle EMFILE & EXDIR gracefully; use Promises */
-import { EOL, homedir } from 'os';
+import {
+  EOL,
+  homedir
+} from 'os';
 import path from 'path';
 import utils from './utils-fs';
 import _REST from './rest-fs';
@@ -40,9 +46,7 @@ export default class EPI2ME_FS extends EPI2ME {
 
     // overwrite non-fs REST object
     this.REST = new _REST(
-      merge(
-        {},
-        {
+      merge({}, {
           log: this.log,
         },
         this.config.options,
@@ -145,8 +149,7 @@ export default class EPI2ME_FS extends EPI2ME {
     const thisInstanceDir = path.join(instancesDir, this.config.instance.id_workflow_instance);
     // set up new tracking database
     this.db = new DB(
-      thisInstanceDir,
-      {
+      thisInstanceDir, {
         idWorkflowInstance: this.config.instance.id_workflow_instance,
         inputFolder: this.config.options.inputFolder,
       },
@@ -154,9 +157,9 @@ export default class EPI2ME_FS extends EPI2ME {
     );
 
     // MC-1828 - include instance id in telemetry file name
-    const fileName = this.config.instance.id_workflow_instance
-      ? `telemetry-${this.config.instance.id_workflow_instance}.log`
-      : 'telemetry.log';
+    const fileName = this.config.instance.id_workflow_instance ?
+      `telemetry-${this.config.instance.id_workflow_instance}.log` :
+      'telemetry.log';
     const telemetryLogFolder = path.join(this.config.options.outputFolder, 'epi2me-logs');
     const telemetryLogPath = path.join(telemetryLogFolder, fileName);
 
@@ -302,9 +305,9 @@ export default class EPI2ME_FS extends EPI2ME {
         .promise();
     } catch (receiveMessageException) {
       this.log.error(`receiveMessage exception: ${String(receiveMessageException)}`);
-      this.states.download.failure[receiveMessageException] = this.states.download.failure[receiveMessageException]
-        ? this.states.download.failure[receiveMessageException] + 1
-        : 1;
+      this.states.download.failure[receiveMessageException] = this.states.download.failure[receiveMessageException] ?
+        this.states.download.failure[receiveMessageException] + 1 :
+        1;
       return Promise.reject(receiveMessageException);
     }
 
@@ -397,7 +400,9 @@ export default class EPI2ME_FS extends EPI2ME {
         settings = this.config.workflow.workflow_attributes;
       } else if ('attributes' in this.config.workflow) {
         // started from CLI
-        let { attributes: attrs } = this.config.workflow;
+        let {
+          attributes: attrs
+        } = this.config.workflow;
         if (!attrs) {
           attrs = {};
         }
@@ -511,13 +516,13 @@ export default class EPI2ME_FS extends EPI2ME {
         };
         this.states.warnings.push(warning);
 
-        const splitStyle = splitSize
-          ? {
-              maxChunkBytes: splitSize,
-            }
-          : {
-              maxChunkReads: splitReads,
-            };
+        const splitStyle = splitSize ?
+          {
+            maxChunkBytes: splitSize,
+          } :
+          {
+            maxChunkReads: splitReads,
+          };
         const splitter = file.path.match(/\.gz$/) ? fastqGzipSplitter : fastqSplitter;
 
         const fileId = utils.getFileID();
@@ -526,6 +531,7 @@ export default class EPI2ME_FS extends EPI2ME {
         });
         let chunkId = 0;
         const chunkHandler = async chunkFile => {
+          this.log.debug(`chunkHandler for ${chunkFile}`);
           // mark start of chunk transfer. do it before the stop check so it's cleaned up correctly if stopped early
           await this.db.splitFile(chunkFile, file.path);
 
@@ -547,7 +553,7 @@ export default class EPI2ME_FS extends EPI2ME {
                 size: stats.bytes,
               };
             })
-            .then(chunkStruct => {
+            .then(async chunkStruct => {
               const p = new Promise(chunkResolve => {
                 queue.enqueue(() => {
                   this.log.info(`chunk upload starting ${chunkStruct.id} ${chunkStruct.path}`);
@@ -570,12 +576,12 @@ export default class EPI2ME_FS extends EPI2ME {
                     .finally(chunkResolve);
                 });
               });
-              return p;
+              await p; // need to wait for p to resolve before resolving the filestats outer
             });
         };
 
         try {
-          await splitter(file.path, splitStyle, chunkHandler);
+          await splitter(file.path, splitStyle, chunkHandler, this.log);
           queue.stop();
         } catch (splitterError) {
           queue.stop();
@@ -655,16 +661,15 @@ export default class EPI2ME_FS extends EPI2ME {
         this.states.upload.failure = {};
       }
 
-      this.states.upload.failure[errorMsg] = this.states.upload.failure[errorMsg]
-        ? this.states.upload.failure[errorMsg] + 1
-        : 1;
+      this.states.upload.failure[errorMsg] = this.states.upload.failure[errorMsg] ?
+        this.states.upload.failure[errorMsg] + 1 :
+        1;
     } else {
       // this.uploadState('queueLength', 'decr', file2.stats); // this.states.upload.queueLength = this.states.upload.queueLength ? this.states.upload.queueLength - readCount : 0;
       this.uploadState(
         'success',
         'incr',
-        merge(
-          {
+        merge({
             files: 1,
           },
           file2.stats,
@@ -750,7 +755,9 @@ export default class EPI2ME_FS extends EPI2ME {
 
     /* MC-405 telemetry log to file */
     if (messageBody.telemetry) {
-      const { telemetry } = messageBody;
+      const {
+        telemetry
+      } = messageBody;
 
       if (telemetry.tm_path) {
         try {
@@ -823,9 +830,9 @@ export default class EPI2ME_FS extends EPI2ME {
         this.config &&
         this.config.workflow &&
         this.config.workflow.settings &&
-        this.config.workflow.settings.output_format
-          ? this.config.workflow.settings.output_format
-          : [];
+        this.config.workflow.settings.output_format ?
+        this.config.workflow.settings.output_format :
+        [];
       if (typeof extra === 'string' || extra instanceof String) {
         extra = extra.trim().split(/[\s,]+/); // do not use commas in file extensions. Ha.ha.
       }
@@ -846,14 +853,13 @@ export default class EPI2ME_FS extends EPI2ME {
           // we ignore failures to fetch anything with extra suffixes by wrapping
           // initiateDownloadStream with another Promise which permits fetch-with-suffix failures
           return new Promise((resolve, reject) => {
-            this.initiateDownloadStream(
-              {
-                bucket: messageBody.bucket,
-                path: fetchObject,
-              },
-              message,
-              fetchFile,
-            )
+            this.initiateDownloadStream({
+                  bucket: messageBody.bucket,
+                  path: fetchObject,
+                },
+                message,
+                fetchFile,
+              )
               .then(resolve)
               .catch(e => {
                 this.log.error(`Caught exception waiting for initiateDownloadStream: ${String(e)}`);
@@ -886,9 +892,9 @@ export default class EPI2ME_FS extends EPI2ME {
     } else {
       // telemetry-only mode uses readcount from message
       const readCount =
-        messageBody.telemetry.batch_summary && messageBody.telemetry.batch_summary.reads_num
-          ? messageBody.telemetry.batch_summary.reads_num
-          : 1;
+        messageBody.telemetry.batch_summary && messageBody.telemetry.batch_summary.reads_num ?
+        messageBody.telemetry.batch_summary.reads_num :
+        1;
 
       this.downloadState('success', 'incr', {
         files: 1,
@@ -1009,8 +1015,7 @@ export default class EPI2ME_FS extends EPI2ME {
           this.downloadState(
             'success',
             'incr',
-            merge(
-              {
+            merge({
                 files: 1,
               },
               stats,
@@ -1070,8 +1075,7 @@ export default class EPI2ME_FS extends EPI2ME {
         const queueUrl = this.config.instance.outputQueueURL;
         const receiptHandle = message.ReceiptHandle;
 
-        this.log.debug(
-          {
+        this.log.debug({
             message_id: message.MessageId,
           },
           'updateVisibility',
@@ -1086,8 +1090,7 @@ export default class EPI2ME_FS extends EPI2ME {
             })
             .promise();
         } catch (err) {
-          this.log.error(
-            {
+          this.log.error({
               message_id: message.MessageId,
               queue: queueUrl,
               error: err,
@@ -1131,11 +1134,11 @@ export default class EPI2ME_FS extends EPI2ME {
       .replace(/\//g, '_'); // MC-7204, MC-7206 - this needs to be unpicked in future
 
     const objectId = [
-      this.config.instance.bucketFolder,
-      'component-0',
-      mangledRelative, // prefix
-      mangledRelative, // objectname //      encodeURIComponent(file.relative.replace(/^[\\/]+/, '').replace(/\\/g, '/')), // MC-7204 - escaped slashes not handled by cgd 3.0.7
-    ]
+        this.config.instance.bucketFolder,
+        'component-0',
+        mangledRelative, // prefix
+        mangledRelative, // objectname //      encodeURIComponent(file.relative.replace(/^[\\/]+/, '').replace(/\\/g, '/')), // MC-7204 - escaped slashes not handled by cgd 3.0.7
+      ]
       .join('/')
       .replace(/\/+/g, '/');
 
@@ -1357,13 +1360,13 @@ export default class EPI2ME_FS extends EPI2ME {
 
       toFetch.push(
         this.REST.fetchContent(url)
-          .then(body => {
-            fs.writeJSONSync(fn, body);
-            this.log.debug(`fetched telemetry summary ${fn}`);
-          })
-          .catch(e => {
-            this.log.debug(`Error fetching telemetry: ${String(e)}`);
-          }),
+        .then(body => {
+          fs.writeJSONSync(fn, body);
+          this.log.debug(`fetched telemetry summary ${fn}`);
+        })
+        .catch(e => {
+          this.log.debug(`Error fetching telemetry: ${String(e)}`);
+        }),
       );
     });
 

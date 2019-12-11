@@ -3,7 +3,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import { merge } from 'lodash';
 
-export default async function(filePath, opts, handler, inputGenerator, outputGenerator) {
+export default async function(filePath, opts, handler, log, inputGenerator, outputGenerator) {
   const linesPerRead = 4;
   const { maxChunkBytes, maxChunkReads } = merge({}, opts);
 
@@ -67,24 +67,26 @@ export default async function(filePath, opts, handler, inputGenerator, outputGen
         const chunkPromise = new Promise((resolveInner, rejectInner) => {
           const myChunkPath = chunkPath;
           const closeHandler = () => {
+            // log.debug(`Closing chunk ${myChunkPath}`);
+            // handler completes once the chunk has been uploaded
             handler(myChunkPath)
-            .then(() => {
-              resolveInner(myChunkPath);
-            })
-            .catch(err => {
-              // if handler raised an exception and it was because the instance was stopped, don't try and continue with anything else - close the readline and be done.
-              if (String(err) === 'Error: stopped') {
-                // stopping = true;
-                return;
-              }
-              rejectInner(err);
-            })
-            .finally(() => {
-              fs.unlink(chunkPath).catch(() => {}); // can't log a warning here - no logger
-            });
-
+              .then(() => {
+                // log.debug(`Handler completed chunk ${myChunkPath}`);
+                resolveInner(myChunkPath);
+              })
+              .catch(err => {
+                // if handler raised an exception and it was because the instance was stopped, don't try and continue with anything else - close the readline and be done.
+                // log.debug(`Handler rejected chunk ${myChunkPath}`);
+                rejectInner(err);
+              })
+              .finally(() => {
+                fs.unlink(myChunkPath).catch(err => {
+                  log.warn(`Error unlinking chunk ${myChunkPath}: ${String(err)}`);
+                });
+              });
           };
 
+          // log.debug(`Opening chunk ${myChunkPath}`);
           if (outputGenerator) {
             chunkStream = outputGenerator(myChunkPath, closeHandler);
           } else {
@@ -127,6 +129,7 @@ export default async function(filePath, opts, handler, inputGenerator, outputGen
       })
       .on('line', lineHandler)
       .on('close', () => {
+        // log.debug(`Finished chunking ${filePath}`);
         chunkStream.end(); // make sure inner chunk is closed off correctly
         resolveSafety(); // this shouldn't be required, as the Promise.all follows, but removing it breaks behaviour
         Promise.all(chunkPromises).then(chunks => {
@@ -140,6 +143,9 @@ export default async function(filePath, opts, handler, inputGenerator, outputGen
             ),
           );
         });
+      })
+      .on('error', err => {
+        log.error(`Error chunking ${filePath}: ${String(err)}`);
       });
   });
 
