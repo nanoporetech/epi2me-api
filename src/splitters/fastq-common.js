@@ -64,12 +64,25 @@ export default async function(filePath, opts, handler, inputGenerator, outputGen
         chunkPath = `${basepath}_${chunkId}${extname}`;
 
         //        resolutionData.chunks.push(chunkPath);
-        const chunkPromise = new Promise(resolveInner => {
+        const chunkPromise = new Promise((resolveInner, rejectInner) => {
           const myChunkPath = chunkPath;
           const closeHandler = () => {
-            handler(myChunkPath).then(() => {
+            handler(myChunkPath)
+            .then(() => {
               resolveInner(myChunkPath);
+            })
+            .catch(err => {
+              // if handler raised an exception and it was because the instance was stopped, don't try and continue with anything else - close the readline and be done.
+              if (String(err) === 'Error: stopped') {
+                // stopping = true;
+                return;
+              }
+              rejectInner(err);
+            })
+            .finally(() => {
+              fs.unlink(chunkPath).catch(() => {}); // can't log a warning here - no logger
             });
+
           };
 
           if (outputGenerator) {
