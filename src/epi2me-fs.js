@@ -498,12 +498,12 @@ export default class EPI2ME_FS extends EPI2ME {
       } else if (
         file.path &&
         file.path.match(/\.(?:fastq|fq)(?:\.gz)?$/) &&
-        ((splitSize && file.size > splitSize) || (splitReads && file.reads && file.reads > splitReads))
+        ((splitSize && file.size > splitSize) || splitReads)
       ) {
         //
         // file too big to process but can be split
         //
-        const msg = `${file.relative} is too big and is going to be split`;
+        const msg = `${file.relative}${(file.size > splitSize) ? " is too big and" : ""} is going to be split`;
         this.log.warn(msg);
         const warning = {
           msg,
