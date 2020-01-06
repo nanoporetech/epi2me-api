@@ -15,6 +15,7 @@ import {
 import utils from './utils';
 import niceSize from './niceSize';
 import _REST from './rest';
+import graphQL from './gql-client';
 import Socket from './socket';
 import DEFAULTS from './default_options.json';
 
@@ -113,6 +114,8 @@ export default class EPI2ME {
         this.config.options,
       ),
     );
+
+    this.graphQL = graphQL;
 
     // placeholders for all the timers we might want to cancel if forcing a stop
     this.timers = {
@@ -307,4 +310,5 @@ export default class EPI2ME {
 
 EPI2ME.version = utils.version;
 EPI2ME.REST = _REST;
+EPI2ME.graphQL = graphQL;
 EPI2ME.utils = utils;

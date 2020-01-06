@@ -2,6 +2,11 @@
   "name": "@metrichor/epi2me-api",
   "private": true,
   "dependencies": {
+    "@lifeomic/axios-fetch": "^1.4.1",
+    "apollo-cache-inmemory": "^1.6.3",
+    "apollo-client": "^2.6.4",
+    "apollo-link": "^1.2.13",
+    "apollo-link-http": "^1.5.16",
     "axios": "^0.19.0",
     "lodash": "4.17.15",
     "socket.io-client": "^2.3.0",
