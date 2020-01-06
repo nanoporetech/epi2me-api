@@ -217,19 +217,16 @@ export default class EPI2ME {
       this.sessioning = true;
     }
 
-    let err = null;
-    try {
-      await this.fetchInstanceToken(children, opts);
-    } catch (e) {
-      err = e;
-      this.log.error(`session error ${String(err)}`);
-    } finally {
-      if (!skipSemChecks) {
-        this.sessioning = false;
-      }
-    }
-
-    return err ? Promise.reject(err) : Promise.resolve();
+    return this.fetchInstanceToken(children, opts)
+      .catch(e => {
+        this.log.error(`session error ${String(e)}`);
+        throw e;
+      })
+      .finally(() => {
+        if (!skipSemChecks) {
+          this.sessioning = false;
+        }
+      });
   }
 
   /* NOTE: requesting a token with additional opts WILL POLLUTE THE GLOBAL STATE AND BE CACHED. USE WITH CAUTION */
@@ -246,22 +243,24 @@ export default class EPI2ME {
       this.states.sts_expiration = new Date(token.expiration).getTime() - 60 * this.config.options.sessionGrace; // refresh token x mins before it expires
       // "classic" token mode no longer supported
 
+      const configUpdate = {};
       if (this.config.options.proxy) {
-        AWS.config.update({
+        merge(configUpdate, {
           httpOptions: {
             agent: proxy(this.config.options.proxy, true),
           },
         });
       }
 
+      merge(configUpdate, this.config.instance.awssettings, token);
       // MC-5418 - This needs to be done before the process starts uploading messages!
-      AWS.config.update(this.config.instance.awssettings);
-      AWS.config.update(token);
+      AWS.config.update(configUpdate);
+
       if (children) {
         children.forEach(child => {
           try {
             // console.log('before child.config', child.config); // eslint-disable-line no-console
-            child.config.update(token);
+            child.config.update(configUpdate);
             // console.log('after child.config', child.config); // eslint-disable-line no-console
           } catch (e) {
             this.log.warn(`failed to update config on ${String(child)}: ${String(e)}`);

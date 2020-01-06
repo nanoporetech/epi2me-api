@@ -1,6 +1,6 @@
 import assert from 'assert';
 import sinon from 'sinon';
-import EPI2ME from '../../src/epi2me-fs';
+import EPI2ME from '../../src/epi2me';
 
 describe('session fetchInstanceToken method', () => {
   let client;
