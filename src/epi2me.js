@@ -6,9 +6,12 @@
  *
  */
 
-import { every, isFunction, defaults, merge } from 'lodash';
-import AWS from 'aws-sdk';
-import proxy from 'proxy-agent';
+import {
+  every,
+  isFunction,
+  defaults,
+  merge
+} from 'lodash';
 import utils from './utils';
 import niceSize from './niceSize';
 import _REST from './rest';
@@ -104,8 +107,7 @@ export default class EPI2ME {
     };
 
     this.REST = new _REST(
-      merge(
-        {
+      merge({
           log: this.log,
         },
         this.config.options,
@@ -130,8 +132,7 @@ export default class EPI2ME {
 
     this.mySocket = new Socket(
       this.REST,
-      merge(
-        {
+      merge({
           log: this.log,
         },
         this.config.options,
@@ -179,7 +180,9 @@ export default class EPI2ME {
       this.downloadWorkerPool = null;
     }
 
-    const { id_workflow_instance: idWorkflowInstance } = this.config.instance;
+    const {
+      id_workflow_instance: idWorkflowInstance
+    } = this.config.instance;
     if (idWorkflowInstance) {
       try {
         await this.REST.stopWorkflow(idWorkflowInstance);
@@ -194,103 +197,11 @@ export default class EPI2ME {
     return Promise.resolve(); // api changed
   }
 
-  async session(children, opts) {
-    /* MC-1848 all session requests are semaphored on this.sessioning */
-    /* BUT this semaphore does not account for additional options (e.g. session a dataset, an instance or an installation) */
-    let skipSemChecks = false;
-    if (children && children.length) {
-      // custom session request
-      skipSemChecks = true;
-    }
-
-    if (!skipSemChecks) {
-      if (this.sessioning) {
-        return Promise.resolve(); // resolve or reject? Throttle to n=1: bail out if there's already a job queued
-      }
-
-      if (this.states.sts_expiration && this.states.sts_expiration > Date.now()) {
-        /* Ignore if session is still valid */
-        return Promise.resolve();
-      }
-
-      /* queue a request for a new session token and hope it comes back in under this.config.options.sessionGrace time */
-      this.sessioning = true;
-    }
-
-    let err = null;
-    try {
-      await this.fetchInstanceToken(children, opts);
-    } catch (e) {
-      err = e;
-      this.log.error(`session error ${String(err)}`);
-    } finally {
-      if (!skipSemChecks) {
-        this.sessioning = false;
-      }
-    }
-
-    return err ? Promise.reject(err) : Promise.resolve();
-  }
-
-  /* NOTE: requesting a token with additional opts WILL POLLUTE THE GLOBAL STATE AND BE CACHED. USE WITH CAUTION */
-  async fetchInstanceToken(children, opts) {
-    if (!this.config.instance.id_workflow_instance) {
-      return Promise.reject(new Error('must specify id_workflow_instance'));
-    }
-
-    this.log.debug('new instance token needed');
-
-    try {
-      const token = await this.REST.instanceToken(this.config.instance.id_workflow_instance, opts);
-      this.log.debug(`allocated new instance token expiring at ${token.expiration}`);
-      this.states.sts_expiration = new Date(token.expiration).getTime() - 60 * this.config.options.sessionGrace; // refresh token x mins before it expires
-      // "classic" token mode no longer supported
-
-      if (this.config.options.proxy) {
-        AWS.config.update({
-          httpOptions: {
-            agent: proxy(this.config.options.proxy, true),
-          },
-        });
-      }
-
-      // MC-5418 - This needs to be done before the process starts uploading messages!
-      AWS.config.update(this.config.instance.awssettings);
-      AWS.config.update(token);
-      if (children) {
-        children.forEach(child => {
-          try {
-            // console.log('before child.config', child.config); // eslint-disable-line no-console
-            child.config.update(token);
-            // console.log('after child.config', child.config); // eslint-disable-line no-console
-          } catch (e) {
-            this.log.warn(`failed to update config on ${String(child)}: ${String(e)}`);
-          }
-        });
-      }
-    } catch (err) {
-      this.log.warn(`failed to fetch instance token: ${String(err)}`);
-
-      /* todo: delay promise resolution so we don't hammer the website */
-    }
-
-    return Promise.resolve();
-  }
-
-  async sessionedS3(opts) {
-    await this.session(null, opts);
-    return new AWS.S3({
-      useAccelerateEndpoint: this.config.options.awsAcceleration === 'on',
-    });
-  }
-
-  async sessionedSQS(opts) {
-    await this.session(null, opts);
-    return new AWS.SQS();
-  }
-
   reportProgress() {
-    const { upload, download } = this.states;
+    const {
+      upload,
+      download
+    } = this.states;
     this.log.json({
       progress: {
         download,
@@ -311,15 +222,15 @@ export default class EPI2ME {
 
     if (op === 'incr') {
       Object.keys(newData).forEach(o => {
-        this.states[direction][table][o] = this.states[direction][table][o]
-          ? this.states[direction][table][o] + parseInt(newData[o], 10)
-          : parseInt(newData[o], 10);
+        this.states[direction][table][o] = this.states[direction][table][o] ?
+          this.states[direction][table][o] + parseInt(newData[o], 10) :
+          parseInt(newData[o], 10);
       });
     } else {
       Object.keys(newData).forEach(o => {
-        this.states[direction][table][o] = this.states[direction][table][o]
-          ? this.states[direction][table][o] - parseInt(newData[o], 10)
-          : -parseInt(newData[o], 10);
+        this.states[direction][table][o] = this.states[direction][table][o] ?
+          this.states[direction][table][o] - parseInt(newData[o], 10) :
+          -parseInt(newData[o], 10);
       });
     }
 
@@ -366,80 +277,6 @@ export default class EPI2ME {
 
   downloadState(table, op, newData) {
     return this.storeState('download', table, op, newData);
-  }
-
-  async deleteMessage(message) {
-    try {
-      const queueURL = await this.discoverQueue(this.config.instance.outputQueueName);
-      const sqs = await this.sessionedSQS();
-      return sqs
-        .deleteMessage({
-          QueueUrl: queueURL,
-          ReceiptHandle: message.ReceiptHandle,
-        })
-        .promise();
-    } catch (error) {
-      this.log.error(`deleteMessage exception: ${String(error)}`);
-      if (!this.states.download.failure) this.states.download.failure = {};
-      this.states.download.failure[error] = this.states.download.failure[error]
-        ? this.states.download.failure[error] + 1
-        : 1;
-      return Promise.reject(error);
-    }
-  }
-
-  async discoverQueue(queueName) {
-    if (this.config.instance.discoverQueueCache[queueName]) {
-      return Promise.resolve(this.config.instance.discoverQueueCache[queueName]);
-    }
-
-    this.log.debug(`discovering queue for ${queueName}`);
-
-    let getQueue;
-    try {
-      const sqs = await this.sessionedSQS();
-      getQueue = await sqs
-        .getQueueUrl({
-          QueueName: queueName,
-        })
-        .promise();
-    } catch (err) {
-      this.log.error(`Error: failed to find queue for ${queueName}: ${String(err)}`);
-      return Promise.reject(err);
-    }
-
-    this.log.debug(`found queue ${getQueue.QueueUrl}`);
-    this.config.instance.discoverQueueCache[queueName] = getQueue.QueueUrl;
-
-    return Promise.resolve(getQueue.QueueUrl);
-  }
-
-  async queueLength(queueURL) {
-    if (!queueURL) return Promise.reject(new Error('no queueURL specified'));
-
-    const queueName = queueURL.match(/([\w\-_]+)$/)[0];
-    this.log.debug(`querying queue length of ${queueName}`);
-
-    try {
-      const sqs = await this.sessionedSQS();
-      const attrs = await sqs
-        .getQueueAttributes({
-          QueueUrl: queueURL,
-          AttributeNames: ['ApproximateNumberOfMessages'],
-        })
-        .promise();
-
-      if (attrs && attrs.Attributes && 'ApproximateNumberOfMessages' in attrs.Attributes) {
-        let len = attrs.Attributes.ApproximateNumberOfMessages;
-        len = parseInt(len, 10) || 0;
-        return Promise.resolve(len);
-      }
-
-      return Promise.reject(new Error('unexpected response'));
-    } catch (err) {
-      this.log.error(`error in getQueueAttributes ${String(err)}`);
-      return Promise.reject(err);
-    }
   }
 
   url() {

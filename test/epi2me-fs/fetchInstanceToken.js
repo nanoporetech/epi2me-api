@@ -1,14 +1,15 @@
 import assert from 'assert';
 import sinon from 'sinon';
-import { merge } from 'lodash';
+import {
+  merge
+} from 'lodash';
 import AWS from 'aws-sdk';
 import EPI2ME from '../../src/epi2me-fs';
 
 describe('epi2me.fetchInstanceToken', () => {
   const clientFactory = opts =>
     new EPI2ME(
-      merge(
-        {
+      merge({
           url: 'https://epi2me-test.local',
           log: {
             debug: sinon.stub(),
@@ -93,8 +94,10 @@ describe('epi2me.fetchInstanceToken', () => {
     }
 
     assert(stub.calledOnce, 'callback fired if expired');
-    assert.ok(stub2.calledTwice);
-    assert.deepEqual(stub2.args[1][0], token, 'token contents');
+    assert.ok(stub2.calledOnce);
+    assert.deepEqual(stub2.args[0][0], merge({
+      region: 'eu-west-1'
+    }, token), 'token contents');
     stub2.restore();
   });
 
@@ -116,7 +119,7 @@ describe('epi2me.fetchInstanceToken', () => {
       assert.fail(err);
     }
     assert(stub.calledOnce, 'callback fired if expired');
-    assert.ok(stub2.calledThrice);
+    assert.ok(stub2.calledOnce);
     assert.equal(
       stub2.args[0][0].httpOptions.agent.proxy.href,
       'http://proxy.test:3128/',
