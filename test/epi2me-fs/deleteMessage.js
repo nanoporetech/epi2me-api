@@ -1,14 +1,15 @@
 import assert from 'assert';
 import sinon from 'sinon';
-import { merge } from 'lodash';
+import {
+  merge
+} from 'lodash';
 import AWS from 'aws-sdk';
 import EPI2ME from '../../src/epi2me-fs';
 
 describe('epi2me.deleteMessage', () => {
   const clientFactory = opts =>
     new EPI2ME(
-      merge(
-        {
+      merge({
           url: 'https://epi2me-test.local',
           log: {
             debug: sinon.stub(),
@@ -38,8 +39,8 @@ describe('epi2me.deleteMessage', () => {
     const sqs = new AWS.SQS();
     const sessionedSQS = sinon.stub(client, 'sessionedSQS').callsFake(
       () =>
-        // don't do any portal sessioning
-        sqs,
+      // don't do any portal sessioning
+      sqs,
     );
     const discoverQueue = sinon.stub(client, 'discoverQueue').resolves();
     sinon.stub(sqs, 'deleteMessage').callsFake(() => ({
@@ -64,8 +65,8 @@ describe('epi2me.deleteMessage', () => {
     const sqs = new AWS.SQS();
     sinon.stub(client, 'sessionedSQS').callsFake(
       () =>
-        // don't do any portal sessioning
-        sqs,
+      // don't do any portal sessioning
+      sqs,
     );
 
     sinon.stub(client, 'discoverQueue').resolves('http://my-output-queue.eu-test-1.aws.com');
@@ -94,8 +95,8 @@ describe('epi2me.deleteMessage', () => {
     const sqs = new AWS.SQS();
     sinon.stub(client, 'sessionedSQS').callsFake(
       () =>
-        // don't do any portal sessioning
-        sqs,
+      // don't do any portal sessioning
+      sqs,
     );
 
     sinon.stub(client, 'discoverQueue').resolves('http://my-output-queue.eu-test-1.aws.com');
@@ -120,8 +121,8 @@ describe('epi2me.deleteMessage', () => {
     const sqs = new AWS.SQS();
     sinon.stub(client, 'sessionedSQS').callsFake(
       () =>
-        // don't do any portal sessioning
-        sqs,
+      // don't do any portal sessioning
+      sqs,
     );
 
     sinon.stub(client, 'discoverQueue').resolves('http://my-output-queue.eu-test-1.aws.com');
@@ -147,8 +148,8 @@ describe('epi2me.deleteMessage', () => {
     const sqs = new AWS.SQS();
     sinon.stub(client, 'sessionedSQS').callsFake(
       () =>
-        // don't do any portal sessioning
-        sqs,
+      // don't do any portal sessioning
+      sqs,
     );
 
     sinon.stub(client, 'discoverQueue').rejects('could not connect');
@@ -172,8 +173,8 @@ describe('epi2me.deleteMessage', () => {
     const sqs = new AWS.SQS();
     sinon.stub(client, 'sessionedSQS').callsFake(
       () =>
-        // don't do any portal sessioning
-        sqs,
+      // don't do any portal sessioning
+      sqs,
     );
 
     sinon.stub(client, 'discoverQueue').rejects('could not connect');

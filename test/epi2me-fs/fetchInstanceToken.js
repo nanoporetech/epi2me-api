@@ -4,7 +4,7 @@ import {
   merge
 } from 'lodash';
 import AWS from 'aws-sdk';
-import EPI2ME from '../../src/epi2me';
+import EPI2ME from '../../src/epi2me-fs';
 
 describe('epi2me.fetchInstanceToken', () => {
   const clientFactory = opts =>
@@ -95,7 +95,9 @@ describe('epi2me.fetchInstanceToken', () => {
 
     assert(stub.calledOnce, 'callback fired if expired');
     assert.ok(stub2.calledOnce);
-    assert.deepEqual(stub2.args[0][0], merge({"region":"eu-west-1"}, token), 'token contents');
+    assert.deepEqual(stub2.args[0][0], merge({
+      region: 'eu-west-1'
+    }, token), 'token contents');
     stub2.restore();
   });
 
