@@ -4,15 +4,23 @@
  */
 
 import os from 'os';
-import { merge, filter, assign } from 'lodash';
+import {
+  merge,
+  filter,
+  assign
+} from 'lodash';
 import utils from './utils';
-import { local, url as baseURL, user_agent as userAgent, signing } from './default_options.json';
+import {
+  local,
+  url as baseURL,
+  user_agent as userAgent,
+  signing
+} from './default_options.json';
 
 export default class REST {
   constructor(options) {
     // {log, ...options}) {
-    this.options = assign(
-      {
+    this.options = assign({
         agent_version: utils.version,
         local,
         url: baseURL,
@@ -46,46 +54,38 @@ export default class REST {
     }
   }
 
-  async user(cb) {
-    let data;
-
+  async user() {
     if (this.options.local) {
-      data = {
-        accounts: [
-          {
-            id_user_account: 'none',
-            number: 'NONE',
-            name: 'None',
-          },
-        ],
+      return {
+        accounts: [{
+          id_user_account: 'none',
+          number: 'NONE',
+          name: 'None',
+        }, ],
       }; // fake user with accounts
-    } else {
-      try {
-        data = await utils.get('user', this.options);
-      } catch (err) {
-        return cb ? cb(err) : Promise.reject(err);
-      }
     }
-    return cb ? cb(null, data) : Promise.resolve(data);
+    return utils.get('user', this.options);
   }
 
   async status() {
-    try {
-      const data = await utils.get('status', this.options);
-      return Promise.resolve(data);
-    } catch (err) {
-      return Promise.reject(err);
-    }
+    return utils.get('status', this.options);
   }
 
   async jwt() {
     try {
       const customJWTHandler = res => {
-        return res.headers['x-epi2me-jwt']
-          ? Promise.resolve(res.headers['x-epi2me-jwt'])
-          : Promise.reject(new Error('failed to fetch JWT'));
+        return res.headers['x-epi2me-jwt'] ?
+          Promise.resolve(res.headers['x-epi2me-jwt']) :
+          Promise.reject(new Error('failed to fetch JWT'));
       };
-      const data = await utils.post('authenticate', {}, merge({ handler: customJWTHandler }, this.options));
+      const data = await utils.post(
+        'authenticate', {},
+        merge({
+            handler: customJWTHandler,
+          },
+          this.options,
+        ),
+      );
       return Promise.resolve(data);
     } catch (err) {
       return Promise.reject(err);
@@ -93,69 +93,42 @@ export default class REST {
   }
 
   async instanceToken(id, opts) {
-    try {
-      const data = await utils.post(
-        'token',
-        merge(opts, {
-          id_workflow_instance: id,
-        }),
-        assign({}, this.options, {
-          legacy_form: true,
-        }),
-      );
-      return Promise.resolve(data);
-    } catch (err) {
-      return Promise.reject(err);
-    }
+    return utils.post(
+      'token',
+      merge(opts, {
+        id_workflow_instance: id,
+      }),
+      assign({}, this.options, {
+        legacy_form: true,
+      }),
+    );
   }
 
-  async installToken(id, cb) {
-    try {
-      const data = await utils.post(
-        'token/install',
-        {
-          id_workflow: id,
-        },
-        assign({}, this.options, {
-          legacy_form: true,
-        }),
-      );
-      return cb ? cb(null, data) : Promise.resolve(data);
-    } catch (err) {
-      return cb ? cb(err) : Promise.reject(err);
-    }
+  async installToken(id) {
+    return utils.post(
+      'token/install', {
+        id_workflow: id,
+      },
+      assign({}, this.options, {
+        legacy_form: true,
+      }),
+    );
   }
 
-  async attributes(cb) {
-    try {
-      const data = await this.list('attribute');
-      return cb ? cb(null, data) : Promise.resolve(data);
-    } catch (err) {
-      return cb ? cb(err) : Promise.reject(err);
-    }
+  async attributes() {
+    return this.list('attribute');
   }
 
-  async workflows(cb) {
-    try {
-      const data = await this.list('workflow');
-      return cb ? cb(null, data) : Promise.resolve(data);
-    } catch (err) {
-      return cb ? cb(err) : Promise.reject(err);
-    }
+  async workflows() {
+    return this.list('workflow');
   }
 
-  async amiImages(cb) {
+  async amiImages() {
     if (this.options.local) {
-      const err = new Error('amiImages unsupported in local mode');
-      return cb ? cb(err) : Promise.reject(err);
+      throw new Error('amiImages unsupported in local mode');
     }
 
-    try {
-      const data = this.list('ami_image');
-      return cb ? cb(null, data) : Promise.resolve(data);
-    } catch (err) {
-      return cb ? cb(err) : Promise.reject(err);
-    }
+    return this.list('ami_image');
   }
 
   async amiImage(first, second, third) {
@@ -359,18 +332,17 @@ export default class REST {
     }
   }
 
-  async startWorkflow(config, cb) {
+  async startWorkflow(config) {
     return utils.post(
       'workflow_instance',
       config,
       assign({}, this.options, {
         legacy_form: true,
       }),
-      cb,
     );
   }
 
-  stopWorkflow(idWorkflowInstance, cb) {
+  async stopWorkflow(idWorkflowInstance) {
     return utils.put(
       'workflow_instance/stop',
       idWorkflowInstance,
@@ -378,22 +350,10 @@ export default class REST {
       assign({}, this.options, {
         legacy_form: true,
       }),
-      cb,
     );
   }
 
-  async workflowInstances(first, second) {
-    let cb;
-    let query;
-
-    if (first && !(first instanceof Function) && second === undefined) {
-      // no second argument and first argument is not a callback
-      query = first;
-    } else {
-      cb = first;
-      query = second;
-    }
-
+  async workflowInstances(query) {
     if (query && query.run_id) {
       try {
         const json = await utils.get(
@@ -407,73 +367,37 @@ export default class REST {
           description: o.desc,
           rev: o.rev,
         }));
-        return cb ? cb(null, mapped) : Promise.resolve(mapped);
+        return Promise.resolve(mapped);
       } catch (err) {
-        return cb ? cb(err) : Promise.reject(err);
+        return Promise.reject(err);
       }
     }
 
-    try {
-      const data = await this.list('workflow_instance');
-      return cb ? cb(null, data) : Promise.resolve(data);
-    } catch (err) {
-      return cb ? cb(err) : Promise.reject(err);
-    }
+    return this.list('workflow_instance');
   }
 
-  async workflowInstance(id, cb) {
-    try {
-      const workflowInstance = await this.read('workflow_instance', id);
-      return cb ? cb(null, workflowInstance) : Promise.resolve(workflowInstance);
-    } catch (err) {
-      return cb ? cb(err) : Promise.reject(err);
-    }
+  async workflowInstance(id) {
+    return this.read('workflow_instance', id);
   }
 
-  workflowConfig(id, cb) {
-    return utils.get(`workflow/config/${id}`, this.options, cb);
+  async workflowConfig(id) {
+    return utils.get(`workflow/config/${id}`, this.options);
   }
 
-  async register(code, second, third) {
-    let description;
-    let cb;
-
-    if (second && second instanceof Function) {
-      cb = second;
-    } else {
-      description = second;
-      cb = third;
-    }
-
-    try {
-      const obj = await utils.put(
-        'reg',
-        code,
-        {
-          description: description || `${os.userInfo().username}@${os.hostname()}`,
-        },
-        assign({}, this.options, {
-          signing: false,
-        }),
-      );
-      return cb ? cb(null, obj) : Promise.resolve(obj);
-    } catch (err) {
-      return cb ? cb(err) : Promise.reject(err);
-    }
+  async register(code, description) {
+    return utils.put(
+      'reg',
+      code, {
+        description: description || `${os.userInfo().username}@${os.hostname()}`,
+      },
+      assign({}, this.options, {
+        signing: false,
+      }),
+    );
   }
 
-  async datasets(first, second) {
-    let cb;
-    let query;
-
-    if (first && !(first instanceof Function) && second === undefined) {
-      // no second argument and first argument is not a callback
-      query = first;
-    } else {
-      cb = first;
-      query = second;
-    }
-
+  async datasets(queryIn) {
+    let query = queryIn;
     if (!query) {
       query = {};
     }
@@ -482,31 +406,17 @@ export default class REST {
       query.show = 'mine';
     }
 
-    try {
-      const obj = await this.list(`dataset?show=${query.show}`);
-      return cb ? cb(null, obj) : Promise.resolve(obj);
-    } catch (err) {
-      return cb ? cb(err) : Promise.reject(err);
-    }
+    return this.list(`dataset?show=${query.show}`);
   }
 
-  async dataset(id, cb) {
+  async dataset(id) {
     if (!this.options.local) {
-      try {
-        const dataset = await this.read('dataset', id);
-        return cb ? cb(null, dataset) : Promise.resolve(dataset);
-      } catch (err) {
-        return cb ? cb(err) : Promise.reject(err);
-      }
+      return this.read('dataset', id);
     }
 
-    try {
-      const datasets = await this.datasets();
-      const dataset = datasets.find(o => o.id_dataset === id);
-      return cb ? cb(null, dataset) : Promise.resolve(dataset);
-    } catch (err) {
-      return cb ? cb(err) : Promise.reject(err);
-    }
+    return this.datasets().then(datasets => {
+      return datasets.find(o => o.id_dataset === id);
+    });
   }
 
   async fetchContent(url, cb) {

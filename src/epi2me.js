@@ -14,8 +14,8 @@ import {
 } from 'lodash';
 import utils from './utils';
 import niceSize from './niceSize';
-import _REST from './rest';
-import graphQL from './gql-client';
+import REST from './rest';
+import GraphQL from './graphql';
 import Socket from './socket';
 import DEFAULTS from './default_options.json';
 
@@ -107,7 +107,7 @@ export default class EPI2ME {
       region: this.config.options.region,
     };
 
-    this.REST = new _REST(
+    this.REST = new REST(
       merge({
           log: this.log,
         },
@@ -115,8 +115,13 @@ export default class EPI2ME {
       ),
     );
 
-    this.graphQL = graphQL;
-
+    this.graphQL = new GraphQL(
+      merge({
+          log: this.log,
+        },
+        this.config.options,
+      ),
+    );
     // placeholders for all the timers we might want to cancel if forcing a stop
     this.timers = {
       downloadCheckInterval: null,
@@ -309,6 +314,5 @@ export default class EPI2ME {
 }
 
 EPI2ME.version = utils.version;
-EPI2ME.REST = _REST;
-EPI2ME.graphQL = graphQL;
+EPI2ME.REST = REST; // to allow import { REST } from '@metrichor/epi2me-api'
 EPI2ME.utils = utils;

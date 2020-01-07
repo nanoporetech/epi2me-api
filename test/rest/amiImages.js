@@ -9,8 +9,13 @@ describe('rest.amiImages', () => {
   let stubs;
 
   beforeEach(() => {
-    ringbuf = new bunyan.RingBuffer({ limit: 100 });
-    log = bunyan.createLogger({ name: 'log', stream: ringbuf });
+    ringbuf = new bunyan.RingBuffer({
+      limit: 100,
+    });
+    log = bunyan.createLogger({
+      name: 'log',
+      stream: ringbuf,
+    });
     stubs = [];
   });
 
@@ -20,32 +25,35 @@ describe('rest.amiImages', () => {
     });
   });
 
-  it('must invoke list with null query', () => {
-    const fake = sinon.fake();
-    const rest = new REST({ log });
-    const stub = sinon.stub(rest, 'list').callsFake((uri, cb) => {
+  it('must invoke list with null query', async () => {
+    const rest = new REST({
+      log,
+    });
+    const stub = sinon.stub(rest, 'list').callsFake(uri => {
       assert.equal(uri, 'ami_image', 'default uri');
-      cb();
     });
     stubs.push(stub);
-    assert.doesNotThrow(async () => {
-      await rest.amiImages(fake);
-    });
-    assert(fake.calledOnce, 'callback invoked');
+    try {
+      await rest.amiImages();
+    } catch (e) {
+      assert.fail(`unexpected failure: ${String(e)}`);
+    }
   });
 
-  it('must bail when local', () => {
-    const fake = sinon.fake();
-    const rest = new REST({ log, local: true });
-    const stub = sinon.stub(rest, 'list').callsFake((uri, cb) => {
+  it('must bail when local', async () => {
+    const rest = new REST({
+      log,
+      local: true,
+    });
+    const stub = sinon.stub(rest, 'list').callsFake(uri => {
       assert.equal(uri, 'ami_image', 'default uri');
-      cb();
     });
     stubs.push(stub);
-    assert.doesNotThrow(async () => {
-      await rest.amiImages(fake);
-    });
-    assert(fake.calledOnce, 'callback invoked');
-    assert(fake.firstCall.args[0] instanceof Error);
+    try {
+      await rest.amiImages();
+      assert.fail(`unexpected success`);
+    } catch (e) {
+      assert(String(e).match(/amiImages unsupported in local mode/));
+    }
   });
 });

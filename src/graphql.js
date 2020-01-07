@@ -4,29 +4,36 @@
  */
 
 import os from 'os';
-import { assign, merge } from 'lodash';
+import {
+  assign,
+  merge
+} from 'lodash';
 import gql from 'graphql-tag';
 import utils from './utils';
-import { local, gqlUrl as baseUrl, user_agent as userAgent, signing } from './default_options.json';
+import {
+  local,
+  gqlUrl as baseUrl,
+  user_agent as userAgent,
+  signing
+} from './default_options.json';
 import client from './gql-client';
 import PageFragment from './fragments/PageFragment';
 import WorkflowFragment from './fragments/WorkflowFragment';
 import WorkflowInstanceFragment from './fragments/WorkflowInstanceFragment';
 
 export default class GraphQL {
-  constructor(profile) {
+  constructor(opts) {
     // {log, ...options}) {
 
     // console.log(profile);
-    this.options = assign(
-      {
+    this.options = assign({
         agent_version: utils.version,
         local,
         url: baseUrl,
         user_agent: userAgent,
         signing,
       },
-      profile,
+      opts,
     );
 
     this.log = this.options.log;
@@ -46,7 +53,7 @@ export default class GraphQL {
   }
 
   workflows(context = {}, variables = {}) {
-    const query = gql`
+    const query = gql `
       query allWorkflows($page: Int) {
         allWorkflows(page: $page) {
           ${PageFragment}
@@ -58,22 +65,29 @@ export default class GraphQL {
     `;
     const requestContext = this.createContext(context);
     // console.log(requestContext);
-    return this.client.query({ query, variables, context: requestContext });
+    return this.client.query({
+      query,
+      variables,
+      context: requestContext
+    });
   }
 
   workflow(variables) {
-    const query = gql`
+    const query = gql `
       query workflow($idWorkflow: ID!) {
         workflow(idWorkflow: $idWorkflow) {
           ${WorkflowFragment}
         }
       }
     `;
-    return this.client.query({ query, variables });
+    return this.client.query({
+      query,
+      variables
+    });
   }
 
   workflowInstances(variables) {
-    const query = gql`
+    const query = gql `
       query allWorkflowInstances($page: Int) {
         allWorkflowInstances(page: $page) {
           ${PageFragment}
@@ -83,22 +97,28 @@ export default class GraphQL {
         }
       }
     `;
-    return this.client.query({ query, variables });
+    return this.client.query({
+      query,
+      variables
+    });
   }
 
   workflowInstance(variables) {
-    const query = gql`
+    const query = gql `
       query workflowInstance($idWorkflowInstance: ID!) {
         workflowInstance(idWorkflowInstance: $idWorkflowInstance) {
           ${WorkflowInstanceFragment}
         }
       }
     `;
-    return this.client.query({ query, variables });
+    return this.client.query({
+      query,
+      variables
+    });
   }
 
   startWorkflow(variables) {
-    const mutation = gql`
+    const mutation = gql `
       mutation startWorkflow(
         $idWorkflow: ID!
         $computeAccountId: Int!
@@ -122,7 +142,10 @@ export default class GraphQL {
         }
       }
     `;
-    return this.client.mutate({ mutation, variables });
+    return this.client.mutate({
+      mutation,
+      variables
+    });
   }
 
   // user - me
@@ -149,8 +172,10 @@ export default class GraphQL {
     }
     try {
       const data = await utils.post(
-        'apiaccess',
-        { code, description: description || `${os.userInfo().username}@${os.hostname()}` },
+        'apiaccess', {
+          code,
+          description: description || `${os.userInfo().username}@${os.hostname()}`
+        },
         this.options,
       );
       return cb ? cb(null, data) : Promise.resolve(data);

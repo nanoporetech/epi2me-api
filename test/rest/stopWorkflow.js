@@ -5,22 +5,31 @@ import REST from '../../src/rest';
 import utils from '../../src/utils';
 
 describe('rest.stopWorkflow', () => {
-  it('must invoke put with details', () => {
-    const ringbuf = new bunyan.RingBuffer({ limit: 100 });
-    const log = bunyan.createLogger({ name: 'log', stream: ringbuf });
-    const stub = sinon.stub(utils, 'put').callsFake((uri, id, payload, options, cb) => {
+  it('must invoke put with details', async () => {
+    const ringbuf = new bunyan.RingBuffer({
+      limit: 100,
+    });
+    const log = bunyan.createLogger({
+      name: 'log',
+      stream: ringbuf,
+    });
+    const stub = sinon.stub(utils, 'put').callsFake((uri, id, payload, options) => {
       assert.equal(uri, 'workflow_instance/stop', 'type passed');
       assert.equal(id, 123456, 'id passed');
       assert.equal(payload, null, 'payload passed');
       assert.ok(options.log instanceof bunyan, 'options off');
-      cb();
     });
-    const fake = sinon.fake();
-    const rest = new REST({ log });
-    assert.doesNotThrow(() => {
-      rest.stopWorkflow('123456', fake);
+
+    const rest = new REST({
+      log,
     });
-    assert(fake.calledOnce, 'callback invoked');
+
+    try {
+      await rest.stopWorkflow('123456');
+    } catch (e) {
+      assert.fail(`unexpected failure: ${String(e)}`);
+    }
+
     stub.restore();
   });
 });
