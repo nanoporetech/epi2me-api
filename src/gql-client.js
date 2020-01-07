@@ -14,20 +14,17 @@ import {
 } from 'apollo-link-http';
 
 // import utils from './utils';
-import {
-  gqlUrl
-} from './default_options.json';
 import customFetcher from './fetcher';
 
 // const httpLink = createHttpLink({ url, fetch: buildAxiosFetch(axios) });
-// const httpLink = createHttpLink({ uri: `${gqlUrl}/graphql`, fetch: customFetcher });
+// const httpLink = createHttpLink({ uri: gqlUrl, fetch: customFetcher });
 
 const link = new ApolloLink(operation => {
   // console.log('context: ', operation.getContext(), '\n context ends');
-  const url = operation.getContext().uri || gqlUrl;
   const {
     apikey,
-    apisecret
+    apisecret,
+    url
   } = operation.getContext();
   // operation.setContext(({ headers }) => ({
   //   headers: {
