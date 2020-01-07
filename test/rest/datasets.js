@@ -9,10 +9,17 @@ describe('rest.datasets', () => {
   let log;
   let ringbuf;
   beforeEach(() => {
-    ringbuf = new bunyan.RingBuffer({ limit: 100 });
-    log = bunyan.createLogger({ name: 'log', stream: ringbuf });
+    ringbuf = new bunyan.RingBuffer({
+      limit: 100,
+    });
+    log = bunyan.createLogger({
+      name: 'log',
+      stream: ringbuf,
+    });
     stubs = [];
-    rest = new REST({ log });
+    rest = new REST({
+      log,
+    });
   });
 
   afterEach(() => {
@@ -23,38 +30,33 @@ describe('rest.datasets', () => {
 
   it('must invoke list with null query', async () => {
     sinon.stub(rest, 'list').resolves([]);
-    const fake = sinon.fake();
 
     try {
-      await rest.datasets(fake);
+      await rest.datasets();
     } catch (err) {
       assert.fail(err);
     }
-
-    assert(fake.calledOnce, 'callback invoked');
   });
 
   it('must invoke list with empty query', async () => {
     sinon.stub(rest, 'list').resolves([]);
-    const fake = sinon.fake();
 
     try {
-      await rest.datasets(fake, {});
+      await rest.datasets({});
     } catch (err) {
       assert.fail(err);
     }
-    assert(fake.calledOnce, 'callback invoked');
   });
 
   it('must invoke list with query', async () => {
     sinon.stub(rest, 'list').resolves([]);
-    const fake = sinon.fake();
 
     try {
-      await rest.datasets(fake, { show: 'shared' });
+      await rest.datasets({
+        show: 'shared',
+      });
     } catch (err) {
       assert.fail(err);
     }
-    assert(fake.calledOnce, 'callback invoked');
   });
 });

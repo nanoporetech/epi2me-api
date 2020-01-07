@@ -1,20 +1,31 @@
-import { ApolloClient } from 'apollo-client';
-import { InMemoryCache } from 'apollo-cache-inmemory';
+import {
+  ApolloClient
+} from 'apollo-client';
+import {
+  InMemoryCache
+} from 'apollo-cache-inmemory';
 // import { setContext } from 'apollo-link-context';
-import { ApolloLink, execute } from 'apollo-link';
-import { createHttpLink } from 'apollo-link-http';
+import {
+  ApolloLink,
+  execute
+} from 'apollo-link';
+import {
+  createHttpLink
+} from 'apollo-link-http';
 
 // import utils from './utils';
-import { gqlUrl } from './default_options.json';
 import customFetcher from './fetcher';
 
 // const httpLink = createHttpLink({ url, fetch: buildAxiosFetch(axios) });
-// const httpLink = createHttpLink({ uri: `${gqlUrl}/graphql`, fetch: customFetcher });
+// const httpLink = createHttpLink({ uri: gqlUrl, fetch: customFetcher });
 
 const link = new ApolloLink(operation => {
   // console.log('context: ', operation.getContext(), '\n context ends');
-  const url = operation.getContext().uri || gqlUrl;
-  const { apikey, apisecret } = operation.getContext();
+  const {
+    apikey,
+    apisecret,
+    url
+  } = operation.getContext();
   // operation.setContext(({ headers }) => ({
   //   headers: {
   //     apikey,
@@ -26,7 +37,12 @@ const link = new ApolloLink(operation => {
   const httpLink = createHttpLink({
     uri: `${url}/graphql`,
     fetch: customFetcher,
-    headers: { keys: { apikey, apisecret } },
+    headers: {
+      keys: {
+        apikey,
+        apisecret,
+      },
+    },
   });
   return execute(httpLink, operation);
 });

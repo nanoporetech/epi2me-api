@@ -19,7 +19,7 @@ import path from 'path';
 import AWS from 'aws-sdk';
 import proxy from 'proxy-agent';
 import utils from './utils-fs';
-import _REST from './rest-fs';
+import REST from './rest-fs';
 import filestats from './filestats';
 import fastqSplitter from './splitters/fastq';
 import fastqGzipSplitter from './splitters/fastq-gz';
@@ -47,7 +47,7 @@ export default class EPI2ME_FS extends EPI2ME {
     super(optString); // sets up this.config & this.log
 
     // overwrite non-fs REST object
-    this.REST = new _REST(
+    this.REST = new REST(
       merge({}, {
           log: this.log,
         },
@@ -1555,7 +1555,7 @@ export default class EPI2ME_FS extends EPI2ME {
 }
 
 EPI2ME_FS.version = utils.version;
-EPI2ME_FS.REST = _REST;
+EPI2ME_FS.REST = REST;
 EPI2ME_FS.utils = utils;
 EPI2ME_FS.EPI2ME_HOME = rootDir();
 EPI2ME_FS.Profile = Profile;

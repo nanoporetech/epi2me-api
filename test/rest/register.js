@@ -12,9 +12,17 @@ describe('rest.register', () => {
   let rest;
 
   beforeEach(() => {
-    ringbuf = new bunyan.RingBuffer({ limit: 100 });
-    log = bunyan.createLogger({ name: 'log', stream: ringbuf });
-    rest = new REST({ log, agent_version: '3.0.0' });
+    ringbuf = new bunyan.RingBuffer({
+      limit: 100
+    });
+    log = bunyan.createLogger({
+      name: 'log',
+      stream: ringbuf
+    });
+    rest = new REST({
+      log,
+      agent_version: '3.0.0'
+    });
     stubs = [];
   });
 
@@ -33,17 +41,18 @@ describe('rest.register', () => {
       })),
     );
     stubs.push(sinon.stub(os, 'hostname').callsFake(() => 'testhost'));
-    const fake = sinon.fake();
 
     try {
-      await rest.register('abcdefg', fake);
+      await rest.register('abcdefg');
       //    assert(fake.calledOnce, 'callback invoked');
       assert.deepEqual(
         stub.lastCall.args,
         [
           'reg',
           'abcdefg',
-          { description: 'testuser@testhost' },
+          {
+            description: 'testuser@testhost'
+          },
           {
             log,
             signing: false,
