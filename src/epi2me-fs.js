@@ -17,9 +17,9 @@ import {
 } from 'os';
 import path from 'path';
 import AWS from 'aws-sdk';
-import proxy from 'proxy-agent';
 import utils from './utils-fs';
 import REST from './rest-fs';
+import SessionManager from './session-manager';
 import filestats from './filestats';
 import fastqSplitter from './splitters/fastq';
 import fastqGzipSplitter from './splitters/fastq-gz';
@@ -56,97 +56,15 @@ export default class EPI2ME_FS extends EPI2ME {
     );
   }
 
-  async session(children, opts) {
-    /* MC-1848 all session requests are semaphored on this.sessioning */
-    /* BUT this semaphore does not account for additional options (e.g. session a dataset, an instance or an installation) */
-    let skipSemChecks = false;
-    if (children && children.length) {
-      // custom session request
-      skipSemChecks = true;
-    }
-
-    if (!skipSemChecks) {
-      if (this.sessioning) {
-        return Promise.resolve(); // resolve or reject? Throttle to n=1: bail out if there's already a job queued
-      }
-
-      if (this.states.sts_expiration && this.states.sts_expiration > Date.now()) {
-        /* Ignore if session is still valid */
-        return Promise.resolve();
-      }
-
-      /* queue a request for a new session token and hope it comes back in under this.config.options.sessionGrace time */
-      this.sessioning = true;
-    }
-
-    return this.fetchInstanceToken(children, opts)
-      .catch(e => {
-        this.log.error(`session error ${String(e)}`);
-        throw e;
-      })
-      .finally(() => {
-        if (!skipSemChecks) {
-          this.sessioning = false;
-        }
-      });
-  }
-
-  /* NOTE: requesting a token with additional opts WILL POLLUTE THE GLOBAL STATE AND BE CACHED. USE WITH CAUTION */
-  async fetchInstanceToken(children, opts) {
-    if (!this.config.instance.id_workflow_instance) {
-      return Promise.reject(new Error('must specify id_workflow_instance'));
-    }
-
-    this.log.debug('new instance token needed');
-
-    try {
-      const token = await this.REST.instanceToken(this.config.instance.id_workflow_instance, opts);
-      this.log.debug(`allocated new instance token expiring at ${token.expiration}`);
-      this.states.sts_expiration = new Date(token.expiration).getTime() - 60 * this.config.options.sessionGrace; // refresh token x mins before it expires
-      // "classic" token mode no longer supported
-
-      const configUpdate = {};
-      if (this.config.options.proxy) {
-        merge(configUpdate, {
-          httpOptions: {
-            agent: proxy(this.config.options.proxy, true),
-          },
-        });
-      }
-
-      merge(configUpdate, this.config.instance.awssettings, token);
-      // MC-5418 - This needs to be done before the process starts uploading messages!
-      AWS.config.update(configUpdate);
-
-      if (children) {
-        children.forEach(child => {
-          try {
-            // console.log('before child.config', child.config); // eslint-disable-line no-console
-            child.config.update(configUpdate);
-            // console.log('after child.config', child.config); // eslint-disable-line no-console
-          } catch (e) {
-            this.log.warn(`failed to update config on ${String(child)}: ${String(e)}`);
-          }
-        });
-      }
-    } catch (err) {
-      this.log.warn(`failed to fetch instance token: ${String(err)}`);
-
-      /* todo: delay promise resolution so we don't hammer the website */
-    }
-
-    return Promise.resolve();
-  }
-
-  async sessionedS3(opts) {
-    await this.session(null, opts);
+  async sessionedS3() {
+    await this.sessionManager.session();
     return new AWS.S3({
       useAccelerateEndpoint: this.config.options.awsAcceleration === 'on',
     });
   }
 
-  async sessionedSQS(opts) {
-    await this.session(null, opts);
+  async sessionedSQS() {
+    await this.sessionManager.session();
     return new AWS.SQS();
   }
 
@@ -289,7 +207,7 @@ export default class EPI2ME_FS extends EPI2ME {
     // copy tuples with different names / structures
     this.config.instance.inputQueueName = instance.inputqueue;
     this.config.instance.outputQueueName = instance.outputqueue;
-    this.config.instance.awssettings.region = instance.region || this.config.options.region;
+    this.config.instance.region = instance.region || this.config.options.region;
     this.config.instance.bucketFolder = `${instance.outputqueue}/${instance.id_user}/${instance.id_workflow_instance}`;
     this.config.instance.summaryTelemetry = instance.telemetry; // MC-7056 for fetchTelemetry (summary) telemetry periodically
 
@@ -398,8 +316,10 @@ export default class EPI2ME_FS extends EPI2ME {
       }
     }, this.config.options.stateCheckInterval * 1000);
 
+    this.sessionManager = new SessionManager(this.config.instance.id_workflow_instance, this.REST, [AWS], {sessionGrace: this.config.options.sessionGrace, proxy: this.config.options.proxy, region: this.config.instance.region});
+
     /* Request session token */
-    await this.session();
+    await this.sessionManager.session();
 
     this.reportProgress();
     // MC-5418: ensure that the session has been established before starting the upload
@@ -413,6 +333,8 @@ export default class EPI2ME_FS extends EPI2ME {
 
   async stopEverything() {
     await super.stopEverything(); // sets this.stopped = true
+
+    delete this.sessionManager;
 
     this.log.debug('clearing split files');
     if (this.db) {
@@ -1369,6 +1291,7 @@ export default class EPI2ME_FS extends EPI2ME {
         let myProgress = 0;
 
         const managedUpload = s3.upload(params, options);
+        const sessionManager = new SessionManager(this.config.instance.id_workflow_instance, this.REST, [AWS, managedUpload.service], {sessionGrace: this.config.options.sessionGrace, proxy: this.config.options.proxy, region: this.config.instance.region});
 
         managedUpload.on('httpUploadProgress', async progress => {
           if (this.stopped) {
@@ -1384,7 +1307,7 @@ export default class EPI2ME_FS extends EPI2ME {
           clearTimeout(timeoutHandle); // MC-6789 - reset upload timeout
           timeoutHandle = setTimeout(timeoutFunc, (this.config.options.uploadTimeout + 5) * 1000);
           try {
-            await this.session([managedUpload.service]); // MC-7129 force refresh token on the MANAGED UPLOAD instance of the s3 service
+            await sessionManager.session(); // MC-7129 force refresh token on the MANAGED UPLOAD instance of the s3 service
           } catch (e) {
             this.log.warn(`Error refreshing token: ${String(e)}`);
           }
@@ -1557,5 +1480,6 @@ export default class EPI2ME_FS extends EPI2ME {
 EPI2ME_FS.version = utils.version;
 EPI2ME_FS.REST = REST;
 EPI2ME_FS.utils = utils;
+EPI2ME_FS.SessionManager = SessionManager;
 EPI2ME_FS.EPI2ME_HOME = rootDir();
 EPI2ME_FS.Profile = Profile;

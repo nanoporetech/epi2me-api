@@ -14,7 +14,8 @@ describe('rest.user', () => {
       name: 'log',
       stream: ringbuf,
     });
-    const stub = sinon.stub(utils, 'get').callsFake((uri, options) => {
+    const stub = sinon.stub(utils, 'get').callsFake((uri, optionsIn) => {
+      const options = optionsIn;
       delete options.agent_version;
       assert.deepEqual(
         options, {
