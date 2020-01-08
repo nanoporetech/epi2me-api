@@ -3,7 +3,9 @@ import sinon from 'sinon';
 import path from 'path';
 import tmp from 'tmp';
 import fs from 'fs-extra';
-import { merge } from 'lodash';
+import {
+  merge
+} from 'lodash';
 import EPI2ME from '../../src/epi2me-fs';
 
 describe('epi2me.uploadHandler', () => {
@@ -14,8 +16,7 @@ describe('epi2me.uploadHandler', () => {
     tmpdir = tmp.dirSync().name;
     fs.writeFile(path.join(tmpdir, tmpfile));
     const client = new EPI2ME(
-      merge(
-        {
+      merge({
           inputFolder: tmpdir,
           url: 'https://epi2me-test.local',
           log: {
@@ -29,8 +30,11 @@ describe('epi2me.uploadHandler', () => {
         opts,
       ),
     );
-
-    sinon.stub(client, 'session').resolves();
+    client.config.instance.id_workflow_instance = 7;
+    client.sessionManager = {
+      session: () => {},
+    };
+    sinon.stub(client.sessionManager, 'session').resolves();
     sinon.stub(client, 'socket').resolves({
       emit: () => {},
     });

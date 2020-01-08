@@ -7,7 +7,10 @@ describe('epi2me.sessionedSQS', () => {
   it('should session', () => {
     const client = new EPI2ME({});
 
-    sinon.stub(client, 'session').resolves();
+    client.sessionManager = {
+      session: () => {},
+    };
+    sinon.stub(client.sessionManager, 'session').resolves();
 
     assert.doesNotThrow(async () => {
       const sqs = await client.sessionedSQS();
