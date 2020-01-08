@@ -3,12 +3,18 @@ const {
 } = require('lodash');
 const EPI2ME = require('../');
 
-const p = new EPI2ME.Profile().profile('staging_signed');
+const {
+  Profile
+} = EPI2ME;
+
+const profileName = process.argv[2] || 'production_signed';
+const profile = new Profile().profile(profileName);
+
 const api = new EPI2ME(
   merge({
-      url: p.endpoint,
+      url: profile.endpoint,
     },
-    p,
+    profile,
   ),
 );
 
