@@ -56,6 +56,7 @@ export default class SessionManager {
           this.log.warn(`failed to update config on ${String(child)}: ${String(e)}`);
         }
       });
+
     } catch (err) {
       this.log.warn(`failed to fetch instance token: ${String(err)}`);
     }

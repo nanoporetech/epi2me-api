@@ -1292,6 +1292,7 @@ export default class EPI2ME_FS extends EPI2ME {
 
         const managedUpload = s3.upload(params, options);
         const sessionManager = new SessionManager(this.config.instance.id_workflow_instance, this.REST, [AWS, managedUpload.service], {sessionGrace: this.config.options.sessionGrace, proxy: this.config.options.proxy, region: this.config.instance.region});
+        sessionManager.sts_expiration = this.sessionManager.expiration; // No special options here, so use the main session and don't refetch until it's expired
 
         managedUpload.on('httpUploadProgress', async progress => {
           if (this.stopped) {
