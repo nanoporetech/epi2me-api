@@ -1,15 +1,13 @@
-import {
-  merge
-} from 'lodash';
+import { merge } from 'lodash';
 import proxy from 'proxy-agent'; // odd one out
 
 export default class SessionManager {
-  constructor(idWorkflowInstance, epi2me, children, opts) {
+  constructor(idWorkflowInstance, REST, children, opts) {
     this.id_workflow_instance = idWorkflowInstance;
     this.children = children;
     this.options = merge(opts);
     this.log = this.options.log;
-    this.epi2me = epi2me; // REST API object
+    this.REST = REST; // EPI2ME REST API object
 
     if (!idWorkflowInstance) {
       throw new Error('must specify id_workflow_instance');
@@ -29,7 +27,7 @@ export default class SessionManager {
     this.log.debug('new instance token needed');
 
     try {
-      const token = await this.epi2me.REST.instanceToken(this.id_workflow_instance, this.options);
+      const token = await this.REST.instanceToken(this.id_workflow_instance, this.options);
       this.log.debug(`allocated new instance token expiring at ${token.expiration}`);
       this.sts_expiration = new Date(token.expiration).getTime() - 60 * parseInt(this.options.sessionGrace || '0', 10); // refresh token x mins before it expires
 
@@ -43,7 +41,8 @@ export default class SessionManager {
       }
 
       merge(
-        configUpdate, {
+        configUpdate,
+        {
           region: this.options.region,
         },
         token,
