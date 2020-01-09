@@ -5,7 +5,10 @@
  * node examples/socket-demo.js development_signed workflow_instance:update:1234
  */
 const EPI2ME = require('..');
-const Profile = require('../dist/profile');
+
+const {
+  Profile
+} = EPI2ME;
 
 const profileName = process.argv[2] || 'classic';
 const channelName = process.argv[3] || 'workflow_instance:update:1234';

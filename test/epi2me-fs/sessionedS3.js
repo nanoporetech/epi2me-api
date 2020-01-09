@@ -6,8 +6,10 @@ import EPI2ME from '../../src/epi2me-fs';
 describe('epi2me.sessionedS3', () => {
   it('should session', () => {
     const client = new EPI2ME({});
-
-    sinon.stub(client, 'session').resolves();
+    client.sessionManager = {
+      session: () => {},
+    };
+    sinon.stub(client.sessionManager, 'session').resolves();
 
     assert.doesNotThrow(async () => {
       const s3 = await client.sessionedS3();

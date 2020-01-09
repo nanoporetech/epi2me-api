@@ -22,11 +22,16 @@ describe('epi2me.queueLength', () => {
 
   it('should return sqs queue', async () => {
     const sqs = new AWS.SQS();
-    sinon.stub(client, 'sessionedSQS').callsFake(() => sqs);
+    sinon.stub(client, 'sessionedSQS').resolves(sqs);
     sinon.stub(sqs, 'getQueueAttributes').callsFake(opts => {
       assert.equal(opts.QueueUrl, queueUrl);
       return {
-        promise: () => Promise.resolve({ Attributes: { ApproximateNumberOfMessages: 10 } }),
+        promise: () =>
+          Promise.resolve({
+            Attributes: {
+              ApproximateNumberOfMessages: 10,
+            },
+          }),
       };
     });
 
@@ -40,7 +45,7 @@ describe('epi2me.queueLength', () => {
 
   it('should handle poor response', async () => {
     const sqs = new AWS.SQS();
-    sinon.stub(client, 'sessionedSQS').callsFake(() => sqs);
+    sinon.stub(client, 'sessionedSQS').resolves(sqs);
     sinon.stub(sqs, 'getQueueAttributes').callsFake(opts => {
       assert.equal(opts.QueueUrl, queueUrl);
       return {
@@ -57,7 +62,7 @@ describe('epi2me.queueLength', () => {
 
   it('should handle sessionedSQS errors', async () => {
     const sqs = new AWS.SQS();
-    sinon.stub(client, 'sessionedSQS').callsFake(() => sqs);
+    sinon.stub(client, 'sessionedSQS').resolves(sqs);
     sinon.stub(sqs, 'getQueueAttributes').callsFake(opts => {
       assert.equal(opts.QueueUrl, queueUrl);
       return {

@@ -4,20 +4,28 @@ import bunyan from 'bunyan';
 import REST from '../../src/rest';
 
 describe('rest.attributes', () => {
-  it('must invoke list', () => {
-    const ringbuf = new bunyan.RingBuffer({ limit: 100 });
-    const log = bunyan.createLogger({ name: 'log', stream: ringbuf });
-    const stub = sinon.stub(REST.prototype, 'list').callsFake((uri, cb) => {
+  it('must invoke list', async () => {
+    const ringbuf = new bunyan.RingBuffer({
+      limit: 100,
+    });
+    const log = bunyan.createLogger({
+      name: 'log',
+      stream: ringbuf,
+    });
+    const stub = sinon.stub(REST.prototype, 'list').callsFake(uri => {
       assert.equal(uri, 'attribute', 'default uri');
-      cb();
+      return Promise.resolve();
     });
 
-    const fake = sinon.fake();
-    const rest = new REST({ log });
-    assert.doesNotThrow(() => {
-      rest.attributes(fake);
+    const rest = new REST({
+      log,
     });
-    assert(fake.calledOnce, 'callback invoked');
+    try {
+      await rest.attributes();
+    } catch (e) {
+      assert.fail(`unexpected failure: ${String(e)}`);
+    }
+
     stub.restore();
   });
 });

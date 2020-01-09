@@ -7,14 +7,14 @@ import os from 'os';
 import { assign, merge } from 'lodash';
 import gql from 'graphql-tag';
 import utils from './utils';
-import { local, gqlUrl as baseUrl, user_agent as userAgent, signing } from './default_options.json';
+import { local, url as baseUrl, user_agent as userAgent, signing } from './default_options.json';
 import client from './gql-client';
 import PageFragment from './fragments/PageFragment';
 import WorkflowFragment from './fragments/WorkflowFragment';
 import WorkflowInstanceFragment from './fragments/WorkflowInstanceFragment';
 
 export default class GraphQL {
-  constructor(profile) {
+  constructor(opts) {
     // {log, ...options}) {
 
     // console.log(profile);
@@ -26,9 +26,10 @@ export default class GraphQL {
         user_agent: userAgent,
         signing,
       },
-      profile,
+      opts,
     );
 
+    this.options.url = this.options.url.replace(/:\/\//, '://graphql.'); // https://epi2me-dev.bla => https://graphql.epi2me-dev.bla
     this.log = this.options.log;
     this.client = client;
   }
@@ -42,7 +43,8 @@ export default class GraphQL {
     //   apisecret,
     // };
     // console.log('PROFILE ', this.options.profile);
-    return merge(this.options.profile, contextIn);
+    const { apikey, apisecret, url } = this.options;
+    return merge({ apikey, apisecret, url }, contextIn);
   }
 
   workflows(context = {}, variables = {}) {
@@ -58,7 +60,11 @@ export default class GraphQL {
     `;
     const requestContext = this.createContext(context);
     // console.log(requestContext);
-    return this.client.query({ query, variables, context: requestContext });
+    return this.client.query({
+      query,
+      variables,
+      context: requestContext,
+    });
   }
 
   workflow(variables) {
@@ -69,7 +75,10 @@ export default class GraphQL {
         }
       }
     `;
-    return this.client.query({ query, variables });
+    return this.client.query({
+      query,
+      variables,
+    });
   }
 
   workflowInstances(variables) {
@@ -83,7 +92,10 @@ export default class GraphQL {
         }
       }
     `;
-    return this.client.query({ query, variables });
+    return this.client.query({
+      query,
+      variables,
+    });
   }
 
   workflowInstance(variables) {
@@ -94,7 +106,10 @@ export default class GraphQL {
         }
       }
     `;
-    return this.client.query({ query, variables });
+    return this.client.query({
+      query,
+      variables,
+    });
   }
 
   startWorkflow(variables) {
@@ -122,7 +137,10 @@ export default class GraphQL {
         }
       }
     `;
-    return this.client.mutate({ mutation, variables });
+    return this.client.mutate({
+      mutation,
+      variables,
+    });
   }
 
   // user - me
@@ -150,7 +168,10 @@ export default class GraphQL {
     try {
       const data = await utils.post(
         'apiaccess',
-        { code, description: description || `${os.userInfo().username}@${os.hostname()}` },
+        {
+          code,
+          description: description || `${os.userInfo().username}@${os.hostname()}`,
+        },
         this.options,
       );
       return cb ? cb(null, data) : Promise.resolve(data);
