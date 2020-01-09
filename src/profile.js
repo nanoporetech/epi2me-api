@@ -1,54 +1,28 @@
-import { homedir } from 'os';
-import fs from 'fs-extra';
-import path from 'path';
-import { merge } from 'lodash';
+import {
+  merge
+} from 'lodash';
 import DEFAULTS from './default_options.json';
 
 export default class Profile {
-  constructor(prefsFile, raiseExceptions) {
-    this.prefsFile = prefsFile || Profile.profilePath();
+  constructor(allProfileData, raiseExceptions) {
     this.allProfileData = {};
     this.defaultEndpoint = process.env.METRICHOR || DEFAULTS.endpoint || DEFAULTS.url;
     this.raiseExceptions = raiseExceptions;
 
-    try {
-      this.allProfileData = merge(fs.readJSONSync(this.prefsFile), {
+    if (allProfileData) {
+      this.allProfileData = merge(allProfileData, {
         profiles: {},
       });
+    }
 
-      if (this.allProfileData.endpoint) {
-        this.defaultEndpoint = this.allProfileData.endpoint;
-      }
-    } catch (err) {
-      if (this.raiseExceptions) {
-        throw err;
-      }
+    if (this.allProfileData.endpoint) {
+      this.defaultEndpoint = this.allProfileData.endpoint;
     }
   }
 
-  static profilePath() {
-    return path.join(homedir(), '.epi2me.json');
-  }
-
-  profile(id, obj) {
-    if (id && obj) {
-      merge(this.allProfileData, {
-        profiles: {
-          [id]: obj,
-        },
-      });
-      try {
-        fs.writeJSONSync(this.prefsFile, this.allProfileData);
-      } catch (err) {
-        if (this.raiseExceptions) {
-          throw err;
-        }
-      }
-    }
-
+  profile(id) {
     if (id) {
-      return merge(
-        {
+      return merge({
           endpoint: this.defaultEndpoint,
         },
         this.allProfileData.profiles[id],

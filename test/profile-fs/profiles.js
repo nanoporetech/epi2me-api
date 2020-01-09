@@ -3,9 +3,9 @@ import sinon from 'sinon';
 import fs from 'fs-extra';
 import tmp from 'tmp';
 import path from 'path';
-import Profile from '../../src/profile';
+import Profile from '../../src/profile-fs';
 
-describe('epi2me.profile', () => {
+describe('epi2me.profile-fs', () => {
   let tmpProfile;
   beforeEach(() => {
     tmpProfile = path.join(tmp.dirSync().name, '.epi2me.json');

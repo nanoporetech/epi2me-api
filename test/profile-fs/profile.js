@@ -3,9 +3,9 @@ import sinon from 'sinon';
 import fs from 'fs-extra';
 import tmp from 'tmp';
 import path from 'path';
-import Profile from '../../src/profile';
+import Profile from '../../src/profile-fs';
 
-describe('epi2me.profile', () => {
+describe('epi2me.profile-fs', () => {
   let tmpProfile;
   beforeEach(() => {
     tmpProfile = path.join(tmp.dirSync().name, '.epi2me.json');
@@ -22,6 +22,7 @@ describe('epi2me.profile', () => {
       p.profile('bob@bob-machine');
       assert.fail('unexpected success');
     } catch (e) {
+      console.log(e);
       assert.ok(String(e).match(/Cannot read property/), 'no file');
     }
   });
@@ -30,8 +31,7 @@ describe('epi2me.profile', () => {
     fs.writeJSONSync(tmpProfile, {});
     const p = new Profile();
     assert.deepEqual(
-      p.profile('bob@bob-machine'),
-      {
+      p.profile('bob@bob-machine'), {
         endpoint: 'https://epi2me.nanoporetech.com',
       },
       'empty file',
@@ -44,8 +44,7 @@ describe('epi2me.profile', () => {
     });
     const p = new Profile();
     assert.deepEqual(
-      p.profile('bob@bob-machine'),
-      {
+      p.profile('bob@bob-machine'), {
         endpoint: 'https://epi2me.nanoporetech.com',
       },
       'empty profile',
@@ -63,8 +62,7 @@ describe('epi2me.profile', () => {
     });
     const p = new Profile();
     assert.deepEqual(
-      p.profile('bob@bob-machine'),
-      {
+      p.profile('bob@bob-machine'), {
         apikey: 'foo',
         apisecret: 'bar',
         endpoint: 'https://epi2me.nanoporetech.com',
@@ -88,8 +86,7 @@ describe('epi2me.profile', () => {
     });
 
     assert.deepEqual(
-      fs.readJSONSync(tmpProfile),
-      {
+      fs.readJSONSync(tmpProfile), {
         profiles: {
           'bob@bob-machine': {
             apikey: 'new',
@@ -108,8 +105,7 @@ describe('epi2me.profile', () => {
     });
 
     assert.deepEqual(
-      p.profile('bob@bob-machine'),
-      {
+      p.profile('bob@bob-machine'), {
         apikey: 'new',
         endpoint: 'https://epi2me.nanoporetech.com',
       },
@@ -117,8 +113,7 @@ describe('epi2me.profile', () => {
     );
 
     assert.deepEqual(
-      fs.readJSONSync(tmpProfile),
-      {
+      fs.readJSONSync(tmpProfile), {
         profiles: {
           'bob@bob-machine': {
             apikey: 'new',
@@ -139,8 +134,7 @@ describe('epi2me.profile', () => {
     });
 
     assert.deepEqual(
-      p.profile('bob@bob-machine'),
-      {
+      p.profile('bob@bob-machine'), {
         apikey: 'new',
         endpoint: 'https://epi2me.nanoporetech.com',
       },
@@ -148,8 +142,7 @@ describe('epi2me.profile', () => {
     );
 
     assert.deepEqual(
-      fs.readJSONSync(tmpProfile),
-      {
+      fs.readJSONSync(tmpProfile), {
         profiles: {
           'bob@bob-machine': {
             apikey: 'new',
@@ -174,8 +167,7 @@ describe('epi2me.profile', () => {
       apikey: 'new',
     });
     assert.deepEqual(
-      p.profile('bob@bob-machine'),
-      {
+      p.profile('bob@bob-machine'), {
         apikey: 'new',
         apisecret: 'bar',
         endpoint: 'https://epi2me.nanoporetech.com',
@@ -183,8 +175,7 @@ describe('epi2me.profile', () => {
       'one profile',
     );
     assert.deepEqual(
-      fs.readJSONSync(tmpProfile),
-      {
+      fs.readJSONSync(tmpProfile), {
         profiles: {
           'bob@bob-machine': {
             apikey: 'new',
@@ -213,8 +204,7 @@ describe('epi2me.profile', () => {
     });
     assert.deepEqual(p.profiles(), ['bob@bob-machine', 'deunan@bob-machine'], 'two profiles');
     assert.deepEqual(
-      fs.readJSONSync(tmpProfile),
-      {
+      fs.readJSONSync(tmpProfile), {
         labs_token: 'foo-bar-baz',
         profiles: {
           'bob@bob-machine': {

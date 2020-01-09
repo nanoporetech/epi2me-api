@@ -16,6 +16,7 @@ import utils from './utils';
 import niceSize from './niceSize';
 import REST from './rest';
 import GraphQL from './graphql';
+import Profile from './profile';
 import Socket from './socket';
 import DEFAULTS from './default_options.json';
 
@@ -314,5 +315,6 @@ export default class EPI2ME {
 }
 
 EPI2ME.version = utils.version;
+EPI2ME.Profile = Profile;
 EPI2ME.REST = REST; // to allow import { REST } from '@metrichor/epi2me-api'
 EPI2ME.utils = utils;

@@ -25,7 +25,7 @@ import fastqSplitter from './splitters/fastq';
 import fastqGzipSplitter from './splitters/fastq-gz';
 import EPI2ME from './epi2me';
 import DB from './db';
-import Profile from './profile';
+import Profile from './profile-fs';
 import niceSize from './niceSize';
 import PromisePipeline from './promise-pipeline';
 
