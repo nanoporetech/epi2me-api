@@ -29,6 +29,12 @@ export default class EPI2ME {
       opts = OptString || {};
     }
 
+    // keep data members in-common with profiles
+    if (opts.endpoint) {
+      opts.url = opts.endpoint;
+      delete opts.endpoint;
+    }
+
     if (opts.log) {
       if (every([opts.log.info, opts.log.warn, opts.log.error, opts.log.debug, opts.log.json], isFunction)) {
         this.log = opts.log;
