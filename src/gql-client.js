@@ -1,18 +1,8 @@
-import {
-  ApolloClient
-} from 'apollo-client';
-import {
-  InMemoryCache
-} from 'apollo-cache-inmemory';
+import { InMemoryCache } from 'apollo-cache-inmemory';
+import ApolloClient from 'apollo-client';
 // import { setContext } from 'apollo-link-context';
-import {
-  ApolloLink,
-  execute
-} from 'apollo-link';
-import {
-  createHttpLink
-} from 'apollo-link-http';
-
+import { ApolloLink, execute } from 'apollo-link';
+import { createHttpLink } from 'apollo-link-http';
 // import utils from './utils';
 import customFetcher from './fetcher';
 
@@ -21,11 +11,7 @@ import customFetcher from './fetcher';
 
 const link = new ApolloLink(operation => {
   // console.log('context: ', operation.getContext(), '\n context ends');
-  const {
-    apikey,
-    apisecret,
-    url
-  } = operation.getContext();
+  const { apikey, apisecret, url } = operation.getContext();
   // operation.setContext(({ headers }) => ({
   //   headers: {
   //     apikey,
