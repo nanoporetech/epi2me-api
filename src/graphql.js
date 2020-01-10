@@ -3,15 +3,15 @@
  * Authors: rpettett, gvanginkel
  */
 
-import os from 'os';
-import { assign, merge } from 'lodash';
 import gql from 'graphql-tag';
-import utils from './utils';
-import { local, url as baseUrl, user_agent as userAgent, signing } from './default_options.json';
-import client from './gql-client';
+import { assign, merge } from 'lodash';
+import os from 'os';
+import { local, signing, url as baseUrl, user_agent as userAgent } from './default_options.json';
 import PageFragment from './fragments/PageFragment';
 import WorkflowFragment from './fragments/WorkflowFragment';
 import WorkflowInstanceFragment from './fragments/WorkflowInstanceFragment';
+import client from './gql-client';
+import utils from './utils';
 
 export default class GraphQL {
   constructor(opts) {

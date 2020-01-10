@@ -6,5 +6,5 @@ const api = new EPI2ME(profile);
 
 api.graphQL
   .workflows()
-  .then(console.log)
-  .catch(console.log); // eslint-disable-line
+  .then(console.info)
+  .catch(console.error);
