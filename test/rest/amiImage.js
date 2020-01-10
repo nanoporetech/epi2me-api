@@ -13,68 +13,108 @@ describe('rest.amiImage', () => {
     });
   });
 
-  it('should not support local mode', () => {
+  it('should not support local mode', async () => {
     client.options.local = true;
-    const data = { aws_id: 'ami-12345', name: 'mon ami', description: 'foo bar baz', id_region: 1, is_active: 1 };
-    assert.doesNotThrow(() => {
-      client.amiImage('ami-12345', data, err => {
-        assert.ok(err instanceof Error, 'local-mode unsupported error');
-      });
-    });
+    const data = {
+      aws_id: 'ami-12345',
+      name: 'mon ami',
+      description: 'foo bar baz',
+      id_region: 1,
+      is_active: 1,
+    };
+    try {
+      await client.amiImage('ami-12345', data);
+      assert.fail(`unexpected success`);
+    } catch (err) {
+      assert.ok(String(err).match(/unsupported in local mode/));
+    }
   });
 
-  it('should update an amiImage', () => {
-    const data = { aws_id: 'ami-12345', name: 'mon ami', description: 'foo bar baz', id_region: 1, is_active: 1 };
-    const stub = sinon.stub(utils, 'put').resolves({ status: 'success' });
+  it('should update an amiImage', async () => {
+    const data = {
+      aws_id: 'ami-12345',
+      name: 'mon ami',
+      description: 'foo bar baz',
+      id_region: 1,
+      is_active: 1,
+    };
+    const stub = sinon.stub(utils, 'put').resolves({
+      status: 'success',
+    });
 
-    assert.doesNotThrow(async () => {
-      await client.amiImage('ami-12345', data, (err, obj) => {
-        assert.equal(err, null, 'no error reported');
-        assert.deepEqual(obj, { status: 'success' });
-      });
+    let obj;
+    try {
+      obj = await client.amiImage('ami-12345', data);
+    } catch (err) {
+      assert.fail(err);
+    }
+    assert.deepEqual(obj, {
+      status: 'success',
     });
 
     stub.restore();
   });
 
-  it('should create an amiImage', () => {
-    const data = { aws_id: 'ami-12345', name: 'mon ami', description: 'foo bar baz', id_region: 1, is_active: 1 };
-    const stub = sinon.stub(utils, 'post').resolves({ status: 'success' });
-
-    assert.doesNotThrow(async () => {
-      await client.amiImage(data, (err, obj) => {
-        assert.equal(err, null, 'no error reported');
-        assert.deepEqual(obj, { status: 'success' });
-      });
+  it('should create an amiImage', async () => {
+    const data = {
+      aws_id: 'ami-12345',
+      name: 'mon ami',
+      description: 'foo bar baz',
+      id_region: 1,
+      is_active: 1,
+    };
+    const stub = sinon.stub(utils, 'post').resolves({
+      status: 'success',
     });
+
+    try {
+      const obj = await client.amiImage(data);
+      assert.deepEqual(obj, {
+        status: 'success',
+      });
+    } catch (e) {
+      assert.fail(e);
+    }
 
     stub.restore();
   });
 
-  it('should read an amiImage', () => {
-    const data = { aws_id: 'ami-12345', name: 'mon ami', description: 'foo bar baz', id_region: 1, is_active: 1 };
+  it('should read an amiImage', async () => {
+    const data = {
+      aws_id: 'ami-12345',
+      name: 'mon ami',
+      description: 'foo bar baz',
+      id_region: 1,
+      is_active: 1,
+    };
     const stub = sinon.stub(client, 'read').resolves(data);
 
-    assert.doesNotThrow(async () => {
-      await client.amiImage('ami-12345', (err, obj) => {
-        assert.equal(err, null, 'no error reported');
-        assert.deepEqual(obj, data);
-      });
-    });
+    try {
+      const obj = await client.amiImage('ami-12345');
+      assert.deepEqual(obj, data);
+    } catch (e) {
+      assert.fail(e);
+    }
 
     stub.restore();
   });
 
-  it('should bail without an id', () => {
-    const data = { aws_id: 'ami-12345', name: 'mon ami', description: 'foo bar baz', id_region: 1, is_active: 1 };
+  it('should bail without an id', async () => {
+    const data = {
+      aws_id: 'ami-12345',
+      name: 'mon ami',
+      description: 'foo bar baz',
+      id_region: 1,
+      is_active: 1,
+    };
     const stub = sinon.stub(client, 'read').resolves(data);
 
-    const fake = sinon.fake();
-    assert.doesNotThrow(async () => {
-      await client.amiImage(null, fake);
-    });
-    assert(fake.calledOnce, 'callback invoked');
-    assert(fake.firstCall.args[0] instanceof Error);
+    try {
+      await client.amiImage(null);
+      assert.fail(`unexpected success`);
+    } catch (e) {
+      assert(String(e).match(/no id_ami_image specified/));
+    }
 
     stub.restore();
   });

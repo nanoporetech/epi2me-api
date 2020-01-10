@@ -4,23 +4,15 @@
  */
 
 import os from 'os';
-import {
-  merge,
-  filter,
-  assign
-} from 'lodash';
+import { merge, filter, assign } from 'lodash';
 import utils from './utils';
-import {
-  local,
-  url as baseURL,
-  user_agent as userAgent,
-  signing
-} from './default_options.json';
+import { local, url as baseURL, user_agent as userAgent, signing } from './default_options.json';
 
 export default class REST {
   constructor(options) {
     // {log, ...options}) {
-    this.options = assign({
+    this.options = assign(
+      {
         agent_version: utils.version,
         local,
         url: baseURL,
@@ -34,34 +26,26 @@ export default class REST {
   }
 
   async list(entity) {
-    try {
-      const json = await utils.get(entity, this.options);
-      const entityName = entity.match(/^[a-z_]+/i)[0]; // dataset?foo=bar => dataset
-      return Promise.resolve(json[`${entityName}s`]);
-    } catch (err) {
-      this.log.error(`list error ${String(err)}`);
-      return Promise.reject(err);
-    }
+    const entityName = entity.match(/^[a-z_]+/i)[0]; // dataset?foo=bar => dataset
+    return utils.get(entity, this.options).then(json => {
+      return json[`${entityName}s`];
+    });
   }
 
   async read(entity, id) {
-    try {
-      const json = await utils.get(`${entity}/${id}`, this.options);
-      return Promise.resolve(json);
-    } catch (e) {
-      this.log.error('read', e);
-      return Promise.reject(e);
-    }
+    return utils.get(`${entity}/${id}`, this.options);
   }
 
   async user() {
     if (this.options.local) {
       return {
-        accounts: [{
-          id_user_account: 'none',
-          number: 'NONE',
-          name: 'None',
-        }, ],
+        accounts: [
+          {
+            id_user_account: 'none',
+            number: 'NONE',
+            name: 'None',
+          },
+        ],
       }; // fake user with accounts
     }
     return utils.get('user', this.options);
@@ -72,24 +56,21 @@ export default class REST {
   }
 
   async jwt() {
-    try {
-      const customJWTHandler = res => {
-        return res.headers['x-epi2me-jwt'] ?
-          Promise.resolve(res.headers['x-epi2me-jwt']) :
-          Promise.reject(new Error('failed to fetch JWT'));
-      };
-      const data = await utils.post(
-        'authenticate', {},
-        merge({
-            handler: customJWTHandler,
-          },
-          this.options,
-        ),
-      );
-      return Promise.resolve(data);
-    } catch (err) {
-      return Promise.reject(err);
-    }
+    const customJWTHandler = res => {
+      return res.headers['x-epi2me-jwt']
+        ? Promise.resolve(res.headers['x-epi2me-jwt'])
+        : Promise.reject(new Error('failed to fetch JWT'));
+    };
+    return utils.post(
+      'authenticate',
+      {},
+      merge(
+        {
+          handler: customJWTHandler,
+        },
+        this.options,
+      ),
+    );
   }
 
   async instanceToken(id, opts) {
@@ -106,7 +87,8 @@ export default class REST {
 
   async installToken(id) {
     return utils.post(
-      'token/install', {
+      'token/install',
+      {
         id_workflow: id,
       },
       assign({}, this.options, {
@@ -131,27 +113,16 @@ export default class REST {
     return this.list('ami_image');
   }
 
-  async amiImage(first, second, third) {
+  async amiImage(first, second) {
     let id;
     let obj;
-    let cb;
     let action;
-    if (first && second && third instanceof Function) {
-      // update with callback
-      id = first;
-      obj = second;
-      cb = third;
-      action = 'update';
-    } else if (first && second instanceof Object && !(second instanceof Function)) {
+
+    if (first && second instanceof Object) {
       // update with promise
       id = first;
       obj = second;
       action = 'update';
-    } else if (first instanceof Object && second instanceof Function) {
-      // create with callback
-      obj = first;
-      cb = second;
-      action = 'create';
     } else if (first instanceof Object && !second) {
       // create with promise
       obj = first;
@@ -160,45 +131,25 @@ export default class REST {
       // read with callback or promise
       action = 'read';
       id = first;
-      cb = second instanceof Function ? second : null;
     }
 
     if (this.options.local) {
-      const err = new Error('ami_image unsupported in local mode');
-      return cb ? cb(err) : Promise.reject(err);
+      throw new Error('ami_image unsupported in local mode');
     }
 
     if (action === 'update') {
-      // three args: update object
-      try {
-        const update = await utils.put('ami_image', id, obj, this.options);
-        return cb ? cb(null, update) : Promise.resolve(update);
-      } catch (err) {
-        return cb ? cb(err) : Promise.reject(err);
-      }
+      return utils.put('ami_image', id, obj, this.options);
     }
 
     if (action === 'create') {
-      // two args: create
-      try {
-        const create = await utils.post('ami_image', obj, this.options);
-        return cb ? cb(null, create) : Promise.resolve(create);
-      } catch (err) {
-        return cb ? cb(err) : Promise.reject(err);
-      }
+      return utils.post('ami_image', obj, this.options);
     }
 
     if (!id) {
-      const err = new Error('no id_ami_image specified');
-      return cb ? cb(err) : Promise.reject(err);
+      throw new Error('no id_ami_image specified');
     }
 
-    try {
-      const image = await this.read('ami_image', id);
-      return cb ? cb(null, image) : Promise.resolve(image);
-    } catch (err) {
-      return cb ? cb(err) : Promise.reject(err);
-    }
+    return this.read('ami_image', id);
   }
 
   async workflow(first, second, third) {
@@ -354,26 +305,24 @@ export default class REST {
   }
 
   async workflowInstances(query) {
-    if (query && query.run_id) {
-      try {
-        const json = await utils.get(
-          `workflow_instance/wi?show=all&columns[0][name]=run_id;columns[0][searchable]=true;columns[0][search][regex]=true;columns[0][search][value]=${query.run_id};`,
-          this.options,
-        );
-        const mapped = json.data.map(o => ({
+    if (!query || !query.run_id) {
+      return this.list('workflow_instance');
+    }
+
+    return utils
+      .get(
+        `workflow_instance/wi?show=all&columns[0][name]=run_id;columns[0][searchable]=true;columns[0][search][regex]=true;columns[0][search][value]=${query.run_id};`,
+        this.options,
+      )
+      .then(json => {
+        return json.data.map(o => ({
           id_workflow_instance: o.id_ins,
           id_workflow: o.id_flo,
           run_id: o.run_id,
           description: o.desc,
           rev: o.rev,
         }));
-        return Promise.resolve(mapped);
-      } catch (err) {
-        return Promise.reject(err);
-      }
-    }
-
-    return this.list('workflow_instance');
+      });
   }
 
   async workflowInstance(id) {
@@ -387,7 +336,8 @@ export default class REST {
   async register(code, description) {
     return utils.put(
       'reg',
-      code, {
+      code,
+      {
         description: description || `${os.userInfo().username}@${os.hostname()}`,
       },
       assign({}, this.options, {
@@ -419,18 +369,13 @@ export default class REST {
     });
   }
 
-  async fetchContent(url, cb) {
+  async fetchContent(url) {
     const options = assign({}, this.options, {
       skip_url_mangle: true,
       headers: {
         'Content-Type': '',
       },
     });
-    try {
-      const result = await utils.get(url, options);
-      return cb ? cb(null, result) : Promise.resolve(result);
-    } catch (err) {
-      return cb ? cb(err) : Promise.reject(err);
-    }
+    return utils.get(url, options);
   }
 }
