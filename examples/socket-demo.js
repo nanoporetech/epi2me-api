@@ -6,19 +6,12 @@
  */
 const EPI2ME = require('..');
 
-const {
-  Profile
-} = EPI2ME;
-
 const profileName = process.argv[2] || 'classic';
 const channelName = process.argv[3] || 'workflow_instance:update:1234';
 
-const profile = new Profile().profile(profileName);
+const profile = new EPI2ME.Profile();
 
-const epi2me = new EPI2ME({
-  apikey: profile.apikey,
-  url: profile.endpoint,
-});
+const epi2me = new EPI2ME(profile.profile(profileName));
 
 epi2me.socket().then(socket => {
   socket.watch(channelName, data => {
