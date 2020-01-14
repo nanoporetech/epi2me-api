@@ -81,7 +81,7 @@ export default class GraphQL {
     });
   }
 
-  workflowInstances(variables) {
+  workflowInstances(context = {}, variables = {}) {
     const query = gql`
       query allWorkflowInstances($page: Int) {
         allWorkflowInstances(page: $page) {
@@ -92,10 +92,17 @@ export default class GraphQL {
         }
       }
     `;
+    const requestContext = this.createContext(context);
+    // console.log(requestContext);
     return this.client.query({
       query,
       variables,
+      context: requestContext,
     });
+    // return this.client.query({
+    //   query,
+    //   variables,
+    // });
   }
 
   workflowInstance(variables) {
