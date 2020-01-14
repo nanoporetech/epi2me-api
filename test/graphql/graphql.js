@@ -1,15 +1,14 @@
-import sinon from 'sinon';
 import assert from 'assert';
+import axios from 'axios';
 import bunyan from 'bunyan';
 import { merge } from 'lodash';
-import axios from 'axios';
-
+import sinon from 'sinon';
 import DEFAULTS from '../../src/default_options.json';
-import GraphQL from '../../src/graphql';
-import client from '../../src/gql-client';
-import utils from '../../src/utils';
-import gqlUtils from '../../src/gql-utils';
 import customFetcher from '../../src/fetcher';
+import client from '../../src/gql-client';
+import gqlUtils from '../../src/gql-utils';
+import GraphQL from '../../src/graphql';
+import utils from '../../src/utils';
 
 const makeGQL = profile => {
   const ringbuf = new bunyan.RingBuffer({ limit: 100 });
@@ -108,7 +107,10 @@ describe('stubbed tests', () => {
       const gql = makeRegisteredGQL();
       const response = { data: { allWorkflows: [{ idWorkflow: 1 }] } };
       stubs.push(sinon.stub(client, 'query').resolves(response));
-      gql.workflowInstances().then(({ data }) => assert.strictEqual(data, response.data));
+      gql.workflowInstances().then(({ data }) => {
+        console.log('DATA HERE', data);
+        assert.strictEqual(data, response.data);
+      });
       // .catch(err => console.log(err));
     });
   });

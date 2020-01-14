@@ -1,7 +1,13 @@
 const WorkflowInstanceFragment = `
 idWorkflowInstance
-outputqueue
 startDate
+workflowImage{
+  workflow
+  {
+    rev
+    name
+  }
+}
 `;
 
 export default WorkflowInstanceFragment;

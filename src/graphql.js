@@ -15,9 +15,6 @@ import utils from './utils';
 
 export default class GraphQL {
   constructor(opts) {
-    // {log, ...options}) {
-
-    // console.log(profile);
     this.options = assign(
       {
         agent_version: utils.version,
@@ -36,21 +33,14 @@ export default class GraphQL {
 
   createContext(contextIn) {
     // Merge any passed in context with requiredContext
-    // such as apikeys
-    // const { apikey, apisecret } = this.profile.credentials;
-    // const requiredContext = {
-    //   apikey,
-    //   apisecret,
-    // };
-    // console.log('PROFILE ', this.options.profile);
     const { apikey, apisecret, url } = this.options;
     return merge({ apikey, apisecret, url }, contextIn);
   }
 
   workflows(context = {}, variables = {}) {
     const query = gql`
-      query allWorkflows($page: Int) {
-        allWorkflows(page: $page) {
+      query allWorkflows($page: Int, $isActive: Int) {
+        allWorkflows(page: $page, isActive: $isActive) {
           ${PageFragment}
           results {
             ${WorkflowFragment}
@@ -59,7 +49,6 @@ export default class GraphQL {
       }
     `;
     const requestContext = this.createContext(context);
-    // console.log(requestContext);
     return this.client.query({
       query,
       variables,
@@ -67,7 +56,7 @@ export default class GraphQL {
     });
   }
 
-  workflow(variables) {
+  workflow(context = {}, variables = {}) {
     const query = gql`
       query workflow($idWorkflow: ID!) {
         workflow(idWorkflow: $idWorkflow) {
@@ -75,16 +64,18 @@ export default class GraphQL {
         }
       }
     `;
+    const requestContext = this.createContext(context);
     return this.client.query({
       query,
       variables,
+      context: requestContext,
     });
   }
 
   workflowInstances(context = {}, variables = {}) {
     const query = gql`
-      query allWorkflowInstances($page: Int) {
-        allWorkflowInstances(page: $page) {
+      query allWorkflowInstances($page: Int, $shared: Boolean, $idUser: int) {
+        allWorkflowInstances(page: $page, shared: $shared, idUser: $idUser) {
           ${PageFragment}
           results {
             ${WorkflowInstanceFragment}
@@ -93,19 +84,14 @@ export default class GraphQL {
       }
     `;
     const requestContext = this.createContext(context);
-    // console.log(requestContext);
     return this.client.query({
       query,
       variables,
       context: requestContext,
     });
-    // return this.client.query({
-    //   query,
-    //   variables,
-    // });
   }
 
-  workflowInstance(variables) {
+  workflowInstance(context = {}, variables = {}) {
     const query = gql`
       query workflowInstance($idWorkflowInstance: ID!) {
         workflowInstance(idWorkflowInstance: $idWorkflowInstance) {
@@ -113,13 +99,15 @@ export default class GraphQL {
         }
       }
     `;
+    const requestContext = this.createContext(context);
     return this.client.query({
       query,
       variables,
+      context: requestContext,
     });
   }
 
-  startWorkflow(variables) {
+  startWorkflow(context = {}, variables = {}) {
     const mutation = gql`
       mutation startWorkflow(
         $idWorkflow: ID!
@@ -144,9 +132,15 @@ export default class GraphQL {
         }
       }
     `;
+    // return this.client.mutate({
+    //   mutation,
+    //   variables,
+    // });
+    const requestContext = this.createContext(context);
     return this.client.mutate({
       mutation,
       variables,
+      context: requestContext,
     });
   }
 
