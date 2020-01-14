@@ -74,7 +74,7 @@ export default class GraphQL {
 
   workflowInstances(context = {}, variables = {}) {
     const query = gql`
-      query allWorkflowInstances($page: Int, $shared: Boolean, $idUser: int) {
+      query allWorkflowInstances($page: Int, $shared: Boolean, $idUser: Int) {
         allWorkflowInstances(page: $page, shared: $shared, idUser: $idUser) {
           ${PageFragment}
           results {
