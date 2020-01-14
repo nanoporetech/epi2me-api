@@ -107,10 +107,7 @@ describe('stubbed tests', () => {
       const gql = makeRegisteredGQL();
       const response = { data: { allWorkflows: [{ idWorkflow: 1 }] } };
       stubs.push(sinon.stub(client, 'query').resolves(response));
-      gql.workflowInstances().then(({ data }) => {
-        console.log('DATA HERE', data);
-        assert.strictEqual(data, response.data);
-      });
+      gql.workflowInstances().then(({ data }) => assert.strictEqual(data, response.data));
       // .catch(err => console.log(err));
     });
   });
