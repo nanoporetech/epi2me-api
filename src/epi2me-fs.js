@@ -6,28 +6,23 @@
  *
  */
 
-import {
-  merge,
-  isArray
-} from 'lodash';
-import fs from 'fs-extra'; /* MC-565 handle EMFILE & EXDIR gracefully; use Promises */
-import {
-  EOL,
-  homedir
-} from 'os';
-import path from 'path';
 import AWS from 'aws-sdk';
-import utils from './utils-fs';
-import REST from './rest-fs';
-import SessionManager from './session-manager';
+import fs from 'fs-extra'; /* MC-565 handle EMFILE & EXDIR gracefully; use Promises */
+import { isArray, merge } from 'lodash';
+import { EOL, homedir } from 'os';
+import path from 'path';
+import DB from './db';
+import EPI2ME from './epi2me';
 import filestats from './filestats';
+import niceSize from './niceSize';
+import Profile from './profile-fs';
+import PromisePipeline from './promise-pipeline';
+import REST from './rest-fs';
+import SampleReader from './sample-reader';
+import SessionManager from './session-manager';
 import fastqSplitter from './splitters/fastq';
 import fastqGzipSplitter from './splitters/fastq-gz';
-import EPI2ME from './epi2me';
-import DB from './db';
-import Profile from './profile-fs';
-import niceSize from './niceSize';
-import PromisePipeline from './promise-pipeline';
+import utils from './utils-fs';
 
 const rootDir = () => {
   /* Windows: C:\Users\rmp\AppData\EPI2ME
@@ -54,6 +49,7 @@ export default class EPI2ME_FS extends EPI2ME {
         this.config.options,
       ),
     );
+    this.SampleReader = new SampleReader();
   }
 
   async sessionedS3() {
