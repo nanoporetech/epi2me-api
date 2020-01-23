@@ -8,7 +8,6 @@ import customFetcher from '../../src/fetcher';
 import client from '../../src/gql-client';
 import gqlUtils from '../../src/gql-utils';
 import GraphQL from '../../src/graphql';
-import utils from '../../src/utils';
 
 const makeGQL = profile => {
   const ringbuf = new bunyan.RingBuffer({ limit: 100 });
@@ -49,7 +48,7 @@ describe('stubbed tests', () => {
         apisecret: 'a527f9aa0713a5f9cfd99af9a174b73d4df34dcbb3be13b97ccd108314ab0f17',
         description: 'user@localmachine',
       };
-      stubs.push(sinon.stub(utils, 'post').resolves(response));
+      stubs.push(sinon.stub(client, 'mutate').resolves(response));
       await gql.register(code, (_, creds) => {
         assert.strictEqual(creds, response);
       });
@@ -64,7 +63,7 @@ describe('stubbed tests', () => {
         apisecret: 'a527f9aa0713a5f9cfd99af9a174b73d4df34dcbb3be13b97ccd108314ab0f17',
         description: 'description',
       };
-      stubs.push(sinon.stub(utils, 'post').resolves(response));
+      stubs.push(sinon.stub(client, 'mutate').resolves(response));
       await gql.register(code, 'description', (_, creds) => {
         assert.strictEqual(creds, response);
       });

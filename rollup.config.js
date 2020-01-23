@@ -1,11 +1,12 @@
 import path from 'path';
-import json from 'rollup-plugin-json';
-import { eslint } from 'rollup-plugin-eslint';
 import analyze from 'rollup-plugin-analyzer';
-import generatePackageJson from 'rollup-plugin-generate-package-json';
-import { terser } from 'rollup-plugin-terser';
+import babel from 'rollup-plugin-babel';
 import copy from 'rollup-plugin-cpy';
+import { eslint } from 'rollup-plugin-eslint';
+import generatePackageJson from 'rollup-plugin-generate-package-json';
+import json from 'rollup-plugin-json';
 import license from 'rollup-plugin-license';
+import { terser } from 'rollup-plugin-terser';
 import pkg from './package.json';
 
 const external = [...Object.keys(pkg.dependencies || {}), ...Object.keys(pkg.peerDependencies || {})];
@@ -16,6 +17,14 @@ const plugins = [
     throwOnError: true, //  Will eventually be set to true
     throwOnWarning: false, //  Will eventually be set to true
     exclude: ['node_modules/**', './**/*.json'],
+  }),
+  // babel({
+  // }),
+  babel({
+    exclude: ['node_modules/**', 'examples/**'],
+    babelrc: false,
+    presets: [['@babel/preset-env', { targets: { node: 'current' }, modules: false }]],
+    plugins: ['@babel/plugin-proposal-class-properties'],
   }),
   terser({
     parse: {

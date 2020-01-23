@@ -1,8 +1,6 @@
 const fs = require('fs-extra');
 const path = require('path');
-const {
-  homedir
-} = require('os');
+const { homedir } = require('os');
 const EPI2ME = require('../dist/web');
 
 const profile = new EPI2ME.Profile(fs.readJSONSync(path.join(homedir(), '.epi2me.json'), 'utf8'));
