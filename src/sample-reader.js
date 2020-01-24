@@ -16,12 +16,12 @@ export default class SampleReader {
       }
       experiments = {
         expName: {
-          samples: {
+          samples: [{
             flowcellId: string
             sample: string
-          }
+          }]
+          startDate
         }
-        startDate
       }
     */
     this.experiments = {};
