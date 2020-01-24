@@ -59,8 +59,9 @@ export default class SampleReader {
       const [date, time] = splitSample.slice(0, 2);
       const dateString = `${date.slice(0, 4)}-${date.slice(4, 6)}-${date.slice(6, 8)}`;
       const timeString = `T${time.slice(0, 2)}:${time.slice(2, 4)}:00`;
+      const startDate = new Date(dateString + timeString);
       this.experiments[experiment] = {
-        startDate: Date.parse(dateString + timeString),
+        startDate: `${startDate.toDateString()} ${startDate.toLocaleTimeString()}`,
         samples: [
           ...(this.experiments[experiment] ? this.experiments[experiment].samples : []),
           { sample, flowcell, path: `${file.path}/fastq_pass` },
