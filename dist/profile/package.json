@@ -1,7 +1,0 @@
-{
-  "name": "profile",
-  "private": true,
-  "dependencies": {
-    "lodash": "^4.17.15"
-  }
-}
