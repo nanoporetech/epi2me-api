@@ -1,7 +1,8 @@
 import assert from 'assert';
-import tmp from 'tmp';
 import fs from 'fs-extra';
+import mock from 'mock-fs';
 import path from 'path';
+import tmp from 'tmp';
 import utils from '../../src/utils-fs';
 
 describe('utils-fs.loadInputFiles', () => {
@@ -265,5 +266,56 @@ describe('utils-fs.loadInputFiles', () => {
     });
 
     await fs.remove(inputFolder);
+  });
+  describe('MC-7480', () => {
+    let root;
+    let experiment1Path;
+    let experiment2Path;
+    let outputFolder;
+    beforeEach(() => {
+      root = '/data';
+      experiment1Path = `${root}/experiment/pass`;
+      experiment2Path = `${root}/experiment2/pass`;
+      outputFolder = `${root}/output/`;
+
+      mock({
+        [experiment1Path]: {
+          '1.fastq': 'file content here',
+        },
+        [experiment2Path]: {
+          '1.fastq': 'file content here',
+        },
+        [outputFolder]: {},
+      });
+    });
+
+    afterEach(() => {
+      mock.restore();
+    });
+    it('should accept an array of folders to watch', async () => {
+      const opts = {
+        inputFolders: [experiment1Path, experiment2Path],
+        outputFolder,
+        filetype: '.fastq',
+      };
+      await utils.loadInputFiles(opts).then(async files => {
+        assert.deepEqual(files, [
+          {
+            name: '1.fastq',
+            path: path.join(experiment1Path, '1.fastq'),
+            relative: '/1.fastq',
+            size: 17,
+            id: 'FILE_15',
+          },
+          {
+            name: '1.fastq',
+            path: path.join(experiment2Path, '1.fastq'),
+            relative: '/1.fastq',
+            size: 17,
+            id: 'FILE_16',
+          },
+        ]);
+      });
+    });
   });
 });

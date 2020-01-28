@@ -6,8 +6,8 @@
 
 import axios from 'axios';
 import fs from 'fs-extra';
+import { flatten } from 'lodash';
 import path from 'path';
-import { flatten, remove } from 'lodash';
 import utils from './utils';
 
 utils.pipe = async (uriIn, filepath, options, progressCb) => {
@@ -106,7 +106,11 @@ utils.lsRecursive = async (rootFolderIn, item, exclusionFilter) => {
   ];
 };
 
-utils.loadInputFiles = async ({ inputFolder, outputFolder, filetype: filetypesIn }, log, extraFilter) => {
+utils.loadInputFiles = async (
+  { inputFolder, inputFolders = [], outputFolder, filetype: filetypesIn },
+  log,
+  extraFilter,
+) => {
   /**
    * Entry point for new .fast5 / .fastq files.
    *  - Scan the input folder files
@@ -117,6 +121,9 @@ utils.loadInputFiles = async ({ inputFolder, outputFolder, filetype: filetypesIn
 
   // function used to filter the readdir results in utils.lsFolder
   // exclude all files and folders meet any of these criteria:
+
+  // Simplest way to support multiple inputFolders
+  const allInputFolders = (inputFolder && [inputFolder, ...inputFolders]) || inputFolders;
 
   // todo: need to support an array of types, e.g. [fasta, fa, fa.gz]
   let filetypes = filetypesIn;
@@ -167,8 +174,10 @@ utils.loadInputFiles = async ({ inputFolder, outputFolder, filetype: filetypesIn
       }); // rejection just means don't keep
   };
 
-  const actionList = await utils.lsRecursive(inputFolder, inputFolder, exclusionFilter);
-  return Promise.resolve(remove(actionList, null));
+  const actionList = (
+    await Promise.all(allInputFolders.map(inputF => utils.lsRecursive(inputF, inputF, exclusionFilter)))
+  ).reduce((prev, curr) => [...prev, ...curr.filter(c => !!c)], []);
+  return actionList;
 };
 
 export default utils;
