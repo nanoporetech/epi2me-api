@@ -29,6 +29,8 @@ const response = await EPI2ME.stopEverything();
 await EPI2ME.stop_everything();
 ```
 
+See also the examples/ folder
+
 ### Constructor options:
 
 ```
