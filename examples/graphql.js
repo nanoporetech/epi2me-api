@@ -1,21 +1,37 @@
-const {
-  merge
-} = require('lodash');
-const EPI2ME = require('../');
-
-const {
-  Profile
-} = EPI2ME;
+const EPI2ME = require('..');
 
 const profileName = process.argv[2] || 'production_signed';
-const profile = new Profile().profile(profileName);
+const workflowId = process.argv[3] || '193480';
+const profile = new EPI2ME.Profile().profile(profileName);
+const api = new EPI2ME(profile);
 
-const api = new EPI2ME(
-  merge({
-      url: profile.endpoint,
-    },
-    profile,
-  ),
-);
+api.graphQL
+  .workflows()
+  .then(console.info)
+  .catch(console.error);
 
-api.graphQL.workflows().then(console.log); // eslint-disable-line
+api.graphQL
+  .workflowInstance({ variables: { idWorkflowInstance: workflowId } })
+  .then(console.info)
+  .catch(console.error);
+
+api.graphQL
+  .query(
+    `query aWorkflow {
+      workflow(idWorkflow:1800) {
+        config
+        idWorkflow
+      }
+    }
+  `,
+  )()
+  .then(console.info)
+  .catch(console.error);
+
+api.graphQL
+  .workflowPages(1)
+  .then(allWorkflows => {
+    console.info(allWorkflows.data);
+    allWorkflows.next().then(console.info);
+  })
+  .catch(console.error);

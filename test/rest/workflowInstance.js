@@ -37,7 +37,8 @@ describe('rest.workflowInstance', () => {
       const obj = await rest.workflowInstance(149);
 
       assert.deepEqual(
-        obj, {
+        obj,
+        {
           id_workflow_instance: '149',
           state: 'running',
           workflow_filename: 'DNA_Sequencing.js',

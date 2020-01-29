@@ -6,16 +6,12 @@
  *
  */
 
-import {
-  every,
-  isFunction,
-  defaults,
-  merge
-} from 'lodash';
+import { every, isFunction, defaults, merge } from 'lodash';
 import utils from './utils';
 import niceSize from './niceSize';
 import REST from './rest';
 import GraphQL from './graphql';
+import Profile from './profile';
 import Socket from './socket';
 import DEFAULTS from './default_options.json';
 
@@ -26,6 +22,12 @@ export default class EPI2ME {
       opts = JSON.parse(OptString);
     } else {
       opts = OptString || {};
+    }
+
+    // keep data members in-common with profiles
+    if (opts.endpoint) {
+      opts.url = opts.endpoint;
+      delete opts.endpoint;
     }
 
     if (opts.log) {
@@ -108,7 +110,8 @@ export default class EPI2ME {
     };
 
     this.REST = new REST(
-      merge({
+      merge(
+        {
           log: this.log,
         },
         this.config.options,
@@ -116,7 +119,8 @@ export default class EPI2ME {
     );
 
     this.graphQL = new GraphQL(
-      merge({
+      merge(
+        {
           log: this.log,
         },
         this.config.options,
@@ -140,7 +144,8 @@ export default class EPI2ME {
 
     this.mySocket = new Socket(
       this.REST,
-      merge({
+      merge(
+        {
           log: this.log,
         },
         this.config.options,
@@ -188,9 +193,7 @@ export default class EPI2ME {
       this.downloadWorkerPool = null;
     }
 
-    const {
-      id_workflow_instance: idWorkflowInstance
-    } = this.config.instance;
+    const { id_workflow_instance: idWorkflowInstance } = this.config.instance;
     if (idWorkflowInstance) {
       try {
         await this.REST.stopWorkflow(idWorkflowInstance);
@@ -206,10 +209,7 @@ export default class EPI2ME {
   }
 
   reportProgress() {
-    const {
-      upload,
-      download
-    } = this.states;
+    const { upload, download } = this.states;
     this.log.json({
       progress: {
         download,
@@ -230,15 +230,15 @@ export default class EPI2ME {
 
     if (op === 'incr') {
       Object.keys(newData).forEach(o => {
-        this.states[direction][table][o] = this.states[direction][table][o] ?
-          this.states[direction][table][o] + parseInt(newData[o], 10) :
-          parseInt(newData[o], 10);
+        this.states[direction][table][o] = this.states[direction][table][o]
+          ? this.states[direction][table][o] + parseInt(newData[o], 10)
+          : parseInt(newData[o], 10);
       });
     } else {
       Object.keys(newData).forEach(o => {
-        this.states[direction][table][o] = this.states[direction][table][o] ?
-          this.states[direction][table][o] - parseInt(newData[o], 10) :
-          -parseInt(newData[o], 10);
+        this.states[direction][table][o] = this.states[direction][table][o]
+          ? this.states[direction][table][o] - parseInt(newData[o], 10)
+          : -parseInt(newData[o], 10);
       });
     }
 
@@ -314,5 +314,6 @@ export default class EPI2ME {
 }
 
 EPI2ME.version = utils.version;
+EPI2ME.Profile = Profile;
 EPI2ME.REST = REST; // to allow import { REST } from '@metrichor/epi2me-api'
 EPI2ME.utils = utils;

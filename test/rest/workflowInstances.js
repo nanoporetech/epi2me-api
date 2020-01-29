@@ -11,47 +11,51 @@ describe('rest.workflowInstances', () => {
 
   beforeEach(() => {
     ringbuf = new bunyan.RingBuffer({
-      limit: 100
+      limit: 100,
     });
     log = bunyan.createLogger({
       name: 'log',
-      stream: ringbuf
+      stream: ringbuf,
     });
     rest = new REST({
-      log
+      log,
     });
   });
 
   it('must invoke list with promise', async () => {
-    sinon.stub(rest, 'list').resolves([{
-      id_workflow_instance: '12345'
-    }]);
+    sinon.stub(rest, 'list').resolves([
+      {
+        id_workflow_instance: '12345',
+      },
+    ]);
 
     try {
       const data = await rest.workflowInstances();
-      assert.deepEqual(data, [{
-        id_workflow_instance: '12345'
-      }]);
+      assert.deepEqual(data, [
+        {
+          id_workflow_instance: '12345',
+        },
+      ]);
     } catch (err) {
       assert.fail(err);
     }
   });
 
   it('must invoke get with query', async () => {
-    const stub = sinon
-      .stub(utils, 'get')
-      .resolves({
-        data: [{
+    const stub = sinon.stub(utils, 'get').resolves({
+      data: [
+        {
           id_ins: 1,
           id_flo: 2,
           run_id: 'abcdefabcdef',
           desc: 'test wf 2',
-          rev: '0.0.1'
-        }]
-      });
+          rev: '0.0.1',
+        },
+      ],
+    });
     try {
       const data = await rest.workflowInstances({
-        run_id: 'abcdefabcdef'
+        run_id: 'abcdefabcdef',
       });
       assert.deepEqual(data, [
         // note extra "data" container
@@ -60,7 +64,7 @@ describe('rest.workflowInstances', () => {
           id_workflow: 2,
           run_id: 'abcdefabcdef',
           description: 'test wf 2',
-          rev: '0.0.1'
+          rev: '0.0.1',
         },
       ]);
       assert.equal(

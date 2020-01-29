@@ -56,7 +56,8 @@ describe('rest.installToken', () => {
       'post args',
     );
     assert.deepEqual(
-      token, {
+      token,
+      {
         data: 'some data',
       },
       'token content',
