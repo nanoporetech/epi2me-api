@@ -48,7 +48,7 @@ describe('utils-fs.loadInputFiles', () => {
     fs.writeFileSync(path.join(uploadedFolder, 'uploaded.fastq'), '');
 
     const opts = {
-      inputFolder: tmpInputDir.name,
+      inputFolders: [tmpInputDir.name],
       outputFolder,
       uploadedFolder,
       filetype: '.fastq',
@@ -98,7 +98,7 @@ describe('utils-fs.loadInputFiles', () => {
     fs.writeFileSync(path.join(inputFolder, '1.fastq'), '');
 
     const opts = {
-      inputFolder,
+      inputFolders: [inputFolder],
       outputFolder: path.join(inputFolder, 'output'),
       filetype: '.fastq',
     };
@@ -148,7 +148,7 @@ describe('utils-fs.loadInputFiles', () => {
     fs.writeFileSync(path.join(inputFolder, '1.fastq'), '');
 
     const opts = {
-      inputFolder,
+      inputFolders: [inputFolder],
       outputFolder: path.join(inputFolder, 'output'),
       filetype: '.fastq',
     };
@@ -200,7 +200,7 @@ describe('utils-fs.loadInputFiles', () => {
     fs.writeFileSync(path.join(inputFolder, '1.fastq.gz'), '');
 
     const opts = {
-      inputFolder,
+      inputFolders: [inputFolder],
       outputFolder: path.join(inputFolder, 'output'),
       filetype: ['.fastq', '.fastq.gz', 'fq', 'fq.gz'],
     };
@@ -248,7 +248,7 @@ describe('utils-fs.loadInputFiles', () => {
     fs.writeFileSync(inputFile, '');
 
     const opts = {
-      inputFolder: inputFile,
+      inputFolders: [inputFile],
       outputFolder: path.join(inputFolder, 'output'),
       filetype: ['.fasta', '.fasta.gz', 'fa', 'fa.gz'],
     };

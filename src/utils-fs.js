@@ -106,11 +106,7 @@ utils.lsRecursive = async (rootFolderIn, item, exclusionFilter) => {
   ];
 };
 
-utils.loadInputFiles = async (
-  { inputFolder, inputFolders = [], outputFolder, filetype: filetypesIn },
-  log,
-  extraFilter,
-) => {
+utils.loadInputFiles = async ({ inputFolders, outputFolder, filetype: filetypesIn }, log, extraFilter) => {
   /**
    * Entry point for new .fast5 / .fastq files.
    *  - Scan the input folder files
@@ -123,7 +119,7 @@ utils.loadInputFiles = async (
   // exclude all files and folders meet any of these criteria:
 
   // Simplest way to support multiple inputFolders
-  const allInputFolders = (inputFolder && [inputFolder, ...inputFolders]) || inputFolders;
+  // const allInputFolders = (inputFolder && [inputFolder, ...inputFolders]) || inputFolders;
 
   // todo: need to support an array of types, e.g. [fasta, fa, fa.gz]
   let filetypes = filetypesIn;
@@ -174,10 +170,10 @@ utils.loadInputFiles = async (
       }); // rejection just means don't keep
   };
 
-  const actionList = (
-    await Promise.all(allInputFolders.map(inputF => utils.lsRecursive(inputF, inputF, exclusionFilter)))
-  ).reduce((prev, curr) => [...prev, ...curr.filter(c => !!c)], []);
-  return actionList;
+  return (await Promise.all(inputFolders.map(inputF => utils.lsRecursive(inputF, inputF, exclusionFilter)))).reduce(
+    (prev, curr) => [...prev, ...curr.filter(c => !!c)],
+    [],
+  );
 };
 
 export default utils;

@@ -1,7 +1,7 @@
-import sqlite from 'sqlite';
-import { remove, merge } from 'lodash';
 import fs from 'fs-extra';
+import { merge, remove } from 'lodash';
 import path from 'path';
+import sqlite from 'sqlite';
 import pkg from '../package.json';
 
 export default class db {
@@ -19,7 +19,7 @@ export default class db {
       .then(() => {
         this.log.debug(`opening ${dbRoot}/db.sqlite`);
         return sqlite
-          .open(path.join(dbRoot, 'db.sqlite'), {
+          .open((dbRoot === ':memory:' && dbRoot) || path.join(dbRoot, 'db.sqlite'), {
             Promise,
           })
           .then(async dbh => {
