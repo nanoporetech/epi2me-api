@@ -2,7 +2,7 @@
   "name": "@metrichor/epi2me-api",
   "version": "3.0.1447",
   "license": "MPL-2.0",
-  "repository": "https://git.oxfordnanolabs.local/metrichor/api.git",
+  "repository": "git@github.com:nanoporetech/epi2me-api.git",
   "description": "API for communicating with the EPI2ME website(s)",
   "main": "dist/index.js",
   "module": "dist/index.es.js",
