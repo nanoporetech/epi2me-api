@@ -1,14 +1,5 @@
 <a href="http://metrichor.com"><img src="https://epi2me.nanoporetech.com/gfx/logo_print.png" height="74" align="right"></a>
 
-# EPI2ME API
-
-Test Coverage
-master: [![coverage report](https://git.oxfordnanolabs.local/metrichor/api/badges/master/coverage.svg)]
-dev: [![coverage report](https://git.oxfordnanolabs.local/metrichor/api/badges/dev/coverage.svg)]
-
-is hosted on Gitlab-Pages at:
-https://metrichor.git.oxfordnanolabs.local/api/
-
 ### Getting Started
 
 ```js
@@ -23,18 +14,18 @@ const EPI2ME = new API({
 // list of all options: ./lib/default_options.json
 
 // list all workflows
-const workflows = await EPI2ME.workflows();
+const workflows = await EPI2ME.REST.workflows();
 
 // list all workflows
-const workflow = await EPI2ME.read_workflow(workflow_id);
+const workflow = await EPI2ME.REST.workflow(workflow_id);
 
 // start a new EPI2ME instance
-const instance = await EPI2ME.start_workflow(workflow_id);
+const instance = await EPI2ME.startWorkflow({...});
 
-// stop an instance: callback(error)
-const response = await EPI2ME.stop_workflow(instance_id);
+// stop a running instance
+const response = await EPI2ME.stopEverything();
 
-// stop all current uploads / downloads: callback(error)
+// stop all current uploads / downloads:
 await EPI2ME.stop_everything();
 ```
 
