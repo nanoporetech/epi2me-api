@@ -1,6 +1,4 @@
-import {
-  merge
-} from 'lodash';
+import { merge } from 'lodash';
 import DEFAULTS from './default_options.json';
 
 export default class Profile {
@@ -22,7 +20,8 @@ export default class Profile {
 
   profile(id) {
     if (id) {
-      return merge({
+      return merge(
+        {
           endpoint: this.defaultEndpoint,
         },
         this.allProfileData.profiles[id],

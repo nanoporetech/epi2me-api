@@ -44,13 +44,15 @@ describe('rest-fs.workflowInstances', () => {
 
   it('must invoke get with query', async () => {
     const stub = sinon.stub(utils, 'get').resolves({
-      data: [{
-        id_ins: 1,
-        id_flo: 2,
-        run_id: 'abcdefabcdef',
-        desc: 'test wf 2',
-        rev: '0.0.1',
-      }, ],
+      data: [
+        {
+          id_ins: 1,
+          id_flo: 2,
+          run_id: 'abcdefabcdef',
+          desc: 'test wf 2',
+          rev: '0.0.1',
+        },
+      ],
     });
     stubs.push(stub);
 
@@ -66,13 +68,15 @@ describe('rest-fs.workflowInstances', () => {
       assert.fail(err);
     }
 
-    assert.deepEqual(response, [{
-      id_workflow_instance: 1,
-      id_workflow: 2,
-      run_id: 'abcdefabcdef',
-      description: 'test wf 2',
-      rev: '0.0.1',
-    }, ]);
+    assert.deepEqual(response, [
+      {
+        id_workflow_instance: 1,
+        id_workflow: 2,
+        run_id: 'abcdefabcdef',
+        description: 'test wf 2',
+        rev: '0.0.1',
+      },
+    ]);
   });
 
   it('must list from filesystem', async () => {
@@ -101,7 +105,8 @@ describe('rest-fs.workflowInstances', () => {
 
     const response = await rest.workflowInstances();
 
-    assert.deepEqual(response, [{
+    assert.deepEqual(response, [
+      {
         description: 'test flow',
         filename: `${dir}/instances/2018-09-10T14-29-48.061Z/workflow.json`,
         id_workflow: 34567,

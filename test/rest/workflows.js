@@ -1,9 +1,7 @@
 import sinon from 'sinon';
 import assert from 'assert';
 import bunyan from 'bunyan';
-import {
-  merge
-} from 'lodash';
+import { merge } from 'lodash';
 import REST from '../../src/rest';
 
 describe('rest.workflow', () => {
@@ -16,7 +14,8 @@ describe('rest.workflow', () => {
       stream: ringbuf,
     });
     return new REST(
-      merge({
+      merge(
+        {
           log,
         },
         opts,
