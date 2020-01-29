@@ -27,6 +27,7 @@ describe('sample reader', () => {
       const path = '/data';
       const SR = new SampleReader({ path });
       const runs = await SR.getExperiments();
+      const startDate = new Date('2020-01-07 14:41:00');
       assert.deepEqual(runs, {
         VSK002_11_DEGREES: {
           samples: [
@@ -36,7 +37,7 @@ describe('sample reader', () => {
               path: '/data/rehan_07_01_20/VSK002_11_DEGREES/20200107_1441_X5_FAL69641_c67dbc23/fastq_pass',
             },
           ],
-          startDate: '1578408060000',
+          startDate: `${startDate.toDateString()} ${startDate.toLocaleTimeString()}`,
         },
       });
     });
