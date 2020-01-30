@@ -3,6 +3,7 @@ import { merge, remove } from 'lodash';
 import path from 'path';
 import sqlite from 'sqlite';
 import pkg from '../package.json';
+import utils from './utils-fs';
 
 export default class db {
   constructor(dbRoot, optionsIn, log) {
@@ -83,13 +84,9 @@ export default class db {
       });
   }
 
-  stripFile(filename) {
-    return [path.dirname(filename), path.basename(filename)];
-  }
-
   async uploadFile(filename) {
     const dbh = await this.db;
-    const [dir, relative] = this.stripFile(filename);
+    const [dir, relative] = utils.stripFile(filename);
     return dbh.run(
       'INSERT INTO uploads(filename, path_id) VALUES(?, (SELECT folder_id FROM folders WHERE folder_path = ?))',
       relative,
@@ -99,7 +96,7 @@ export default class db {
 
   async skipFile(filename) {
     const dbh = await this.db;
-    const [dir, relative] = this.stripFile(filename);
+    const [dir, relative] = utils.stripFile(filename);
     return dbh.run(
       'INSERT INTO skips(filename, path_id) VALUES(?, (SELECT folder_id FROM folders WHERE folder_path = ?))',
       relative,
@@ -109,8 +106,8 @@ export default class db {
 
   async splitFile(child, parent) {
     const dbh = await this.db;
-    const [dirChild, relativeChild] = this.stripFile(child);
-    const [_, relativeParent] = this.stripFile(parent);
+    const [dirChild, relativeChild] = utils.stripFile(child);
+    const relativeParent = utils.stripFile(parent)[1];
     return dbh.run(
       'INSERT INTO splits VALUES(?, ?, (SELECT folder_id FROM folders WHERE folder_path = ?), CURRENT_TIMESTAMP, NULL)',
       relativeChild,
@@ -121,7 +118,7 @@ export default class db {
 
   async splitDone(child) {
     const dbh = await this.db;
-    const [dirChild, relativeChild] = this.stripFile(child);
+    const [dirChild, relativeChild] = utils.stripFile(child);
     return dbh.run(
       'UPDATE splits SET end=CURRENT_TIMESTAMP WHERE filename=? AND child_path_id=(SELECT folder_id FROM folders WHERE folder_path=?)',
       relativeChild,
@@ -159,7 +156,7 @@ export default class db {
   async seenUpload(filename) {
     //    console.log(`checking seenUpload ${filename}`); // eslint-disable-line no-console
     const dbh = await this.db;
-    const [dir, relative] = this.stripFile(filename);
+    const [dir, relative] = utils.stripFile(filename);
     return Promise.all([
       dbh.get(
         'SELECT * FROM uploads u INNER JOIN folders ON folders.folder_id = u.path_id WHERE u.filename=? AND folders.folder_path=? LIMIT 1',

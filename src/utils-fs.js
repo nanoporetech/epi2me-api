@@ -176,4 +176,8 @@ utils.loadInputFiles = async ({ inputFolders, outputFolder, filetype: filetypesI
   );
 };
 
+utils.stripFile = filename => {
+  return [path.dirname(filename), path.basename(filename)];
+};
+
 export default utils;
