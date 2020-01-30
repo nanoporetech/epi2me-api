@@ -10,7 +10,7 @@ export default class db {
     this.options = options;
     this.log = log;
 
-    const { idWorkflowInstance } = options;
+    const { idWorkflowInstance, inputFolders } = options;
 
     log.debug(`setting up ${dbRoot}/db.sqlite for ${idWorkflowInstance}`);
 
@@ -28,20 +28,45 @@ export default class db {
               await Promise.all([
                 dbh
                   .run(
-                    "CREATE TABLE IF NOT EXISTS meta (version CHAR(12) DEFAULT '' NOT NULL, idWorkflowInstance INTEGER UNSIGNED, inputFolder CHAR(255) default '')",
+                    "CREATE TABLE IF NOT EXISTS meta (version CHAR(12) DEFAULT '' NOT NULL, idWorkflowInstance INTEGER UNSIGNED)",
                   )
                   .then(() => {
                     dbh.run(
-                      'INSERT INTO meta (version, idWorkflowInstance, inputFolder) VALUES(?, ?, ?)',
+                      'INSERT INTO meta (version, idWorkflowInstance) VALUES(?, ?)',
                       pkg.version,
                       idWorkflowInstance,
-                      options.inputFolder,
                     );
                   }),
-                dbh.run("CREATE TABLE IF NOT EXISTS uploads (filename CHAR(255) DEFAULT '' NOT NULL PRIMARY KEY)"),
-                dbh.run("CREATE TABLE IF NOT EXISTS skips (filename CHAR(255) DEFAULT '' NOT NULL PRIMARY KEY)"),
+                dbh
+                  .run(
+                    "CREATE TABLE IF NOT EXISTS folders (folder_id INTEGER PRIMARY KEY, folder_path CHAR(255) DEFAULT '' NOT NULL)",
+                  )
+                  .then(() => {
+                    const placeholders = inputFolders.map(() => '(?)').join(',');
+                    dbh.run(`INSERT INTO folders (folder_path) VALUES ${placeholders}`, inputFolders);
+                  }),
                 dbh.run(
-                  "CREATE TABLE IF NOT EXISTS splits (filename CHAR(255) DEFAULT '' NOT NULL PRIMARY KEY, parent CHAR(255) DEFAULT '' NOT NULL, start DATETIME NOT NULL, end DATETIME)",
+                  `CREATE TABLE IF NOT EXISTS uploads (
+                    filename CHAR(255) DEFAULT '' NOT NULL PRIMARY KEY,
+                    path_id INTEGER NOT NULL,
+                    FOREIGN KEY(path_id) REFERENCES folders(folder_id))`,
+                ),
+                dbh.run(
+                  `CREATE TABLE IF NOT EXISTS skips (
+                  filename CHAR(255) DEFAULT '' NOT NULL PRIMARY KEY,
+                  path_id INTEGER NOT NULL,
+                  FOREIGN KEY(path_id) REFERENCES folders(folder_id)
+                  )`,
+                ),
+                dbh.run(
+                  `CREATE TABLE IF NOT EXISTS splits (
+                    filename CHAR(255) DEFAULT '' NOT NULL PRIMARY KEY,
+                    parent CHAR(255) DEFAULT '' NOT NULL,
+                    child_path_id INTEGER NOT NULL,
+                    start DATETIME NOT NULL,
+                    end DATETIME,
+                    FOREIGN KEY(child_path_id) REFERENCES folders(folder_id)
+                    )`,
                 ),
               ]);
 
@@ -58,61 +83,94 @@ export default class db {
       });
   }
 
+  stripFile(filename) {
+    return [path.dirname(filename), path.basename(filename)];
+  }
+
   async uploadFile(filename) {
     const dbh = await this.db;
-    const relative = filename.replace(new RegExp(`^${this.options.inputFolder}`), '');
-    return dbh.run('INSERT INTO uploads VALUES(?)', relative);
+    const [dir, relative] = this.stripFile(filename);
+    return dbh.run(
+      'INSERT INTO uploads(filename, path_id) VALUES(?, (SELECT folder_id FROM folders WHERE folder_path = ?))',
+      relative,
+      dir,
+    );
   }
 
   async skipFile(filename) {
     const dbh = await this.db;
-    const relative = filename.replace(new RegExp(`^${this.options.inputFolder}`), '');
-    return dbh.run('INSERT INTO skips VALUES(?)', relative);
+    const [dir, relative] = this.stripFile(filename);
+    return dbh.run(
+      'INSERT INTO skips(filename, path_id) VALUES(?, (SELECT folder_id FROM folders WHERE folder_path = ?))',
+      relative,
+      dir,
+    );
   }
 
   async splitFile(child, parent) {
     const dbh = await this.db;
-    const relativeChild = child.replace(new RegExp(`^${this.options.inputFolder}`), '');
-    const relativeParent = parent.replace(new RegExp(`^${this.options.inputFolder}`), '');
-    return dbh.run('INSERT INTO splits VALUES(?, ?, CURRENT_TIMESTAMP, NULL)', relativeChild, relativeParent);
+    const [dirChild, relativeChild] = this.stripFile(child);
+    const [_, relativeParent] = this.stripFile(parent);
+    return dbh.run(
+      'INSERT INTO splits VALUES(?, ?, (SELECT folder_id FROM folders WHERE folder_path = ?), CURRENT_TIMESTAMP, NULL)',
+      relativeChild,
+      relativeParent,
+      dirChild,
+    );
   }
 
   async splitDone(child) {
     const dbh = await this.db;
-    const relativeChild = child.replace(new RegExp(`^${this.options.inputFolder}`), '');
-    return dbh.run('UPDATE splits SET end=CURRENT_TIMESTAMP WHERE filename=?', relativeChild);
+    const [dirChild, relativeChild] = this.stripFile(child);
+    return dbh.run(
+      'UPDATE splits SET end=CURRENT_TIMESTAMP WHERE filename=? AND child_path_id=(SELECT folder_id FROM folders WHERE folder_path=?)',
+      relativeChild,
+      dirChild,
+    );
   }
 
   async splitClean() {
     const dbh = await this.db;
-    return dbh.all('SELECT filename FROM splits WHERE end IS NULL').then(toClean => {
-      if (!toClean) {
-        this.log.info('no split files to clean');
-        return Promise.resolve();
-      }
+    return dbh
+      .all(
+        'SELECT splits.filename, folders.folder_path FROM splits INNER JOIN folders ON folders.folder_id = splits.child_path_id WHERE end IS NULL',
+      )
+      .then(toClean => {
+        if (!toClean) {
+          this.log.info('no split files to clean');
+          return Promise.resolve();
+        }
 
-      this.log.info(`cleaning ${toClean.length} split files`);
-      this.log.debug(
-        `going to clean: ${toClean
-          .map(o => {
-            return o.filename;
-          })
-          .join(' ')}`,
-      );
-      const cleanupPromises = toClean.map(cleanObj => {
-        return fs.unlink(path.join(this.options.inputFolder, cleanObj.filename)).catch(() => {}); // should this module really be responsible for this cleanup operation?
+        this.log.info(`cleaning ${toClean.length} split files`);
+        this.log.debug(
+          `going to clean: ${toClean
+            .map(o => {
+              return o.filename;
+            })
+            .join(' ')}`,
+        );
+        const cleanupPromises = toClean.map(cleanObj => {
+          return fs.unlink(path.join(cleanObj.folder_path, cleanObj.filename)).catch(() => {}); // should this module really be responsible for this cleanup operation?
+        });
+        return Promise.all(cleanupPromises);
       });
-      return Promise.all(cleanupPromises);
-    });
   }
 
   async seenUpload(filename) {
     //    console.log(`checking seenUpload ${filename}`); // eslint-disable-line no-console
     const dbh = await this.db;
-    const relative = filename.replace(new RegExp(`^${this.options.inputFolder}`), '');
+    const [dir, relative] = this.stripFile(filename);
     return Promise.all([
-      dbh.get('SELECT * FROM uploads u WHERE u.filename=? LIMIT 1', relative),
-      dbh.get('SELECT * FROM skips s WHERE s.filename=? LIMIT 1', relative),
+      dbh.get(
+        'SELECT * FROM uploads u INNER JOIN folders ON folders.folder_id = u.path_id WHERE u.filename=? AND folders.folder_path=? LIMIT 1',
+        relative,
+        dir,
+      ),
+      dbh.get(
+        'SELECT * FROM skips s INNER JOIN folders ON folders.folder_id = s.path_id WHERE s.filename=? AND folders.folder_path=? LIMIT 1',
+        relative,
+        dir,
+      ),
     ]).then(results => {
       //      console.log(`checked seenUpload ${filename}`); // eslint-disable-line no-console
       return remove(results, undefined).length;

@@ -1042,7 +1042,8 @@ export default class EPI2ME_FS extends EPI2ME {
   }
 
   async initiateDownloadStream(s3Item, message, outputFile) {
-      return new Promise(async (resolve, reject) => { // eslint-disable-line
+    return new Promise(async (resolve, reject) => {
+      // eslint-disable-line
       let s3;
       try {
         s3 = await this.sessionedS3();
