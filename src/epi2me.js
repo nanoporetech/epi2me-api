@@ -6,14 +6,14 @@
  *
  */
 
-import { every, isFunction, defaults, merge } from 'lodash';
-import utils from './utils';
-import niceSize from './niceSize';
-import REST from './rest';
-import GraphQL from './graphql';
-import Profile from './profile';
-import Socket from './socket';
+import { defaults, every, isFunction, merge } from 'lodash';
 import DEFAULTS from './default_options.json';
+import GraphQL from './graphql';
+import niceSize from './niceSize';
+import Profile from './profile';
+import REST from './rest';
+import Socket from './socket';
+import utils from './utils';
 
 export default class EPI2ME {
   constructor(OptString) {
