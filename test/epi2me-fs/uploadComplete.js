@@ -6,6 +6,7 @@ import tmp from 'tmp';
 import DB from '../../src/db';
 import EPI2ME from '../../src/epi2me-fs';
 
+
 describe('epi2me.uploadComplete', () => {
   const clientFactory = opts => {
     const client = new EPI2ME(

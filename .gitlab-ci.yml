@@ -1,4 +1,4 @@
-image: docker-registry.oxfordnanolabs.local:5000/ont-base-ubuntu:16.04
+image: ubuntu:18.04
 stages:
   - test
   - triggers
@@ -58,15 +58,3 @@ pages:
 #    expire_in: 30 days
   only:
     - dev
-
-#trigger-release:
-#  stage: triggers
-#  script:
-#   - curl -X POST -F token=$GUI_TOKEN -F ref=dev https://git.oxfordnanolabs.local/api/v4/projects/224/trigger/pipeline # desktop agent dev
-#   - curl -X POST -F token=$CLI_TOKEN -F ref=dev https://git.oxfordnanolabs.local/api/v4/projects/225/trigger/pipeline # cli agent dev
-#   - curl -X POST -F token=$GUI_TOKEN -F ref=master https://git.oxfordnanolabs.local/api/v4/projects/224/trigger/pipeline # desktop agent master
-#   - curl -X POST -F token=$CLI_TOKEN -F ref=master https://git.oxfordnanolabs.local/api/v4/projects/225/trigger/pipeline # cli agent master
-#  only:
-#    - /^release-\d+\.\d+(?:.\d+)?(?:-\S+)?$/ # use regexp
-#  only:
-#    - tags

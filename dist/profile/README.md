@@ -1,14 +1,5 @@
 <a href="http://metrichor.com"><img src="https://epi2me.nanoporetech.com/gfx/logo_print.png" height="74" align="right"></a>
 
-# EPI2ME API
-
-Test Coverage
-master: [![coverage report](https://git.oxfordnanolabs.local/metrichor/api/badges/master/coverage.svg)]
-dev: [![coverage report](https://git.oxfordnanolabs.local/metrichor/api/badges/dev/coverage.svg)]
-
-is hosted on Gitlab-Pages at:
-https://metrichor.git.oxfordnanolabs.local/api/
-
 ### Getting Started
 
 ```js
@@ -23,20 +14,22 @@ const EPI2ME = new API({
 // list of all options: ./lib/default_options.json
 
 // list all workflows
-const workflows = await EPI2ME.workflows();
+const workflows = await EPI2ME.REST.workflows();
 
 // list all workflows
-const workflow = await EPI2ME.read_workflow(workflow_id);
+const workflow = await EPI2ME.REST.workflow(workflow_id);
 
 // start a new EPI2ME instance
-const instance = await EPI2ME.start_workflow(workflow_id);
+const instance = await EPI2ME.startWorkflow({...});
 
-// stop an instance: callback(error)
-const response = await EPI2ME.stop_workflow(instance_id);
+// stop a running instance
+const response = await EPI2ME.stopEverything();
 
-// stop all current uploads / downloads: callback(error)
+// stop all current uploads / downloads:
 await EPI2ME.stop_everything();
 ```
+
+See also the examples/ folder
 
 ### Constructor options:
 
@@ -86,7 +79,7 @@ Dealing with the large number of read files is a considerable challenge:
 
 ##### Step 1: Input:
 
-MinKNOW batches files into files of 4000 reads by defailt. The epi2me-api object will scan the input-folder (including any sub-directories) for .fastq or .fast5 files. Because of the potential strain the fs.readdir operation puts on the system, it's run as infrequently as possible.
+MinKNOW batches files into files of 4000 reads by default. The epi2me-api object will scan the input-folder (including any sub-directories) for .fastq or .fast5 files. Because of the potential strain the fs.readdir operation puts on the system, it's run as infrequently as possible.
 
 ```js
 // trigger fs.readdir

@@ -34,7 +34,8 @@ describe('rest.startWorkflow', () => {
     }
 
     assert.deepEqual(
-      response, {
+      response,
+      {
         id_workflow_instance: '1',
         id_user: '1',
       },

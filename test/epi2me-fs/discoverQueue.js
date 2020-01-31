@@ -1,14 +1,13 @@
 import assert from 'assert';
 import sinon from 'sinon';
-import {
-  merge
-} from 'lodash';
+import { merge } from 'lodash';
 import EPI2ME from '../../src/epi2me-fs';
 
 describe('epi2me.discoverQueue', () => {
   const clientFactory = opts =>
     new EPI2ME(
-      merge({
+      merge(
+        {
           url: 'https://epi2me-test.local',
           log: {
             debug: sinon.stub(),

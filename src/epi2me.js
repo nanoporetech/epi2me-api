@@ -6,12 +6,7 @@
  *
  */
 
-import {
-  every,
-  isFunction,
-  defaults,
-  merge
-} from 'lodash';
+import { every, isFunction, defaults, merge } from 'lodash';
 import utils from './utils';
 import niceSize from './niceSize';
 import REST from './rest';
@@ -115,7 +110,8 @@ export default class EPI2ME {
     };
 
     this.REST = new REST(
-      merge({
+      merge(
+        {
           log: this.log,
         },
         this.config.options,
@@ -123,7 +119,8 @@ export default class EPI2ME {
     );
 
     this.graphQL = new GraphQL(
-      merge({
+      merge(
+        {
           log: this.log,
         },
         this.config.options,
@@ -147,7 +144,8 @@ export default class EPI2ME {
 
     this.mySocket = new Socket(
       this.REST,
-      merge({
+      merge(
+        {
           log: this.log,
         },
         this.config.options,
@@ -195,9 +193,7 @@ export default class EPI2ME {
       this.downloadWorkerPool = null;
     }
 
-    const {
-      id_workflow_instance: idWorkflowInstance
-    } = this.config.instance;
+    const { id_workflow_instance: idWorkflowInstance } = this.config.instance;
     if (idWorkflowInstance) {
       try {
         await this.REST.stopWorkflow(idWorkflowInstance);
@@ -213,10 +209,7 @@ export default class EPI2ME {
   }
 
   reportProgress() {
-    const {
-      upload,
-      download
-    } = this.states;
+    const { upload, download } = this.states;
     this.log.json({
       progress: {
         download,
@@ -237,15 +230,15 @@ export default class EPI2ME {
 
     if (op === 'incr') {
       Object.keys(newData).forEach(o => {
-        this.states[direction][table][o] = this.states[direction][table][o] ?
-          this.states[direction][table][o] + parseInt(newData[o], 10) :
-          parseInt(newData[o], 10);
+        this.states[direction][table][o] = this.states[direction][table][o]
+          ? this.states[direction][table][o] + parseInt(newData[o], 10)
+          : parseInt(newData[o], 10);
       });
     } else {
       Object.keys(newData).forEach(o => {
-        this.states[direction][table][o] = this.states[direction][table][o] ?
-          this.states[direction][table][o] - parseInt(newData[o], 10) :
-          -parseInt(newData[o], 10);
+        this.states[direction][table][o] = this.states[direction][table][o]
+          ? this.states[direction][table][o] - parseInt(newData[o], 10)
+          : -parseInt(newData[o], 10);
       });
     }
 

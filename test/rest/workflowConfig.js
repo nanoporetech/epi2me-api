@@ -15,7 +15,8 @@ describe('rest.workflowConfig', () => {
     });
     const stub = sinon.stub(utils, 'get').callsFake((uri, options) => {
       assert.deepEqual(
-        options, {
+        options,
+        {
           log,
           agent_version: '3.0.0',
           local: false,

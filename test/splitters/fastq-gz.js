@@ -33,7 +33,8 @@ describe('epi2me.splitters.fastq-gz', () => {
       assert.fail(e);
     }
     assert.deepEqual(
-      struct, {
+      struct,
+      {
         source: tmpfile,
         split: false,
         chunks: [tmpfile],
@@ -54,7 +55,8 @@ describe('epi2me.splitters.fastq-gz', () => {
     let struct;
     try {
       struct = await splitter(
-        tmpfile, {
+        tmpfile,
+        {
           maxChunkBytes: 10000,
         },
         () => {
@@ -65,7 +67,8 @@ describe('epi2me.splitters.fastq-gz', () => {
       assert.fail(e);
     }
     assert.deepEqual(
-      struct, {
+      struct,
+      {
         source: tmpfile,
         split: false,
         chunks: [tmpfile],
@@ -86,7 +89,8 @@ describe('epi2me.splitters.fastq-gz', () => {
     let struct;
     try {
       struct = await splitter(
-        tmpfile, {
+        tmpfile,
+        {
           maxChunkReads: 10000,
         },
         () => {
@@ -100,7 +104,8 @@ describe('epi2me.splitters.fastq-gz', () => {
     const dirname = path.dirname(tmpfile);
     const basename = path.basename(tmpfile, '.fq.gz');
     assert.deepEqual(
-      struct, {
+      struct,
+      {
         source: tmpfile,
         split: true,
         chunks: [`${dirname}/${basename}_1.fq.gz`],
@@ -121,7 +126,8 @@ describe('epi2me.splitters.fastq-gz', () => {
     let struct;
     try {
       struct = await splitter(
-        tmpfile, {
+        tmpfile,
+        {
           maxChunkBytes: 5,
         },
         () => {
@@ -134,7 +140,8 @@ describe('epi2me.splitters.fastq-gz', () => {
     const dirname = path.dirname(tmpfile);
     const basename = path.basename(tmpfile, '.fq.gz');
     assert.deepEqual(
-      struct, {
+      struct,
+      {
         source: tmpfile,
         split: true,
         chunks: [
@@ -164,7 +171,8 @@ describe('epi2me.splitters.fastq-gz', () => {
     let struct;
     try {
       struct = await splitter(
-        tmpfile, {
+        tmpfile,
+        {
           maxChunkReads: 2,
         },
         () => {
@@ -178,7 +186,8 @@ describe('epi2me.splitters.fastq-gz', () => {
     const basename = path.basename(tmpfile, '.fq.gz');
 
     assert.deepEqual(
-      struct, {
+      struct,
+      {
         source: tmpfile,
         split: true,
         chunks: [`${dirname}/${basename}_1.fq.gz`, `${dirname}/${basename}_2.fq.gz`],

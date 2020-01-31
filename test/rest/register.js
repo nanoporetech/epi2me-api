@@ -13,15 +13,15 @@ describe('rest.register', () => {
 
   beforeEach(() => {
     ringbuf = new bunyan.RingBuffer({
-      limit: 100
+      limit: 100,
     });
     log = bunyan.createLogger({
       name: 'log',
-      stream: ringbuf
+      stream: ringbuf,
     });
     rest = new REST({
       log,
-      agent_version: '3.0.0'
+      agent_version: '3.0.0',
     });
     stubs = [];
   });
@@ -51,7 +51,7 @@ describe('rest.register', () => {
           'reg',
           'abcdefg',
           {
-            description: 'testuser@testhost'
+            description: 'testuser@testhost',
           },
           {
             log,
