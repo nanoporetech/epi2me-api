@@ -1,29 +1,24 @@
 import assert from 'assert';
 import fs from 'fs-extra';
-import mock from 'mock-fs';
 import sinon from 'sinon';
+import tmp from 'tmp';
 import DB from '../../src/db';
 
 describe('db.db', () => {
-  const dbRoot = '/data/test';
   let dbh;
   let opts;
   let mkdirp;
 
   beforeEach(() => {
     mkdirp = sinon.stub(fs, 'mkdirp').resolves();
-    mock({
-      [dbRoot]: {},
-    });
     opts = {
       idWorkflowInstance: 1234,
       // inputFolder: '/data/test',
       inputFolders: ['/data/test', '/data/test2'],
     };
-    dbh = new DB(':memory:', opts, console);
+    dbh = new DB(tmp.dirSync().name, opts, console);
   });
   afterEach(() => {
-    mock.restore();
     mkdirp.restore();
   });
   it('constructs dbh', () => {
