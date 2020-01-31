@@ -1,12 +1,11 @@
 {
   "name": "@metrichor/epi2me-api",
-  "version": "3.0.1513",
+  "version": "3.0.958",
   "license": "MPL-2.0",
   "repository": "git@github.com:nanoporetech/epi2me-api.git",
   "description": "API for communicating with the EPI2ME website(s)",
   "main": "dist/index.js",
   "module": "dist/index.es.js",
-  "type": "module",
   "dependencies": {
     "@lifeomic/axios-fetch": "^1.4.2",
     "@types/axios": "^0.14.0",
