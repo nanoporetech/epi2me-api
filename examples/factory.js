@@ -1,4 +1,4 @@
-const EPI2ME = require('..');
+const EPI2ME = require('../dist');
 
 const { Factory } = EPI2ME;
 
@@ -13,4 +13,4 @@ api.graphQL
   .then(console.info)
   .catch(console.error);
 
-// api.startRun({});
+api.startRun({ inputFolders: ['/data'], outputFolder: '/data/output' }, { id_workflow: 1735, isConsentedHuman: 1 });
