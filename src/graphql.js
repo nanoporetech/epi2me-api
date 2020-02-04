@@ -209,7 +209,7 @@ export default class GraphQL {
 
   register = this.mutate(gql`
     mutation registerToken($code: String!, $description: String) {
-      registerToken(code: $code, descripton: $description) {
+      registerToken(code: $code, description: $description) {
         apikey
         apisecret
         description
