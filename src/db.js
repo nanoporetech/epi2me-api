@@ -49,6 +49,7 @@ export default class db {
   async uploadFile(filename) {
     const dbh = await this.db;
     const [dir, relative] = utils.stripFile(filename);
+    await dbh.run('INSERT OR IGNORE INTO folders (folder_path) VALUES (?)', dir);
     return dbh.run(
       'INSERT INTO uploads(filename, path_id) VALUES(?, (SELECT folder_id FROM folders WHERE folder_path = ?))',
       relative,
@@ -59,6 +60,7 @@ export default class db {
   async skipFile(filename) {
     const dbh = await this.db;
     const [dir, relative] = utils.stripFile(filename);
+    await dbh.run('INSERT OR IGNORE INTO folders (folder_path) VALUES (?)', dir);
     return dbh.run(
       'INSERT INTO skips(filename, path_id) VALUES(?, (SELECT folder_id FROM folders WHERE folder_path = ?))',
       relative,
@@ -70,6 +72,7 @@ export default class db {
     const dbh = await this.db;
     const [dirChild, relativeChild] = utils.stripFile(child);
     const relativeParent = utils.stripFile(parent)[1];
+    await dbh.run('INSERT OR IGNORE INTO folders (folder_path) VALUES (?)', dirChild);
     return dbh.run(
       'INSERT INTO splits VALUES(?, ?, (SELECT folder_id FROM folders WHERE folder_path = ?), CURRENT_TIMESTAMP, NULL)',
       relativeChild,

@@ -33,8 +33,26 @@ describe('db.db', () => {
     seen = await dbh.seenUpload(fileName);
     assert.equal(seen, 1);
   });
+  it('uploadFile in subdir & seenFile', async () => {
+    const fileName = '/data/test/sub/1.fastq';
+    let seen = await dbh.seenUpload(fileName);
+    assert.equal(seen, 0);
+    const uploaded = await dbh.uploadFile(fileName);
+    assert.equal(uploaded.changes, 1);
+    seen = await dbh.seenUpload(fileName);
+    assert.equal(seen, 1);
+  });
   it('skipFile && seenFile', async () => {
     const fileName = '/data/test/1.fastq';
+    let seen = await dbh.seenUpload(fileName);
+    assert.equal(seen, 0);
+    const uploaded = await dbh.skipFile(fileName);
+    assert.equal(uploaded.changes, 1);
+    seen = await dbh.seenUpload(fileName);
+    assert.equal(seen, 1);
+  });
+  it('skipFile in subdir && seenFile', async () => {
+    const fileName = '/data/test/sub/1.fastq';
     let seen = await dbh.seenUpload(fileName);
     assert.equal(seen, 0);
     const uploaded = await dbh.skipFile(fileName);
