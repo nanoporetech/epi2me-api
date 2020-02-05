@@ -7,6 +7,7 @@
  */
 
 import { defaults, every, isFunction, merge } from 'lodash';
+import { BehaviorSubject } from 'rxjs';
 import DEFAULTS from './default_options.json';
 import GraphQL from './graphql';
 import niceSize from './niceSize';
@@ -88,6 +89,8 @@ export default class EPI2ME {
       },
       warnings: [],
     };
+
+    this.liveStates = new BehaviorSubject(this.states);
 
     this.config = {
       options: defaults(opts, DEFAULTS),
@@ -219,6 +222,7 @@ export default class EPI2ME {
   }
 
   storeState(direction, table, op, newDataIn) {
+    // Set up defaults if required
     const newData = newDataIn || {};
     if (!this.states[direction]) {
       this.states[direction] = {};
@@ -228,6 +232,7 @@ export default class EPI2ME {
       this.states[direction][table] = {};
     }
 
+    // Increment or decrement
     if (op === 'incr') {
       Object.keys(newData).forEach(o => {
         this.states[direction][table][o] = this.states[direction][table][o]
@@ -242,6 +247,7 @@ export default class EPI2ME {
       });
     }
 
+    // Prettify new totals
     try {
       this.states[direction].success.niceReads = niceSize(this.states[direction].success.reads);
     } catch (ignore) {
@@ -277,6 +283,7 @@ export default class EPI2ME {
       this.stateReportTime = now;
       this.reportProgress();
     }
+    this.liveStates.next(this.states);
   }
 
   uploadState(table, op, newData) {
