@@ -38,5 +38,5 @@ api.graphQL
 
 api.graphQL
   .workflowInstances({ variables: { pageSize: 1 }, options: { fetchPolicy: 'network-only' } })
-  .then(console.log)
+  .then(console.info)
   .catch(console.error);
