@@ -11,9 +11,6 @@ stages:
    apt-get install -y curl git wget lsb-release gnupg build-essential openssl
    wget -O- http://deb-repo.oxfordnanolabs.local/apt/roger.pettett@nanoporetech.com.key | apt-key add -
    echo "deb http://deb-repo.oxfordnanolabs.local/apt $(lsb_release -cs) non-free" > /etc/apt/sources.list.d/deb-repo.list
-   apt-get update
-
-.deps: &deps |
    curl -sL https://deb.nodesource.com/setup_12.x > nodejs-repo
    chmod +x nodejs-repo
    ./nodejs-repo
@@ -24,7 +21,6 @@ test:
   stage: test
   script:
     - *common
-    - *deps
     - make cover
   variables:
     PATCH: $CI_BUILD_ID
@@ -32,7 +28,7 @@ test:
 release:
   stage: publish
   script:
-    - *deps
+    - *common
     - jq ".version=\"$(echo $CI_COMMIT_TAG | sed 's/release-//g')\"" < package.json > package.json.tmp && mv package.json.tmp package.json
     - echo "//registry.npmjs.org/:_authToken=\${NPM_TOKEN}" > .npmrc
     - npm publish --access=public
@@ -46,7 +42,6 @@ pages:
   allow_failure: true
   script:
     - *common
-    - *deps
     - mkdir -p public
     - (make cover | tee coverage.txt) && mv coverage/* public/
     - (echo -n "Coverage "; grep "All files" coverage.txt | awk '{print $6}')
