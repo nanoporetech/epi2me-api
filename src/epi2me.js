@@ -90,7 +90,7 @@ export default class EPI2ME {
       warnings: [],
     };
 
-    this.liveStates = new BehaviorSubject(this.states);
+    this.liveStates$ = new BehaviorSubject(this.states);
 
     this.config = {
       options: defaults(opts, DEFAULTS),
@@ -283,7 +283,7 @@ export default class EPI2ME {
       this.stateReportTime = now;
       this.reportProgress();
     }
-    this.liveStates.next(this.states);
+    this.liveStates$.next(this.states);
   }
 
   uploadState(table, op, newData) {

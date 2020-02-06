@@ -53,7 +53,7 @@ describe('epi2me.stats', () => {
   it('live states', () => {
     const client = new EPI2ME({});
     let theState;
-    const sub = client.liveStates.subscribe(state => {
+    const sub = client.liveStates$.subscribe(state => {
       theState = state;
     });
     client.uploadState('progress', 'incr', {
