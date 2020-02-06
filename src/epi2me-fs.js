@@ -13,6 +13,7 @@ import { EOL, homedir } from 'os';
 import path from 'path';
 import DB from './db';
 import EPI2ME from './epi2me';
+import Factory from './factory';
 import filestats from './filestats';
 import niceSize from './niceSize';
 import Profile from './profile-fs';
@@ -41,6 +42,9 @@ export default class EPI2ME_FS extends EPI2ME {
   constructor(optString) {
     super(optString); // sets up this.config & this.log
 
+    // Merge inputFolder and inputFolders here, can be removed if we transition everything to use inputFolders
+    this.config.options.inputFolders = this.config.options.inputFolders || [];
+    if (this.config.options.inputFolder) this.config.options.inputFolders.push(this.config.options.inputFolder);
     // overwrite non-fs REST object
     this.REST = new REST(
       merge(
@@ -246,7 +250,7 @@ export default class EPI2ME_FS extends EPI2ME {
       }
     }
 
-    if (!this.config.options.inputFolder) throw new Error('must set inputFolder');
+    if (!this.config.options.inputFolders.length) throw new Error('must set inputFolder');
     if (!this.config.options.outputFolder) throw new Error('must set outputFolder');
     if (!this.config.instance.bucketFolder) throw new Error('bucketFolder must be set');
     if (!this.config.instance.inputQueueName) throw new Error('inputQueueName must be set');
@@ -262,7 +266,7 @@ export default class EPI2ME_FS extends EPI2ME {
       thisInstanceDir,
       {
         idWorkflowInstance: this.config.instance.id_workflow_instance,
-        inputFolder: this.config.options.inputFolder,
+        inputFolders: this.config.options.inputFolders,
       },
       this.log,
     );
@@ -1039,7 +1043,7 @@ export default class EPI2ME_FS extends EPI2ME {
   }
 
   async initiateDownloadStream(s3Item, message, outputFile) {
-      return new Promise(async (resolve, reject) => { // eslint-disable-line
+    return new Promise(async (resolve, reject) => { // eslint-disable-line
       let s3;
       try {
         s3 = await this.sessionedS3();
@@ -1508,3 +1512,4 @@ EPI2ME_FS.utils = utils;
 EPI2ME_FS.SessionManager = SessionManager;
 EPI2ME_FS.EPI2ME_HOME = rootDir();
 EPI2ME_FS.Profile = Profile;
+EPI2ME_FS.Factory = Factory;

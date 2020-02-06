@@ -35,3 +35,8 @@ api.graphQL
     allWorkflows.next().then(console.info);
   })
   .catch(console.error);
+
+api.graphQL
+  .workflowInstances({ variables: { pageSize: 1 }, options: { fetchPolicy: 'network-only' } })
+  .then(console.info)
+  .catch(console.error);

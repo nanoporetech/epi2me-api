@@ -1,9 +1,9 @@
 import assert from 'assert';
-import sinon from 'sinon';
 import { merge } from 'lodash';
+import sinon from 'sinon';
 import tmp from 'tmp';
-import EPI2ME from '../../src/epi2me-fs';
 import DB from '../../src/db';
+import EPI2ME from '../../src/epi2me-fs';
 
 describe('epi2me.uploadJob', () => {
   const clientFactory = opts => {
@@ -22,7 +22,7 @@ describe('epi2me.uploadJob', () => {
         opts,
       ),
     );
-    client.db = new DB(tmp.dirSync().name, null, client.log);
+    client.db = new DB(tmp.dirSync().name, { inputFolders: ['path/to'] }, client.log);
     sinon.stub(client, 'socket').resolves({
       emit: () => {},
     });

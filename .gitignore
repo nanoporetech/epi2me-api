@@ -12,3 +12,4 @@ xunit.xml
 test/tmp
 /test/tmp.js
 build
+.npmrc

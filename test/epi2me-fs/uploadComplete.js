@@ -1,10 +1,11 @@
 import assert from 'assert';
-import sinon from 'sinon';
-import { merge } from 'lodash';
 import AWS from 'aws-sdk';
+import { merge } from 'lodash';
+import sinon from 'sinon';
 import tmp from 'tmp';
-import EPI2ME from '../../src/epi2me-fs';
 import DB from '../../src/db';
+import EPI2ME from '../../src/epi2me-fs';
+
 
 describe('epi2me.uploadComplete', () => {
   const clientFactory = opts => {
@@ -23,7 +24,7 @@ describe('epi2me.uploadComplete', () => {
         opts,
       ),
     );
-    client.db = new DB(tmp.dirSync().name, null, client.log);
+    client.db = new DB(tmp.dirSync().name, { inputFolders: ['path/to', 'fastq_fail/complex', '.'] }, client.log);
     sinon.stub(client, 'socket').resolves({
       emit: () => {},
     });
@@ -363,7 +364,6 @@ describe('epi2me.uploadComplete', () => {
         promise: () => Promise.resolve(),
       };
     });
-
     try {
       await client.uploadComplete(
         '/aaa-bbb-ccc-123/1/123456/component-0/file.fastq/fastq_fail%2Ccomplex%2Cfile.fastq',

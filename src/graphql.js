@@ -36,7 +36,7 @@ export default class GraphQL {
     return merge({ apikey, apisecret, url }, contextIn);
   };
 
-  query = queryString => ({ context = {}, variables = {} } = {}) => {
+  query = queryString => ({ context = {}, variables = {} } = {}, options = {}) => {
     const requestContext = this.createContext(context);
     let query;
     // This lets us write queries using the gql tags and
@@ -52,11 +52,12 @@ export default class GraphQL {
     return this.client.query({
       query,
       variables,
+      ...options,
       context: requestContext,
     });
   };
 
-  mutate = queryString => ({ context = {}, variables = {} } = {}) => {
+  mutate = queryString => ({ context = {}, variables = {}, options = {} }) => {
     const requestContext = this.createContext(context);
     let mutation;
     if (typeof queryString === 'string') {
@@ -69,13 +70,18 @@ export default class GraphQL {
     return this.client.mutate({
       mutation,
       variables,
+      ...options,
       context: requestContext,
     });
   };
 
+  resetCache = () => {
+    this.client.resetStore();
+  };
+
   workflows = this.query(gql`
-    query allWorkflows($page: Int, $isActive: Int) {
-      allWorkflows(page: $page, isActive: $isActive) {
+    query allWorkflows($page: Int, $pageSize: Int, $isActive: Int, $orderBy: String) {
+      allWorkflows(page: $page, pageSize: $pageSize, isActive: $isActive, orderBy: $orderBy) {
         ${PageFragment}
         results {
           ${WorkflowFragment}
@@ -110,8 +116,8 @@ export default class GraphQL {
    `);
 
   workflowInstances = this.query(gql`
-  query allWorkflowInstances($page: Int, $shared: Boolean, $idUser: Int) {
-    allWorkflowInstances(page: $page, shared: $shared, idUser: $idUser) {
+  query allWorkflowInstances($page: Int, $pageSize: Int, $shared: Boolean, $idUser: ID, $orderBy: String) {
+    allWorkflowInstances(page: $page, pageSize: $pageSize, shared: $shared, idUser: $idUser, orderBy: $orderBy) {
       ${PageFragment}
       results {
         ${WorkflowInstanceFragment}
@@ -209,7 +215,7 @@ export default class GraphQL {
 
   register = this.mutate(gql`
     mutation registerToken($code: String!, $description: String) {
-      registerToken(code: $code, descripton: $description) {
+      registerToken(code: $code, description: $description) {
         apikey
         apisecret
         description

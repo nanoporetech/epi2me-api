@@ -79,7 +79,7 @@ Dealing with the large number of read files is a considerable challenge:
 
 ##### Step 1: Input:
 
-MinKNOW batches files into files of 4000 reads by defailt. The epi2me-api object will scan the input-folder (including any sub-directories) for .fastq or .fast5 files. Because of the potential strain the fs.readdir operation puts on the system, it's run as infrequently as possible.
+MinKNOW batches files into files of 4000 reads by default. The epi2me-api object will scan the input-folder (including any sub-directories) for .fastq or .fast5 files. Because of the potential strain the fs.readdir operation puts on the system, it's run as infrequently as possible.
 
 ```js
 // trigger fs.readdir
