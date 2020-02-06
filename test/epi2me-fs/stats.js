@@ -49,4 +49,21 @@ describe('epi2me.stats', () => {
       assert.deepEqual(stat, { total: {}, success: { files: 7 } });
     });
   });
+
+  it('live states', () => {
+    const client = new EPI2ME({});
+    let theState;
+    const sub = client.liveStates$.subscribe(state => {
+      theState = state;
+    });
+    client.uploadState('progress', 'incr', {
+      total: 100,
+    });
+    assert.equal(theState.upload.progress.total, 100);
+    client.uploadState('progress', 'incr', {
+      total: 200,
+    });
+    assert.equal(theState.upload.progress.total, 300);
+    sub.unsubscribe();
+  });
 });
