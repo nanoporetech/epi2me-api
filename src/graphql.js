@@ -80,8 +80,8 @@ export default class GraphQL {
   };
 
   workflows = this.query(gql`
-    query allWorkflows($page: Int, $pageSize: Int, $isActive: Int) {
-      allWorkflows(page: $page, pageSize: $pageSize, isActive: $isActive) {
+    query allWorkflows($page: Int, $pageSize: Int, $isActive: Int, $orderBy: String) {
+      allWorkflows(page: $page, pageSize: $pageSize, isActive: $isActive, orderBy: $orderBy) {
         ${PageFragment}
         results {
           ${WorkflowFragment}
@@ -116,8 +116,8 @@ export default class GraphQL {
    `);
 
   workflowInstances = this.query(gql`
-  query allWorkflowInstances($page: Int, $pageSize: Int, $shared: Boolean, $idUser: ID) {
-    allWorkflowInstances(page: $page, pageSize: $pageSize, shared: $shared, idUser: $idUser) {
+  query allWorkflowInstances($page: Int, $pageSize: Int, $shared: Boolean, $idUser: ID, $orderBy: String) {
+    allWorkflowInstances(page: $page, pageSize: $pageSize, shared: $shared, idUser: $idUser, orderBy: $orderBy) {
       ${PageFragment}
       results {
         ${WorkflowInstanceFragment}
