@@ -283,7 +283,7 @@ export default class EPI2ME {
       this.stateReportTime = now;
       this.reportProgress();
     }
-    this.liveStates$.next(this.states);
+    this.liveStates$.next({ ...this.states });
   }
 
   uploadState(table, op, newData) {
