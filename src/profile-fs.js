@@ -1,14 +1,18 @@
-import { homedir } from 'os';
-import { merge } from 'lodash';
+import {
+  homedir
+} from 'os';
+import {
+  merge
+} from 'lodash';
 import fs from 'fs-extra';
 import path from 'path';
 import Profile from './profile';
 
-export default class Profile_FS extends Profile {
+export default class ProfileFS extends Profile {
   constructor(prefsFile, raiseExceptions) {
     super({}, raiseExceptions);
 
-    this.prefsFile = prefsFile || Profile_FS.profilePath();
+    this.prefsFile = prefsFile || ProfileFS.profilePath();
     this.allProfileData = {};
 
     try {
@@ -47,8 +51,7 @@ export default class Profile_FS extends Profile {
     }
 
     if (id) {
-      return merge(
-        {
+      return merge({
           endpoint: this.defaultEndpoint,
         },
         this.allProfileData.profiles[id],
