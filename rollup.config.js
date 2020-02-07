@@ -97,7 +97,7 @@ const epi2meFull = {
 };
 
 const epi2meProfile = {
-  input: 'src/profile.js',
+  input: 'src/profile-fs.js',
   output: [
     {
       file: path.join(path.dirname(pkg.main), 'profile/index.js'),
