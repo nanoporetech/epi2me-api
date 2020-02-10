@@ -53,8 +53,6 @@ export default class GraphQL {
       query = queryString;
     }
 
-    console.info(query, variables, options, requestContext);
-
     return this.client.query({
       query,
       variables,
