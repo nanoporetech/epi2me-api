@@ -1,6 +1,7 @@
 import assert from 'assert';
 import axios from 'axios';
 import bunyan from 'bunyan';
+import gql from 'graphql-tag';
 import { merge } from 'lodash';
 import sinon from 'sinon';
 import DEFAULTS from '../../src/default_options.json';
@@ -144,6 +145,132 @@ describe('stubbed tests', () => {
         .startWorkflow({ idWorkflow: 1403, computeAccountId: 1 })
         .then(({ data }) => assert.strictEqual(data, response.data));
       // .catch(err => console.log(err.networkError.result));
+    });
+  });
+
+  describe('graphql.query', () => {
+    it('converts func to gql', async () => {
+      const graphql = makeRegisteredGQL();
+      const response = { data: { allWorkflows: [{ idWorkflow: 1 }] } };
+      const stub = sinon.stub(client, 'query').resolves(response);
+      stubs.push(stub);
+      graphql.query(
+        pageFragment => `query aWorkflow {
+        allWorkflows {
+          ${pageFragment}
+            results {
+              config
+              idWorkflow
+            }
+          }
+        }
+        `,
+      )();
+      sinon.assert.calledWith(
+        stub,
+        sinon.match({
+          query: gql`
+            query aWorkflow {
+              allWorkflows {
+                page
+                pages
+                hasNext
+                hasPrevious
+                totalCount
+                results {
+                  config
+                  idWorkflow
+                }
+              }
+            }
+          `,
+        }),
+      );
+    });
+    it('converts string to gql', async () => {
+      const graphql = makeRegisteredGQL();
+      const response = { data: { allWorkflows: [{ idWorkflow: 1 }] } };
+      const stub = sinon.stub(client, 'query').resolves(response);
+      stubs.push(stub);
+      graphql.query(
+        `query aWorkflow {
+          allWorkflows {
+            page
+            pages
+            hasNext
+            hasPrevious
+            totalCount
+            results {
+              config
+              idWorkflow
+            }
+          }
+        }
+        `,
+      )();
+      sinon.assert.calledWith(
+        stub,
+        sinon.match({
+          query: gql`
+            query aWorkflow {
+              allWorkflows {
+                page
+                pages
+                hasNext
+                hasPrevious
+                totalCount
+                results {
+                  config
+                  idWorkflow
+                }
+              }
+            }
+          `,
+        }),
+      );
+    });
+    it('leaves gql tagged string in place', async () => {
+      const graphql = makeRegisteredGQL();
+      const response = { data: { allWorkflows: [{ idWorkflow: 1 }] } };
+      const stub = sinon.stub(client, 'query').resolves(response);
+      stubs.push(stub);
+      graphql.query(
+        gql`
+          query aWorkflow {
+            allWorkflows {
+              page
+              pages
+              hasNext
+              hasPrevious
+              totalCount
+              results {
+                config
+                idWorkflow
+              }
+            }
+          }
+        `,
+      )();
+      sinon.assert.calledWith(
+        stub,
+        sinon.match({
+          query: gql`
+            query aWorkflow {
+              allWorkflows {
+                page
+                pages
+                hasNext
+                hasPrevious
+                totalCount
+                results {
+                  config
+                  idWorkflow
+                }
+              }
+            }
+          `,
+        }),
+      );
     });
   });
 });

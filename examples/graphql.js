@@ -29,6 +29,23 @@ api.graphQL
   .catch(console.error);
 
 api.graphQL
+  .query(
+    pageFragment =>
+      `query aWorkflow {
+        allWorkflows {
+          ${pageFragment}
+            results {
+              config
+              idWorkflow
+            }
+          }
+        }
+        `,
+  )()
+  .then(console.info)
+  .catch(console.error);
+
+api.graphQL
   .workflowPages(1)
   .then(allWorkflows => {
     console.info(allWorkflows.data);

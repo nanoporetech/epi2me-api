@@ -36,7 +36,7 @@ export default class GraphQL {
     return merge({ apikey, apisecret, url }, contextIn);
   };
 
-  query = queryString => ({ context = {}, variables = {} } = {}, options = {}) => {
+  query = queryString => ({ context = {}, variables = {}, options = {} } = {}) => {
     const requestContext = this.createContext(context);
     let query;
     // This lets us write queries using the gql tags and
@@ -45,9 +45,15 @@ export default class GraphQL {
       query = gql`
         ${queryString}
       `;
+    } else if (typeof queryString === 'function') {
+      query = gql`
+        ${queryString(PageFragment)}
+      `;
     } else {
       query = queryString;
     }
+
+    console.info(query, variables, options, requestContext);
 
     return this.client.query({
       query,
@@ -57,7 +63,7 @@ export default class GraphQL {
     });
   };
 
-  mutate = queryString => ({ context = {}, variables = {}, options = {} }) => {
+  mutate = queryString => ({ context = {}, variables = {}, options = {} } = {}) => {
     const requestContext = this.createContext(context);
     let mutation;
     if (typeof queryString === 'string') {
