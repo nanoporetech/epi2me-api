@@ -8,6 +8,7 @@
 
 import { defaults, every, isFunction, merge } from 'lodash';
 import { BehaviorSubject } from 'rxjs';
+import { scan } from 'rxjs/operators';
 import DEFAULTS from './default_options.json';
 import GraphQL from './graphql';
 import niceSize from './niceSize';
@@ -59,6 +60,15 @@ export default class EPI2ME {
     }
 
     this.stopped = true;
+
+    this.runningStatesSubject = new BehaviorSubject({
+      uploading: false,
+      analysing: false,
+      telemetry: false,
+    });
+
+    this.runningStates$ = this.runningStatesSubject.pipe(scan((acc, val) => ({ ...acc, ...val })));
+
     this.states = {
       upload: {
         filesCount: 0, // internal. do not use
@@ -163,8 +173,28 @@ export default class EPI2ME {
     socket.emit(channel, object);
   }
 
-  async stopEverything() {
+  async stopAnalysis() {
+    this.runningStates$.next({ analysing: false });
+    // If we stop the cloud, there's no point uploading anymore
+    this.stopUpload();
+
+    const { id_workflow_instance: idWorkflowInstance } = this.config.instance;
+    if (idWorkflowInstance) {
+      try {
+        await this.REST.stopWorkflow(idWorkflowInstance);
+      } catch (stopException) {
+        this.log.error(`Error stopping instance: ${String(stopException)}`);
+        return Promise.reject(stopException);
+      }
+
+      this.log.info(`workflow instance ${idWorkflowInstance} stopped`);
+    }
+    return Promise.resolve();
+  }
+
+  async stopUpload() {
     this.stopped = true;
+    this.runningStates$.next({ uploading: false });
 
     this.log.debug('stopping watchers');
 
@@ -195,20 +225,11 @@ export default class EPI2ME {
       await Promise.all(Object.values(this.downloadWorkerPool));
       this.downloadWorkerPool = null;
     }
+    return Promise.resolve();
+  }
 
-    const { id_workflow_instance: idWorkflowInstance } = this.config.instance;
-    if (idWorkflowInstance) {
-      try {
-        await this.REST.stopWorkflow(idWorkflowInstance);
-      } catch (stopException) {
-        this.log.error(`Error stopping instance: ${String(stopException)}`);
-        return Promise.reject(stopException);
-      }
-
-      this.log.info(`workflow instance ${idWorkflowInstance} stopped`);
-    }
-
-    return Promise.resolve(); // api changed
+  async stopEverything() {
+    this.stopAnalysis();
   }
 
   reportProgress() {

@@ -146,6 +146,8 @@ export default class EPI2ME_FS extends EPI2ME {
 
   async autoStart(workflowConfig, cb) {
     this.stopped = false;
+    // These could be more accurately placed
+    this.runningStates$.next({ uploading: true, analysing: true });
     let instance;
     try {
       instance = await this.REST.startWorkflow(workflowConfig);
@@ -358,15 +360,16 @@ export default class EPI2ME_FS extends EPI2ME {
     return Promise.resolve(instance);
   }
 
-  async stopEverything() {
-    await super.stopEverything(); // sets this.stopped = true
-
-    delete this.sessionManager;
+  async stopUpload() {
+    await super.stopUpload();
 
     this.log.debug('clearing split files');
     if (this.db) {
       return this.db.splitClean(); // remove any split files whose transfers were disrupted and which didn't self-clean
     }
+
+    delete this.sessionManager;
+
     return Promise.resolve();
   }
 
@@ -1043,7 +1046,8 @@ export default class EPI2ME_FS extends EPI2ME {
   }
 
   async initiateDownloadStream(s3Item, message, outputFile) {
-    return new Promise(async (resolve, reject) => { // eslint-disable-line
+    // eslint-disable-next-line
+    return new Promise(async (resolve, reject) => {
       let s3;
       try {
         s3 = await this.sessionedS3();
@@ -1484,6 +1488,7 @@ export default class EPI2ME_FS extends EPI2ME {
         this.REST.fetchContent(url)
           .then(body => {
             fs.writeJSONSync(fn, body);
+            this.runningStates$.next({ telemetry: true });
             this.log.debug(`fetched telemetry summary ${fn}`);
           })
           .catch(e => {
