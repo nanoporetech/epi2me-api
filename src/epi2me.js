@@ -173,6 +173,14 @@ export default class EPI2ME {
     socket.emit(channel, object);
   }
 
+  stopTimer(intervalName) {
+    if (this.timers[intervalName]) {
+      this.log.debug(`clearing ${intervalName} interval`);
+      clearInterval(this.timers[intervalName]);
+      this.timers[intervalName] = null;
+    }
+  }
+
   async stopAnalysis() {
     this.runningStates$.next({ analysing: false });
     // If we stop the cloud, there's no point uploading anymore
@@ -198,15 +206,7 @@ export default class EPI2ME {
 
     this.log.debug('stopping watchers');
 
-    ['downloadCheckInterval', 'stateCheckInterval', 'fileCheckInterval', 'summaryTelemetryInterval'].forEach(
-      intervalName => {
-        if (this.timers[intervalName]) {
-          this.log.debug(`clearing ${intervalName} interval`);
-          clearInterval(this.timers[intervalName]);
-          this.timers[intervalName] = null;
-        }
-      },
-    );
+    ['downloadCheckInterval', 'stateCheckInterval', 'fileCheckInterval'].forEach(this.stopTimer);
 
     Object.keys(this.timers.transferTimeouts).forEach(key => {
       this.log.debug(`clearing transferTimeout for ${key}`);
@@ -230,6 +230,9 @@ export default class EPI2ME {
 
   async stopEverything() {
     this.stopAnalysis();
+    // Moved this out of the main stopUpload because we don't want to stop it when we stop uploading
+    // This is really 'stop fetching reports'
+    this.stopTimer('summaryTelemetryInterval');
   }
 
   reportProgress() {

@@ -66,4 +66,16 @@ describe('epi2me.stats', () => {
     assert.equal(theState.upload.progress.total, 300);
     sub.unsubscribe();
   });
+  it('running states', () => {
+    const client = new EPI2ME({});
+    let theState;
+    const sub = client.runningStates$.subscribe(state => {
+      theState = state;
+    });
+    client.runningStates$.next({ uploading: true });
+    assert.deepEqual(theState, { uploading: true, analysing: false, telemetry: false });
+    client.runningStates$.next({ analysing: true, telemetry: true });
+    assert.deepEqual(theState, { uploading: true, analysing: true, telemetry: true });
+    sub.unsubscribe();
+  });
 });
