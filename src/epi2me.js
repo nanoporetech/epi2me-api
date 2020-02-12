@@ -206,7 +206,7 @@ export default class EPI2ME {
 
     this.log.debug('stopping watchers');
 
-    ['downloadCheckInterval', 'stateCheckInterval', 'fileCheckInterval'].forEach(this.stopTimer);
+    ['downloadCheckInterval', 'stateCheckInterval', 'fileCheckInterval'].forEach(i => this.stopTimer(i));
 
     Object.keys(this.timers.transferTimeouts).forEach(key => {
       this.log.debug(`clearing transferTimeout for ${key}`);
