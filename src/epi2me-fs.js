@@ -146,11 +146,9 @@ export default class EPI2ME_FS extends EPI2ME {
 
   async autoStart(workflowConfig, cb) {
     this.stopped = false;
-    // These could be more accurately placed
     let instance;
     try {
       instance = await this.REST.startWorkflow(workflowConfig);
-      this.runningStates$.next({ analysing: true });
     } catch (startError) {
       const msg = `Failed to start workflow: ${String(startError)}`;
       this.log.warn(msg);
@@ -353,7 +351,7 @@ export default class EPI2ME_FS extends EPI2ME {
     this.reportProgress();
     // MC-5418: ensure that the session has been established before starting the upload
     this.loadUploadFiles(); // Trigger once at workflow instance start
-    this.runningStates$.next({ uploading: true });
+    this.runningStates$.next({ uploading: true, analysing: true });
     this.timers.fileCheckInterval = setInterval(
       this.loadUploadFiles.bind(this),
       this.config.options.fileCheckInterval * 1000,

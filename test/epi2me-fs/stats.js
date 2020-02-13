@@ -1,4 +1,6 @@
 import assert from 'assert';
+// import { BehaviorSubject } from 'rxjs';
+// import { map, withLatestFrom } from 'rxjs/operators';
 import EPI2ME from '../../src/epi2me-fs';
 
 describe('epi2me.stats', () => {
@@ -72,10 +74,45 @@ describe('epi2me.stats', () => {
     const sub = client.runningStates$.subscribe(state => {
       theState = state;
     });
+    assert.deepEqual(theState, { uploading: false, analysing: false, telemetry: false });
     client.runningStates$.next({ uploading: true });
-    assert.deepEqual(theState, { uploading: true, analysing: false, telemetry: false });
-    client.runningStates$.next({ analysing: true, telemetry: true });
-    assert.deepEqual(theState, { uploading: true, analysing: true, telemetry: true });
+    client.runningStates$.next({ analysing: true });
+    assert.deepEqual(theState, { uploading: true, analysing: true, telemetry: false });
+    client.runningStates$.next({ analysing: false, telemetry: true });
+    assert.deepEqual(theState, { uploading: true, analysing: false, telemetry: true });
     sub.unsubscribe();
   });
+  // it('does', () => {
+  //   let theState;
+  //   const userAnalysis$ = new BehaviorSubject([]);
+  //   const runningInstance = new EPI2ME({});
+  //   const mergedSub = runningInstance.runningStates$.pipe(
+  //     // withLatestFrom provides the last value from another observable
+  //     withLatestFrom(userAnalysis$),
+  //     map(([updatedState, existingAnalysis]) => {
+  //       // Perform merge
+  //       console.log('UPDATED STATE: ', updatedState);
+  //       theState = updatedState;
+  //       return existingAnalysis.map(analysis => {
+  //         if (analysis.idWorkflowInstance.toString() === runningInstance.config.instance.id_workflow_instance) {
+  //           // Set instance status
+  //           analysis.status = [updatedState.uploading, updatedState.analysing, updatedState.telemetry];
+  //         }
+  //         return analysis;
+  //       });
+  //     }),
+  //   );
+  //   const runningSub = mergedSub.subscribe(
+  //     // Push out new array
+  //     {
+  //       next: updatedArray => {
+  //         console.log(updatedArray);
+  //         // this.userAnalysis$.next(updatedArray);
+  //       },
+  //     },
+  //   );
+  //   runningInstance.runningStates$.next({ uploading: true });
+  //   runningInstance.runningStates$.next({ analysing: true });
+  //   assert.deepEqual(theState, { uploading: true, analysing: true, telemetry: false });
+  // });
 });
