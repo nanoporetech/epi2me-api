@@ -182,7 +182,6 @@ export default class EPI2ME {
   }
 
   async stopAnalysis() {
-    this.runningStates$.next({ analysing: false });
     // If we stop the cloud, there's no point uploading anymore
     this.stopUpload();
 
@@ -190,6 +189,7 @@ export default class EPI2ME {
     if (idWorkflowInstance) {
       try {
         await this.REST.stopWorkflow(idWorkflowInstance);
+        this.runningStates$.next({ analysing: false });
       } catch (stopException) {
         this.log.error(`Error stopping instance: ${String(stopException)}`);
         return Promise.reject(stopException);
@@ -202,11 +202,12 @@ export default class EPI2ME {
 
   async stopUpload() {
     this.stopped = true;
-    this.runningStates$.next({ uploading: false });
 
     this.log.debug('stopping watchers');
 
     ['downloadCheckInterval', 'stateCheckInterval', 'fileCheckInterval'].forEach(i => this.stopTimer(i));
+
+    this.runningStates$.next({ uploading: false });
 
     Object.keys(this.timers.transferTimeouts).forEach(key => {
       this.log.debug(`clearing transferTimeout for ${key}`);
