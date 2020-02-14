@@ -7,8 +7,7 @@
  */
 
 import { defaults, every, isFunction, merge } from 'lodash';
-import { BehaviorSubject, Subscription } from 'rxjs';
-import { map, withLatestFrom } from 'rxjs/operators';
+import { BehaviorSubject, combineLatest } from 'rxjs';
 import DEFAULTS from './default_options.json';
 import GraphQL from './graphql';
 import niceSize from './niceSize';
@@ -61,20 +60,11 @@ export default class EPI2ME {
 
     this.stopped = true;
 
-    this.runningStatesStore = new BehaviorSubject({
-      uploading: false,
-      analysing: false,
-      telemetry: false,
-    });
+    this.uploadState$ = new BehaviorSubject(false);
+    this.analyseState$ = new BehaviorSubject(false);
+    this.reportState$ = new BehaviorSubject(false);
 
-    this.updateRunningState = new BehaviorSubject({});
-
-    this.runningStates$ = this.updateRunningState.pipe(
-      withLatestFrom(this.runningStatesStore),
-      map(([update, store]) => ({ ...store, ...update })),
-    );
-
-    this.subscription = new Subscription();
+    this.runningStates$ = combineLatest(this.uploadState$, this.analyseState$, this.reportState$);
 
     this.states = {
       upload: {
@@ -196,7 +186,7 @@ export default class EPI2ME {
     if (idWorkflowInstance) {
       try {
         await this.REST.stopWorkflow(idWorkflowInstance);
-        this.runningStates$.next({ analysing: false });
+        this.analyseState$.next(false);
       } catch (stopException) {
         this.log.error(`Error stopping instance: ${String(stopException)}`);
         return Promise.reject(stopException);
@@ -214,7 +204,7 @@ export default class EPI2ME {
 
     ['downloadCheckInterval', 'stateCheckInterval', 'fileCheckInterval'].forEach(i => this.stopTimer(i));
 
-    this.runningStates$.next({ uploading: false });
+    this.uploadState$.next(false);
 
     Object.keys(this.timers.transferTimeouts).forEach(key => {
       this.log.debug(`clearing transferTimeout for ${key}`);
@@ -349,14 +339,6 @@ export default class EPI2ME {
 
   stats(key) {
     return this.states[key];
-  }
-
-  startSubscription() {
-    this.subscription.add(this.runningStates$.subscribe(state => this.runningStatesStore.next(state)));
-  }
-
-  stopSubscription() {
-    this.subscription.unsubscribe();
   }
 }
 

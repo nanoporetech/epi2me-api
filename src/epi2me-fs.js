@@ -146,11 +146,10 @@ export default class EPI2ME_FS extends EPI2ME {
 
   async autoStart(workflowConfig, cb) {
     this.stopped = false;
-    this.startSubscription();
     let instance;
     try {
       instance = await this.REST.startWorkflow(workflowConfig);
-      this.runningStates$.next({ analysing: true });
+      this.analyseState$.next(true);
     } catch (startError) {
       const msg = `Failed to start workflow: ${String(startError)}`;
       this.log.warn(msg);
@@ -166,7 +165,6 @@ export default class EPI2ME_FS extends EPI2ME {
 
   async autoJoin(id, cb) {
     this.stopped = false;
-    this.startSubscription();
     this.config.instance.id_workflow_instance = id;
     let instance;
     try {
@@ -354,7 +352,7 @@ export default class EPI2ME_FS extends EPI2ME {
     this.reportProgress();
     // MC-5418: ensure that the session has been established before starting the upload
     this.loadUploadFiles(); // Trigger once at workflow instance start
-    this.runningStates$.next({ uploading: true });
+    this.uploadState$.next(true);
     this.timers.fileCheckInterval = setInterval(
       this.loadUploadFiles.bind(this),
       this.config.options.fileCheckInterval * 1000,
@@ -377,7 +375,6 @@ export default class EPI2ME_FS extends EPI2ME {
 
   async stopEverything() {
     await super.stopEverything();
-    this.stopSubscription();
   }
 
   async checkForDownloads() {
@@ -1495,7 +1492,7 @@ export default class EPI2ME_FS extends EPI2ME {
         this.REST.fetchContent(url)
           .then(body => {
             fs.writeJSONSync(fn, body);
-            this.runningStates$.next({ telemetry: true });
+            this.reportState$.next(true);
             this.log.debug(`fetched telemetry summary ${fn}`);
           })
           .catch(e => {

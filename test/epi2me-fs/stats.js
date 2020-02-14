@@ -71,18 +71,18 @@ describe('epi2me.stats', () => {
   it('running states', () => {
     const client = new EPI2ME({});
     let theState;
-    client.startSubscription();
-    client.runningStates$.next({ uploading: true });
-    client.runningStates$.next({ analysing: true });
+    // client.startSubscription();
+    client.uploadState$.next(true);
+    client.analyseState$.next(true);
     // Subscribe here because this is what actually happens
     const sub = client.runningStates$.subscribe(state => {
       theState = state;
     });
-    assert.deepEqual(theState, { uploading: true, analysing: true, telemetry: false });
-    client.runningStates$.next({ analysing: false, telemetry: true });
-    assert.deepEqual(theState, { uploading: true, analysing: false, telemetry: true });
+    assert.deepEqual(theState, [true, true, false]);
+    client.reportState$.next(true);
+    assert.deepEqual(theState, [true, true, true]);
     sub.unsubscribe();
-    client.stopSubscription();
+    // client.stopSubscription();
   });
   // it('does', () => {
   //   let theState;
