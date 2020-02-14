@@ -7,8 +7,8 @@
  */
 
 import { defaults, every, isFunction, merge } from 'lodash';
-import { BehaviorSubject } from 'rxjs';
-import { scan } from 'rxjs/operators';
+import { BehaviorSubject, Subscription } from 'rxjs';
+import { map, withLatestFrom } from 'rxjs/operators';
 import DEFAULTS from './default_options.json';
 import GraphQL from './graphql';
 import niceSize from './niceSize';
@@ -61,13 +61,20 @@ export default class EPI2ME {
 
     this.stopped = true;
 
-    this.runningStatesSubject = new BehaviorSubject({
+    this.runningStatesStore = new BehaviorSubject({
       uploading: false,
       analysing: false,
       telemetry: false,
     });
 
-    this.runningStates$ = this.runningStatesSubject.pipe(scan((acc, val) => ({ ...acc, ...val })));
+    this.updateRunningState = new BehaviorSubject({});
+
+    this.runningStates$ = this.updateRunningState.pipe(
+      withLatestFrom(this.runningStatesStore),
+      map(([update, store]) => ({ ...store, ...update })),
+    );
+
+    this.subscription = new Subscription();
 
     this.states = {
       upload: {
@@ -342,6 +349,14 @@ export default class EPI2ME {
 
   stats(key) {
     return this.states[key];
+  }
+
+  startSubscription() {
+    this.subscription.add(this.runningStates$.subscribe(state => this.runningStatesStore.next(state)));
+  }
+
+  stopSubscription() {
+    this.subscription.unsubscribe();
   }
 }
 
