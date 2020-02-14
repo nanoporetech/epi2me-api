@@ -149,6 +149,7 @@ export default class EPI2ME_FS extends EPI2ME {
     let instance;
     try {
       instance = await this.REST.startWorkflow(workflowConfig);
+      this.analyseState$.next(true);
     } catch (startError) {
       const msg = `Failed to start workflow: ${String(startError)}`;
       this.log.warn(msg);
@@ -351,6 +352,7 @@ export default class EPI2ME_FS extends EPI2ME {
     this.reportProgress();
     // MC-5418: ensure that the session has been established before starting the upload
     this.loadUploadFiles(); // Trigger once at workflow instance start
+    this.uploadState$.next(true);
     this.timers.fileCheckInterval = setInterval(
       this.loadUploadFiles.bind(this),
       this.config.options.fileCheckInterval * 1000,
@@ -358,16 +360,21 @@ export default class EPI2ME_FS extends EPI2ME {
     return Promise.resolve(instance);
   }
 
-  async stopEverything() {
-    await super.stopEverything(); // sets this.stopped = true
-
-    delete this.sessionManager;
+  async stopUpload() {
+    await super.stopUpload();
 
     this.log.debug('clearing split files');
     if (this.db) {
       return this.db.splitClean(); // remove any split files whose transfers were disrupted and which didn't self-clean
     }
+
+    delete this.sessionManager;
+
     return Promise.resolve();
+  }
+
+  async stopEverything() {
+    await super.stopEverything();
   }
 
   async checkForDownloads() {
@@ -1043,7 +1050,8 @@ export default class EPI2ME_FS extends EPI2ME {
   }
 
   async initiateDownloadStream(s3Item, message, outputFile) {
-    return new Promise(async (resolve, reject) => { // eslint-disable-line
+    // eslint-disable-next-line
+    return new Promise(async (resolve, reject) => {
       let s3;
       try {
         s3 = await this.sessionedS3();
@@ -1484,6 +1492,7 @@ export default class EPI2ME_FS extends EPI2ME {
         this.REST.fetchContent(url)
           .then(body => {
             fs.writeJSONSync(fn, body);
+            this.reportState$.next(true);
             this.log.debug(`fetched telemetry summary ${fn}`);
           })
           .catch(e => {

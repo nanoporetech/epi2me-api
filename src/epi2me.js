@@ -7,7 +7,7 @@
  */
 
 import { defaults, every, isFunction, merge } from 'lodash';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, combineLatest } from 'rxjs';
 import DEFAULTS from './default_options.json';
 import GraphQL from './graphql';
 import niceSize from './niceSize';
@@ -59,6 +59,13 @@ export default class EPI2ME {
     }
 
     this.stopped = true;
+
+    this.uploadState$ = new BehaviorSubject(false);
+    this.analyseState$ = new BehaviorSubject(false);
+    this.reportState$ = new BehaviorSubject(false);
+
+    this.runningStates$ = combineLatest(this.uploadState$, this.analyseState$, this.reportState$);
+
     this.states = {
       upload: {
         filesCount: 0, // internal. do not use
@@ -163,20 +170,41 @@ export default class EPI2ME {
     socket.emit(channel, object);
   }
 
-  async stopEverything() {
+  stopTimer(intervalName) {
+    if (this.timers[intervalName]) {
+      this.log.debug(`clearing ${intervalName} interval`);
+      clearInterval(this.timers[intervalName]);
+      this.timers[intervalName] = null;
+    }
+  }
+
+  async stopAnalysis() {
+    // If we stop the cloud, there's no point uploading anymore
+    this.stopUpload();
+
+    const { id_workflow_instance: idWorkflowInstance } = this.config.instance;
+    if (idWorkflowInstance) {
+      try {
+        await this.REST.stopWorkflow(idWorkflowInstance);
+        this.analyseState$.next(false);
+      } catch (stopException) {
+        this.log.error(`Error stopping instance: ${String(stopException)}`);
+        return Promise.reject(stopException);
+      }
+
+      this.log.info(`workflow instance ${idWorkflowInstance} stopped`);
+    }
+    return Promise.resolve();
+  }
+
+  async stopUpload() {
     this.stopped = true;
 
     this.log.debug('stopping watchers');
 
-    ['downloadCheckInterval', 'stateCheckInterval', 'fileCheckInterval', 'summaryTelemetryInterval'].forEach(
-      intervalName => {
-        if (this.timers[intervalName]) {
-          this.log.debug(`clearing ${intervalName} interval`);
-          clearInterval(this.timers[intervalName]);
-          this.timers[intervalName] = null;
-        }
-      },
-    );
+    ['downloadCheckInterval', 'stateCheckInterval', 'fileCheckInterval'].forEach(i => this.stopTimer(i));
+
+    this.uploadState$.next(false);
 
     Object.keys(this.timers.transferTimeouts).forEach(key => {
       this.log.debug(`clearing transferTimeout for ${key}`);
@@ -195,20 +223,14 @@ export default class EPI2ME {
       await Promise.all(Object.values(this.downloadWorkerPool));
       this.downloadWorkerPool = null;
     }
+    return Promise.resolve();
+  }
 
-    const { id_workflow_instance: idWorkflowInstance } = this.config.instance;
-    if (idWorkflowInstance) {
-      try {
-        await this.REST.stopWorkflow(idWorkflowInstance);
-      } catch (stopException) {
-        this.log.error(`Error stopping instance: ${String(stopException)}`);
-        return Promise.reject(stopException);
-      }
-
-      this.log.info(`workflow instance ${idWorkflowInstance} stopped`);
-    }
-
-    return Promise.resolve(); // api changed
+  async stopEverything() {
+    this.stopAnalysis();
+    // Moved this out of the main stopUpload because we don't want to stop it when we stop uploading
+    // This is really 'stop fetching reports'
+    this.stopTimer('summaryTelemetryInterval');
   }
 
   reportProgress() {
