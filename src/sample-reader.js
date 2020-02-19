@@ -1,4 +1,4 @@
-import { assign, takeRight } from 'lodash';
+import { takeRight } from 'lodash';
 import path from 'path';
 import rfs from 'recursive-readdir-async';
 
@@ -9,7 +9,7 @@ export default class SampleReader {
 
   Designed to work best on device i.e. GridION
   */
-  constructor(opts) {
+  constructor() {
     /*
       opts = {
         path: Path to MinKnow output = '/data'
@@ -25,24 +25,18 @@ export default class SampleReader {
       }
     */
     this.experiments = {};
-    this.options = assign(
-      {
-        path: '/data',
-      },
-      opts,
-    );
   }
 
-  async getExperiments(refresh = false) {
+  async getExperiments({ refresh = false, sourceDir = '/data' }) {
     if (!Object.keys(this.experiments).length || refresh) {
-      await this.updateExperiments();
+      await this.updateExperiments(sourceDir);
     }
     return this.experiments;
   }
 
-  async updateExperiments() {
+  async updateExperiments(sourceDir) {
     const fileToCheck = 'sequencing_summary';
-    const files = await rfs.list(this.options.path, { include: [fileToCheck] });
+    const files = await rfs.list(sourceDir, { include: [fileToCheck] });
     this.experiments = {};
     files.forEach(file => {
       /*
