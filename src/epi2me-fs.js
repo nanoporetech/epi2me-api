@@ -338,7 +338,7 @@ export default class EPI2ME_FS extends EPI2ME {
       } catch (instanceError) {
         this.log.warn(
           `failed to check instance state: ${
-            instanceError && instanceError.error ? instanceError.error : instanceError
+          instanceError && instanceError.error ? instanceError.error : instanceError
           }`,
         );
       }
@@ -642,11 +642,11 @@ export default class EPI2ME_FS extends EPI2ME {
 
         const splitStyle = splitSize
           ? {
-              maxChunkBytes: splitSize,
-            }
+            maxChunkBytes: splitSize,
+          }
           : {
-              maxChunkReads: splitReads,
-            };
+            maxChunkReads: splitReads,
+          };
         const splitter = file.path.match(/\.gz$/) ? fastqGzipSplitter : fastqSplitter;
 
         const fileId = utils.getFileID();
@@ -951,9 +951,9 @@ export default class EPI2ME_FS extends EPI2ME {
       const fetchSuffixes = ['']; // default message object
       let extra =
         this.config &&
-        this.config.workflow &&
-        this.config.workflow.settings &&
-        this.config.workflow.settings.output_format
+          this.config.workflow &&
+          this.config.workflow.settings &&
+          this.config.workflow.settings.output_format
           ? this.config.workflow.settings.output_format
           : [];
       if (typeof extra === 'string' || extra instanceof String) {
@@ -1493,6 +1493,7 @@ export default class EPI2ME_FS extends EPI2ME {
           .then(body => {
             fs.writeJSONSync(fn, body);
             this.reportState$.next(true);
+            this.instanceTelemetry$.next(body);
             this.log.debug(`fetched telemetry summary ${fn}`);
           })
           .catch(e => {

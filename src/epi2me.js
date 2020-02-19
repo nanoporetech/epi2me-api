@@ -63,6 +63,7 @@ export default class EPI2ME {
     this.uploadState$ = new BehaviorSubject(false);
     this.analyseState$ = new BehaviorSubject(false);
     this.reportState$ = new BehaviorSubject(false);
+    this.instanceTelemetry$ = new BehaviorSubject(null);
 
     this.runningStates$ = combineLatest(this.uploadState$, this.analyseState$, this.reportState$);
 
