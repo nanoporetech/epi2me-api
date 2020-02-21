@@ -27,14 +27,14 @@ export default class SampleReader {
     this.experiments = {};
   }
 
-  async getExperiments({ refresh = false, sourceDir = '/data' }) {
+  async getExperiments({ sourceDir = '/data', refresh = false }) {
     if (!Object.keys(this.experiments).length || refresh) {
       await this.updateExperiments(sourceDir);
     }
     return this.experiments;
   }
 
-  async updateExperiments(sourceDir) {
+  async updateExperiments(sourceDir = '/data') {
     const fileToCheck = 'sequencing_summary';
     const files = await rfs.list(sourceDir, { include: [fileToCheck] });
     this.experiments = {};
