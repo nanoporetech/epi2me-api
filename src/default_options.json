@@ -15,5 +15,6 @@
   "transferPoolSize": 3,
   "downloadMode": "data+telemetry",
   "filetype": [".fastq", ".fq", ".fastq.gz", ".fq.gz"],
-  "signing": true
+  "signing": true,
+  "sampleDirectory": "/data"
 }
