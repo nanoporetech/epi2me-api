@@ -1,6 +1,7 @@
 import { takeRight } from 'lodash';
 import path from 'path';
 import rfs from 'recursive-readdir-async';
+import DEFAULTS from './default_options.json';
 
 export default class SampleReader {
   /*
@@ -27,14 +28,14 @@ export default class SampleReader {
     this.experiments = {};
   }
 
-  async getExperiments({ sourceDir = '/data', refresh = false }) {
+  async getExperiments({ sourceDir = DEFAULTS.sampleDirectory, refresh = false }) {
     if (!Object.keys(this.experiments).length || refresh) {
       await this.updateExperiments(sourceDir);
     }
     return this.experiments;
   }
 
-  async updateExperiments(sourceDir = '/data') {
+  async updateExperiments(sourceDir = DEFAULTS.sampleDirectory) {
     const fileToCheck = 'sequencing_summary';
     const files = await rfs.list(sourceDir, { include: [fileToCheck] });
     this.experiments = {};
