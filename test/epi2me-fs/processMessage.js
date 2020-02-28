@@ -25,7 +25,7 @@ describe('epi2me-api.processMessage', () => {
       ),
     );
     sinon.stub(client, 'socket').resolves({
-      emit: () => {},
+      emit: () => { },
     });
     return client;
   };
@@ -53,7 +53,7 @@ describe('epi2me-api.processMessage', () => {
     };
 
     assert.doesNotThrow(() => {
-      client.processMessage(msg, () => {});
+      client.processMessage(msg, () => { });
     });
 
     sinon.assert.calledWith(stub, msg);
@@ -75,7 +75,7 @@ describe('epi2me-api.processMessage', () => {
         {
           Body: '{"message": "body"}',
         },
-        () => {},
+        () => { },
       );
     });
     assert(client.log.warn.calledOnce); // No path
@@ -90,6 +90,10 @@ describe('epi2me-api.processMessage', () => {
       outputFolder: tmpDir.name,
     });
     client.telemetryLogStream = fs.createWriteStream('/dev/null');
+
+    // MC-7519: Multiple instances running means multiple outputs need to be namespaced by id_workflow_instance
+    // processMessage should be called for running instances so there should be an id_workflow_instance
+    client.config.instance.id_workflow_instance = '1234567';
 
     const s3 = new AWS.S3();
 
@@ -112,7 +116,7 @@ describe('epi2me-api.processMessage', () => {
             },
           }),
         },
-        () => {},
+        () => { },
       );
     } catch (err) {
       assert.fail(err);
@@ -120,7 +124,7 @@ describe('epi2me-api.processMessage', () => {
 
     assert.equal(
       client.initiateDownloadStream.args[0][2],
-      path.join(tmpDir.name, 'OK/PASS/CLASSIFIED/fastq_runid_shasum_15.fastq'),
+      path.join(tmpDir.name, '1234567/OK/PASS/CLASSIFIED/fastq_runid_shasum_15.fastq'),
     );
     tmpDir.removeCallback();
   });
@@ -133,6 +137,9 @@ describe('epi2me-api.processMessage', () => {
       outputFolder: tmpDir.name,
     });
     client.telemetryLogStream = fs.createWriteStream('/dev/null');
+    // MC-7519: Multiple instances running means multiple outputs need to be namespaced by id_workflow_instance
+    // processMessage should be called for running instances so there should be an id_workflow_instance
+    client.config.instance.id_workflow_instance = '1234567';
 
     const s3 = new AWS.S3();
     sinon.stub(client, 'sessionedS3').resolves(s3);
@@ -148,13 +155,16 @@ describe('epi2me-api.processMessage', () => {
               'OUTPUT-UUID/INPUT-UUID/9999/999999/component-2/OK/pass/CLASSIFIED/fastq_runid_shasum_15.fastq/fastq_runid_shasum_15.fastq',
           }),
         },
-        () => {},
+        () => { },
       );
     } catch (err) {
       assert.fail(err);
     }
 
-    assert.equal(client.initiateDownloadStream.args[0][2], path.join(tmpDir.name, 'fastq_runid_shasum_15.fastq'));
+    assert.equal(
+      client.initiateDownloadStream.args[0][2],
+      path.join(tmpDir.name, '1234567', 'fastq_runid_shasum_15.fastq'),
+    );
     tmpDir.removeCallback();
   });
 
@@ -208,6 +218,9 @@ describe('epi2me-api.processMessage', () => {
       outputFolder: tmpDir.name,
     });
     client.telemetryLogStream = fs.createWriteStream('/dev/null');
+    // MC-7519: Multiple instances running means multiple outputs need to be namespaced by id_workflow_instance
+    // processMessage should be called for running instances so there should be an id_workflow_instance
+    client.config.instance.id_workflow_instance = '1234567';
 
     const s3 = new AWS.S3();
     sinon.stub(client, 'sessionedS3').resolves(s3);
@@ -359,7 +372,7 @@ describe('epi2me-api.processMessage', () => {
             id_master: '1694',
           }),
         },
-        () => {},
+        () => { },
       );
     } catch (err) {
       assert.fail(err);
@@ -367,10 +380,10 @@ describe('epi2me-api.processMessage', () => {
 
     assert.equal(
       client.initiateDownloadStream.args[0][2],
-      path.join(tmpDir.name, 'PASS/fastq_runid_738d663ef9214e590fb4806bf5aed784b941fd48_1.fastq.bam'),
+      path.join(tmpDir.name, '1234567/PASS/fastq_runid_738d663ef9214e590fb4806bf5aed784b941fd48_1.fastq.bam'),
       'initiateDownloadStream argument',
     );
-    assert.equal(fs.mkdirpSync.args[0][0], path.join(tmpDir.name, 'PASS'), 'mkdirpSync argument');
+    assert.equal(fs.mkdirpSync.args[0][0], path.join(tmpDir.name, '1234567', 'PASS'), 'mkdirpSync argument');
     tmpDir.removeCallback();
   });
 });
