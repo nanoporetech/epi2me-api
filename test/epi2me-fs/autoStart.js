@@ -108,9 +108,14 @@ describe('epi2me.autoStart', () => {
       assert.fail(err);
     }
     assert.equal(fetchTelemetryResponse, undefined);
-    assert.deepEqual(theTelemetry, {
-      dummy: 'https://epi2me-dev.nanoporetech.com/workflow_instance/666/basecalling_1d_barcode-v1.json',
-    });
+    assert.deepEqual(theTelemetry, [
+      {
+        dummy: 'https://epi2me-dev.nanoporetech.com/workflow_instance/666/classification_16s_barcode-v1.json',
+      },
+      {
+        dummy: 'https://epi2me-dev.nanoporetech.com/workflow_instance/666/basecalling_1d_barcode-v1.json',
+      },
+    ]);
 
     sub.unsubscribe();
     // client.stopSubscription();
