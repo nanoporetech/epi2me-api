@@ -100,7 +100,7 @@ const utils = (function magic() {
       const { log } = merge(
         {
           log: {
-            debug: () => {},
+            debug: () => { },
           },
         },
         optionsIn,
@@ -158,12 +158,61 @@ const utils = (function magic() {
       }
     },
 
+    head: async (uriIn, options) => {
+      // do something to get/set data in epi2me
+      const { log } = merge(
+        {
+          log: {
+            debug: () => { },
+          },
+        },
+        options,
+      );
+      let call;
+
+      let srv = options.url;
+      let uri = uriIn;
+      if (!options.skip_url_mangle) {
+        uri = `/${uri}`; // + ".json";
+        srv = srv.replace(/\/+$/, ''); // clip trailing slashes
+        uri = uri.replace(/\/+/g, '/'); // clip multiple slashes
+        call = srv + uri;
+      } else {
+        call = uri;
+      }
+
+      const req = {
+        url: call,
+        gzip: true,
+      };
+      utils.headers(req, options);
+
+      let res;
+      try {
+        log.debug(`GET ${req.url}`); // , JSON.stringify(req));
+        res = await axios.head(req.url, req); // url, headers++
+
+        if (res && res.status >= 400) {
+          let msg = `Network error ${res.status}`;
+          if (res.status === 504) {
+            // always override 504 with something custom
+            msg = 'Please check your network connection and try again.';
+          }
+
+          return Promise.reject(new Error(msg));
+        }
+      } catch (err) {
+        return Promise.reject(err);
+      }
+      return Promise.resolve(res);
+    },
+
     get: async (uriIn, options) => {
       // do something to get/set data in epi2me
       const { log } = merge(
         {
           log: {
-            debug: () => {},
+            debug: () => { },
           },
         },
         options,
@@ -201,7 +250,7 @@ const utils = (function magic() {
       const { log } = merge(
         {
           log: {
-            debug: () => {},
+            debug: () => { },
           },
         },
         options,
@@ -258,7 +307,7 @@ const utils = (function magic() {
       const { log } = merge(
         {
           log: {
-            debug: () => {},
+            debug: () => { },
           },
         },
         options,
