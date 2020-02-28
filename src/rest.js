@@ -23,6 +23,7 @@ export default class REST {
     );
 
     this.log = this.options.log;
+    this.cachedResponses = {};
   }
 
   async list(entity) {
@@ -376,6 +377,21 @@ export default class REST {
         'Content-Type': '',
       },
     });
-    return utils.get(url, options);
+    const {
+      headers: { etag },
+    } = await utils.head(url, options);
+
+    if (etag && this.cachedResponses[url] && this.cachedResponses[url].etag === etag) {
+      return this.cachedResponses[url].response;
+    }
+    const response = await utils.get(url, options);
+    // cache only if the URLs endpoint supports HEAD requests with etag in the response
+    if (etag) {
+      this.cachedResponses[url] = {
+        etag,
+        response,
+      };
+    }
+    return response;
   }
 }
