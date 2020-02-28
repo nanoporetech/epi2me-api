@@ -191,10 +191,20 @@ const utils = (function magic() {
       try {
         log.debug(`GET ${req.url}`); // , JSON.stringify(req));
         res = await axios.head(req.url, req); // url, headers++
+
+        if (res && res.status >= 400) {
+          let msg = `Network error ${res.status}`;
+          if (res.status === 504) {
+            // always override 504 with something custom
+            msg = 'Please check your network connection and try again.';
+          }
+
+          return Promise.reject(new Error(msg));
+        }
       } catch (err) {
         return Promise.reject(err);
       }
-      return internal.responseHandler(res, options);
+      return Promise.resolve(res);
     },
 
     get: async (uriIn, options) => {
