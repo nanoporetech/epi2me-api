@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "moduleResolution": "node",
+    "outDir": "./built",
+    "allowJs": true,
+    "checkJs": false,
+    "target": "es5",
+    "sourceMap": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true
+  },
+  "include": ["./src/**/*"]
+}
