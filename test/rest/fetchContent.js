@@ -1,9 +1,8 @@
+import assert from 'assert';
+import bunyan from 'bunyan';
+import sinon from 'sinon';
 import REST from '../../src/rest';
 import utils from '../../src/utils';
-
-const sinon = require('sinon');
-const assert = require('assert');
-const bunyan = require('bunyan');
 
 describe('rest.fetchContent', () => {
   it('must invoke get with options', () => {
