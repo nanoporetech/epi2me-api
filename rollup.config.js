@@ -1,6 +1,6 @@
+import sucrase from '@rollup/plugin-sucrase';
 import path from 'path';
 import analyze from 'rollup-plugin-analyzer';
-import babel from 'rollup-plugin-babel';
 import copy from 'rollup-plugin-cpy';
 import { eslint } from 'rollup-plugin-eslint';
 import generatePackageJson from 'rollup-plugin-generate-package-json';
@@ -18,13 +18,9 @@ const plugins = [
     throwOnWarning: false, //  Will eventually be set to true
     exclude: ['node_modules/**', './**/*.json'],
   }),
-  // babel({
-  // }),
-  babel({
-    exclude: ['node_modules/**', 'examples/**'],
-    babelrc: false,
-    presets: [['@babel/preset-env', { targets: { node: 'current' }, modules: false }]],
-    plugins: ['@babel/plugin-proposal-class-properties'],
+  sucrase({
+    exclude: ['node_modules/**', 'test/**'],
+    transforms: ['typescript'],
   }),
   terser({
     parse: {
