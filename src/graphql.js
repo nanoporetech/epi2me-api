@@ -4,8 +4,16 @@
  */
 
 import gql from 'graphql-tag';
-import { assign, merge } from 'lodash';
-import { local, signing, url as baseUrl, user_agent as userAgent } from './default_options.json';
+import {
+  assign,
+  merge
+} from 'lodash';
+import {
+  local,
+  signing,
+  url as baseUrl,
+  user_agent as userAgent
+} from './default_options.json';
 import PageFragment from './fragments/PageFragment';
 import WorkflowFragment from './fragments/WorkflowFragment';
 import WorkflowInstanceFragment from './fragments/WorkflowInstanceFragment';
@@ -14,8 +22,7 @@ import utils from './utils';
 
 export default class GraphQL {
   constructor(opts) {
-    this.options = assign(
-      {
+    this.options = assign({
         agent_version: utils.version,
         local,
         url: baseUrl,
@@ -26,27 +33,40 @@ export default class GraphQL {
     );
 
     this.options.url = this.options.url.replace(/:\/\//, '://graphql.'); // https://epi2me-dev.bla => https://graphql.epi2me-dev.bla
+    this.options.url = this.options.url.replace(/\/$/, ''); // https://epi2me-dev.graphql.bla/ => https://graphql.epi2me-dev.bla
     this.log = this.options.log;
     this.client = client;
   }
 
   createContext = contextIn => {
     // Merge any passed in context with requiredContext
-    const { apikey, apisecret, url } = this.options;
-    return merge({ apikey, apisecret, url }, contextIn);
+    const {
+      apikey,
+      apisecret,
+      url
+    } = this.options;
+    return merge({
+      apikey,
+      apisecret,
+      url
+    }, contextIn);
   };
 
-  query = queryString => ({ context = {}, variables = {}, options = {} } = {}) => {
+  query = queryString => ({
+    context = {},
+    variables = {},
+    options = {}
+  } = {}) => {
     const requestContext = this.createContext(context);
     let query;
     // This lets us write queries using the gql tags and
     // get the syntax highlighting
     if (typeof queryString === 'string') {
-      query = gql`
+      query = gql `
         ${queryString}
       `;
     } else if (typeof queryString === 'function') {
-      query = gql`
+      query = gql `
         ${queryString(PageFragment)}
       `;
     } else {
@@ -61,11 +81,15 @@ export default class GraphQL {
     });
   };
 
-  mutate = queryString => ({ context = {}, variables = {}, options = {} } = {}) => {
+  mutate = queryString => ({
+    context = {},
+    variables = {},
+    options = {}
+  } = {}) => {
     const requestContext = this.createContext(context);
     let mutation;
     if (typeof queryString === 'string') {
-      mutation = gql`
+      mutation = gql `
         ${queryString}
       `;
     } else {
@@ -83,7 +107,7 @@ export default class GraphQL {
     this.client.resetStore();
   };
 
-  workflows = this.query(gql`
+  workflows = this.query(gql `
     query allWorkflows($page: Int, $pageSize: Int, $isActive: Int, $orderBy: String) {
       allWorkflows(page: $page, pageSize: $pageSize, isActive: $isActive, orderBy: $orderBy) {
         ${PageFragment}
@@ -96,10 +120,18 @@ export default class GraphQL {
 
   workflowPages = async requestedPage => {
     let page = requestedPage;
-    let data = await this.workflows({ variables: { page } });
+    let data = await this.workflows({
+      variables: {
+        page
+      }
+    });
     const updatePage = async newPage => {
       page = newPage;
-      data = await this.workflows({ variables: { page } });
+      data = await this.workflows({
+        variables: {
+          page
+        }
+      });
       return data;
     };
     return {
@@ -111,7 +143,7 @@ export default class GraphQL {
     };
   };
 
-  workflow = this.query(gql`
+  workflow = this.query(gql `
     query workflow($idWorkflow: ID!) {
       workflow(idWorkflow: $idWorkflow) {
         ${WorkflowFragment}
@@ -119,7 +151,7 @@ export default class GraphQL {
     }
    `);
 
-  workflowInstances = this.query(gql`
+  workflowInstances = this.query(gql `
   query allWorkflowInstances($page: Int, $pageSize: Int, $shared: Boolean, $idUser: ID, $orderBy: String) {
     allWorkflowInstances(page: $page, pageSize: $pageSize, shared: $shared, idUser: $idUser, orderBy: $orderBy) {
       ${PageFragment}
@@ -130,7 +162,7 @@ export default class GraphQL {
   }
    `);
 
-  workflowInstance = this.query(gql`
+  workflowInstance = this.query(gql `
       query workflowInstance($idWorkflowInstance: ID!) {
         workflowInstance(idWorkflowInstance: $idWorkflowInstance) {
           ${WorkflowInstanceFragment}
@@ -138,7 +170,7 @@ export default class GraphQL {
       }
    `);
 
-  startWorkflow = this.mutate(gql`
+  startWorkflow = this.mutate(gql `
     mutation startWorkflow(
       $idWorkflow: ID!
       $computeAccountId: Int!
@@ -202,7 +234,7 @@ export default class GraphQL {
 
   // user - me
 
-  user = this.query(gql`
+  user = this.query(gql `
     query user {
       me {
         username
@@ -217,7 +249,7 @@ export default class GraphQL {
   // dataset(s)
   // show=show
 
-  register = this.mutate(gql`
+  register = this.mutate(gql `
     mutation registerToken($code: String!, $description: String) {
       registerToken(code: $code, description: $description) {
         apikey
