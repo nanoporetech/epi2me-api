@@ -46,10 +46,12 @@ export default class GraphQL {
       url
     } = this.options;
     return merge({
-      apikey,
-      apisecret,
-      url
-    }, contextIn);
+        apikey,
+        apisecret,
+        url,
+      },
+      contextIn,
+    );
   };
 
   query = queryString => ({
@@ -122,15 +124,15 @@ export default class GraphQL {
     let page = requestedPage;
     let data = await this.workflows({
       variables: {
-        page
-      }
+        page,
+      },
     });
     const updatePage = async newPage => {
       page = newPage;
       data = await this.workflows({
         variables: {
-          page
-        }
+          page,
+        },
       });
       return data;
     };

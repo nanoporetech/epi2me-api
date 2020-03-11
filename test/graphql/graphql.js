@@ -2,7 +2,9 @@ import assert from 'assert';
 import axios from 'axios';
 import bunyan from 'bunyan';
 import gql from 'graphql-tag';
-import { merge } from 'lodash';
+import {
+  merge
+} from 'lodash';
 import sinon from 'sinon';
 import DEFAULTS from '../../src/default_options.json';
 import customFetcher from '../../src/fetcher';
@@ -11,20 +13,51 @@ import gqlUtils from '../../src/gql-utils';
 import GraphQL from '../../src/graphql';
 
 const makeGQL = profile => {
-  const ringbuf = new bunyan.RingBuffer({ limit: 100 });
-  const log = bunyan.createLogger({ name: 'log', stream: ringbuf });
-  return new GraphQL(merge({ log, profile }));
+  const ringbuf = new bunyan.RingBuffer({
+    limit: 100,
+  });
+  const log = bunyan.createLogger({
+    name: 'log',
+    stream: ringbuf,
+  });
+  return new GraphQL(
+    merge({
+        log,
+      },
+      profile,
+    ),
+  );
 };
 
 const makeRegisteredGQL = () => {
-  const ringbuf = new bunyan.RingBuffer({ limit: 100 });
-  const log = bunyan.createLogger({ name: 'log', stream: ringbuf });
+  const ringbuf = new bunyan.RingBuffer({
+    limit: 100,
+  });
+  const log = bunyan.createLogger({
+    name: 'log',
+    stream: ringbuf,
+  });
   const profile = {
     apikey: 'bd2e57b8cbaffe1c957616c4afca0f6734ae9012',
     apisecret: 'a527f9aa0713a5f9cfd99af9a174b73d4df34dcbb3be13b97ccd108314ab0f17',
   };
-  return new GraphQL(merge({ log, profile }));
+  return new GraphQL(
+    merge({
+        log,
+      },
+      profile,
+    ),
+  );
 };
+
+describe('graphql.constructor MC-7563', () => {
+  it('should correct double-slashes', () => {
+    const graphqlObj = makeGQL({
+      url: 'https://epi2me-test.nanoporetech.com/',
+    });
+    assert.equal(graphqlObj.options.url, 'https://graphql.epi2me-test.nanoporetech.com');
+  });
+});
 
 describe('stubbed tests', () => {
   let stubs = [];
@@ -74,9 +107,17 @@ describe('stubbed tests', () => {
   describe('graphql.workflows', () => {
     it('retrieves workflows', async () => {
       const graphqlObj = makeRegisteredGQL();
-      const response = { data: { allWorkflows: [{ idWorkflow: 1 }] } };
+      const response = {
+        data: {
+          allWorkflows: [{
+            idWorkflow: 1,
+          }, ],
+        },
+      };
       stubs.push(sinon.stub(client, 'query').resolves(response));
-      graphqlObj.workflows().then(({ data }) => assert.strictEqual(data, response.data));
+      graphqlObj.workflows().then(({
+        data
+      }) => assert.strictEqual(data, response.data));
       // .catch(err => console.log(err));
     });
   });
@@ -84,10 +125,24 @@ describe('stubbed tests', () => {
   describe('graphql.workflows.page2', () => {
     it('retrieves workflows second page', async () => {
       const graphqlObj = makeRegisteredGQL();
-      const response = { data: { allWorkflows: [{ idWorkflow: 1 }] } };
+      const response = {
+        data: {
+          allWorkflows: [{
+            idWorkflow: 1,
+          }, ],
+        },
+      };
       stubs.push(sinon.stub(client, 'query').resolves(response));
-      const variables = { page: 2 };
-      graphqlObj.workflows({ variables }).then(({ data }) => assert.strictEqual(data, response.data));
+      const variables = {
+        page: 2,
+      };
+      graphqlObj
+        .workflows({
+          variables,
+        })
+        .then(({
+          data
+        }) => assert.strictEqual(data, response.data));
       // .catch(err => console.log(err));
     });
   });
@@ -95,9 +150,21 @@ describe('stubbed tests', () => {
   describe('graphql.retrieves.workflow', () => {
     it('retrieves single workflow', async () => {
       const graphqlObj = makeRegisteredGQL();
-      const response = { data: { workflow: { idWorkflow: '49' } } };
+      const response = {
+        data: {
+          workflow: {
+            idWorkflow: '49',
+          },
+        },
+      };
       stubs.push(sinon.stub(client, 'query').resolves(response));
-      graphqlObj.workflow({ idWorkflow: '49' }).then(({ data }) => assert.strictEqual(data, response.data));
+      graphqlObj
+        .workflow({
+          idWorkflow: '49',
+        })
+        .then(({
+          data
+        }) => assert.strictEqual(data, response.data));
       // .catch(err => console.log(err));
     });
   });
@@ -105,9 +172,17 @@ describe('stubbed tests', () => {
   describe('graphql.workflowInstances', () => {
     it('retrieves workflow instances', async () => {
       const graphqlObj = makeRegisteredGQL();
-      const response = { data: { allWorkflows: [{ idWorkflow: 1 }] } };
+      const response = {
+        data: {
+          allWorkflows: [{
+            idWorkflow: 1,
+          }, ],
+        },
+      };
       stubs.push(sinon.stub(client, 'query').resolves(response));
-      graphqlObj.workflowInstances().then(({ data }) => assert.strictEqual(data, response.data));
+      graphqlObj.workflowInstances().then(({
+        data
+      }) => assert.strictEqual(data, response.data));
       // .catch(err => console.log(err));
     });
   });
@@ -125,8 +200,12 @@ describe('stubbed tests', () => {
       };
       stubs.push(sinon.stub(client, 'query').resolves(response));
       await graphqlObj
-        .workflowInstance({ idWorkflowInstance: 121 })
-        .then(({ data }) => assert.strictEqual(data, response.data));
+        .workflowInstance({
+          idWorkflowInstance: 121,
+        })
+        .then(({
+          data
+        }) => assert.strictEqual(data, response.data));
       // .catch(err => console.log(err));
     });
   });
@@ -139,11 +218,22 @@ describe('stubbed tests', () => {
       //   storageAccountId:1,
       //   isConsentedHuman:1
       const graphqlObj = makeRegisteredGQL();
-      const response = { data: { startWorkflow: { idWorkflowInstance: 1 } } };
+      const response = {
+        data: {
+          startWorkflow: {
+            idWorkflowInstance: 1,
+          },
+        },
+      };
       stubs.push(sinon.stub(client, 'mutate').resolves(response));
       graphqlObj
-        .startWorkflow({ idWorkflow: 1403, computeAccountId: 1 })
-        .then(({ data }) => assert.strictEqual(data, response.data));
+        .startWorkflow({
+          idWorkflow: 1403,
+          computeAccountId: 1,
+        })
+        .then(({
+          data
+        }) => assert.strictEqual(data, response.data));
       // .catch(err => console.log(err.networkError.result));
     });
   });
@@ -151,7 +241,13 @@ describe('stubbed tests', () => {
   describe('graphql.query', () => {
     it('converts func to gql', async () => {
       const graphqlObj = makeRegisteredGQL();
-      const response = { data: { allWorkflows: [{ idWorkflow: 1 }] } };
+      const response = {
+        data: {
+          allWorkflows: [{
+            idWorkflow: 1,
+          }, ],
+        },
+      };
       const stub = sinon.stub(client, 'query').resolves(response);
       stubs.push(stub);
       graphqlObj.query(
@@ -169,7 +265,7 @@ describe('stubbed tests', () => {
       sinon.assert.calledWith(
         stub,
         sinon.match({
-          query: gql`
+          query: gql `
             query aWorkflow {
               allWorkflows {
                 page
@@ -189,7 +285,13 @@ describe('stubbed tests', () => {
     });
     it('converts string to gql', async () => {
       const graphqlObj = makeRegisteredGQL();
-      const response = { data: { allWorkflows: [{ idWorkflow: 1 }] } };
+      const response = {
+        data: {
+          allWorkflows: [{
+            idWorkflow: 1,
+          }, ],
+        },
+      };
       const stub = sinon.stub(client, 'query').resolves(response);
       stubs.push(stub);
       graphqlObj.query(
@@ -211,7 +313,7 @@ describe('stubbed tests', () => {
       sinon.assert.calledWith(
         stub,
         sinon.match({
-          query: gql`
+          query: gql `
             query aWorkflow {
               allWorkflows {
                 page
@@ -231,11 +333,17 @@ describe('stubbed tests', () => {
     });
     it('leaves gql tagged string in place', async () => {
       const graphqlObj = makeRegisteredGQL();
-      const response = { data: { allWorkflows: [{ idWorkflow: 1 }] } };
+      const response = {
+        data: {
+          allWorkflows: [{
+            idWorkflow: 1,
+          }, ],
+        },
+      };
       const stub = sinon.stub(client, 'query').resolves(response);
       stubs.push(stub);
       graphqlObj.query(
-        gql`
+        gql `
           query aWorkflow {
             allWorkflows {
               page
@@ -254,7 +362,7 @@ describe('stubbed tests', () => {
       sinon.assert.calledWith(
         stub,
         sinon.match({
-          query: gql`
+          query: gql `
             query aWorkflow {
               allWorkflows {
                 page
@@ -365,7 +473,12 @@ describe('graphql.unittests', () => {
         },
       },
     };
-    sinon.stub(axios, 'request').resolves({ data: { random: 'data' }, headers: {} });
+    sinon.stub(axios, 'request').resolves({
+      data: {
+        random: 'data',
+      },
+      headers: {},
+    });
     const setHeadersStub = sinon.stub(gqlUtils, 'setHeaders');
     customFetcher(uri, requestOptions);
     assert(setHeadersStub.called);
