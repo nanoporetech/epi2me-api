@@ -22,7 +22,7 @@ describe('epi2me.profile-fs', () => {
       p.profile('bob@bob-machine');
       assert.fail('unexpected success');
     } catch (e) {
-      assert.ok(String(e).match(/Cannot read property/), 'no file');
+      assert.ok(String(e).match(/Cannot read property/i), 'no file');
     }
   });
 

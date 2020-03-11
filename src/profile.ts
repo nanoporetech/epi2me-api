@@ -13,12 +13,10 @@ export default class Profile {
 
   public constructor(allProfileData: Epi2meProfileNS.AllProfileData) {
     this.allProfileData = {};
-    this.defaultEndpoint = process.env.METRICHOR || DEFAULTS.endpoint || DEFAULTS.url;
+    this.defaultEndpoint = process.env.METRICHOR || DEFAULTS.url;
 
     if (allProfileData) {
-      this.allProfileData = merge(allProfileData, {
-        profiles: {},
-      });
+      this.allProfileData = merge({ profiles: {} }, allProfileData);
     }
 
     if (this.allProfileData.endpoint) {
@@ -32,7 +30,7 @@ export default class Profile {
         {
           endpoint: this.defaultEndpoint,
         },
-        this.allProfileData.profiles[id],
+        merge({ profiles: {} }, this.allProfileData).profiles[id],
       );
     }
 

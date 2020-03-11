@@ -17,14 +17,12 @@ export default class ProfileFS extends Profile {
   constructor(prefsFile?: string, raiseExceptions?: boolean) {
     super({});
 
-    this.raiseExceptions = raiseExceptions;
+    this.raiseExceptions = raiseExceptions ? true : false;
     this.prefsFile = prefsFile || ProfileFS.profilePath();
     this.allProfileData = {};
 
     try {
-      this.allProfileData = merge(fs.readJSONSync(this.prefsFile), {
-        profiles: {},
-      });
+      this.allProfileData = merge({ profiles: {} }, fs.readJSONSync(this.prefsFile));
 
       if (this.allProfileData.endpoint) {
         this.defaultEndpoint = this.allProfileData.endpoint;
@@ -60,6 +58,10 @@ export default class ProfileFS extends Profile {
     }
 
     if (id) {
+      if (!this.allProfileData.profiles) {
+        throw new Error('cannot read property');
+      }
+
       return merge(
         {
           endpoint: this.defaultEndpoint,

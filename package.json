@@ -1,6 +1,6 @@
 {
   "name": "@metrichor/epi2me-api",
-  "version": "3.0.1359",
+  "version": "3.0.1550",
   "license": "MPL-2.0",
   "repository": "git@github.com:nanoporetech/epi2me-api.git",
   "description": "API for communicating with the EPI2ME website(s)",
@@ -33,6 +33,7 @@
   "devDependencies": {
     "@rollup/plugin-sucrase": "^3.0.0",
     "@types/bunyan": "^1.8.6",
+    "@types/fs-extra": "^8.1.0",
     "@types/lodash": "^4.14.149",
     "@types/mocha": "^7.0.2",
     "@types/node": "^13.9.0",
