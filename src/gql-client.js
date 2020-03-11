@@ -3,6 +3,7 @@ import ApolloClient from 'apollo-client';
 // import { setContext } from 'apollo-link-context';
 import { ApolloLink, execute } from 'apollo-link';
 import { createHttpLink } from 'apollo-link-http';
+import { resolve } from 'url';
 // import utils from './utils';
 import customFetcher from './fetcher';
 
@@ -21,7 +22,7 @@ const link = new ApolloLink(operation => {
   // }));
   // return forward(operation);
   const httpLink = createHttpLink({
-    uri: `${url}/graphql`,
+    uri: resolve(url, '/graphql'),
     fetch: customFetcher,
     headers: {
       keys: {

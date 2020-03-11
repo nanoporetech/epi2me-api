@@ -112,7 +112,9 @@ export default class db {
             .join(' ')}`,
         );
         const cleanupPromises = toClean.map(cleanObj => {
-          return fs.unlink(path.join(cleanObj.folder_path, cleanObj.filename)).catch(() => {}); // should this module really be responsible for this cleanup operation?
+          return fs.unlink(path.join(cleanObj.folder_path, cleanObj.filename)).catch(() => {
+            console.warn(`Failed to cleanup ${path.join(cleanObj.folder_path, cleanObj.filename)}`);
+          }); // should this module really be responsible for this cleanup operation?
         });
         return Promise.all(cleanupPromises);
       });
