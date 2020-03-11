@@ -1,4 +1,4 @@
-const niceSize = (sizeIn: number, unitIndexIn: number): string => {
+const niceSize = (sizeIn: number, unitIndexIn?: number): string => {
   const UNITS = ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z'];
   const DIV = 1000;
   let unitIndex = unitIndexIn || 0;
