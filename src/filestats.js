@@ -1,12 +1,19 @@
 import path from 'path';
 import bytes from './filestats/default';
-import fastq from './filestats/fastq';
 import fasta from './filestats/fasta';
+import fastq from './filestats/fastq';
+import fastqgz from './filestats/fastqgz';
 
 const mapping = {
   fastq,
   fasta,
+  fastqgz: fastqgz,
   default: bytes,
+};
+
+const longForm = {
+  fq: 'fastq',
+  fa: 'fasta',
 };
 
 export default function filestats(filePath) {
@@ -19,10 +26,12 @@ export default function filestats(filePath) {
     .toLowerCase()
     .replace(/^[.]/, ''); // strip leading dot
 
-  if (ext === 'fq') {
-    ext = 'fastq';
-  } else if (ext === 'fa') {
-    ext = 'fasta';
+  if (longForm[ext]) {
+    ext = longForm[ext];
+  }
+  if (ext === 'gz') {
+    const extArr = filePath.split('.').slice(1);
+    ext = extArr.reduce((prev, curr) => prev + (longForm[curr] || curr), '');
   }
 
   if (!mapping[ext]) {

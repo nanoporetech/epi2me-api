@@ -1,7 +1,7 @@
 import assert from 'assert';
+import fs from 'fs-extra';
 import path from 'path';
 import tmp from 'tmp';
-import fs from 'fs-extra';
 import filestats from '../../src/filestats/fastq';
 
 describe('epi2me.filestats.fastq', () => {
