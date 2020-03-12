@@ -39,6 +39,7 @@ export default class SampleReader {
     const fileToCheck = 'sequencing_summary';
     const files = await rfs.list(sourceDir, { include: [fileToCheck] });
     this.experiments = {};
+    if (files.error) return;
     files.forEach(file => {
       /*
       {
