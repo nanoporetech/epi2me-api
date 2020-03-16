@@ -5,9 +5,16 @@ import SampleReader from '../../src/sample-reader';
 describe('sample reader', () => {
   describe('constructor', () => {
     it('should set options', () => {
-      const path = '/customPath';
-      const SR = new SampleReader({ path });
-      assert.equal(SR.options.path, path);
+      const SR = new SampleReader();
+      assert.deepEqual(SR.experiments, {});
+    });
+  });
+  describe('should', () => {
+    it('fail nicely', async () => {
+      const path = '/randompath';
+      const SR = new SampleReader();
+      const runs = await SR.getExperiments(path);
+      assert.deepEqual(runs, {});
     });
   });
   describe('getRuns', () => {
@@ -25,8 +32,8 @@ describe('sample reader', () => {
 
     it('should set get all run options', async () => {
       const path = '/data';
-      const SR = new SampleReader({ path });
-      const runs = await SR.getExperiments();
+      const SR = new SampleReader();
+      const runs = await SR.getExperiments(path);
       const startDate = new Date('2020-01-07 14:41:00');
       assert.deepEqual(runs, {
         VSK002_11_DEGREES: {

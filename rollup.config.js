@@ -1,12 +1,16 @@
+import sucrase from '@rollup/plugin-sucrase';
 import path from 'path';
 import analyze from 'rollup-plugin-analyzer';
-import babel from 'rollup-plugin-babel';
 import copy from 'rollup-plugin-cpy';
-import { eslint } from 'rollup-plugin-eslint';
+import {
+  eslint
+} from 'rollup-plugin-eslint';
 import generatePackageJson from 'rollup-plugin-generate-package-json';
 import json from 'rollup-plugin-json';
 import license from 'rollup-plugin-license';
-import { terser } from 'rollup-plugin-terser';
+import {
+  terser
+} from 'rollup-plugin-terser';
 import pkg from './package.json';
 
 const external = [...Object.keys(pkg.dependencies || {}), ...Object.keys(pkg.peerDependencies || {})];
@@ -18,13 +22,9 @@ const plugins = [
     throwOnWarning: false, //  Will eventually be set to true
     exclude: ['node_modules/**', './**/*.json'],
   }),
-  // babel({
-  // }),
-  babel({
-    exclude: ['node_modules/**', 'examples/**'],
-    babelrc: false,
-    presets: [['@babel/preset-env', { targets: { node: 'current' }, modules: false }]],
-    plugins: ['@babel/plugin-proposal-class-properties'],
+  sucrase({
+    exclude: ['node_modules/**', 'test/**'],
+    transforms: ['typescript'],
   }),
   terser({
     parse: {
@@ -65,8 +65,7 @@ const plugins = [
 
 const epi2meFull = {
   input: 'src/epi2me-fs.js',
-  output: [
-    {
+  output: [{
       file: path.join(path.dirname(pkg.main), 'index.js'),
       format: 'cjs',
     },
@@ -97,13 +96,11 @@ const epi2meFull = {
 };
 
 const epi2meProfile = {
-  input: 'src/profile-fs.js',
-  output: [
-    {
-      file: path.join(path.dirname(pkg.main), 'profile/index.js'),
-      format: 'cjs',
-    },
-  ],
+  input: 'src/profile-fs.ts',
+  output: [{
+    file: path.join(path.dirname(pkg.main), 'profile/index.js'),
+    format: 'cjs',
+  }, ],
   external,
   plugins: [
     ...plugins,
@@ -127,8 +124,7 @@ const epi2meProfile = {
 
 const epi2meWeb = {
   input: 'src/epi2me.js',
-  output: [
-    {
+  output: [{
       file: path.join(path.dirname(pkg.main), 'web/index.js'),
       format: 'cjs',
     },

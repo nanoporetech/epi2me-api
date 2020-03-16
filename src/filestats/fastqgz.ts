@@ -1,10 +1,11 @@
 import fs from 'fs-extra';
+import { createGunzip } from 'zlib';
 
-export default function(filePath) {
+export default function(filePath: string): Promise<{ type: string; bytes: number; reads: number }> {
   return new Promise((resolve, reject) => {
     const linesPerRead = 4;
     let lineCount = 1;
-    let idx;
+    let idx = -1;
     let stat = {
       size: 0,
     };
@@ -16,7 +17,10 @@ export default function(filePath) {
       return;
     }
 
+    const gunzip = createGunzip();
+
     fs.createReadStream(filePath)
+      .pipe(gunzip)
       .on('data', buffer => {
         idx = -1;
         lineCount -= 1;
@@ -28,7 +32,7 @@ export default function(filePath) {
       })
       .on('end', () =>
         resolve({
-          type: 'fastq',
+          type: 'gz',
           bytes: stat.size,
           reads: Math.floor(lineCount / linesPerRead),
         }),

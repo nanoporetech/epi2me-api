@@ -1,10 +1,10 @@
 import fs from 'fs-extra';
 
-export default function(filePath) {
+export default function(filePath: string): Promise<{ type: string; bytes: number; reads: number }> {
   return new Promise((resolve, reject) => {
-    const linesPerRead = 2;
+    const linesPerRead = 4;
     let lineCount = 1;
-    let idx;
+    let idx = -1;
     let stat = {
       size: 0,
     };
@@ -13,6 +13,7 @@ export default function(filePath) {
       stat = fs.statSync(filePath);
     } catch (e) {
       reject(e);
+      return;
     }
 
     fs.createReadStream(filePath)
@@ -21,15 +22,15 @@ export default function(filePath) {
         lineCount -= 1;
 
         do {
-          idx = buffer.indexOf(62, idx + 1); // 62 == ">"
+          idx = buffer.indexOf(10, idx + 1);
           lineCount += 1;
         } while (idx !== -1);
       })
       .on('end', () =>
         resolve({
-          type: 'fasta',
+          type: 'fastq',
           bytes: stat.size,
-          sequences: Math.floor((1 + lineCount) / linesPerRead),
+          reads: Math.floor(lineCount / linesPerRead),
         }),
       )
       .on('error', reject);

@@ -1,5 +1,6 @@
 import assert from 'assert';
 import sinon from 'sinon';
+import fs from 'fs-extra';
 import EPI2ME from '../../src/epi2me-fs';
 
 describe('epi2me.autoStart', () => {
@@ -62,5 +63,61 @@ describe('epi2me.autoStart', () => {
     assert(client.REST.startWorkflow.calledOnce, 'startWorkflow called once');
     assert(client.log.warn.calledWith('Failed to start workflow: Error: Message'), 'logged warning');
     assert(client.autoConfigure.notCalled, 'autoConfigure not called');
+  });
+
+  it('puts out telemetry on an observable', async () => {
+    const client = new EPI2ME({
+      log: {
+        debug: sinon.stub(),
+        info: sinon.stub(),
+        warn: sinon.stub(),
+        error: sinon.stub(),
+        json: sinon.stub(),
+      },
+    });
+
+    sinon.stub(fs, 'writeJSONSync');
+
+    client.REST.fetchContent = async url => ({
+      dummy: url,
+    });
+
+    let theTelemetry;
+    client.config.instance.id_workflow_instance = '666';
+    client.config.instance.summaryTelemetry = {
+      '1915': {
+        '16S Microbial [rev 2020.1.6-1141]':
+          'https://epi2me-dev.nanoporetech.com/workflow_instance/666/classification_16s_barcode-v1.json',
+      },
+      '1936': {
+        'metrichor-bio/ont-metrichor-homogeniser:3223479 [rev 2020.1.18-1510]':
+          'https://epi2me-dev.nanoporetech.com/workflow_instance/666/basecalling_1d_barcode-v1.json',
+      },
+    };
+    const sub = client.instanceTelemetry$.subscribe(telemetry => {
+      theTelemetry = telemetry;
+    });
+    assert.deepEqual(theTelemetry, null);
+    client.instanceTelemetry$.next({ foo: 'bar' });
+    assert.deepEqual(theTelemetry, { foo: 'bar' });
+
+    let fetchTelemetryResponse;
+    try {
+      fetchTelemetryResponse = await client.fetchTelemetry();
+    } catch (err) {
+      assert.fail(err);
+    }
+    assert.equal(fetchTelemetryResponse, undefined);
+    assert.deepEqual(theTelemetry, [
+      {
+        dummy: 'https://epi2me-dev.nanoporetech.com/workflow_instance/666/classification_16s_barcode-v1.json',
+      },
+      {
+        dummy: 'https://epi2me-dev.nanoporetech.com/workflow_instance/666/basecalling_1d_barcode-v1.json',
+      },
+    ]);
+
+    sub.unsubscribe();
+    // client.stopSubscription();
   });
 });

@@ -7,8 +7,8 @@ export default class Factory {
     this.REST = this.masterInstance.REST;
     this.graphQL = this.masterInstance.graphQL;
     this.SampleReader = this.masterInstance.SampleReader;
-    this.version = this.masterInstance.version;
-    this.utils = this.masterInstance.utils;
+    this.utils = EPI2ME.utils;
+    this.version = EPI2ME.version;
     this.runningInstances = {};
   }
 

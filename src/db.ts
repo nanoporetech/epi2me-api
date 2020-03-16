@@ -2,11 +2,15 @@ import fs from 'fs-extra';
 import { merge, remove } from 'lodash';
 import path from 'path';
 import sqlite from 'sqlite';
-import pkg from '../package.json';
 import utils from './utils-fs';
+import pkg from '../package.json';
 
 export default class db {
-  constructor(dbRoot, optionsIn, log) {
+  options: any; // [key: string]: string;
+  log: any;
+  db: Promise<sqlite.Database>;
+
+  constructor(dbRoot: string, optionsIn: any, log: any) {
     const options = merge({}, optionsIn);
     this.options = options;
     this.log = log;
@@ -19,26 +23,22 @@ export default class db {
       .mkdirp(dbRoot)
       .then(() => {
         this.log.debug(`opening ${dbRoot}/db.sqlite`);
-        return sqlite
-          .open(path.join(dbRoot, 'db.sqlite'), {
-            Promise,
-          })
-          .then(async dbh => {
-            this.log.debug(`opened ${dbRoot}/db.sqlite`); // eslint-disable-line no-console
-            await dbh.migrate({ migrationsPath: path.join(__dirname, '..', 'migrations') });
-            const placeholders = inputFolders.map(() => '(?)').join(',');
-            try {
-              await Promise.all([
-                dbh.run('INSERT INTO meta (version, idWorkflowInstance) VALUES(?, ?)', pkg.version, idWorkflowInstance),
-                dbh.run(`INSERT INTO folders (folder_path) VALUES ${placeholders}`, inputFolders),
-              ]);
+        return sqlite.open(path.join(dbRoot, 'db.sqlite')).then(async dbh => {
+          this.log.debug(`opened ${dbRoot}/db.sqlite`); // eslint-disable-line no-console
+          await dbh.migrate({ migrationsPath: path.join(__dirname, '..', 'migrations') });
+          const placeholders = inputFolders.map(() => '(?)').join(',');
+          try {
+            await Promise.all([
+              dbh.run('INSERT INTO meta (version, idWorkflowInstance) VALUES(?, ?)', pkg.version, idWorkflowInstance),
+              dbh.run(`INSERT INTO folders (folder_path) VALUES ${placeholders}`, inputFolders),
+            ]);
 
-              return Promise.resolve(dbh);
-            } catch (e) {
-              this.log.error(e);
-              return Promise.reject(e);
-            }
-          });
+            return Promise.resolve(dbh);
+          } catch (e) {
+            this.log.error(e);
+            return Promise.reject(e);
+          }
+        });
       })
       .catch(e => {
         this.log.error(e);
@@ -46,7 +46,7 @@ export default class db {
       });
   }
 
-  async uploadFile(filename) {
+  async uploadFile(filename: string): Promise<sqlite.Statement> {
     const dbh = await this.db;
     const [dir, relative] = utils.stripFile(filename);
     await dbh.run('INSERT OR IGNORE INTO folders (folder_path) VALUES (?)', dir);
@@ -57,7 +57,7 @@ export default class db {
     );
   }
 
-  async skipFile(filename) {
+  async skipFile(filename: string): Promise<sqlite.Statement> {
     const dbh = await this.db;
     const [dir, relative] = utils.stripFile(filename);
     await dbh.run('INSERT OR IGNORE INTO folders (folder_path) VALUES (?)', dir);
@@ -68,7 +68,7 @@ export default class db {
     );
   }
 
-  async splitFile(child, parent) {
+  async splitFile(child: string, parent: string): Promise<sqlite.Statement> {
     const dbh = await this.db;
     const [dirChild, relativeChild] = utils.stripFile(child);
     const relativeParent = utils.stripFile(parent)[1];
@@ -81,7 +81,7 @@ export default class db {
     );
   }
 
-  async splitDone(child) {
+  async splitDone(child: string): Promise<sqlite.Statement> {
     const dbh = await this.db;
     const [dirChild, relativeChild] = utils.stripFile(child);
     return dbh.run(
@@ -91,7 +91,7 @@ export default class db {
     );
   }
 
-  async splitClean() {
+  async splitClean(): Promise<any[]> {
     const dbh = await this.db;
     return dbh
       .all(
@@ -100,7 +100,7 @@ export default class db {
       .then(toClean => {
         if (!toClean) {
           this.log.info('no split files to clean');
-          return Promise.resolve();
+          return Promise.resolve([]);
         }
 
         this.log.info(`cleaning ${toClean.length} split files`);
@@ -112,13 +112,15 @@ export default class db {
             .join(' ')}`,
         );
         const cleanupPromises = toClean.map(cleanObj => {
-          return fs.unlink(path.join(cleanObj.folder_path, cleanObj.filename)).catch(() => {}); // should this module really be responsible for this cleanup operation?
+          return fs.unlink(path.join(cleanObj.folder_path, cleanObj.filename)).catch(() => {
+            console.warn(`Failed to cleanup ${path.join(cleanObj.folder_path, cleanObj.filename)}`);
+          }); // should this module really be responsible for this cleanup operation?
         });
         return Promise.all(cleanupPromises);
       });
   }
 
-  async seenUpload(filename) {
+  async seenUpload(filename: string): Promise<number> {
     //    console.log(`checking seenUpload ${filename}`); // eslint-disable-line no-console
     const dbh = await this.db;
     const [dir, relative] = utils.stripFile(filename);

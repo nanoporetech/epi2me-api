@@ -3,13 +3,21 @@ import fs from 'fs-extra';
 import path from 'path';
 import { merge } from 'lodash';
 
-export default async function(filePath, opts, handler, log, inputGenerator, outputGenerator) {
+export default async function(
+  filePath: string,
+  opts: {},
+  handler: any,
+  log: any,
+  inputGenerator: any,
+  outputGenerator?: any,
+): Promise<any> {
   const linesPerRead = 4;
-  const { maxChunkBytes, maxChunkReads } = merge({}, opts);
+  const { maxChunkBytes, maxChunkReads } = merge(opts);
 
   const dirname = path.dirname(filePath);
   const filename = path.basename(filePath);
-  const basename = filename.match(/^[^.]+/)[0];
+  const basenameMatch = filename.match(/^[^.]+/);
+  const basename = basenameMatch ? basenameMatch[0] : '';
   const extname = filename.replace(basename, '');
   const basepath = path.join(dirname, basename);
 
@@ -42,22 +50,22 @@ export default async function(filePath, opts, handler, log, inputGenerator, outp
     let readBuf = '';
     let readsInChunk = 0;
     let bytesInChunk = 0;
-    let chunkPath;
-    let chunkStream;
+    let chunkPath: string;
+    let chunkStream: fs.WriteStream;
     const resolutionData = {
       source: filePath,
       split: true,
       chunks: [],
     };
 
-    let resolveSafety;
+    let resolveSafety: any;
 
     const safety = new Promise(resolve => {
       resolveSafety = resolve;
     });
     const chunkPromises = [safety];
 
-    const readHandler = async read => {
+    const readHandler = async (read: string): Promise<any> => {
       if (!readsInChunk) {
         // open new chunk
         chunkId += 1;
@@ -66,7 +74,7 @@ export default async function(filePath, opts, handler, log, inputGenerator, outp
         //        resolutionData.chunks.push(chunkPath);
         const chunkPromise = new Promise((resolveInner, rejectInner) => {
           const myChunkPath = chunkPath;
-          const closeHandler = () => {
+          const closeHandler = (): void => {
             // log.debug(`Closing chunk ${myChunkPath}`);
             // handler completes once the chunk has been uploaded
             handler(myChunkPath)
@@ -74,13 +82,13 @@ export default async function(filePath, opts, handler, log, inputGenerator, outp
                 // log.debug(`Handler completed chunk ${myChunkPath}`);
                 resolveInner(myChunkPath);
               })
-              .catch(err => {
+              .catch((err: Error) => {
                 // if handler raised an exception and it was because the instance was stopped, don't try and continue with anything else - close the readline and be done.
                 // log.debug(`Handler rejected chunk ${myChunkPath}`);
                 rejectInner(err);
               })
               .finally(() => {
-                fs.unlink(myChunkPath).catch(err => {
+                fs.unlink(myChunkPath).catch((err: Error) => {
                   log.warn(`Error unlinking chunk ${myChunkPath}: ${String(err)}`);
                 });
               });
@@ -110,7 +118,7 @@ export default async function(filePath, opts, handler, log, inputGenerator, outp
       }
     };
 
-    const lineHandler = async line => {
+    const lineHandler = async (line: string): Promise<void> => {
       lineInRead += 1;
       readBuf += line;
       readBuf += '\n';

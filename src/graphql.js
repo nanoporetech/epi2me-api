@@ -26,6 +26,7 @@ export default class GraphQL {
     );
 
     this.options.url = this.options.url.replace(/:\/\//, '://graphql.'); // https://epi2me-dev.bla => https://graphql.epi2me-dev.bla
+    this.options.url = this.options.url.replace(/\/$/, ''); // https://epi2me-dev.graphql.bla/ => https://graphql.epi2me-dev.bla
     this.log = this.options.log;
     this.client = client;
   }
@@ -33,10 +34,17 @@ export default class GraphQL {
   createContext = contextIn => {
     // Merge any passed in context with requiredContext
     const { apikey, apisecret, url } = this.options;
-    return merge({ apikey, apisecret, url }, contextIn);
+    return merge(
+      {
+        apikey,
+        apisecret,
+        url,
+      },
+      contextIn,
+    );
   };
 
-  query = queryString => ({ context = {}, variables = {} } = {}, options = {}) => {
+  query = queryString => ({ context = {}, variables = {}, options = {} } = {}) => {
     const requestContext = this.createContext(context);
     let query;
     // This lets us write queries using the gql tags and
@@ -44,6 +52,10 @@ export default class GraphQL {
     if (typeof queryString === 'string') {
       query = gql`
         ${queryString}
+      `;
+    } else if (typeof queryString === 'function') {
+      query = gql`
+        ${queryString(PageFragment)}
       `;
     } else {
       query = queryString;
@@ -57,7 +69,7 @@ export default class GraphQL {
     });
   };
 
-  mutate = queryString => ({ context = {}, variables = {}, options = {} }) => {
+  mutate = queryString => ({ context = {}, variables = {}, options = {} } = {}) => {
     const requestContext = this.createContext(context);
     let mutation;
     if (typeof queryString === 'string') {
@@ -92,10 +104,18 @@ export default class GraphQL {
 
   workflowPages = async requestedPage => {
     let page = requestedPage;
-    let data = await this.workflows({ variables: { page } });
+    let data = await this.workflows({
+      variables: {
+        page,
+      },
+    });
     const updatePage = async newPage => {
       page = newPage;
-      data = await this.workflows({ variables: { page } });
+      data = await this.workflows({
+        variables: {
+          page,
+        },
+      });
       return data;
     };
     return {
@@ -159,43 +179,6 @@ export default class GraphQL {
     }
   `);
 
-  // startWorkflow(context = {}, variables = {}) {
-  //   const mutation = gql`
-  //     mutation startWorkflow(
-  //       $idWorkflow: ID!
-  //       $computeAccountId: Int!
-  //       $storageAccountId: Int
-  //       $isConsentedHuman: Int = 0
-  //     ) {
-  //       startWorkflowInstance(
-  //         idWorkflow: $idWorkflow
-  //         computeAccountId: $computeAccountId
-  //         storageAccountId: $storageAccountId
-  //         isConsentedHuman: $isConsentedHuman
-  //       ) {
-  //         bucket
-  //         idUser
-  //         idWorkflowInstance
-  //         inputqueue
-  //         outputqueue
-  //         region
-  //         keyId
-  //         chain
-  //       }
-  //     }
-  //   `;
-  //   // return this.client.mutate({
-  //   //   mutation,
-  //   //   variables,
-  //   // });
-  //   const requestContext = this.createContext(context);
-  //   return this.client.mutate({
-  //     mutation,
-  //     variables,
-  //     context: requestContext,
-  //   });
-  // }
-
   // user - me
 
   user = this.query(gql`
@@ -222,72 +205,6 @@ export default class GraphQL {
       }
     }
   `);
-  // async register(code, second, third) {
-  //   // Output
-  //   //   Creds {
-  //   //    apikey: 'bd2e57b8cbaffe1c957616c4afca0f6734ae9012',
-  //   //    apisecret: 'a527f9aa0713a5f9cfd99af9a174b73d4df34dcbb3be13b97ccd108314ab0f17',
-  //   //    description: 'cramshaw@CRAMSHAW-MAC'
-  //   // }
-
-  //   let description;
-  //   let cb;
-
-  //   if (second && second instanceof Function) {
-  //     cb = second;
-  //   } else {
-  //     description = second;
-  //     cb = third;
-  //   }
-  //   try {
-  //     const data = await utils.post(
-  //       'apiaccess',
-  //       {
-  //         code,
-  //         description: description || `${os.userInfo().username}@${os.hostname()}`,
-  //       },
-  //       this.options,
-  //     );
-  //     return cb ? cb(null, data) : Promise.resolve(data);
-  //   } catch (err) {
-  //     return cb ? cb(err) : Promise.reject(err);
-  //   }
-  // }
 
   // status
-
-  // amiImage(s)
-
-  // async registerMutation(code, second, third) {
-  // Still in place but unused
-  //   const mutation = gql`
-  //     mutation($code: String!, $description: String) {
-  //       registerToken(code: $code, description: $description) {
-  //         apikey
-  //         apisecret
-  //         description
-  //       }
-  //     }
-  //   `;
-  //   let description;
-  //   let cb;
-
-  //   if (second && second instanceof Function) {
-  //     cb = second;
-  //   } else {
-  //     description = second;
-  //     cb = third;
-  //   }
-
-  //   return this.client
-  //     .mutate({
-  //       mutation,
-  //       variables: { code, description: description || `${os.userInfo().username}@${os.hostname()}` },
-  //     })
-  //     .then(({ data: { registerToken } }) => (cb ? cb(null, registerToken) : Promise.resolve(registerToken)))
-  //     .catch(err => {
-  //       console.log(err.message); // GraphQL response errors
-  //       return cb ? cb(err) : Promise.reject(err);
-  //     });
-  // }
 }
