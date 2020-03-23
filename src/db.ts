@@ -2,8 +2,8 @@ import fs from 'fs-extra';
 import { merge, remove } from 'lodash';
 import path from 'path';
 import sqlite from 'sqlite';
-import utils from './utils-fs';
 import pkg from '../package.json';
+import utils from './utils-fs';
 
 export default class db {
   options: any; // [key: string]: string;
@@ -74,7 +74,7 @@ export default class db {
     const relativeParent = utils.stripFile(parent)[1];
     await dbh.run('INSERT OR IGNORE INTO folders (folder_path) VALUES (?)', dirChild);
     return dbh.run(
-      'INSERT INTO splits VALUES(?, ?, (SELECT folder_id FROM folders WHERE folder_path = ?), CURRENT_TIMESTAMP, NULL)',
+      'INSERT INTO splits(filename, parent, child_path_id, start, end) VALUES(?, ?, (SELECT folder_id FROM folders WHERE folder_path = ?), CURRENT_TIMESTAMP, NULL)',
       relativeChild,
       relativeParent,
       dirChild,
@@ -127,8 +127,7 @@ export default class db {
     return Promise.all([
       dbh.get(
         'SELECT * FROM uploads u INNER JOIN folders ON folders.folder_id = u.path_id WHERE u.filename=? AND folders.folder_path=? LIMIT 1',
-        relative,
-        dir,
+        [relative, dir],
       ),
       dbh.get(
         'SELECT * FROM skips s INNER JOIN folders ON folders.folder_id = s.path_id WHERE s.filename=? AND folders.folder_path=? LIMIT 1',
@@ -136,7 +135,7 @@ export default class db {
         dir,
       ),
     ]).then(results => {
-      //      console.log(`checked seenUpload ${filename}`); // eslint-disable-line no-console
+      // console.log(`checked seenUpload ${filename} \n ${results}`); // eslint-disable-line no-console
       return remove(results, undefined).length;
     });
   }

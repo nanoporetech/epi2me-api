@@ -13,4 +13,7 @@ api.graphQL
   .then(console.info)
   .catch(console.error);
 
-api.startRun({ inputFolders: ['/data'], outputFolder: '/data/output' }, { id_workflow: 1735, isConsentedHuman: 1 });
+api.startRun(
+  { inputFolders: ['/Library/MinKNOW/data/data2/mock_reads'], outputFolder: '/Library/MinKNOW/data/data2/output' },
+  { id_workflow: 1964, isConsentedHuman: 1 },
+);

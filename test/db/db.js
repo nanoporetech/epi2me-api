@@ -68,6 +68,11 @@ describe('db.db', () => {
     await dbh.uploadFile(fileName);
     seen = await dbh.seenUpload(fileName2);
     assert.equal(seen, 0);
+    await dbh.uploadFile(fileName2);
+    seen = await dbh.seenUpload(fileName);
+    assert.equal(seen, 1);
+    seen = await dbh.seenUpload(fileName2);
+    assert.equal(seen, 1);
   });
   it('skipFile differentiates based on path', async () => {
     const fileName = '/data/test/1.fastq';
