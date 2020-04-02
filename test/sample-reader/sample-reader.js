@@ -20,8 +20,13 @@ describe('sample reader', () => {
   describe('getRuns', () => {
     before(() => {
       mock({
-        '/data/rehan_07_01_20/VSK002_11_DEGREES/20200107_1441_X5_FAL69641_c67dbc23': {
-          'sequencing_summary_FAL69641_ad7f83be.txt': 'file content here',
+        '/data/rehan_07_01_20/VSK002_11_DEGREES/': {
+          '20200107_1441_X5_FAL69641_c67dbc23': {
+            'sequencing_summary_FAL69641_ad7f83be.txt': 'file content here',
+          },
+          bad: {
+            'sequencing_summary_FAL69621_ad7f83bg.txt': 'file content here',
+          },
         },
       });
     });
