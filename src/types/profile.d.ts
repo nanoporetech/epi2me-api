@@ -11,12 +11,20 @@ export namespace Epi2meProfileNS {
     [profileName: string]: IProfileCredentials;
   }
 
-  export type IProfileConstructor = new (allProfileData?: AllProfileData, raiseExceptions?: any) => IAPIProfileInstance;
+  export type IProfileConstructor = new (allProfileData?: AllProfileData, raiseExceptions?: any) => Profile;
 
   export type IProfileName = string;
-
-  export interface IAPIProfileInstance {
-    profile(profileName: IProfileName, credentials?: IProfileCredentials): IProfileCredentials;
-    profiles(): IProfileName[];
-  }
 }
+
+interface InternalAllProfileData {
+  profiles?: Epi2meProfileNS.AllProfileData;
+  endpoint?: string;
+}
+export default class Profile {
+  allProfileData: InternalAllProfileData;
+  defaultEndpoint: string;
+  constructor(allProfileData: Epi2meProfileNS.AllProfileData);
+  profile(id: Epi2meProfileNS.IProfileName): Epi2meProfileNS.IProfileCredentials;
+  profiles(): Epi2meProfileNS.IProfileName[];
+}
+export {};

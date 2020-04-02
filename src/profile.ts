@@ -1,6 +1,6 @@
 import { merge } from 'lodash';
 import DEFAULTS from './default_options.json';
-import { Epi2meProfileNS } from './types/profile';
+import { Epi2meProfileNS } from './types';
 
 interface InternalAllProfileData {
   profiles?: Epi2meProfileNS.AllProfileData;

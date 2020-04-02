@@ -33,3 +33,15 @@ export namespace Epi2meSampleReaderResponseNS {
     [experimentName: string]: IExperiment;
   }
 }
+
+export default class SampleReader implements Epi2meSampleReaderAPINS.ISampleReaderInstance {
+  experiments: Epi2meSampleReaderResponseNS.IExperiments;
+  getExperiments({
+    sourceDir,
+    refresh,
+  }: {
+    sourceDir?: string | undefined;
+    refresh?: boolean | undefined;
+  }): Promise<Epi2meSampleReaderResponseNS.IExperiments>;
+  updateExperiments(sourceDir?: string): Promise<void>;
+}
