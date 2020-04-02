@@ -2,17 +2,16 @@ import { takeRight } from 'lodash';
 import path from 'path';
 import rfs from 'recursive-readdir-async';
 import DEFAULTS from './default_options.json';
+import { Epi2meSampleReaderAPINS, Epi2meSampleReaderResponseNS } from './types/sample-reader';
 
-export default class SampleReader {
+export default class SampleReader implements Epi2meSampleReaderAPINS.ISampleReaderInstance {
   /*
   Taking a directory, look for MinKNOW results and build a tree of
   experiments and samples
 
   Designed to work best on device i.e. GridION
-  */
-  constructor() {
-    /*
-      opts = {
+
+  opts = {
         path: Path to MinKnow output = '/data'
       }
       experiments = {
@@ -24,23 +23,25 @@ export default class SampleReader {
           startDate
         }
       }
-    */
-    this.experiments = {};
-  }
+  */
+  experiments = {} as Epi2meSampleReaderResponseNS.IExperiments;
 
-  async getExperiments({ sourceDir = DEFAULTS.sampleDirectory, refresh = false }) {
+  async getExperiments({
+    sourceDir = DEFAULTS.sampleDirectory,
+    refresh = false,
+  }): Promise<Epi2meSampleReaderResponseNS.IExperiments> {
     if (!Object.keys(this.experiments).length || refresh) {
       await this.updateExperiments(sourceDir);
     }
     return this.experiments;
   }
 
-  async updateExperiments(sourceDir = DEFAULTS.sampleDirectory) {
+  async updateExperiments(sourceDir = DEFAULTS.sampleDirectory): Promise<void> {
     const fileToCheck = 'sequencing_summary';
     const files = await rfs.list(sourceDir, { include: [fileToCheck], normalizePath: false });
     this.experiments = {};
     if (files.error) return;
-    files.forEach(file => {
+    files.forEach((file: { name: string; path: string; fullname: string; isDirectory: boolean }) => {
       /*
       {
         name: 'sequencing_summary_FAL69641_ad7f83be.txt',
