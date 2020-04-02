@@ -2,7 +2,7 @@ import { takeRight } from 'lodash';
 import path from 'path';
 import rfs from 'recursive-readdir-async';
 import DEFAULTS from './default_options.json';
-import { Epi2meSampleReaderAPINS, Epi2meSampleReaderResponseNS } from './types/sample-reader';
+import { Epi2meSampleReaderAPINS, Epi2meSampleReaderResponseNS } from './types';
 
 export default class SampleReader implements Epi2meSampleReaderAPINS.ISampleReaderInstance {
   /*
@@ -51,9 +51,9 @@ export default class SampleReader implements Epi2meSampleReaderAPINS.ISampleRead
       }
       */
       const [experiment, sample] = takeRight(file.path.split(path.sep), 2);
-      const parser = /([0-9]{8})_([0-9]{4})_.*_(\w+\d+)_\w+/;
+      const parser = /(?<date>[0-9]{8})_(?<time>[0-9]{4})_.*_(?<flowcell>\w+\d+)_\w+/;
       if (!parser.test(sample)) return;
-      const [, date, time, flowcell] = [...(sample.match(parser) || [])];
+      const { date, time, flowcell } = parser.exec(sample)?.groups as { date: string; time: string; flowcell: string };
       const dateString = `${date.slice(0, 4)}-${date.slice(4, 6)}-${date.slice(6, 8)}`;
       const timeString = `T${time.slice(0, 2)}:${time.slice(2, 4)}:00`;
       const startDate = new Date(dateString + timeString);
