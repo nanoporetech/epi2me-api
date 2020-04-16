@@ -145,7 +145,11 @@ export default class EPI2ME_FS extends EPI2ME {
   }
 
   async autoStart(workflowConfig, cb) {
+<<<<<<< HEAD
     const instance = await this.autoStartGeneric(workflowConfig, () => this.REST.startWorkflow(workflowConfig), cb);
+=======
+    const instance = await this.autoStartGeneric(workflowConfig, this.REST.startWorkflow, cb);
+>>>>>>> refactor to make it easier to add gql autoStart
     this.setClassConfigREST(instance);
     return this.autoConfigure(instance, cb);
   }
@@ -154,7 +158,11 @@ export default class EPI2ME_FS extends EPI2ME {
     this.stopped = false;
     let instance;
     try {
+<<<<<<< HEAD
       instance = await startFn();
+=======
+      instance = await startFn(workflowConfig);
+>>>>>>> refactor to make it easier to add gql autoStart
       this.analyseState$.next(true);
     } catch (startError) {
       const msg = `Failed to start workflow: ${String(startError)}`;
