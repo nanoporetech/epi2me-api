@@ -118,9 +118,6 @@ utils.loadInputFiles = async ({ inputFolders, outputFolder, filetype: filetypesI
   // function used to filter the readdir results in utils.lsFolder
   // exclude all files and folders meet any of these criteria:
 
-  // Simplest way to support multiple inputFolders
-  // const allInputFolders = (inputFolder && [inputFolder, ...inputFolders]) || inputFolders;
-
   // todo: need to support an array of types, e.g. [fasta, fa, fa.gz]
   let filetypes = filetypesIn;
   if (!(filetypes instanceof Array)) {

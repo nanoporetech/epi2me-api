@@ -100,7 +100,7 @@ const utils = (function magic() {
       const { log } = merge(
         {
           log: {
-            debug: () => { },
+            debug: () => {},
           },
         },
         optionsIn,
@@ -163,7 +163,7 @@ const utils = (function magic() {
       const { log } = merge(
         {
           log: {
-            debug: () => { },
+            debug: () => {},
           },
         },
         options,
@@ -212,7 +212,7 @@ const utils = (function magic() {
       const { log } = merge(
         {
           log: {
-            debug: () => { },
+            debug: () => {},
           },
         },
         options,
@@ -250,7 +250,7 @@ const utils = (function magic() {
       const { log } = merge(
         {
           log: {
-            debug: () => { },
+            debug: () => {},
           },
         },
         options,
@@ -307,7 +307,7 @@ const utils = (function magic() {
       const { log } = merge(
         {
           log: {
-            debug: () => { },
+            debug: () => {},
           },
         },
         options,
@@ -354,6 +354,19 @@ const utils = (function magic() {
         return Promise.reject(err);
       }
       return internal.responseHandler(res, options);
+    },
+    // convertResponseToObject(data: Record<string, any> | string): Record<string, any> {
+    convertResponseToObject(data) {
+      if (typeof data === 'object') {
+        // already parsed
+        return data;
+      } else {
+        try {
+          return JSON.parse(data);
+        } catch (jsonException) {
+          throw new Error(`exception parsing chain JSON ${String(jsonException)}`);
+        }
+      }
     },
   };
 })();
