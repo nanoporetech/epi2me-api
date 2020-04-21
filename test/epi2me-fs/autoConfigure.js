@@ -1,9 +1,9 @@
 import assert from 'assert';
-import sinon from 'sinon';
 import fs from 'fs-extra';
-import tmp from 'tmp';
-import path from 'path';
 import { merge } from 'lodash';
+import path from 'path';
+import sinon from 'sinon';
+import tmp from 'tmp';
 import EPI2ME from '../../src/epi2me-fs';
 
 describe('epi2me.autoConfigure', () => {
@@ -62,6 +62,7 @@ describe('epi2me.autoConfigure', () => {
     const client = clientFactory({
       inputFolder: path.join(tmpDir.name, 'input'),
     });
+    await client.setClassConfigREST({});
 
     const autoStartCb = sinon.fake();
     const mkdirp = sinon.stub(fs, 'mkdirp').callsFake((folder, cb) => {
@@ -84,9 +85,10 @@ describe('epi2me.autoConfigure', () => {
   it('should require inputqueue', async () => {
     const tmpDir = tmp.dirSync();
     const client = clientFactory({
-      inputFolder: path.join(tmpDir.name, 'input'),
+      inputFolders: path.join(tmpDir.name, 'input'),
       outputFolder: path.join(tmpDir.name, 'output'),
     });
+    await client.setClassConfigREST({});
 
     const autoStartCb = sinon.fake();
     const mkdirp = sinon.stub(fs, 'mkdirp').callsFake((folder, cb) => {
