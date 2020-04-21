@@ -199,34 +199,44 @@ export default class EPI2ME_FS extends EPI2ME {
     this.log.debug(`instance ${JSON.stringify(instance)}`);
     this.log.debug(`workflow config ${JSON.stringify(this.config.workflow)}`);
 
+    this.setClassConfigREST(instance);
     return this.autoConfigure(instance, cb);
   }
 
-  setClassConfigGQL(instance) {
-    const configMap = {
-      idWorkflowInstance: 'id_workflow_instance',
-      // 'remoteAddr': 'remote_addr',
-      keyId: 'key_id',
+  setClassConfigGQL(response) {
+    // const {instance, { workflowImage }}
+    const topLevelMap = {
       bucket: 'bucket',
+      idUser: 'id_user',
+      // 'remoteAddr': 'remote_addr',
       // '': 'user_defined',
-      startDate: 'start_date',
-      '': 'id_user',
-      inputqueue: 'inputQueueName',
-      outputqueue: 'outputQueueName',
-      // 'telemetry' : 'summaryTelemetry',
     };
-    configMap.forEach(f => {
-      this.config.instance[f] = instance[f];
+    topLevelMap.forEach(f => {
+      this.config.instance[f] = response[f];
     });
 
+    const instanceMap = {
+      idWorkflowInstance: 'id_workflow_instance',
+      keyId: 'key_id',
+      startDate: 'start_date',
+      inputqueue: 'inputQueueName',
+      outputqueue: 'outputQueueName',
+      telemetry: 'summaryTelemetry',
+    };
+    instanceMap.forEach(f => {
+      this.config.instance[f] = response.instance[f];
+    });
+
+    // Do custom mapping
     // 'idWorkflow': 'id_workflow', workflowImage.workflow.idWorkflow
-    // 'region': 'region'
+    // 'region': 'workflowImage.region.name'
 
-    this.config.instance.region = instance.region || this.config.options.region;
-    this.config.instance.bucketFolder = `${instance.outputqueue}/${instance.id_user}/${instance.id_workflow_instance}`;
+    this.config.instance.region = response.region || this.config.options.region;
+    this.config.instance.bucketFolder = `${response.outputqueue}/${response.id_user}/${response.id_workflow_instance}`;
 
-    if (instance.chain) {
-      this.config.instance.chain = utils.convertResponseToObj(instance.chain);
+    if (response.instance.chain) {
+      // This shouldn't be necessary anymore, DB should ensure it's already JSON
+      this.config.instance.chain = utils.convertResponseToObj(response.instance.chain);
     }
   }
 
@@ -274,7 +284,11 @@ export default class EPI2ME_FS extends EPI2ME {
   }
 
   async autoConfigure(instance, autoStartCb) {
-    /* region
+    /*
+    Ensure
+    this.setClassConfigREST is called on REST responses to set fields as below:
+
+     * region
      * id_workflow_instance
      * inputqueue
      * outputqueue
@@ -283,8 +297,6 @@ export default class EPI2ME_FS extends EPI2ME {
      * description (workflow)
      * chain
      */
-
-    // copy tuples with the same names
 
     if (!this.config.options.inputFolders.length) throw new Error('must set inputFolder');
     if (!this.config.options.outputFolder) throw new Error('must set outputFolder');
