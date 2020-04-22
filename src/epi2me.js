@@ -203,28 +203,10 @@ export default class EPI2ME {
 
     this.log.debug('stopping watchers');
 
-    // 'downloadCheckInterval',
     ['stateCheckInterval', 'fileCheckInterval'].forEach(i => this.stopTimer(i));
 
     this.uploadState$.next(false);
 
-    // Object.keys(this.timers.transferTimeouts).forEach(key => {
-    //   this.log.debug(`clearing transferTimeout for ${key}`);
-    //   clearTimeout(this.timers.transferTimeouts[key]);
-    //   delete this.timers.transferTimeouts[key];
-    // });
-
-    // Object.keys(this.timers.visibilityIntervals).forEach(key => {
-    //   this.log.debug(`clearing visibilityInterval for ${key}`);
-    //   clearInterval(this.timers.visibilityIntervals[key]);
-    //   delete this.timers.visibilityIntervals[key];
-    // });
-
-    // if (this.downloadWorkerPool) {
-    //   this.log.debug('clearing downloadWorkerPool');
-    //   await Promise.all(Object.values(this.downloadWorkerPool));
-    //   this.downloadWorkerPool = null;
-    // }
     return Promise.resolve();
   }
 
@@ -232,7 +214,26 @@ export default class EPI2ME {
     this.stopAnalysis();
     // Moved this out of the main stopUpload because we don't want to stop it when we stop uploading
     // This is really 'stop fetching reports'
-    this.stopTimer('summaryTelemetryInterval');
+
+    Object.keys(this.timers.transferTimeouts).forEach(key => {
+      this.log.debug(`clearing transferTimeout for ${key}`);
+      clearTimeout(this.timers.transferTimeouts[key]);
+      delete this.timers.transferTimeouts[key];
+    });
+
+    Object.keys(this.timers.visibilityIntervals).forEach(key => {
+      this.log.debug(`clearing visibilityInterval for ${key}`);
+      clearInterval(this.timers.visibilityIntervals[key]);
+      delete this.timers.visibilityIntervals[key];
+    });
+
+    if (this.downloadWorkerPool) {
+      this.log.debug('clearing downloadWorkerPool');
+      await Promise.all(Object.values(this.downloadWorkerPool));
+      this.downloadWorkerPool = null;
+    }
+
+    ['summaryTelemetryInterval', 'downloadCheckInterval'].forEach(i => this.stopTimer(i));
   }
 
   reportProgress() {
