@@ -317,5 +317,61 @@ describe('utils-fs.loadInputFiles', () => {
         ]);
       });
     });
+    it('should accept a single file', async () => {
+      const opts = {
+        inputFolders: [`${experiment1Path}/1.fastq`],
+        outputFolder,
+        filetype: '.fastq',
+      };
+      await utils.loadInputFiles(opts).then(async files => {
+        assert.deepEqual(files, [
+          {
+            name: '1.fastq',
+            path: path.join(experiment1Path, '1.fastq'),
+            relative: '/1.fastq',
+            size: 17,
+            id: 'FILE_17',
+          },
+        ]);
+      });
+    });
+  });
+  describe('MC-7698', () => {
+    let root;
+    let experiment1Path;
+    let outputFolder;
+    beforeEach(() => {
+      root = '/data';
+      experiment1Path = `${root}/reference`;
+
+      mock({
+        [experiment1Path]: {
+          '1.fasta': 'file content here',
+        },
+        [outputFolder]: {},
+      });
+    });
+
+    afterEach(() => {
+      mock.restore();
+    });
+    it('should identify a fasta file', async () => {
+      const opts = {
+        inputFolders: [`${experiment1Path}/1.fasta`],
+        outputFolder,
+        filetype: ['fasta'],
+      };
+      await utils.loadInputFiles(opts).then(async files => {
+        assert.deepEqual(files, [
+          {
+            name: '1.fasta',
+            path: path.join(experiment1Path, '1.fasta'),
+            relative: '/1.fasta',
+            size: 17,
+            id: 'FILE_18',
+          },
+        ]);
+      });
+    });
   });
 });

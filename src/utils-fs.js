@@ -71,7 +71,7 @@ utils.lsRecursive = async (rootFolderIn, item, exclusionFilter) => {
   if (exclusionFilter) {
     const result = await exclusionFilter(item, stat);
     if (result) {
-      return null;
+      return [];
     }
   }
 
@@ -107,6 +107,7 @@ utils.lsRecursive = async (rootFolderIn, item, exclusionFilter) => {
 };
 
 utils.loadInputFiles = async ({ inputFolders, outputFolder, filetype: filetypesIn }, log, extraFilter) => {
+  // console.log(inputFolders, outputFolder, filetypesIn);
   /**
    * Entry point for new .fast5 / .fastq files.
    *  - Scan the input folder files

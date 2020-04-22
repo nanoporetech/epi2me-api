@@ -17,3 +17,13 @@ api.startRun(
   { inputFolders: ['/Library/MinKNOW/data/data2/mock_reads'], outputFolder: '/Library/MinKNOW/data/data2/output' },
   { id_workflow: 1964, isConsentedHuman: 1 },
 );
+
+// Reference upload
+// api.startRun(
+//   {
+//     inputFolders: ['/Users/cramshaw/Downloads/S288C.fasta'],
+//     outputFolder: '/Library/MinKNOW/data/data2/output',
+//     filetype: ['fasta'],
+//   },
+//   { id_workflow: 1714, isConsentedHuman: 1 },
+// );
