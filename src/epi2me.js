@@ -203,27 +203,28 @@ export default class EPI2ME {
 
     this.log.debug('stopping watchers');
 
-    ['downloadCheckInterval', 'stateCheckInterval', 'fileCheckInterval'].forEach(i => this.stopTimer(i));
+    // 'downloadCheckInterval',
+    ['stateCheckInterval', 'fileCheckInterval'].forEach(i => this.stopTimer(i));
 
     this.uploadState$.next(false);
 
-    Object.keys(this.timers.transferTimeouts).forEach(key => {
-      this.log.debug(`clearing transferTimeout for ${key}`);
-      clearTimeout(this.timers.transferTimeouts[key]);
-      delete this.timers.transferTimeouts[key];
-    });
+    // Object.keys(this.timers.transferTimeouts).forEach(key => {
+    //   this.log.debug(`clearing transferTimeout for ${key}`);
+    //   clearTimeout(this.timers.transferTimeouts[key]);
+    //   delete this.timers.transferTimeouts[key];
+    // });
 
-    Object.keys(this.timers.visibilityIntervals).forEach(key => {
-      this.log.debug(`clearing visibilityInterval for ${key}`);
-      clearInterval(this.timers.visibilityIntervals[key]);
-      delete this.timers.visibilityIntervals[key];
-    });
+    // Object.keys(this.timers.visibilityIntervals).forEach(key => {
+    //   this.log.debug(`clearing visibilityInterval for ${key}`);
+    //   clearInterval(this.timers.visibilityIntervals[key]);
+    //   delete this.timers.visibilityIntervals[key];
+    // });
 
-    if (this.downloadWorkerPool) {
-      this.log.debug('clearing downloadWorkerPool');
-      await Promise.all(Object.values(this.downloadWorkerPool));
-      this.downloadWorkerPool = null;
-    }
+    // if (this.downloadWorkerPool) {
+    //   this.log.debug('clearing downloadWorkerPool');
+    //   await Promise.all(Object.values(this.downloadWorkerPool));
+    //   this.downloadWorkerPool = null;
+    // }
     return Promise.resolve();
   }
 
