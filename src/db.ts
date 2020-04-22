@@ -25,7 +25,7 @@ export default class db {
         this.log.debug(`opening ${dbRoot}/db.sqlite`);
         return sqlite.open(path.join(dbRoot, 'db.sqlite')).then(async dbh => {
           this.log.debug(`opened ${dbRoot}/db.sqlite`); // eslint-disable-line no-console
-          await dbh.migrate({ migrationsPath: path.join(__dirname, '..', 'migrations') });
+          await dbh.migrate({ migrationsPath: path.join(__dirname, 'migrations') });
           const placeholders = inputFolders.map(() => '(?)').join(',');
           try {
             await Promise.all([
