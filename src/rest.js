@@ -3,10 +3,10 @@
  * Authors: rpettett, gvanginkel
  */
 
+import { assign, filter, merge } from 'lodash';
 import os from 'os';
-import { merge, filter, assign } from 'lodash';
+import { local, signing, url as baseURL, user_agent as userAgent } from './default_options.json';
 import utils from './utils';
-import { local, url as baseURL, user_agent as userAgent, signing } from './default_options.json';
 
 export default class REST {
   constructor(options) {
@@ -285,6 +285,8 @@ export default class REST {
   }
 
   async startWorkflow(config) {
+    console.log('CONFIG: ', config);
+    console.log('OPTS: ', this.options);
     return utils.post(
       'workflow_instance',
       config,
