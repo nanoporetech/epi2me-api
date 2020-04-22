@@ -395,7 +395,7 @@ export default class EPI2ME_FS extends EPI2ME {
       return this.db.splitClean(); // remove any split files whose transfers were disrupted and which didn't self-clean
     }
 
-    return Promise.resolve();
+    return;
   }
 
   async stopEverything() {
