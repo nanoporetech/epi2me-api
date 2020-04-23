@@ -145,11 +145,7 @@ export default class EPI2ME_FS extends EPI2ME {
   }
 
   async autoStart(workflowConfig, cb) {
-    const instance = await this.autoStartGeneric(
-      workflowConfig,
-      () => this.REST.startWorkflow(workflowConfig),
-      cb,
-    );
+    const instance = await this.autoStartGeneric(workflowConfig, () => this.REST.startWorkflow(workflowConfig), cb);
     this.setClassConfigREST(instance);
     return this.autoConfigure(instance, cb);
   }
@@ -399,12 +395,11 @@ export default class EPI2ME_FS extends EPI2ME {
       return this.db.splitClean(); // remove any split files whose transfers were disrupted and which didn't self-clean
     }
 
-    delete this.sessionManager;
-
-    return Promise.resolve();
+    return;
   }
 
   async stopEverything() {
+    delete this.sessionManager;
     await super.stopEverything();
   }
 

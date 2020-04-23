@@ -199,18 +199,17 @@ export default class EPI2ME {
   }
 
   async stopUpload() {
-    this.stopped = true;
-
     this.log.debug('stopping watchers');
 
     ['stateCheckInterval', 'fileCheckInterval'].forEach(i => this.stopTimer(i));
 
     this.uploadState$.next(false);
 
-    return Promise.resolve();
+    return;
   }
 
   async stopEverything() {
+    this.stopped = true;
     this.stopAnalysis();
     // Moved this out of the main stopUpload because we don't want to stop it when we stop uploading
     // This is really 'stop fetching reports'

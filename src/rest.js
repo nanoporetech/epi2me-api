@@ -285,8 +285,6 @@ export default class REST {
   }
 
   async startWorkflow(config) {
-    console.log('CONFIG: ', config);
-    console.log('OPTS: ', this.options);
     return utils.post(
       'workflow_instance',
       config,
