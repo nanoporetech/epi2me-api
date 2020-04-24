@@ -199,13 +199,20 @@ export default class EPI2ME {
   }
 
   async stopUpload() {
-    this.stopped = true;
-
     this.log.debug('stopping watchers');
 
-    ['downloadCheckInterval', 'stateCheckInterval', 'fileCheckInterval'].forEach(i => this.stopTimer(i));
+    ['stateCheckInterval', 'fileCheckInterval'].forEach(i => this.stopTimer(i));
 
     this.uploadState$.next(false);
+
+    return;
+  }
+
+  async stopEverything() {
+    this.stopped = true;
+    this.stopAnalysis();
+    // Moved this out of the main stopUpload because we don't want to stop it when we stop uploading
+    // This is really 'stop fetching reports'
 
     Object.keys(this.timers.transferTimeouts).forEach(key => {
       this.log.debug(`clearing transferTimeout for ${key}`);
@@ -224,14 +231,8 @@ export default class EPI2ME {
       await Promise.all(Object.values(this.downloadWorkerPool));
       this.downloadWorkerPool = null;
     }
-    return Promise.resolve();
-  }
 
-  async stopEverything() {
-    this.stopAnalysis();
-    // Moved this out of the main stopUpload because we don't want to stop it when we stop uploading
-    // This is really 'stop fetching reports'
-    this.stopTimer('summaryTelemetryInterval');
+    ['summaryTelemetryInterval', 'downloadCheckInterval'].forEach(i => this.stopTimer(i));
   }
 
   reportProgress() {

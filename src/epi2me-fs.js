@@ -145,10 +145,16 @@ export default class EPI2ME_FS extends EPI2ME {
   }
 
   async autoStart(workflowConfig, cb) {
+    const instance = await this.autoStartGeneric(workflowConfig, () => this.REST.startWorkflow(workflowConfig), cb);
+    this.setClassConfigREST(instance);
+    return this.autoConfigure(instance, cb);
+  }
+
+  async autoStartGeneric(workflowConfig, startFn, cb) {
     this.stopped = false;
     let instance;
     try {
-      instance = await this.REST.startWorkflow(workflowConfig);
+      instance = await startFn();
       this.analyseState$.next(true);
     } catch (startError) {
       const msg = `Failed to start workflow: ${String(startError)}`;
@@ -160,7 +166,7 @@ export default class EPI2ME_FS extends EPI2ME {
     this.config.workflow = JSON.parse(JSON.stringify(workflowConfig)); // object copy
     this.log.info(`instance ${JSON.stringify(instance)}`);
     this.log.info(`workflow config ${JSON.stringify(this.config.workflow)}`);
-    return this.autoConfigure(instance, cb);
+    return instance;
   }
 
   async autoJoin(id, cb) {
@@ -186,6 +192,60 @@ export default class EPI2ME_FS extends EPI2ME {
     this.log.debug(`workflow config ${JSON.stringify(this.config.workflow)}`);
 
     return this.autoConfigure(instance, cb);
+  }
+
+  setClassConfigGQL(instance) {
+    const configMap = {
+      idWorkflowInstance: 'id_workflow_instance',
+      // 'remoteAddr': 'remote_addr',
+      keyId: 'key_id',
+      bucket: 'bucket',
+      // '': 'user_defined',
+      startDate: 'start_date',
+      '': 'id_user',
+      inputqueue: 'inputQueueName',
+      outputqueue: 'outputQueueName',
+      // 'telemetry' : 'summaryTelemetry',
+    };
+    configMap.forEach(f => {
+      this.config.instance[f] = instance[f];
+    });
+
+    // 'idWorkflow': 'id_workflow', workflowImage.workflow.idWorkflow
+    // 'region': 'region'
+
+    this.config.instance.region = instance.region || this.config.options.region;
+    this.config.instance.bucketFolder = `${instance.outputqueue}/${instance.id_user}/${instance.id_workflow_instance}`;
+
+    if (instance.chain) {
+      this.config.instance.chain = utils.convertResponseToObj(instance.chain);
+    }
+  }
+
+  setClassConfigREST(instance) {
+    [
+      'id_workflow_instance',
+      'id_workflow',
+      'remote_addr',
+      'key_id',
+      'bucket',
+      'user_defined',
+      'start_date',
+      'id_user',
+    ].forEach(f => {
+      this.config.instance[f] = instance[f];
+    });
+
+    // copy tuples with different names / structures
+    this.config.instance.inputQueueName = instance.inputqueue;
+    this.config.instance.outputQueueName = instance.outputqueue;
+    this.config.instance.region = instance.region || this.config.options.region;
+    this.config.instance.bucketFolder = `${instance.outputqueue}/${instance.id_user}/${instance.id_workflow_instance}`;
+    this.config.instance.summaryTelemetry = instance.telemetry; // MC-7056 for fetchTelemetry (summary) telemetry periodically
+
+    if (instance.chain) {
+      this.config.instance.chain = utils.convertResponseToObject(instance.chain);
+    }
   }
 
   initSessionManager(opts, children) {
@@ -217,39 +277,6 @@ export default class EPI2ME_FS extends EPI2ME {
      */
 
     // copy tuples with the same names
-
-    [
-      'id_workflow_instance',
-      'id_workflow',
-      'remote_addr',
-      'key_id',
-      'bucket',
-      'user_defined',
-      'start_date',
-      'id_user',
-    ].forEach(f => {
-      this.config.instance[f] = instance[f];
-    });
-
-    // copy tuples with different names / structures
-    this.config.instance.inputQueueName = instance.inputqueue;
-    this.config.instance.outputQueueName = instance.outputqueue;
-    this.config.instance.region = instance.region || this.config.options.region;
-    this.config.instance.bucketFolder = `${instance.outputqueue}/${instance.id_user}/${instance.id_workflow_instance}`;
-    this.config.instance.summaryTelemetry = instance.telemetry; // MC-7056 for fetchTelemetry (summary) telemetry periodically
-
-    if (instance.chain) {
-      if (typeof instance.chain === 'object') {
-        // already parsed
-        this.config.instance.chain = instance.chain;
-      } else {
-        try {
-          this.config.instance.chain = JSON.parse(instance.chain);
-        } catch (jsonException) {
-          throw new Error(`exception parsing chain JSON ${String(jsonException)}`);
-        }
-      }
-    }
 
     if (!this.config.options.inputFolders.length) throw new Error('must set inputFolder');
     if (!this.config.options.outputFolder) throw new Error('must set outputFolder');
@@ -368,12 +395,11 @@ export default class EPI2ME_FS extends EPI2ME {
       return this.db.splitClean(); // remove any split files whose transfers were disrupted and which didn't self-clean
     }
 
-    delete this.sessionManager;
-
-    return Promise.resolve();
+    return;
   }
 
   async stopEverything() {
+    delete this.sessionManager;
     await super.stopEverything();
   }
 
@@ -1470,7 +1496,7 @@ export default class EPI2ME_FS extends EPI2ME {
   }
 
   async fetchTelemetry() {
-    if (!this.config || !this.config.instance || !this.config.instance.summaryTelemetry) {
+    if (!this.config?.instance?.summaryTelemetry) {
       return Promise.resolve();
     }
 

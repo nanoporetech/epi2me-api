@@ -71,7 +71,7 @@ utils.lsRecursive = async (rootFolderIn, item, exclusionFilter) => {
   if (exclusionFilter) {
     const result = await exclusionFilter(item, stat);
     if (result) {
-      return null;
+      return [];
     }
   }
 
@@ -107,6 +107,7 @@ utils.lsRecursive = async (rootFolderIn, item, exclusionFilter) => {
 };
 
 utils.loadInputFiles = async ({ inputFolders, outputFolder, filetype: filetypesIn }, log, extraFilter) => {
+  // console.log(inputFolders, outputFolder, filetypesIn);
   /**
    * Entry point for new .fast5 / .fastq files.
    *  - Scan the input folder files
@@ -117,9 +118,6 @@ utils.loadInputFiles = async ({ inputFolders, outputFolder, filetype: filetypesI
 
   // function used to filter the readdir results in utils.lsFolder
   // exclude all files and folders meet any of these criteria:
-
-  // Simplest way to support multiple inputFolders
-  // const allInputFolders = (inputFolder && [inputFolder, ...inputFolders]) || inputFolders;
 
   // todo: need to support an array of types, e.g. [fasta, fa, fa.gz]
   let filetypes = filetypesIn;

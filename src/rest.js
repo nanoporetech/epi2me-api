@@ -3,10 +3,10 @@
  * Authors: rpettett, gvanginkel
  */
 
+import { assign, filter, merge } from 'lodash';
 import os from 'os';
-import { merge, filter, assign } from 'lodash';
+import { local, signing, url as baseURL, user_agent as userAgent } from './default_options.json';
 import utils from './utils';
-import { local, url as baseURL, user_agent as userAgent, signing } from './default_options.json';
 
 export default class REST {
   constructor(options) {
