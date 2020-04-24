@@ -365,7 +365,7 @@ export default class EPI2ME_FS extends EPI2ME {
       } catch (instanceError) {
         this.log.warn(
           `failed to check instance state: ${
-            instanceError && instanceError.error ? instanceError.error : instanceError
+          instanceError && instanceError.error ? instanceError.error : instanceError
           }`,
         );
       }
@@ -668,11 +668,11 @@ export default class EPI2ME_FS extends EPI2ME {
 
         const splitStyle = splitSize
           ? {
-              maxChunkBytes: splitSize,
-            }
+            maxChunkBytes: splitSize,
+          }
           : {
-              maxChunkReads: splitReads,
-            };
+            maxChunkReads: splitReads,
+          };
         const splitter = file.path.match(/\.gz$/) ? fastqGzipSplitter : fastqSplitter;
 
         const fileId = utils.getFileID();
@@ -814,6 +814,13 @@ export default class EPI2ME_FS extends EPI2ME {
       this.states.upload.failure[errorMsg] = this.states.upload.failure[errorMsg]
         ? this.states.upload.failure[errorMsg] + 1
         : 1;
+
+      if (String(errorMsg).match(/AWS.SimpleQueueService.NonExistentQueue/)) {
+        // FATALITY! thrown during sqs.sendMessage
+        this.log.error(`instance stopped because of a fatal error`);
+        return this.stopEverything();
+      }
+
     } else {
       // this.uploadState('queueLength', 'decr', file2.stats); // this.states.upload.queueLength = this.states.upload.queueLength ? this.states.upload.queueLength - readCount : 0;
       this.uploadState(
@@ -978,9 +985,9 @@ export default class EPI2ME_FS extends EPI2ME {
       const fetchSuffixes = ['']; // default message object
       let extra =
         this.config &&
-        this.config.workflow &&
-        this.config.workflow.settings &&
-        this.config.workflow.settings.output_format
+          this.config.workflow &&
+          this.config.workflow.settings &&
+          this.config.workflow.settings.output_format
           ? this.config.workflow.settings.output_format
           : [];
       if (typeof extra === 'string' || extra instanceof String) {
