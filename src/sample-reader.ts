@@ -37,12 +37,12 @@ export default class SampleReader implements Epi2meSampleReaderAPINS.ISampleRead
   }
   async updateExperiments(sourceDir = DEFAULTS.sampleDirectory): Promise<void> {
     const fileToCheck = 'sequencing_summary';
-    const files = (await fdir.async(sourceDir, {
+    const files = await fdir.async(sourceDir, {
       // maxDepth: 4, // currently broken v2.1.0
       // isExcludedDir: path => path.includes('fastq'),
       searchFn: path => path.includes(fileToCheck),
       ignoreErrors: true,
-    })) as string[]; // next release will fix typedefs
+    });
 
     this.experiments = files.reduce((experimentsObj, absPath) => {
       const [experiment, sample] = takeRight(absPath.split(path.sep), 3);
