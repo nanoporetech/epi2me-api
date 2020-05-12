@@ -43,13 +43,7 @@ export default class SampleReader implements Epi2meSampleReaderAPINS.ISampleRead
       .exclude((path: string) => path.includes('fastq_'))
       .withMaxDepth(3);
 
-    const files = await crawler.crawl(sourceDir).withPromise();
-    // const files = await fdir.async(sourceDir, {
-    //   // maxDepth: 4, // currently broken v2.1.0
-    //   // isExcludedDir: path => path.includes('fastq'),
-    //   searchFn: path => path.includes(fileToCheck),
-    //   ignoreErrors: true,
-    // });
+    const files = (await crawler.crawl(sourceDir).withPromise()) as string[];
 
     this.experiments = files.reduce((experimentsObj, absPath) => {
       const [experiment, sample] = takeRight(absPath.split(path.sep), 3);
