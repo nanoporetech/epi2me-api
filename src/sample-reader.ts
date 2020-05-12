@@ -37,15 +37,23 @@ export default class SampleReader implements Epi2meSampleReaderAPINS.ISampleRead
   }
   async updateExperiments(sourceDir = DEFAULTS.sampleDirectory): Promise<void> {
     const fileToCheck = 'sequencing_summary';
-    const files = await fdir.async(sourceDir, {
-      // maxDepth: 4, // currently broken v2.1.0
-      // isExcludedDir: path => path.includes('fastq'),
-      searchFn: path => path.includes(fileToCheck),
-      ignoreErrors: true,
-    });
+    const crawler = new fdir()
+      .withBasePath()
+      .filter((path: string) => path.includes(fileToCheck))
+      .exclude((path: string) => path.includes('fastq_'))
+      .withMaxDepth(3);
+
+    const files = await crawler.crawl(sourceDir).withPromise();
+    // const files = await fdir.async(sourceDir, {
+    //   // maxDepth: 4, // currently broken v2.1.0
+    //   // isExcludedDir: path => path.includes('fastq'),
+    //   searchFn: path => path.includes(fileToCheck),
+    //   ignoreErrors: true,
+    // });
 
     this.experiments = files.reduce((experimentsObj, absPath) => {
       const [experiment, sample] = takeRight(absPath.split(path.sep), 3);
+      console.log(experiment, sample);
       const parser = /(?<date>[0-9]{8})_(?<time>[0-9]{4})_.*_(?<flowcell>\w+\d+)_\w+/;
       if (!parser.test(sample)) return experimentsObj;
       const { date, time, flowcell } = parser.exec(sample)?.groups as { date: string; time: string; flowcell: string };

@@ -9,7 +9,7 @@
     "apollo-link-http": "^1.5.16",
     "aws-sdk": "^2.610.0",
     "axios": "^0.19.2",
-    "fdir": "^2.1.1",
+    "fdir": "^3.2.0",
     "fs-extra": "^8.1.0",
     "graphql-tag": "^2.10.1",
     "lodash": "^4.17.15",
