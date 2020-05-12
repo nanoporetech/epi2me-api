@@ -159,22 +159,41 @@ export default class GraphQL {
       $idWorkflow: ID!
       $computeAccountId: Int!
       $storageAccountId: Int
-      $isConsentedHuman: Int = 0
+      $isConsentedHuman: Boolean = false
+      $idDataset: ID
+      $storeResults: Boolean = false
+      $userDefined: GenericScalar
+      $instanceAttributes: [GenericScalar]
     ) {
-      startWorkflowInstance(
+      startData: startWorkflowInstance(
         idWorkflow: $idWorkflow
         computeAccountId: $computeAccountId
         storageAccountId: $storageAccountId
         isConsentedHuman: $isConsentedHuman
+        idDataset: $idDataset
+        storeResults: $storeResults
+        userDefined: $userDefined
+        instanceAttributes: $instanceAttributes
       ) {
         bucket
         idUser
-        idWorkflowInstance
-        inputqueue
-        outputqueue
-        region
-        keyId
-        chain
+        remoteAddr
+        instance {
+          idWorkflowInstance
+          chain
+          keyId
+          outputqueue
+          telemetry
+          workflowImage {
+            inputqueue
+            workflow {
+              idWorkflow
+            }
+            region {
+              name
+            }
+          }
+        }
       }
     }
   `);

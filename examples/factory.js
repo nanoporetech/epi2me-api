@@ -13,9 +13,14 @@ api.graphQL
   .then(console.info)
   .catch(console.error);
 
-api.startRun(
+// api.startRun(
+//   { inputFolders: ['/Library/MinKNOW/data/data2/mock_reads'], outputFolder: '/Library/MinKNOW/data/data2/output' },
+//   { id_workflow: 1964 },
+// );
+
+api.startGQLRun(
   { inputFolders: ['/Library/MinKNOW/data/data2/mock_reads'], outputFolder: '/Library/MinKNOW/data/data2/output' },
-  { id_workflow: 1964, isConsentedHuman: 1 },
+  { idWorkflow: 1964, isConsentedHuman: false, computeAccountId: 280923765 },
 );
 
 // Reference upload

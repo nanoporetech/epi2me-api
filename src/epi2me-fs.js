@@ -145,12 +145,24 @@ export default class EPI2ME_FS extends EPI2ME {
   }
 
   async autoStart(workflowConfig, cb) {
-<<<<<<< HEAD
     const instance = await this.autoStartGeneric(workflowConfig, () => this.REST.startWorkflow(workflowConfig), cb);
-=======
-    const instance = await this.autoStartGeneric(workflowConfig, this.REST.startWorkflow, cb);
->>>>>>> refactor to make it easier to add gql autoStart
     this.setClassConfigREST(instance);
+    return this.autoConfigure(instance, cb);
+  }
+
+  async autoStartGQL(variables, cb) {
+    /*
+    variables: {
+      idWorkflow: ID!
+      computeAccountId: Int!
+      storageAccountId: Int
+      isConsentedHuman: Int = 0
+      userDefined: GenericScalar
+      instanceAttributes: [GenericScalar]
+    }
+    */
+    const instance = await this.autoStartGeneric(variables, () => this.graphQL.startWorkflow({ variables }), cb);
+    this.setClassConfigGQL(instance);
     return this.autoConfigure(instance, cb);
   }
 
@@ -158,11 +170,7 @@ export default class EPI2ME_FS extends EPI2ME {
     this.stopped = false;
     let instance;
     try {
-<<<<<<< HEAD
       instance = await startFn();
-=======
-      instance = await startFn(workflowConfig);
->>>>>>> refactor to make it easier to add gql autoStart
       this.analyseState$.next(true);
     } catch (startError) {
       const msg = `Failed to start workflow: ${String(startError)}`;
@@ -203,41 +211,50 @@ export default class EPI2ME_FS extends EPI2ME {
     return this.autoConfigure(instance, cb);
   }
 
-  setClassConfigGQL(response) {
-    // const {instance, { workflowImage }}
-    const topLevelMap = {
-      bucket: 'bucket',
-      idUser: 'id_user',
-      // 'remoteAddr': 'remote_addr',
-      // '': 'user_defined',
+  setClassConfigGQL({
+    data: {
+      startData: {
+        bucket,
+        idUser,
+        remoteAddr,
+        userDefined = {},
+        instance: {
+          outputqueue,
+          keyId,
+          startDate,
+          idWorkflowInstance,
+          telemetry,
+          chain,
+          workflowImage: {
+            region: { name },
+            workflow: { idWorkflow },
+            inputqueue,
+          },
+        },
+      },
+    },
+  }) {
+    const map = {
+      bucket,
+      user_defined: userDefined,
+      id_user: parseInt(idUser),
+      remote_addr: remoteAddr,
+      id_workflow_instance: idWorkflowInstance,
+      key_id: keyId,
+      start_date: startDate,
+      outputQueueName: outputqueue,
+      summaryTelemetry: telemetry,
+      inputQueueName: inputqueue,
+      id_workflow: parseInt(idWorkflow),
+      region: name || this.config.options.region,
+      bucketFolder: `${outputqueue}/${idUser}/${idWorkflowInstance}`,
+      chain: utils.convertResponseToObject(chain),
     };
-    topLevelMap.forEach(f => {
-      this.config.instance[f] = response[f];
-    });
 
-    const instanceMap = {
-      idWorkflowInstance: 'id_workflow_instance',
-      keyId: 'key_id',
-      startDate: 'start_date',
-      inputqueue: 'inputQueueName',
-      outputqueue: 'outputQueueName',
-      telemetry: 'summaryTelemetry',
+    this.config.instance = {
+      ...this.config.instance,
+      ...map,
     };
-    instanceMap.forEach(f => {
-      this.config.instance[f] = response.instance[f];
-    });
-
-    // Do custom mapping
-    // 'idWorkflow': 'id_workflow', workflowImage.workflow.idWorkflow
-    // 'region': 'workflowImage.region.name'
-
-    this.config.instance.region = response.region || this.config.options.region;
-    this.config.instance.bucketFolder = `${response.outputqueue}/${response.id_user}/${response.id_workflow_instance}`;
-
-    if (response.instance.chain) {
-      // This shouldn't be necessary anymore, DB should ensure it's already JSON
-      this.config.instance.chain = utils.convertResponseToObj(response.instance.chain);
-    }
   }
 
   setClassConfigREST(instance) {
@@ -385,7 +402,7 @@ export default class EPI2ME_FS extends EPI2ME {
       } catch (instanceError) {
         this.log.warn(
           `failed to check instance state: ${
-          instanceError && instanceError.error ? instanceError.error : instanceError
+            instanceError && instanceError.error ? instanceError.error : instanceError
           }`,
         );
       }
@@ -688,11 +705,11 @@ export default class EPI2ME_FS extends EPI2ME {
 
         const splitStyle = splitSize
           ? {
-            maxChunkBytes: splitSize,
-          }
+              maxChunkBytes: splitSize,
+            }
           : {
-            maxChunkReads: splitReads,
-          };
+              maxChunkReads: splitReads,
+            };
         const splitter = file.path.match(/\.gz$/) ? fastqGzipSplitter : fastqSplitter;
 
         const fileId = utils.getFileID();
@@ -840,7 +857,6 @@ export default class EPI2ME_FS extends EPI2ME {
         this.log.error(`instance stopped because of a fatal error`);
         return this.stopEverything();
       }
-
     } else {
       // this.uploadState('queueLength', 'decr', file2.stats); // this.states.upload.queueLength = this.states.upload.queueLength ? this.states.upload.queueLength - readCount : 0;
       this.uploadState(
@@ -1005,9 +1021,9 @@ export default class EPI2ME_FS extends EPI2ME {
       const fetchSuffixes = ['']; // default message object
       let extra =
         this.config &&
-          this.config.workflow &&
-          this.config.workflow.settings &&
-          this.config.workflow.settings.output_format
+        this.config.workflow &&
+        this.config.workflow.settings &&
+        this.config.workflow.settings.output_format
           ? this.config.workflow.settings.output_format
           : [];
       if (typeof extra === 'string' || extra instanceof String) {
