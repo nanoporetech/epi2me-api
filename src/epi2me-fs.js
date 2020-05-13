@@ -131,7 +131,7 @@ export default class EPI2ME_FS extends EPI2ME {
         })
         .promise();
 
-      if (attrs && attrs.Attributes && 'ApproximateNumberOfMessages' in attrs.Attributes) {
+      if (attrs?.Attributes && 'ApproximateNumberOfMessages' in attrs.Attributes) {
         let len = attrs.Attributes.ApproximateNumberOfMessages;
         len = parseInt(len, 10) || 0;
         return Promise.resolve(len);
@@ -147,6 +147,22 @@ export default class EPI2ME_FS extends EPI2ME {
   async autoStart(workflowConfig, cb) {
     const instance = await this.autoStartGeneric(workflowConfig, () => this.REST.startWorkflow(workflowConfig), cb);
     this.setClassConfigREST(instance);
+    return this.autoConfigure(instance, cb);
+  }
+
+  async autoStartGQL(variables, cb) {
+    /*
+    variables: {
+      idWorkflow: ID!
+      computeAccountId: Int!
+      storageAccountId: Int
+      isConsentedHuman: Int = 0
+      userDefined: GenericScalar
+      instanceAttributes: [GenericScalar]
+    }
+    */
+    const instance = await this.autoStartGeneric(variables, () => this.graphQL.startWorkflow({ variables }), cb);
+    this.setClassConfigGQL(instance);
     return this.autoConfigure(instance, cb);
   }
 
@@ -191,35 +207,54 @@ export default class EPI2ME_FS extends EPI2ME {
     this.log.debug(`instance ${JSON.stringify(instance)}`);
     this.log.debug(`workflow config ${JSON.stringify(this.config.workflow)}`);
 
+    this.setClassConfigREST(instance);
     return this.autoConfigure(instance, cb);
   }
 
-  setClassConfigGQL(instance) {
-    const configMap = {
-      idWorkflowInstance: 'id_workflow_instance',
-      // 'remoteAddr': 'remote_addr',
-      keyId: 'key_id',
-      bucket: 'bucket',
-      // '': 'user_defined',
-      startDate: 'start_date',
-      '': 'id_user',
-      inputqueue: 'inputQueueName',
-      outputqueue: 'outputQueueName',
-      // 'telemetry' : 'summaryTelemetry',
+  setClassConfigGQL({
+    data: {
+      startData: {
+        bucket,
+        idUser,
+        remoteAddr,
+        userDefined = {},
+        instance: {
+          outputqueue,
+          keyId,
+          startDate,
+          idWorkflowInstance,
+          telemetry,
+          chain,
+          workflowImage: {
+            region: { name },
+            workflow: { idWorkflow },
+            inputqueue,
+          },
+        },
+      },
+    },
+  }) {
+    const map = {
+      bucket,
+      user_defined: userDefined,
+      id_user: parseInt(idUser),
+      remote_addr: remoteAddr,
+      id_workflow_instance: idWorkflowInstance,
+      key_id: keyId,
+      start_date: startDate,
+      outputQueueName: outputqueue,
+      summaryTelemetry: telemetry,
+      inputQueueName: inputqueue,
+      id_workflow: parseInt(idWorkflow),
+      region: name || this.config.options.region,
+      bucketFolder: `${outputqueue}/${idUser}/${idWorkflowInstance}`,
+      chain: utils.convertResponseToObject(chain),
     };
-    configMap.forEach(f => {
-      this.config.instance[f] = instance[f];
-    });
 
-    // 'idWorkflow': 'id_workflow', workflowImage.workflow.idWorkflow
-    // 'region': 'region'
-
-    this.config.instance.region = instance.region || this.config.options.region;
-    this.config.instance.bucketFolder = `${instance.outputqueue}/${instance.id_user}/${instance.id_workflow_instance}`;
-
-    if (instance.chain) {
-      this.config.instance.chain = utils.convertResponseToObj(instance.chain);
-    }
+    this.config.instance = {
+      ...this.config.instance,
+      ...map,
+    };
   }
 
   setClassConfigREST(instance) {
@@ -266,7 +301,11 @@ export default class EPI2ME_FS extends EPI2ME {
   }
 
   async autoConfigure(instance, autoStartCb) {
-    /* region
+    /*
+    Ensure
+    this.setClassConfigREST is called on REST responses to set fields as below:
+
+     * region
      * id_workflow_instance
      * inputqueue
      * outputqueue
@@ -275,8 +314,6 @@ export default class EPI2ME_FS extends EPI2ME {
      * description (workflow)
      * chain
      */
-
-    // copy tuples with the same names
 
     if (!this.config.options.inputFolders.length) throw new Error('must set inputFolder');
     if (!this.config.options.outputFolder) throw new Error('must set outputFolder');
@@ -363,11 +400,7 @@ export default class EPI2ME_FS extends EPI2ME {
           }
         }
       } catch (instanceError) {
-        this.log.warn(
-          `failed to check instance state: ${
-          instanceError && instanceError.error ? instanceError.error : instanceError
-          }`,
-        );
+        this.log.warn(`failed to check instance state: ${instanceError?.error ? instanceError.error : instanceError}`);
       }
     }, this.config.options.stateCheckInterval * 1000);
 
@@ -650,11 +683,7 @@ export default class EPI2ME_FS extends EPI2ME {
         this.states.upload.filesCount -= 1;
         this.log.error(msg);
         this.states.warnings.push(warning);
-      } else if (
-        file.path &&
-        file.path.match(/\.(?:fastq|fq)(?:\.gz)?$/) &&
-        ((splitSize && file.size > splitSize) || splitReads)
-      ) {
+      } else if (file.path?.match(/\.(?:fastq|fq)(?:\.gz)?$/) && ((splitSize && file.size > splitSize) || splitReads)) {
         //
         // file too big to process but can be split
         //
@@ -668,11 +697,11 @@ export default class EPI2ME_FS extends EPI2ME {
 
         const splitStyle = splitSize
           ? {
-            maxChunkBytes: splitSize,
-          }
+              maxChunkBytes: splitSize,
+            }
           : {
-            maxChunkReads: splitReads,
-          };
+              maxChunkReads: splitReads,
+            };
         const splitter = file.path.match(/\.gz$/) ? fastqGzipSplitter : fastqSplitter;
 
         const fileId = utils.getFileID();
@@ -820,7 +849,6 @@ export default class EPI2ME_FS extends EPI2ME {
         this.log.error(`instance stopped because of a fatal error`);
         return this.stopEverything();
       }
-
     } else {
       // this.uploadState('queueLength', 'decr', file2.stats); // this.states.upload.queueLength = this.states.upload.queueLength ? this.states.upload.queueLength - readCount : 0;
       this.uploadState(
@@ -929,7 +957,7 @@ export default class EPI2ME_FS extends EPI2ME {
 
           telemetry.batch = data.Body.toString('utf-8')
             .split('\n')
-            .filter(d => d && d.length > 0)
+            .filter(d => d?.length > 0)
             .map(row => {
               try {
                 return JSON.parse(row);
@@ -964,7 +992,7 @@ export default class EPI2ME_FS extends EPI2ME {
     folder = path.join(this.config.options.outputFolder, this.config.instance.id_workflow_instance || '');
 
     /* MC-940: use folder hinting if present */
-    if (messageBody.telemetry && messageBody.telemetry.hints && messageBody.telemetry.hints.folder) {
+    if (messageBody.telemetry?.hints?.folder) {
       this.log.debug(`using folder hint ${messageBody.telemetry.hints.folder}`);
       // MC-4987 - folder hints may now be nested.
       // eg: HIGH_QUALITY/CLASSIFIED/ALIGNED
@@ -983,13 +1011,7 @@ export default class EPI2ME_FS extends EPI2ME {
 
       // MC-6190 extra file extensions generated by workflow
       const fetchSuffixes = ['']; // default message object
-      let extra =
-        this.config &&
-          this.config.workflow &&
-          this.config.workflow.settings &&
-          this.config.workflow.settings.output_format
-          ? this.config.workflow.settings.output_format
-          : [];
+      let extra = this.config?.workflow?.settings?.output_format ? this.config.workflow.settings.output_format : [];
       if (typeof extra === 'string' || extra instanceof String) {
         extra = extra.trim().split(/[\s,]+/); // do not use commas in file extensions. Ha.ha.
       }
@@ -1039,8 +1061,7 @@ export default class EPI2ME_FS extends EPI2ME {
       try {
         // MC-2540 : if there is some postprocessing to do( e.g fastq extraction) - call the dataCallback
         // dataCallback might depend on the exit_status ( e.g. fastq can only be extracted from successful reads )
-        const exitStatus =
-          messageBody.telemetry && messageBody.telemetry.json ? messageBody.telemetry.json.exit_status : false;
+        const exitStatus = messageBody.telemetry?.json ? messageBody.telemetry.json.exit_status : false;
         if (exitStatus && this.config.options.dataCb) {
           this.config.options.dataCb(outputFile, exitStatus);
         }
@@ -1049,10 +1070,9 @@ export default class EPI2ME_FS extends EPI2ME {
       }
     } else {
       // telemetry-only mode uses readcount from message
-      const readCount =
-        messageBody.telemetry.batch_summary && messageBody.telemetry.batch_summary.reads_num
-          ? messageBody.telemetry.batch_summary.reads_num
-          : 1;
+      const readCount = messageBody.telemetry.batch_summary?.reads_num
+        ? messageBody.telemetry.batch_summary.reads_num
+        : 1;
 
       this.downloadState('success', 'incr', {
         files: 1,
@@ -1326,7 +1346,7 @@ export default class EPI2ME_FS extends EPI2ME {
       rs.on('error', readStreamError => {
         rs.close();
         let errstr = 'error in upload readstream';
-        if (readStreamError && readStreamError.message) {
+        if (readStreamError?.message) {
           errstr += `: ${readStreamError.message}`;
         }
         clearTimeout(timeoutHandle);

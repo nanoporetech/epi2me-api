@@ -27,4 +27,21 @@ export default class Factory {
     }
     return newInstance;
   }
+
+  async startGQLRun(options, variables) {
+    const newInstance = new this.EPI2ME({ ...this.options, ...options });
+    try {
+      const workflowData = await newInstance.autoStartGQL(variables);
+      this.runningInstances[workflowData.id_workflow_instance] = newInstance;
+      console.log(workflowData);
+    } catch (startErr) {
+      this.log.error(`Experienced error starting ${String(startErr)}`);
+      try {
+        await newInstance.stopEverything();
+      } catch (stopErr) {
+        this.log.error(`Also experienced error stopping ${String(stopErr)}`);
+      }
+    }
+    return newInstance;
+  }
 }
