@@ -47,7 +47,6 @@ export default class SampleReader implements Epi2meSampleReaderAPINS.ISampleRead
 
     this.experiments = files.reduce((experimentsObj, absPath) => {
       const [experiment, sample] = takeRight(absPath.split(path.sep), 3);
-      console.log(experiment, sample);
       const parser = /(?<date>[0-9]{8})_(?<time>[0-9]{4})_.*_(?<flowcell>\w+\d+)_\w+/;
       if (!parser.test(sample)) return experimentsObj;
       const { date, time, flowcell } = parser.exec(sample)?.groups as { date: string; time: string; flowcell: string };
