@@ -157,8 +157,8 @@ export default class GraphQL {
   startWorkflow = this.mutate(gql`
     mutation startWorkflow(
       $idWorkflow: ID!
-      $computeAccountId: Int!
-      $storageAccountId: Int
+      $computeAccountId: ID!
+      $storageAccountId: ID
       $isConsentedHuman: Boolean = false
       $idDataset: ID
       $storeResults: Boolean = false
