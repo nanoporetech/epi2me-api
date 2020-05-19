@@ -34,9 +34,7 @@ describe('epi2me.setClassConfigREST', () => {
     outputQueueName: 'fe7aed1e-97b5-45bb-a011-64918306acc0',
     region: 'eu-west-1',
     bucketFolder: 'fe7aed1e-97b5-45bb-a011-64918306acc0/5089/134235',
-    summaryTelemetry: {
-      'CTC Basecalling': '/workflow_instance/134235/classficiation_basecalling',
-    },
+    summaryTelemetry: { '1964': { 'CTC Basecalling': '/workflow_instance/134235/classficiation_basecalling' } },
     chain: {
       components: {
         '0': {
@@ -76,9 +74,7 @@ describe('epi2me.setClassConfigREST', () => {
       inputqueue: '6551d65b-0441-c9ab-81aa-ba33ed62c39e',
       outputqueue: 'fe7aed1e-97b5-45bb-a011-64918306acc0',
       region: 'eu-west-1',
-      telemetry: {
-        'CTC Basecalling': '/workflow_instance/134235/classficiation_basecalling',
-      },
+      telemetry: { '1964': { 'CTC Basecalling': '/workflow_instance/134235/classficiation_basecalling' } },
       chain: {
         components: {
           '0': {
@@ -144,9 +140,7 @@ describe('epi2me.setClassConfigREST', () => {
             },
             keyId: '82eae478-cf86-4d48-907c-ceda2342037e',
             outputqueue: 'fe7aed1e-97b5-45bb-a011-64918306acc0',
-            telemetry: {
-              'CTC Basecalling': '/workflow_instance/134235/classficiation_basecalling',
-            },
+            mappedTelemetry: { '1964': { 'CTC Basecalling': '/workflow_instance/134235/classficiation_basecalling' } },
             startDate: '2020-04-30T15:20:30+00:00',
             workflowImage: {
               inputqueue: '6551d65b-0441-c9ab-81aa-ba33ed62c39e',

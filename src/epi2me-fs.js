@@ -11,6 +11,7 @@ import fs from 'fs-extra'; /* MC-565 handle EMFILE & EXDIR gracefully; use Promi
 import { isArray, merge } from 'lodash';
 import { EOL, homedir } from 'os';
 import path from 'path';
+import { resolve } from 'url';
 import DB from './db';
 import EPI2ME from './epi2me';
 import Factory from './factory';
@@ -223,7 +224,7 @@ export default class EPI2ME_FS extends EPI2ME {
           keyId,
           startDate,
           idWorkflowInstance,
-          telemetry,
+          mappedTelemetry,
           chain,
           workflowImage: {
             region: { name },
@@ -243,7 +244,7 @@ export default class EPI2ME_FS extends EPI2ME {
       key_id: keyId,
       start_date: startDate,
       outputQueueName: outputqueue,
-      summaryTelemetry: telemetry,
+      summaryTelemetry: mappedTelemetry,
       inputQueueName: inputqueue,
       id_workflow: parseInt(idWorkflow),
       region: name || this.config.options.region,
@@ -1534,11 +1535,17 @@ export default class EPI2ME_FS extends EPI2ME {
     Object.keys(this.config.instance.summaryTelemetry).forEach(componentId => {
       const component = this.config.instance.summaryTelemetry[componentId] || {};
       const firstReport = Object.keys(component)[0]; // poor show
-      const url = component[firstReport];
+      let url = component[firstReport];
 
       if (!url) {
         return;
       }
+
+      if (!url.startsWith('http')) {
+        url = resolve(this.config.options.url, url);
+      }
+
+      console.log(url);
 
       const fn = path.join(thisInstanceDir, `${componentId}.json`);
 

@@ -183,7 +183,7 @@ export default class GraphQL {
           chain
           keyId
           outputqueue
-          telemetry
+          mappedTelemetry
           workflowImage {
             inputqueue
             workflow {
