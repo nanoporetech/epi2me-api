@@ -163,7 +163,7 @@ export default class EPI2ME_FS extends EPI2ME {
     */
     const instance = await this.autoStartGeneric(variables, () => this.graphQL.startWorkflow({ variables }), cb);
     this.setClassConfigGQL(instance);
-    return this.autoConfigure(instance, cb);
+    return this.autoConfigure(this.config.instance, cb);
   }
 
   async autoStartGeneric(workflowConfig, startFn, cb) {
