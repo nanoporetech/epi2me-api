@@ -182,10 +182,13 @@ export default class EPI2ME {
   async stopAnalysis() {
     // If we stop the cloud, there's no point uploading anymore
     this.stopUpload();
+    // This will stop all the intervals on their next call
+    this.stopped = true;
 
     const { id_workflow_instance: idWorkflowInstance } = this.config.instance;
     if (idWorkflowInstance) {
       try {
+        // TODO: Convert to GQL and switch on class-wide flag
         await this.REST.stopWorkflow(idWorkflowInstance);
         this.analyseState$.next(false);
       } catch (stopException) {
@@ -209,7 +212,6 @@ export default class EPI2ME {
   }
 
   async stopEverything() {
-    this.stopped = true;
     this.stopAnalysis();
     // Moved this out of the main stopUpload because we don't want to stop it when we stop uploading
     // This is really 'stop fetching reports'

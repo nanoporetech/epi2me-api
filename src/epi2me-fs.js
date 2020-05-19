@@ -164,6 +164,8 @@ export default class EPI2ME_FS extends EPI2ME {
     */
     const instance = await this.autoStartGeneric(variables, () => this.graphQL.startWorkflow({ variables }), cb);
     this.setClassConfigGQL(instance);
+    // Pass this.config.instance because we need the old format
+    // This can be improved
     return this.autoConfigure(this.config.instance, cb);
   }
 
@@ -191,6 +193,7 @@ export default class EPI2ME_FS extends EPI2ME {
     this.config.instance.id_workflow_instance = id;
     let instance;
     try {
+      // Theoretically this can work with GQL using the same setClassConfigGQL
       instance = await this.REST.workflowInstance(id);
     } catch (joinError) {
       const msg = `Failed to join workflow instance: ${String(joinError)}`;
@@ -387,6 +390,9 @@ export default class EPI2ME_FS extends EPI2ME {
       }
 
       try {
+        // TODO: Convert to GQL
+        // Should just require passing through setClassConfig...
+        // Choose REST vs GQL based on class-wide flag
         const instanceObj = await this.REST.workflowInstance(this.config.instance.id_workflow_instance);
         if (instanceObj.state === 'stopped') {
           this.log.warn(`instance was stopped remotely at ${instanceObj.stop_date}. shutting down the workflow.`);
