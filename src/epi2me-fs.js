@@ -1545,8 +1545,6 @@ export default class EPI2ME_FS extends EPI2ME {
         url = resolve(this.config.options.url, url);
       }
 
-      console.log(url);
-
       const fn = path.join(thisInstanceDir, `${componentId}.json`);
 
       toFetch.push(
