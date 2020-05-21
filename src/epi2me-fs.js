@@ -397,7 +397,7 @@ export default class EPI2ME_FS extends EPI2ME {
           } = await this.graphQL.query(
             `query workflowInstance($idWorkflowInstance: ID!) {
               instanceObj:workflowInstance(idWorkflowInstance: $idWorkflowInstance) {
-                stopDate
+                stop_date: stopDate
                 state
               }
             }`,
