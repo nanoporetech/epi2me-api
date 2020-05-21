@@ -392,19 +392,16 @@ export default class EPI2ME_FS extends EPI2ME {
       try {
         let instanceObj;
         if (this.config.options.graphQL) {
-          const {
-            data: { workflowInstance },
+          ({
+            data: { instanceObj },
           } = await this.graphQL.query(
             `query workflowInstance($idWorkflowInstance: ID!) {
-              workflowInstance(idWorkflowInstance: $idWorkflowInstance) {
+              instanceObj:workflowInstance(idWorkflowInstance: $idWorkflowInstance) {
                 stopDate
                 state
               }
             }`,
-          )({ variables: { idWorkflowInstance: this.config.instance.id_workflow_instance } });
-          instanceObj = {
-            ...workflowInstance,
-          };
+          )({ variables: { idWorkflowInstance: this.config.instance.id_workflow_instance } }));
         } else {
           instanceObj = await this.REST.workflowInstance(this.config.instance.id_workflow_instance);
         }
