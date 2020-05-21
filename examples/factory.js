@@ -20,7 +20,7 @@ api.graphQL
 
 api.startGQLRun(
   { inputFolders: ['/Library/MinKNOW/data/data2/mock_reads'], outputFolder: '/Library/MinKNOW/data/data2/output' },
-  { idWorkflow: 1964, isConsentedHuman: false, computeAccountId: 280923765 },
+  { idWorkflow: 1964, isConsentedHuman: false, computeAccountId: 71616668 },
 );
 
 // Reference upload

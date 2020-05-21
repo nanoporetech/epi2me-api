@@ -198,6 +198,15 @@ export default class GraphQL {
     }
   `);
 
+  stopWorkflow = this.mutate(gql`
+    mutation stopWorkflowInstance($idWorkflowInstance: ID!) {
+      stopData: stopWorkflowInstance(idWorkflowInstance: $idWorkflowInstance) {
+        success
+        message
+      }
+    }
+  `);
+
   // user - me
 
   user = this.query(gql`

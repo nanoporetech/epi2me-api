@@ -189,7 +189,11 @@ export default class EPI2ME {
     if (idWorkflowInstance) {
       try {
         // TODO: Convert to GQL and switch on class-wide flag
-        await this.REST.stopWorkflow(idWorkflowInstance);
+        if (this.config.options.graphQL) {
+          await this.graphQL.stopWorkflow({ variables: { idWorkflowInstance } });
+        } else {
+          await this.REST.stopWorkflow(idWorkflowInstance);
+        }
         this.analyseState$.next(false);
       } catch (stopException) {
         this.log.error(`Error stopping instance: ${String(stopException)}`);
