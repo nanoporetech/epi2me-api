@@ -100,7 +100,7 @@ const utils = (function magic() {
       const { log } = merge(
         {
           log: {
-            debug: () => {},
+            debug: () => { },
           },
         },
         optionsIn,
@@ -163,7 +163,7 @@ const utils = (function magic() {
       const { log } = merge(
         {
           log: {
-            debug: () => {},
+            debug: () => { },
           },
         },
         options,
@@ -189,7 +189,7 @@ const utils = (function magic() {
 
       let res;
       try {
-        log.debug(`GET ${req.url}`); // , JSON.stringify(req));
+        log.debug(`HEAD ${req.url}`); // , JSON.stringify(req));
         res = await axios.head(req.url, req); // url, headers++
 
         if (res && res.status >= 400) {
@@ -212,7 +212,7 @@ const utils = (function magic() {
       const { log } = merge(
         {
           log: {
-            debug: () => {},
+            debug: () => { },
           },
         },
         options,
@@ -250,7 +250,7 @@ const utils = (function magic() {
       const { log } = merge(
         {
           log: {
-            debug: () => {},
+            debug: () => { },
           },
         },
         options,
@@ -307,7 +307,7 @@ const utils = (function magic() {
       const { log } = merge(
         {
           log: {
-            debug: () => {},
+            debug: () => { },
           },
         },
         options,
