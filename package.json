@@ -1,14 +1,14 @@
 {
   "name": "@metrichor/epi2me-api",
-  "version": "3.0.1457",
+  "version": "3.0.1431",
   "license": "MPL-2.0",
   "repository": "git@github.com:nanoporetech/epi2me-api.git",
   "description": "API for communicating with the EPI2ME website(s)",
   "main": "dist/index.js",
+  "types": "./src/types/index.d.ts",
   "module": "dist/index.es.js",
   "dependencies": {
     "@lifeomic/axios-fetch": "^1.4.2",
-    "@types/axios": "^0.14.0",
     "@types/socket.io-client": "^1.4.32",
     "apollo-cache-inmemory": "^1.6.5",
     "apollo-client": "^2.6.8",
@@ -18,12 +18,12 @@
     "aws-sdk": "^2.610.0",
     "axios": "^0.19.2",
     "core-js": "^3.6.4",
+    "fdir": "^3.2.0",
     "fs-extra": "^8.1.0",
     "graphql": "^14.6.0",
     "graphql-tag": "^2.10.1",
     "lodash": "^4.17.15",
     "proxy-agent": "^3.1.1",
-    "recursive-readdir-async": "^1.1.6",
     "rxjs": "^6.5.4",
     "save": "^2.4.0",
     "socket.io-client": "^2.3.0",
@@ -52,7 +52,7 @@
     "husky": "^4.2.1",
     "lint-staged": "^10.0.4",
     "mocha": "^7.0.1",
-    "mock-fs": "^4.10.4",
+    "mock-fs": "^4.11.0",
     "nyc": "^15.0.0",
     "prettier": "^1.18.2",
     "prettier-eslint": "^9.0.0",
@@ -103,6 +103,7 @@
     "rollup:build": "npx rollup -c",
     "rollup:watch": "npx rollup -cw",
     "build:light": "npm run clean:dist && npm run rollup:build",
-    "build:dist": "npm run build:version && npm run clean:dist && npm ci && npm run rollup:build"
+    "build:dist": "npm run build:version && npm run clean:dist && npm ci && npm run rollup:build",
+    "ts:defs": "tsc --declaration --outDir ./types --emitDeclarationOnly"
   }
 }

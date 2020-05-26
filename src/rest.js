@@ -3,10 +3,10 @@
  * Authors: rpettett, gvanginkel
  */
 
+import { assign, filter, merge } from 'lodash';
 import os from 'os';
-import { merge, filter, assign } from 'lodash';
+import { local, signing, url as baseURL, user_agent as userAgent } from './default_options.json';
 import utils from './utils';
-import { local, url as baseURL, user_agent as userAgent, signing } from './default_options.json';
 
 export default class REST {
   constructor(options) {
@@ -377,13 +377,19 @@ export default class REST {
         'Content-Type': '',
       },
     });
-    const {
-      headers: { etag },
-    } = await utils.head(url, options);
 
-    if (etag && this.cachedResponses[url] && this.cachedResponses[url].etag === etag) {
-      return this.cachedResponses[url].response;
+    let etag;
+    try {
+      const head = await utils.head(url, options);
+      etag = head.headers.etag;
+
+      if (etag && this.cachedResponses[url] && this.cachedResponses[url].etag === etag) {
+        return this.cachedResponses[url].response;
+      }
+    } catch (headException) {
+      this.log.warn(`Failed to HEAD request ${url}: ${String(headException)}`);
     }
+
     const response = await utils.get(url, options);
     // cache only if the URLs endpoint supports HEAD requests with etag in the response
     if (etag) {

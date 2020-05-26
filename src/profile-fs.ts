@@ -1,9 +1,9 @@
-import { homedir } from 'os';
-import { merge } from 'lodash';
 import fs from 'fs-extra';
+import { merge } from 'lodash';
+import { homedir } from 'os';
 import path from 'path';
 import Profile from './profile';
-import { Epi2meProfileNS } from './types/profile';
+import { Epi2meProfileNS } from './types';
 
 interface InternalAllProfileData {
   profiles?: Epi2meProfileNS.AllProfileData;

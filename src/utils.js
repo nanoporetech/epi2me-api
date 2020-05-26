@@ -189,7 +189,7 @@ const utils = (function magic() {
 
       let res;
       try {
-        log.debug(`GET ${req.url}`); // , JSON.stringify(req));
+        log.debug(`HEAD ${req.url}`); // , JSON.stringify(req));
         res = await axios.head(req.url, req); // url, headers++
 
         if (res && res.status >= 400) {
@@ -354,6 +354,19 @@ const utils = (function magic() {
         return Promise.reject(err);
       }
       return internal.responseHandler(res, options);
+    },
+    // convertResponseToObject(data: Record<string, any> | string): Record<string, any> {
+    convertResponseToObject(data) {
+      if (typeof data === 'object') {
+        // already parsed
+        return data;
+      } else {
+        try {
+          return JSON.parse(data);
+        } catch (jsonException) {
+          throw new Error(`exception parsing chain JSON ${String(jsonException)}`);
+        }
+      }
     },
   };
 })();

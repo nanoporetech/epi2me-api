@@ -157,24 +157,52 @@ export default class GraphQL {
   startWorkflow = this.mutate(gql`
     mutation startWorkflow(
       $idWorkflow: ID!
-      $computeAccountId: Int!
-      $storageAccountId: Int
-      $isConsentedHuman: Int = 0
+      $computeAccountId: ID!
+      $storageAccountId: ID
+      $isConsentedHuman: Boolean = false
+      $idDataset: ID
+      $storeResults: Boolean = false
+      $userDefined: GenericScalar
+      $instanceAttributes: [GenericScalar]
     ) {
-      startWorkflowInstance(
+      startData: startWorkflowInstance(
         idWorkflow: $idWorkflow
         computeAccountId: $computeAccountId
         storageAccountId: $storageAccountId
         isConsentedHuman: $isConsentedHuman
+        idDataset: $idDataset
+        storeResults: $storeResults
+        userDefined: $userDefined
+        instanceAttributes: $instanceAttributes
       ) {
         bucket
         idUser
-        idWorkflowInstance
-        inputqueue
-        outputqueue
-        region
-        keyId
-        chain
+        remoteAddr
+        instance {
+          idWorkflowInstance
+          chain
+          keyId
+          outputqueue
+          mappedTelemetry
+          workflowImage {
+            inputqueue
+            workflow {
+              idWorkflow
+            }
+            region {
+              name
+            }
+          }
+        }
+      }
+    }
+  `);
+
+  stopWorkflow = this.mutate(gql`
+    mutation stopWorkflowInstance($idWorkflowInstance: ID!) {
+      stopData: stopWorkflowInstance(idWorkflowInstance: $idWorkflowInstance) {
+        success
+        message
       }
     }
   `);
