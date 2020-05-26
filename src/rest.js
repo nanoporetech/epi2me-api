@@ -377,13 +377,19 @@ export default class REST {
         'Content-Type': '',
       },
     });
-    const {
-      headers: { etag },
-    } = await utils.head(url, options);
 
-    if (etag && this.cachedResponses[url] && this.cachedResponses[url].etag === etag) {
-      return this.cachedResponses[url].response;
+    let etag;
+    try {
+      const head = await utils.head(url, options);
+      etag = head.headers.etag;
+
+      if (etag && this.cachedResponses[url] && this.cachedResponses[url].etag === etag) {
+        return this.cachedResponses[url].response;
+      }
+    } catch (headException) {
+      this.log.warn(`Failed to HEAD request ${url}: ${String(headException)}`);
     }
+
     const response = await utils.get(url, options);
     // cache only if the URLs endpoint supports HEAD requests with etag in the response
     if (etag) {
