@@ -2,12 +2,13 @@ import { merge } from 'lodash';
 import proxy from 'proxy-agent'; // odd one out
 
 export default class SessionManager {
-  constructor(idWorkflowInstance, REST, children, opts) {
+  constructor(idWorkflowInstance, REST, children, opts, graphQL) {
     this.id_workflow_instance = idWorkflowInstance;
     this.children = children;
     this.options = merge(opts);
     this.log = this.options.log;
     this.REST = REST; // EPI2ME REST API object
+    this.graphQL = graphQL; // EPI2ME graphQL API object
 
     if (!idWorkflowInstance) {
       throw new Error('must specify id_workflow_instance');
@@ -27,7 +28,10 @@ export default class SessionManager {
     this.log.debug('new instance token needed');
 
     try {
-      const token = await this.REST.instanceToken(this.id_workflow_instance, this.options);
+      const token = this.options.useGraphQL
+        ? (await this.graphQL.instanceToken({ variables: { idWorkflowInstance: this.id_workflow_instance } })).data
+            .token
+        : await this.REST.instanceToken(this.id_workflow_instance, this.options);
       this.log.debug(`allocated new instance token expiring at ${token.expiration}`);
       this.sts_expiration = new Date(token.expiration).getTime() - 60 * parseInt(this.options.sessionGrace || '0', 10); // refresh token x mins before it expires
 
