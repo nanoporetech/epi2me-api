@@ -248,4 +248,5 @@ export default class GraphQL {
   `);
 
   // status
+  healthCheck = () => utils.get('/status', this.options);
 }

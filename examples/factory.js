@@ -37,3 +37,8 @@ api.startGQLRun(
 //   .instanceToken({ variables: { idWorkflowInstance: 164901 } })
 //   .then(x => console.info(x.data.token))
 //   .catch(console.error);
+
+// api.graphQL
+//   .healthCheck()
+//   .then(console.log)
+//   .catch(console.error);
