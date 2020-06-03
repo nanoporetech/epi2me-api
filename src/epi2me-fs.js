@@ -298,9 +298,11 @@ export default class EPI2ME_FS extends EPI2ME {
           proxy: this.config.options.proxy,
           region: this.config.instance.region,
           log: this.log,
+          useGraphQL: this.config.options.useGraphQL,
         },
         opts,
       ),
+      this.graphQL,
     );
   }
 
@@ -391,7 +393,7 @@ export default class EPI2ME_FS extends EPI2ME {
 
       try {
         let instanceObj;
-        if (this.config.options.graphQL) {
+        if (this.config.options.useGraphQL) {
           ({
             data: { instanceObj },
           } = await this.graphQL.query(

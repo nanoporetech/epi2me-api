@@ -207,6 +207,19 @@ export default class GraphQL {
     }
   `);
 
+  instanceToken = this.mutate(gql`
+    mutation getInstanceToken($idWorkflowInstance: ID!) {
+      token: getInstanceToken(idWorkflowInstance: $idWorkflowInstance) {
+        id_workflow_instance: idWorkflowInstance
+        accessKeyId
+        secretAccessKey
+        sessionToken
+        expiration
+        region
+      }
+    }
+  `);
+
   // user - me
 
   user = this.query(gql`
@@ -235,4 +248,5 @@ export default class GraphQL {
   `);
 
   // status
+  healthCheck = () => utils.get('/status', this.options);
 }

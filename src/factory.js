@@ -29,7 +29,7 @@ export default class Factory {
   }
 
   async startGQLRun(options, variables) {
-    const newInstance = new this.EPI2ME({ ...this.options, ...options, graphQL: true });
+    const newInstance = new this.EPI2ME({ ...this.options, ...options, useGraphQL: true });
     try {
       const workflowData = await newInstance.autoStartGQL(variables);
       this.runningInstances[workflowData.id_workflow_instance] = newInstance;
