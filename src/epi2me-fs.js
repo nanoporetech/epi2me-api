@@ -60,6 +60,10 @@ export default class EPI2ME_FS extends EPI2ME {
   }
 
   async sessionedS3() {
+    if (!this.sessionManager) {
+      this.sessionManager = this.initSessionManager();
+    }
+
     await this.sessionManager.session();
     return new AWS.S3({
       useAccelerateEndpoint: this.config.options.awsAcceleration === 'on',
@@ -67,6 +71,10 @@ export default class EPI2ME_FS extends EPI2ME {
   }
 
   async sessionedSQS() {
+    if (!this.sessionManager) {
+      this.sessionManager = this.initSessionManager();
+    }
+
     await this.sessionManager.session();
     return new AWS.SQS();
   }
@@ -717,11 +725,11 @@ export default class EPI2ME_FS extends EPI2ME {
 
         const splitStyle = splitSize
           ? {
-              maxChunkBytes: splitSize,
-            }
+            maxChunkBytes: splitSize,
+          }
           : {
-              maxChunkReads: splitReads,
-            };
+            maxChunkReads: splitReads,
+          };
         const splitter = file.path.match(/\.gz$/) ? fastqGzipSplitter : fastqSplitter;
 
         const fileId = utils.getFileID();
