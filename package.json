@@ -1,6 +1,6 @@
 {
   "name": "@metrichor/epi2me-api",
-  "version": "3.0.1258",
+  "version": "3.0.1333",
   "license": "MPL-2.0",
   "repository": "git@github.com:nanoporetech/epi2me-api.git",
   "description": "API for communicating with the EPI2ME website(s)",
@@ -18,7 +18,7 @@
     "aws-sdk": "^2.610.0",
     "axios": "^0.19.2",
     "core-js": "^3.6.4",
-    "fdir": "^3.2.0",
+    "fdir": "^3.4.3",
     "fs-extra": "^8.1.0",
     "graphql": "^14.6.0",
     "graphql-tag": "^2.10.1",
