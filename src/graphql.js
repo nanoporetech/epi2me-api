@@ -258,6 +258,18 @@ export default class GraphQL {
   `);
 
   // status
+  status = this.query(gql`
+    query status {
+      status {
+        portalVersion
+        remoteAddr
+        serverTime
+        minimumAgent
+        dbVersion
+      }
+    }
+  `);
+
   healthCheck = () => utils.get('/status', this.options);
 
   // Regions
