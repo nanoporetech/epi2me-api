@@ -92,8 +92,8 @@ export default class GraphQL {
   };
 
   workflows = this.query(gql`
-    query allWorkflows($page: Int, $pageSize: Int, $isActive: Int, $orderBy: String) {
-      allWorkflows(page: $page, pageSize: $pageSize, isActive: $isActive, orderBy: $orderBy) {
+    query allWorkflows($page: Int, $pageSize: Int, $isActive: Int, $orderBy: String, $region: String) {
+      allWorkflows(page: $page, pageSize: $pageSize, isActive: $isActive, orderBy: $orderBy, region: $region) {
         ${PageFragment}
         results {
           ${WorkflowFragment}
@@ -164,6 +164,7 @@ export default class GraphQL {
       $storeResults: Boolean = false
       $userDefined: GenericScalar
       $instanceAttributes: [GenericScalar]
+      $region: String
     ) {
       startData: startWorkflowInstance(
         idWorkflow: $idWorkflow
@@ -174,6 +175,7 @@ export default class GraphQL {
         storeResults: $storeResults
         userDefined: $userDefined
         instanceAttributes: $instanceAttributes
+        region: $region
       ) {
         bucket
         idUser
@@ -234,6 +236,14 @@ export default class GraphQL {
     }
   `);
 
+  updateUser = this.mutate(gql`
+    mutation updateUser($idRegionPreferred: ID!) {
+      updateUser(idRegionPreferred: $idRegionPreferred) {
+        idRegionPreferred
+      }
+    }
+  `);
+
   // dataset(s)
   // show=show
 
@@ -248,5 +258,29 @@ export default class GraphQL {
   `);
 
   // status
+  status = this.query(gql`
+    query status {
+      status {
+        portalVersion
+        remoteAddr
+        serverTime
+        minimumAgent
+        dbVersion
+      }
+    }
+  `);
+
   healthCheck = () => utils.get('/status', this.options);
+
+  // Regions
+
+  regions = this.query(gql`
+    query regions {
+      regions {
+        idRegion
+        description
+        name
+      }
+    }
+  `);
 }
