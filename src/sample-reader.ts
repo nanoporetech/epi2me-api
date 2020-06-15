@@ -39,11 +39,18 @@ export default class SampleReader implements Epi2meSampleReaderAPINS.ISampleRead
     const fileToCheck = 'sequencing_summary';
     const crawler = new fdir()
       .withBasePath()
+      .withErrors()
       .filter((path: string) => path.includes(fileToCheck))
       .exclude((path: string) => path.includes('fastq_'))
-      .withMaxDepth(3);
+      .withMaxDepth(3)
+      .crawl(sourceDir);
 
-    const files = (await crawler.crawl(sourceDir).withPromise()) as string[];
+    let files;
+    try {
+      files = (await crawler.withPromise()) as string[];
+    } catch {
+      return;
+    }
 
     this.experiments = files.reduce((experimentsObj, absPath) => {
       const [experiment, sample] = takeRight(absPath.split(path.sep), 3);
