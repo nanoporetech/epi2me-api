@@ -13,7 +13,7 @@ export default class Socket {
     this.log = merge(
       {
         log: {
-          debug: () => {},
+          debug: () => { },
         },
       },
       opts,
@@ -33,7 +33,10 @@ export default class Socket {
       this.socket.on('connect', () => {
         this.log.debug('socket ready');
       });
-    });
+    })
+      .catch(err => {
+        this.log.error('socket connection failed - JWT authentication error');
+      });
   }
 
   debounce(data, func) {

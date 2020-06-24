@@ -10,6 +10,15 @@ describe('sample reader', () => {
     });
   });
   describe('should', () => {
+    before(() => {
+      mock({
+        '/data/': {},
+      });
+    });
+
+    after(() => {
+      mock.restore();
+    });
     //  Fails in new version, but works in real use
     it('fail nicely', async () => {
       const path = '/randompath';
