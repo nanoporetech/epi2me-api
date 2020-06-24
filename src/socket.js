@@ -20,7 +20,6 @@ export default class Socket {
     ).log;
 
     rest.jwt().then(jwt => {
-      console.info('RESOLVES', jwt)
       this.socket = io(opts.url, {
         transportOptions: {
           polling: {
