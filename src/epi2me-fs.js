@@ -1433,19 +1433,15 @@ export default class EPI2ME_FS extends EPI2ME {
           }
         });
 
-        console.log('starting an upload');
-
         managedUpload
           .promise()
           .then(() => {
-            console.log('calling then');
             this.log.info(`${file.id} S3 upload complete`);
             rs.close();
             clearTimeout(timeoutHandle);
 
             this.uploadComplete(objectId, file) // send message
               .then(() => {
-                console.log('calling then again');
                 resolve(file);
               })
               .catch(uploadCompleteErr => {
@@ -1453,7 +1449,6 @@ export default class EPI2ME_FS extends EPI2ME {
                 reject(uploadCompleteErr);
               })
               .finally(() => {
-                console.log('finally', file.size);
                 this.uploadState('progress', 'decr', {
                   total: file.size,
                   bytes: file.size,
@@ -1461,7 +1456,6 @@ export default class EPI2ME_FS extends EPI2ME {
               });
           })
           .catch(uploadStreamErr => {
-            console.log('catch 2');
             this.log.warn(`${file.id} uploadStreamError ${uploadStreamErr}`);
             reject(uploadStreamErr);
           });
