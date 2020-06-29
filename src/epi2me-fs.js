@@ -725,11 +725,11 @@ export default class EPI2ME_FS extends EPI2ME {
 
         const splitStyle = splitSize
           ? {
-            maxChunkBytes: splitSize,
-          }
+              maxChunkBytes: splitSize,
+            }
           : {
-            maxChunkReads: splitReads,
-          };
+              maxChunkReads: splitReads,
+            };
         const splitter = file.path.match(/\.gz$/) ? fastqGzipSplitter : fastqSplitter;
 
         const fileId = utils.getFileID();
@@ -1413,10 +1413,11 @@ export default class EPI2ME_FS extends EPI2ME {
         sessionManager.sts_expiration = this.sessionManager.sts_expiration; // No special options here, so use the main session and don't refetch until it's expired
 
         managedUpload.on('httpUploadProgress', async progress => {
-          if (this.stopped) {
-            reject(new Error('stopped'));
-            return;
-          }
+          // Breaking out here causes this.states.progress.bytes to get out of sync.
+          // if (this.stopped) {
+          //   reject(new Error('stopped'));
+          //   return;
+          // }
 
           //          this.log.debug(`upload progress ${progress.key} ${progress.loaded} / ${progress.total}`);
           this.uploadState('progress', 'incr', {
@@ -1432,21 +1433,27 @@ export default class EPI2ME_FS extends EPI2ME {
           }
         });
 
+        console.log('starting an upload');
+
         managedUpload
           .promise()
           .then(() => {
+            console.log('calling then');
             this.log.info(`${file.id} S3 upload complete`);
             rs.close();
             clearTimeout(timeoutHandle);
 
             this.uploadComplete(objectId, file) // send message
               .then(() => {
+                console.log('calling then again');
                 resolve(file);
               })
               .catch(uploadCompleteErr => {
+                console.log('catch');
                 reject(uploadCompleteErr);
               })
               .finally(() => {
+                console.log('finally', file.size);
                 this.uploadState('progress', 'decr', {
                   total: file.size,
                   bytes: file.size,
@@ -1454,6 +1461,7 @@ export default class EPI2ME_FS extends EPI2ME {
               });
           })
           .catch(uploadStreamErr => {
+            console.log('catch 2');
             this.log.warn(`${file.id} uploadStreamError ${uploadStreamErr}`);
             reject(uploadStreamErr);
           });
