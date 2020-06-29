@@ -1433,8 +1433,6 @@ export default class EPI2ME_FS extends EPI2ME {
           }
         });
 
-        console.log('starting an upload');
-
         managedUpload
           .promise()
           .then(() => {
