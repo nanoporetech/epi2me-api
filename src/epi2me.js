@@ -165,25 +165,25 @@ export default class EPI2ME {
     );
     const { id_workflow_instance: idWorkflowInstance } = this.config.instance;
     if (idWorkflowInstance) {
-      this.mySocket.watch(`workflow_instance:state:${idWorkflowInstance}`, (newWorkerStatus) => {
+      this.mySocket.watch(`workflow_instance:state:${idWorkflowInstance}`, newWorkerStatus => {
         const { instance: instanceConfig } = this.config;
         if (instanceConfig) {
           const { summaryTelemetry } = instanceConfig;
-          const workerStatus = Object.entries((instanceConfig).chain.components)
+          const workerStatus = Object.entries(instanceConfig.chain.components)
             .sort((a, b) => a[0] - b[0])
             .reduce((p, c) => {
               const [key, value] = c;
               if (!newWorkerStatus[key]) return p;
-              const step = +key
-              const name = step && Object.keys(summaryTelemetry[value.wid])[0] || 'ROOT';
+              const step = +key;
+              const name = (step && Object.keys(summaryTelemetry[value.wid])[0]) || 'ROOT';
               const [running, complete, error] = newWorkerStatus[key]
                 .split(',')
-                .map((componentID) => Math.max(0, +componentID)); // It's dodgy but assuming the componentID is a number happens all over the place
+                .map(componentID => Math.max(0, +componentID)); // It's dodgy but assuming the componentID is a number happens all over the place
               return [...p, { running, complete, error, step, name }];
             }, []);
           this.experimentalWorkerStatus$.next(workerStatus);
         }
-      })
+      });
     }
     return this.mySocket;
   }

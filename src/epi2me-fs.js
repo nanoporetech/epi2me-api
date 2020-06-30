@@ -57,6 +57,7 @@ export default class EPI2ME_FS extends EPI2ME {
       ),
     );
     this.SampleReader = new SampleReader();
+    this.uploadsInProgress = [];
   }
 
   async sessionedS3() {
@@ -449,6 +450,11 @@ export default class EPI2ME_FS extends EPI2ME {
   }
 
   async stopUpload() {
+    for (const inProgressUpload of this.uploadsInProgress) {
+      inProgressUpload.abort();
+    }
+    this.uploadsInProgress = [];
+
     await super.stopUpload();
 
     this.log.debug('clearing split files');
@@ -1409,6 +1415,7 @@ export default class EPI2ME_FS extends EPI2ME {
         let myProgress = 0;
 
         const managedUpload = s3.upload(params, options);
+        this.uploadsInProgress.push(managedUpload);
         const sessionManager = this.initSessionManager(null, [managedUpload.service]);
         sessionManager.sts_expiration = this.sessionManager.sts_expiration; // No special options here, so use the main session and don't refetch until it's expired
 
@@ -1453,6 +1460,7 @@ export default class EPI2ME_FS extends EPI2ME {
                   total: file.size,
                   bytes: file.size,
                 }); // zero in-flight upload counters
+                this.uploadsInProgress = this.uploadsInProgress.filter(upload => upload !== managedUpload);
               });
           })
           .catch(uploadStreamErr => {
