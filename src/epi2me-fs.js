@@ -731,11 +731,11 @@ export default class EPI2ME_FS extends EPI2ME {
 
         const splitStyle = splitSize
           ? {
-            maxChunkBytes: splitSize,
-          }
+              maxChunkBytes: splitSize,
+            }
           : {
-            maxChunkReads: splitReads,
-          };
+              maxChunkReads: splitReads,
+            };
         const splitter = file.path.match(/\.gz$/) ? fastqGzipSplitter : fastqSplitter;
 
         const fileId = utils.getFileID();
@@ -1420,10 +1420,11 @@ export default class EPI2ME_FS extends EPI2ME {
         sessionManager.sts_expiration = this.sessionManager.sts_expiration; // No special options here, so use the main session and don't refetch until it's expired
 
         managedUpload.on('httpUploadProgress', async progress => {
-          if (this.stopped) {
-            reject(new Error('stopped'));
-            return;
-          }
+          // Breaking out here causes this.states.progress.bytes to get out of sync.
+          // if (this.stopped) {
+          //   reject(new Error('stopped'));
+          //   return;
+          // }
 
           //          this.log.debug(`upload progress ${progress.key} ${progress.loaded} / ${progress.total}`);
           this.uploadState('progress', 'incr', {
@@ -1451,6 +1452,7 @@ export default class EPI2ME_FS extends EPI2ME {
                 resolve(file);
               })
               .catch(uploadCompleteErr => {
+                console.log('catch');
                 reject(uploadCompleteErr);
               })
               .finally(() => {
