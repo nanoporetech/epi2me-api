@@ -270,7 +270,7 @@ export default class GraphQL {
     }
   `);
 
-  healthCheck = () => utils.get('/status', this.options);
+  healthCheck = () => utils.get('/status', { ...this.options, log: { debug: () => { } } });
 
   // Regions
 
