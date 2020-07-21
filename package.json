@@ -5,7 +5,7 @@
   "repository": "git@github.com:nanoporetech/epi2me-api.git",
   "description": "API for communicating with the EPI2ME website(s)",
   "main": "dist/index.js",
-  "types": "./src/types/index.d.ts",
+  "types": "dist/src/index.d.ts",
   "module": "dist/index.es.js",
   "dependencies": {
     "@lifeomic/axios-fetch": "^1.4.2",
@@ -31,12 +31,13 @@
     "tunnel": "^0.0.6"
   },
   "devDependencies": {
+    "@rollup/plugin-commonjs": "^14.0.0",
     "@rollup/plugin-sucrase": "^3.0.0",
     "@types/bunyan": "^1.8.6",
     "@types/fs-extra": "^8.1.0",
     "@types/lodash": "^4.14.149",
     "@types/mocha": "^7.0.2",
-    "@types/node": "^13.9.0",
+    "@types/node": "^14.0.24",
     "@types/rollup": "^0.54.0",
     "@types/rollup-plugin-json": "^3.0.2",
     "@typescript-eslint/eslint-plugin": "^2.23.0",
@@ -56,7 +57,7 @@
     "nyc": "^15.0.0",
     "prettier": "^1.18.2",
     "prettier-eslint": "^9.0.0",
-    "rollup": "^1.30.1",
+    "rollup": "^2.22.1",
     "rollup-plugin-analyzer": "^3.2.1",
     "rollup-plugin-cpy": "^2.0.1",
     "rollup-plugin-eslint": "^7.0.0",
@@ -64,10 +65,12 @@
     "rollup-plugin-json": "^4.0.0",
     "rollup-plugin-license": "^0.13.0",
     "rollup-plugin-terser": "^5.2.0",
+    "rollup-plugin-typescript2": "^0.27.1",
     "sinon": "^8.1.1",
     "tmp": "^0.1.0",
     "ts-node": "^8.6.2",
-    "typescript": "^3.8.3",
+    "tslib": "^2.0.0",
+    "typescript": "^3.9.7",
     "xunit-file": "*"
   },
   "browserslist": [
@@ -104,6 +107,6 @@
     "rollup:watch": "npx rollup -cw",
     "build:light": "npm run clean:dist && npm run rollup:build",
     "build:dist": "npm run build:version && npm run clean:dist && npm ci && npm run rollup:build",
-    "ts:defs": "tsc --declaration --outDir ./types --emitDeclarationOnly"
+    "ts:defs": "tsc --declaration --outDir dist/types --emitDeclarationOnly"
   }
 }
