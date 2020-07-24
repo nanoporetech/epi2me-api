@@ -1,10 +1,23 @@
 import fdir from 'fdir';
-import { takeRight } from 'lodash';
 import path from 'path';
 import DEFAULTS from './default_options.json';
-import { Epi2meSampleReaderAPINS, Epi2meSampleReaderResponseNS } from './types';
 
-export default class SampleReader implements Epi2meSampleReaderAPINS.ISampleReaderInstance {
+export interface Sample {
+  flowcell: string;
+  sample: string;
+  path: string;
+}
+
+export interface Experiment {
+  samples: Sample[];
+  startDate: string;
+}
+
+export interface Experiments {
+  [experimentName: string]: Experiment;
+}
+
+export default class SampleReader {
   /*
   Taking a directory, look for MinKNOW results and build a tree of
   experiments and samples
@@ -24,12 +37,9 @@ export default class SampleReader implements Epi2meSampleReaderAPINS.ISampleRead
         }
       }
   */
-  experiments = {} as Epi2meSampleReaderResponseNS.IExperiments;
+  experiments: Experiments = {};
 
-  async getExperiments({
-    sourceDir = DEFAULTS.sampleDirectory,
-    refresh = false,
-  }): Promise<Epi2meSampleReaderResponseNS.IExperiments> {
+  async getExperiments({ sourceDir = DEFAULTS.sampleDirectory, refresh = false }): Promise<Experiments> {
     if (!Object.keys(this.experiments).length || refresh) {
       await this.updateExperiments(sourceDir);
     }
@@ -52,8 +62,8 @@ export default class SampleReader implements Epi2meSampleReaderAPINS.ISampleRead
       return;
     }
 
-    this.experiments = files.reduce((experimentsObj, absPath) => {
-      const [experiment, sample] = takeRight(absPath.split(path.sep), 3);
+    this.experiments = files.reduce<Experiments>((experimentsObj, absPath) => {
+      const [experiment, sample] = absPath.split(path.sep).slice(-3);
       const parser = /(?<date>[0-9]{8})_(?<time>[0-9]{4})_.*_(?<flowcell>\w+\d+)_\w+/;
       if (!parser.test(sample)) return experimentsObj;
       const { date, time, flowcell } = parser.exec(sample)?.groups as { date: string; time: string; flowcell: string };
@@ -68,6 +78,6 @@ export default class SampleReader implements Epi2meSampleReaderAPINS.ISampleRead
         ],
       };
       return experimentsObj;
-    }, {} as Epi2meSampleReaderResponseNS.IExperiments);
+    }, {});
   }
 }

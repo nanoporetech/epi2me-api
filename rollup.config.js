@@ -1,4 +1,5 @@
-import sucrase from '@rollup/plugin-sucrase';
+import commonjs from '@rollup/plugin-commonjs';
+// import typescript from '@rollup/plugin-typescript';
 import path from 'path';
 import analyze from 'rollup-plugin-analyzer';
 import copy from 'rollup-plugin-cpy';
@@ -7,6 +8,7 @@ import generatePackageJson from 'rollup-plugin-generate-package-json';
 import json from 'rollup-plugin-json';
 import license from 'rollup-plugin-license';
 import { terser } from 'rollup-plugin-terser';
+import typescript from 'rollup-plugin-typescript2';
 import pkg from './package.json';
 
 const external = [...Object.keys(pkg.dependencies || {}), ...Object.keys(pkg.peerDependencies || {})];
@@ -18,9 +20,9 @@ const plugins = [
     throwOnWarning: false, //  Will eventually be set to true
     exclude: ['node_modules/**', './**/*.json'],
   }),
-  sucrase({
-    exclude: ['node_modules/**', 'test/**'],
-    transforms: ['typescript'],
+  commonjs(),
+  typescript({
+    include: 'src/**/*.{js,ts}',
   }),
   terser({
     parse: {

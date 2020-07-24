@@ -17,7 +17,7 @@ export default function(filePath: string): Promise<{ type: string; bytes: number
     }
 
     fs.createReadStream(filePath)
-      .on('data', buffer => {
+      .on('data', (buffer: Buffer) => {
         idx = -1;
         lineCount -= 1;
 
