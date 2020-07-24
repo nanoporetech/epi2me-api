@@ -63,7 +63,7 @@ export default class SampleReader {
       return;
     }
 
-    this.experiments = files.reduce((experimentsObj, absPath) => {
+    this.experiments = files.reduce<Experiments>((experimentsObj, absPath) => {
       const [experiment, sample] = takeRight(absPath.split(path.sep), 3);
       const parser = /(?<date>[0-9]{8})_(?<time>[0-9]{4})_.*_(?<flowcell>\w+\d+)_\w+/;
       if (!parser.test(sample)) return experimentsObj;
@@ -79,6 +79,6 @@ export default class SampleReader {
         ],
       };
       return experimentsObj;
-    }, {} as Experiments);
+    }, {});
   }
 }

@@ -32,7 +32,6 @@
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^14.0.0",
-    "@rollup/plugin-sucrase": "^3.0.0",
     "@types/bunyan": "^1.8.6",
     "@types/fs-extra": "^8.1.0",
     "@types/lodash": "^4.14.149",
@@ -106,7 +105,6 @@
     "rollup:build": "npx rollup -c",
     "rollup:watch": "npx rollup -cw",
     "build:light": "npm run clean:dist && npm run rollup:build",
-    "build:dist": "npm run build:version && npm run clean:dist && npm ci && npm run rollup:build",
-    "ts:defs": "tsc --declaration --outDir dist/types --emitDeclarationOnly"
+    "build:dist": "npm run build:version && npm run clean:dist && npm ci && npm run rollup:build"
   }
 }
