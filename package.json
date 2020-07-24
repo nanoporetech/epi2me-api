@@ -1,6 +1,6 @@
 {
   "name": "@metrichor/epi2me-api",
-  "version": "3.0.1759",
+  "version": "3.0.926",
   "license": "MPL-2.0",
   "repository": "git@github.com:nanoporetech/epi2me-api.git",
   "description": "API for communicating with the EPI2ME website(s)",
@@ -105,6 +105,7 @@
     "rollup:build": "npx rollup -c",
     "rollup:watch": "npx rollup -cw",
     "build:light": "npm run clean:dist && npm run rollup:build",
-    "build:dist": "npm run build:version && npm run clean:dist && npm ci && npm run rollup:build"
+    "build:dist": "npm run build:version && npm run clean:dist && npm ci && npm run rollup:build",
+    "ts:defs": "tsc --outDir dist --declarationDir dist/types --emitDeclarationOnly"
   }
 }

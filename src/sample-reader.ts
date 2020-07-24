@@ -1,5 +1,4 @@
 import fdir from 'fdir';
-import { takeRight } from 'lodash';
 import path from 'path';
 import DEFAULTS from './default_options.json';
 
@@ -64,7 +63,7 @@ export default class SampleReader {
     }
 
     this.experiments = files.reduce<Experiments>((experimentsObj, absPath) => {
-      const [experiment, sample] = takeRight(absPath.split(path.sep), 3);
+      const [experiment, sample] = absPath.split(path.sep).slice(-3);
       const parser = /(?<date>[0-9]{8})_(?<time>[0-9]{4})_.*_(?<flowcell>\w+\d+)_\w+/;
       if (!parser.test(sample)) return experimentsObj;
       const { date, time, flowcell } = parser.exec(sample)?.groups as { date: string; time: string; flowcell: string };
