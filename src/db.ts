@@ -91,33 +91,31 @@ export default class db {
     );
   }
 
-  async splitClean(): Promise<any[]> {
+  async splitClean(): Promise<void> {
     const dbh = await this.db;
-    return dbh
-      .all(
-        'SELECT splits.filename, folders.folder_path FROM splits INNER JOIN folders ON folders.folder_id = splits.child_path_id WHERE end IS NULL',
-      )
-      .then(toClean => {
-        if (!toClean) {
-          this.log.info('no split files to clean');
-          return Promise.resolve([]);
-        }
+    const toClean = await dbh.all(
+      'SELECT splits.filename, folders.folder_path FROM splits INNER JOIN folders ON folders.folder_id = splits.child_path_id WHERE end IS NULL',
+    );
 
-        this.log.info(`cleaning ${toClean.length} split files`);
-        this.log.debug(
-          `going to clean: ${toClean
-            .map(o => {
-              return o.filename;
-            })
-            .join(' ')}`,
-        );
-        const cleanupPromises = toClean.map(cleanObj => {
-          return fs.unlink(path.join(cleanObj.folder_path, cleanObj.filename)).catch(() => {
-            console.warn(`Failed to cleanup ${path.join(cleanObj.folder_path, cleanObj.filename)}`);
-          }); // should this module really be responsible for this cleanup operation?
-        });
-        return Promise.all(cleanupPromises);
-      });
+    if (!toClean) {
+      this.log.info('no split files to clean');
+      return;
+    }
+
+    this.log.info(`cleaning ${toClean.length} split files`);
+    this.log.debug(
+      `going to clean: ${toClean
+        .map(o => {
+          return o.filename;
+        })
+        .join(' ')}`,
+    );
+    const cleanupPromises = toClean.map(cleanObj => {
+      return fs.unlink(path.join(cleanObj.folder_path, cleanObj.filename)).catch(() => {
+        console.warn(`Failed to cleanup ${path.join(cleanObj.folder_path, cleanObj.filename)}`);
+      }); // should this module really be responsible for this cleanup operation?
+    });
+    await Promise.all(cleanupPromises);
   }
 
   async seenUpload(filename: string): Promise<number> {
