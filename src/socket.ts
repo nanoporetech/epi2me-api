@@ -1,26 +1,32 @@
 import io from 'socket.io-client';
 import { merge } from 'lodash';
 
-export default class Socket {
-  constructor(rest, opts) {
-    this.debounces = {};
-    this.debounceWindow = merge(
-      {
-        debounceWindow: 2000,
-      },
-      opts,
-    ).debounceWindow; // 2s repeat with the same uuid is permitted
-    this.log = merge(
-      {
-        log: {
-          debug: () => { },
-        },
-      },
-      opts,
-    ).log;
+import type { Logger } from "./Logger";
+import REST from './rest';
 
-    rest.jwt().then(jwt => {
-      this.socket = io(opts.url, {
+interface SocketOptions {
+  log: Logger;
+  debounceWindow?: number;
+  url: string;
+}
+
+export default class Socket {
+  debounces: Set<unknown> = new Set
+  log: Logger
+  debounceWindow: number
+  socket?: SocketIOClient.Socket
+
+  constructor(rest: REST, opts: SocketOptions) {
+    this.debounceWindow = opts.debounceWindow ?? 2000;
+    this.log = opts.log;
+    this.initialise(rest, opts.url);
+  }
+
+  private async initialise(rest: REST, url: string): Promise<void> {
+    try {
+      const jwt = await rest.jwt();
+
+      this.socket = io(url, {
         transportOptions: {
           polling: {
             extraHeaders: {
@@ -33,23 +39,24 @@ export default class Socket {
       this.socket.on('connect', () => {
         this.log.debug('socket ready');
       });
-    })
-      .catch(err => {
-        this.log.error('socket connection failed - JWT authentication error');
-      });
+    }
+    catch (err) {
+      this.log.error('socket connection failed - JWT authentication error');
+    }
   }
 
-  debounce(data, func) {
+  debounce(data: unknown, func: (data: unknown) => void): void {
+    // NOTE is this actually required? why is no explanation given for this?
     const uuid = merge(data)._uuid; // eslint-disable-line
 
     if (uuid) {
-      if (this.debounces[uuid]) {
+      if (this.debounces.has(uuid)) {
         return;
       }
 
-      this.debounces[uuid] = 1;
+      this.debounces.add(uuid);
       setTimeout(() => {
-        delete this.debounces[uuid];
+        this.debounces.delete(uuid);
       }, this.debounceWindow);
     }
 
@@ -58,7 +65,7 @@ export default class Socket {
     }
   }
 
-  watch(chan, func) {
+  watch(chan: string, func: (data: unknown) => void): void {
     if (!this.socket) {
       this.log.debug(`socket not ready. requeueing watch on ${chan}`);
 
@@ -68,12 +75,12 @@ export default class Socket {
       return;
     }
 
-    this.socket.on(chan, data => {
+    this.socket.on(chan, (data: unknown) => {
       return this.debounce(data, func);
     });
   }
 
-  emit(chan, data) {
+  emit(chan: string, data: unknown): void {
     if (!this.socket) {
       this.log.debug(`socket not ready. requeueing emit on ${chan}`);
 
