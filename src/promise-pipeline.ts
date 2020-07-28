@@ -1,3 +1,5 @@
+import { createInterval, DisposeTimer } from "./timers";
+
 export class QueryablePromise<T> extends Promise<T> {
   private resolved = false;
   private pending = true;
@@ -44,7 +46,7 @@ export default class PromisePipeline<T = unknown> {
   pipeline: Array<() => QueryablePromise<T>> = [];
   running: Array<QueryablePromise<T>> = [];
   completed = 0;
-  intervalId: NodeJS.Timeout | null = null;
+  timer: DisposeTimer | null = null;
 
   constructor({ bandwidth = 1, interval = 500, start = true }: { bandwidth?: number; interval?: number; start?: boolean }) {
 
@@ -61,19 +63,19 @@ export default class PromisePipeline<T = unknown> {
   }
 
   start(): void {
-    if (this.intervalId) {
+    if (this.timer) {
       return;
     }
 
-    this.intervalId = setInterval(() => {
+    this.timer = createInterval(this.interval, () => {
       this.monitorInterval();
-    }, this.interval);
+    });
   }
 
   stop(): void {
-    if (this.intervalId) {
-      clearInterval(this.intervalId);
-      this.intervalId = null;
+    if (this.timer) {
+      this.timer();
+      this.timer = null;
     }
   }
 
@@ -82,7 +84,7 @@ export default class PromisePipeline<T = unknown> {
       queued: this.pipeline.length,
       running: this.running.length,
       completed: this.completed,
-      state: this.intervalId ? 'running' : 'stopped',
+      state: this.timer ? 'running' : 'stopped',
     };
   }
 
