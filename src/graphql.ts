@@ -4,90 +4,144 @@
  */
 
 import gql from 'graphql-tag';
-import { assign, merge } from 'lodash';
 import { local, signing, url as baseUrl, user_agent as userAgent } from './default_options.json';
 import PageFragment from './fragments/PageFragment';
 import WorkflowFragment from './fragments/WorkflowFragment';
 import WorkflowInstanceFragment from './fragments/WorkflowInstanceFragment';
 import client from './gql-client';
 import utils from './utils';
+import { Logger, NoopLogMethod } from './Logger';
+import { DocumentNode } from 'graphql';
+import { ObjectDict } from './ObjectDict';
+import { isString } from 'lodash';
+import { FetchResult } from 'apollo-link';
+import { ApolloQueryResult } from 'apollo-client';
+
+interface GraphQLOptions {
+  url?: string;
+
+  log: Logger;
+  apikey?: string;
+  apisecret?: string;
+}
+
+interface GraphQLConfiguration {
+  url: string;
+  apikey?: string;
+  apisecret?: string;
+  agent_version: string;
+  local: boolean;
+  user_agent: string;
+  signing: boolean;
+}
+
+interface RequestContext {
+  apikey: string;
+  apisecret: string;
+  url: string;
+  [key: string]: unknown;
+}
+
+interface QueryOptions {
+  context?: ObjectDict;
+  variables?: ObjectDict;
+  options?: ObjectDict;
+}
 
 export default class GraphQL {
-  constructor(opts) {
-    this.options = assign(
-      {
-        agent_version: utils.version,
-        local,
-        url: baseUrl,
-        user_agent: userAgent,
-        signing,
-      },
-      opts,
-    );
+  readonly log: Logger
+  readonly client = client
+  readonly options: GraphQLConfiguration
 
-    this.options.url = this.options.url.replace(/:\/\//, '://graphql.'); // https://epi2me-dev.bla => https://graphql.epi2me-dev.bla
-    this.options.url = this.options.url.replace(/\/$/, ''); // https://epi2me-dev.graphql.bla/ => https://graphql.epi2me-dev.bla
-    this.log = this.options.log;
-    this.client = client;
+  constructor(opts: GraphQLOptions) {
+    let url = opts.url ?? baseUrl;
+    // https://epi2me-dev.bla => https://graphql.epi2me-dev.bla
+    url = url.replace(/:\/\//, '://graphql.');
+    // https://epi2me-dev.graphql.bla/ => https://graphql.epi2me-dev.bla
+    url = url.replace(/\/$/, '');
+
+    this.options = {
+      url,
+      agent_version: utils.version,
+      local,
+      user_agent: userAgent,
+      signing,
+      apikey: opts.apikey,
+      apisecret: opts.apisecret
+      // ...opts
+    };
+    this.log = opts.log;
   }
 
-  createContext = contextIn => {
+  createContext = (contextIn: ObjectDict): RequestContext => {
     // Merge any passed in context with requiredContext
-    const { apikey, apisecret, url } = this.options;
-    return merge(
-      {
+    const { apikey, apisecret } = this.options;
+    if (isString(apikey) && isString(apisecret)) {
+      return {
         apikey,
         apisecret,
-        url,
-      },
-      contextIn,
-    );
-  };
-
-  query = queryString => ({ context = {}, variables = {}, options = {} } = {}) => {
-    const requestContext = this.createContext(context);
-    let query;
-    // This lets us write queries using the gql tags and
-    // get the syntax highlighting
-    if (typeof queryString === 'string') {
-      query = gql`
-        ${queryString}
-      `;
-    } else if (typeof queryString === 'function') {
-      query = gql`
-        ${queryString(PageFragment)}
-      `;
+        url: this.options.url,
+        ...contextIn,
+      }
     } else {
-      query = queryString;
+      throw new Error('Unable to create GQL context without credentials');
     }
-
-    return this.client.query({
-      query,
-      variables,
-      ...options,
-      context: requestContext,
-    });
   };
 
-  mutate = queryString => ({ context = {}, variables = {}, options = {} } = {}) => {
-    const requestContext = this.createContext(context);
-    let mutation;
-    if (typeof queryString === 'string') {
-      mutation = gql`
-        ${queryString}
-      `;
-    } else {
-      mutation = queryString;
-    }
-    return this.client.mutate({
-      mutation,
-      variables,
-      ...options,
-      context: requestContext,
-    });
-  };
+  query(queryString: ((str: string) => DocumentNode) | string | DocumentNode) {
+    return (opt: QueryOptions = {}): Promise<ApolloQueryResult<unknown>> => {
+      const context = opt.context ?? {};
+      const variables = opt.variables ?? {};
+      const options = opt.options ?? {};
+      const requestContext = this.createContext(context);
+      let query: DocumentNode;
+      // This lets us write queries using the gql tags and
+      // get the syntax highlighting
+      if (typeof queryString === 'string') {
+        query = gql`
+          ${queryString}
+        `;
+      } else if (typeof queryString === 'function') {
+        query = gql`
+          ${queryString(PageFragment)}
+        `;
+      } else {
+        query = queryString;
+      }
 
-  resetCache = () => {
+      return this.client.query({
+        query,
+        variables,
+        ...options,
+        context: requestContext,
+      });
+    }
+  }
+
+  mutate(queryString: string | DocumentNode): (opt: QueryOptions) => Promise<FetchResult> {
+    return (opt: QueryOptions = {}): Promise<FetchResult> => {
+      const context = opt.context ?? {};
+      const variables = opt.variables ?? {};
+      const options = opt.options ?? {};
+      const requestContext = this.createContext(context);
+      let mutation;
+      if (typeof queryString === 'string') {
+        mutation = gql`
+          ${queryString}
+        `;
+      } else {
+        mutation = queryString;
+      }
+      return this.client.mutate({
+        mutation,
+        variables,
+        ...options,
+        context: requestContext,
+      });
+    }
+  }
+
+  resetCache = (): void => {
     this.client.resetStore();
   };
 
@@ -102,14 +156,14 @@ export default class GraphQL {
     }
   `);
 
-  workflowPages = async requestedPage => {
-    let page = requestedPage;
+  workflowPages = async (requestedPage: number): Promise<unknown> => {
+    let page: number = requestedPage;
     let data = await this.workflows({
       variables: {
         page,
       },
     });
-    const updatePage = async newPage => {
+    const updatePage = async (newPage: number): Promise<unknown> => {
       page = newPage;
       data = await this.workflows({
         variables: {
@@ -120,10 +174,10 @@ export default class GraphQL {
     };
     return {
       data,
-      next: () => updatePage(page + 1),
-      previous: () => updatePage(page - 1),
-      first: () => updatePage(1),
-      last: () => updatePage(0),
+      next: (): Promise<unknown> => updatePage(page + 1),
+      previous: (): Promise<unknown> => updatePage(page - 1),
+      first: (): Promise<unknown> => updatePage(1),
+      last: (): Promise<unknown> => updatePage(0),
     };
   };
 
@@ -270,7 +324,7 @@ export default class GraphQL {
     }
   `);
 
-  healthCheck = () => utils.get('/status', { ...this.options, log: { debug: () => { } } });
+  healthCheck = (): Promise<unknown> => utils.get('/status', { ...this.options, log: { debug: NoopLogMethod } });
 
   // Regions
 

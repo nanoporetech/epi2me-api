@@ -2,17 +2,35 @@ import crypto from 'crypto';
 import { merge } from 'lodash';
 import * as tunnel from 'tunnel';
 import { version as VERSION } from '../package.json';
+import { NoopLogger, Logger } from './Logger';
+import { ObjectDict } from './ObjectDict';
+import { AxiosRequestConfig } from 'axios';
 
-const gqlUtils = (function magic() {
+interface SigningOptions {
+  apikey?: string;
+  apisecret?: string;
+}
+
+type HeaderOptions = {
+  proxy?: string;
+  user_agent?: string;
+  agent_version?: string;
+  log?: Logger;
+  signing?: boolean;
+  headers?: ObjectDict;
+} & SigningOptions;
+
+interface GQLUtility {
+  version: string;
+  setHeaders(req: AxiosRequestConfig, options: HeaderOptions): void;
+}
+
+const gqlUtils = ((): GQLUtility => {
   const internal = {
-    sign: (req, optionsIn) => {
+    sign: (req: AxiosRequestConfig & { body: string }, options: SigningOptions = {}): void => {
       // common headers required for everything
       if (!req.headers) {
         req.headers = {};
-      }
-      let options = optionsIn;
-      if (!options) {
-        options = {};
       }
 
       if (!options.apikey || !options.apisecret) {
@@ -41,13 +59,8 @@ const gqlUtils = (function magic() {
   };
   return {
     version: VERSION,
-    setHeaders: (req, optionsIn) => {
-      const { log } = merge({ log: { debug: () => {} } }, optionsIn);
+    setHeaders: (req: AxiosRequestConfig & { body: string }, options: HeaderOptions = {}): void => {
       // common headers required for everything
-      let options = optionsIn;
-      if (!options) {
-        options = {};
-      }
 
       req.headers = merge(
         {
@@ -60,7 +73,7 @@ const gqlUtils = (function magic() {
         options.headers,
       );
 
-      if (!('signing' in options) || options.signing) {
+      if (options.signing ?? true) {
         // if not present: sign
         // if present and true: sign
         internal.sign(req, options);
@@ -68,15 +81,20 @@ const gqlUtils = (function magic() {
 
       if (options.proxy) {
         const matches = options.proxy.match(/https?:\/\/((\S+):(\S+)@)?(\S+):(\d+)/);
+        if (!matches) {
+          throw new Error(`Failed to parse Proxy URL`);
+        }
         const user = matches[2];
         const pass = matches[3];
         const host = matches[4];
-        const port = matches[5];
-        const proxy = { host, port };
+        const port = +matches[5];
+        const proxy: { host: string; port: number; proxyAuth?: string } = { host, port };
 
         if (user && pass) {
           proxy.proxyAuth = `${user}:${pass}`;
         }
+
+        const log = options.log ?? NoopLogger;
 
         if (options.proxy.match(/^https/)) {
           log.debug(`using HTTPS over HTTPS proxy`, JSON.stringify(proxy)); // nb. there's no CA/cert handling for self-signed certs
