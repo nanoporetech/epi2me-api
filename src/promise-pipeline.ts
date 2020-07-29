@@ -1,24 +1,49 @@
 import { createInterval, DisposeTimer } from "./timers";
 
+type Resolver<T> = (resolve: (value?: T) => void, reject: (reason?: unknown) => void) => void;
+
 export class QueryablePromise<T> extends Promise<T> {
   private resolved = false;
   private pending = true;
   private rejected = false;
-  readonly dependsOn: Promise<T>;
 
-  constructor(original: Promise<T>) {
-    super((res, rej) => original.then(
-      (val: T) => {
-        this.pending = false;
-        this.resolved = true;
-        res(val);
-      },
-      (err: unknown) => {
-        this.pending = false;
-        this.rejected = true;
-        rej(err);
-      }));
-    this.dependsOn = original;
+  /*
+    NOTE any class that extends Promise MUST also be able to accept the standard
+    promise constructor arguments. This is because when "then" is called a new
+    instance of the sub class is instantiated with a resolver passed in. "then"
+    is also called when awaiting a promise
+  */
+  constructor(original: Resolver<T> | Promise<T> ) {
+    super((res, rej) => {
+      if (typeof original === "function") {
+        original(
+          (val?: T) => {
+            this.pending = false;
+            this.resolved = true;
+            res(val);
+          },
+          (err: unknown) => {
+            this.pending = false;
+            this.rejected = true;
+            rej(err);
+          }
+        )
+      }
+      else {
+        original.then(
+          (val: T) => {
+            this.pending = false;
+            this.resolved = true;
+            res(val);
+          },
+          (err: unknown) => {
+            this.pending = false;
+            this.rejected = true;
+            rej(err);
+          }
+        )
+      }
+    });
   }
   isResolved(): boolean {
     return this.resolved;
