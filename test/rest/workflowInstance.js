@@ -4,24 +4,16 @@ import REST from '../../src/rest';
 
 describe('rest.workflowInstance', () => {
   let rest;
-  let stubs;
 
   beforeEach(() => {
     rest = new REST({
       url: 'http://metrichor.local:8080',
       apikey: 'FooBar02',
     });
-    stubs = [];
-  });
-
-  afterEach(() => {
-    stubs.forEach(s => {
-      s.restore();
-    });
   });
 
   it('should read a workflowInstance with promise', async () => {
-    sinon.stub(rest, 'read').resolves({
+    const stub = sinon.stub(rest, 'read').resolves({
       id_workflow_instance: '149',
       state: 'running',
       workflow_filename: 'DNA_Sequencing.js',
@@ -37,8 +29,7 @@ describe('rest.workflowInstance', () => {
       const obj = await rest.workflowInstance(149);
 
       assert.deepEqual(
-        obj,
-        {
+        obj, {
           id_workflow_instance: '149',
           state: 'running',
           workflow_filename: 'DNA_Sequencing.js',
@@ -53,6 +44,8 @@ describe('rest.workflowInstance', () => {
       );
     } catch (err) {
       assert.fail(err);
+    } finally {
+      stub.restore();
     }
   });
 });

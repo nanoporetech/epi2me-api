@@ -28,8 +28,8 @@ describe('rest.stopWorkflow', () => {
       await rest.stopWorkflow('123456');
     } catch (e) {
       assert.fail(`unexpected failure: ${String(e)}`);
+    } finally {
+      stub.restore();
     }
-
-    stub.restore();
   });
 });

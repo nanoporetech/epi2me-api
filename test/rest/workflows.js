@@ -14,8 +14,7 @@ describe('rest.workflow', () => {
       stream: ringbuf,
     });
     return new REST(
-      merge(
-        {
+      merge({
           log,
         },
         opts,
@@ -32,6 +31,8 @@ describe('rest.workflow', () => {
       data = await rest.workflows();
     } catch (e) {
       assert.fail(e);
+    } finally {
+      stub.restore();
     }
 
     assert.deepEqual(stub.lastCall.args[0], 'workflow', 'list-request args');

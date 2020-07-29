@@ -56,14 +56,11 @@ describe('rest.installToken', () => {
       'post args',
     );
     assert.deepEqual(
-      token,
-      {
+      token, {
         data: 'some data',
       },
       'token content',
     );
-
-    stub.restore();
   });
 
   it('must handle error', async () => {

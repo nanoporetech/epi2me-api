@@ -31,16 +31,16 @@ describe('rest.startWorkflow', () => {
       });
     } catch (e) {
       assert.fail(`unexpected error ${String(e)}`);
+    } finally {
+      stub.restore();
     }
 
     assert.deepEqual(
-      response,
-      {
+      response, {
         id_workflow_instance: '1',
         id_user: '1',
       },
       'workflow_instance start response',
     );
-    stub.restore();
   });
 });

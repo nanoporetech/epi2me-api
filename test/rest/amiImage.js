@@ -47,12 +47,13 @@ describe('rest.amiImage', () => {
       obj = await client.amiImage('ami-12345', data);
     } catch (err) {
       assert.fail(err);
+    } finally {
+      stub.restore();
     }
     assert.deepEqual(obj, {
       status: 'success',
     });
 
-    stub.restore();
   });
 
   it('should create an amiImage', async () => {
@@ -74,9 +75,10 @@ describe('rest.amiImage', () => {
       });
     } catch (e) {
       assert.fail(e);
+    } finally {
+      stub.restore();
     }
 
-    stub.restore();
   });
 
   it('should read an amiImage', async () => {
@@ -94,9 +96,10 @@ describe('rest.amiImage', () => {
       assert.deepEqual(obj, data);
     } catch (e) {
       assert.fail(e);
+    } finally {
+      stub.restore();
     }
 
-    stub.restore();
   });
 
   it('should bail without an id', async () => {
@@ -114,8 +117,8 @@ describe('rest.amiImage', () => {
       assert.fail(`unexpected success`);
     } catch (e) {
       assert(String(e).match(/no id_ami_image specified/));
+    } finally {
+      stub.restore();
     }
-
-    stub.restore();
   });
 });

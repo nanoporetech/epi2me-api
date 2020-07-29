@@ -17,8 +17,7 @@ describe('rest.user', () => {
       const options = optionsIn;
       delete options.agent_version;
       assert.deepEqual(
-        options,
-        {
+        options, {
           local: false,
           url: 'https://epi2me.nanoporetech.com',
           user_agent: 'EPI2ME API',
@@ -51,8 +50,7 @@ describe('rest.user', () => {
       stream: ringbuf,
     });
     const stub = sinon.stub(utils, 'get').callsFake((uri, options) => {
-      const { log } = options;
-      assert.equal(logger, log, 'options passed');
+      assert.equal(logger, options.log, 'options passed');
       assert.equal(uri, 'user', 'url passed');
     });
 
@@ -66,17 +64,16 @@ describe('rest.user', () => {
       user = await rest.user();
     } catch (e) {
       assert.fail(`unexpected error ${String(e)}`);
+    } finally {
+      stub.restore();
     }
 
     assert.deepEqual(user, {
-      accounts: [
-        {
-          id_user_account: 'none',
-          number: 'NONE',
-          name: 'None',
-        },
-      ],
+      accounts: [{
+        id_user_account: 'none',
+        number: 'NONE',
+        name: 'None',
+      }],
     });
-    stub.restore();
   });
 });

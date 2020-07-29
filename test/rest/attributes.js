@@ -24,8 +24,9 @@ describe('rest.attributes', () => {
       await rest.attributes();
     } catch (e) {
       assert.fail(`unexpected failure: ${String(e)}`);
+    } finally {
+      stub.restore();
     }
 
-    stub.restore();
   });
 });

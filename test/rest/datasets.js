@@ -29,8 +29,8 @@ describe('rest.datasets', () => {
   });
 
   it('must invoke list with null query', async () => {
-    sinon.stub(rest, 'list').resolves([]);
-
+    const stub = sinon.stub(rest, 'list').resolves([]);
+    stubs.push(stub);
     try {
       await rest.datasets();
     } catch (err) {
@@ -39,8 +39,8 @@ describe('rest.datasets', () => {
   });
 
   it('must invoke list with empty query', async () => {
-    sinon.stub(rest, 'list').resolves([]);
-
+    const stub = sinon.stub(rest, 'list').resolves([]);
+    stubs.push(stub);
     try {
       await rest.datasets({});
     } catch (err) {
@@ -49,8 +49,8 @@ describe('rest.datasets', () => {
   });
 
   it('must invoke list with query', async () => {
-    sinon.stub(rest, 'list').resolves([]);
-
+    const stub = sinon.stub(rest, 'list').resolves([]);
+    stubs.push(stub);
     try {
       await rest.datasets({
         show: 'shared',
