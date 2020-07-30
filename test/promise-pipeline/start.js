@@ -28,7 +28,7 @@ describe('promise-pipeline', () => {
       const pp = new PromisePipeline({
         start: false,
       });
-      pp.intervalId = 1;
+      pp.timer = () => {};
       const stub = sinon.stub(pp, 'monitorInterval').callsFake();
       pp.start();
       clock.tick(1000);
