@@ -68,7 +68,7 @@ export default class PromisePipeline<T = unknown> {
 
   bandwidth: number;
   interval: number;
-  pipeline: Array<() => QueryablePromise<T>> = [];
+  pipeline: Array<() => Promise<T>> = [];
   running: Array<QueryablePromise<T>> = [];
   completed = 0;
   timer: DisposeTimer | null = null;
@@ -83,7 +83,7 @@ export default class PromisePipeline<T = unknown> {
     }
   }
 
-  enqueue(promiseMaker: () => QueryablePromise<T>): void {
+  enqueue(promiseMaker: () => Promise<T>): void {
     this.pipeline.push(promiseMaker);
   }
 
