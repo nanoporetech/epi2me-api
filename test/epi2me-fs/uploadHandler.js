@@ -1,6 +1,8 @@
 import assert from 'assert';
 import fs from 'fs-extra';
-import { merge } from 'lodash';
+import {
+  merge
+} from 'lodash';
 import path from 'path';
 import sinon from 'sinon';
 import tmp from 'tmp';
@@ -14,8 +16,7 @@ describe('epi2me.uploadHandler', () => {
     tmpdir = tmp.dirSync().name;
     fs.writeFile(path.join(tmpdir, tmpfile), '');
     const client = new EPI2ME(
-      merge(
-        {
+      merge({
           inputFolder: tmpdir,
           url: 'https://epi2me-test.local',
           log: {
