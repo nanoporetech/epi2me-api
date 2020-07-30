@@ -5,7 +5,7 @@ import gql from 'graphql-tag';
 import { merge } from 'lodash';
 import sinon from 'sinon';
 import DEFAULTS from '../../src/default_options.json';
-import customFetcher from '../../src/fetcher';
+import { createCustomFetcher } from '../../src/fetcher';
 import client from '../../src/gql-client';
 import gqlUtils from '../../src/gql-utils';
 import GraphQL from '../../src/graphql';
@@ -434,14 +434,10 @@ describe('graphql.unittests', () => {
   });
   it('custom fetcher calls setHeaders', () => {
     const uri = 'https://graphql.epi2me.nanoporetech.com';
-    const requestOptions = {
-      headers: {
-        keys: {
-          apikey: 'a0207e050372b7b0b10cdce458e9e7f3a9cb3bd6',
-          apisecret: 'vo6QhSWdu9MqKQk9IC1ql9X7jI9zU1ptN9pqrJ0kPJ4fANYcGvKbB4Pp9QMG164J',
-        },
-      },
-    };
+    const fetcher = createCustomFetcher({
+      apikey: 'a0207e050372b7b0b10cdce458e9e7f3a9cb3bd6',
+      apisecret: 'vo6QhSWdu9MqKQk9IC1ql9X7jI9zU1ptN9pqrJ0kPJ4fANYcGvKbB4Pp9QMG164J',
+    });
     sinon.stub(axios, 'request').resolves({
       data: {
         random: 'data',
@@ -449,7 +445,7 @@ describe('graphql.unittests', () => {
       headers: {},
     });
     const setHeadersStub = sinon.stub(gqlUtils, 'setHeaders');
-    customFetcher(uri, requestOptions);
+    fetcher(uri);
     assert(setHeadersStub.called);
     sinon.restore();
   });
