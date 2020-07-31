@@ -13,9 +13,9 @@ import utils from './utils';
 import { Logger, NoopLogMethod } from './Logger';
 import { DocumentNode } from 'graphql';
 import { ObjectDict } from './ObjectDict';
-import { isString } from 'lodash';
 import { FetchResult } from 'apollo-link';
 import { ApolloQueryResult } from 'apollo-client';
+import { isString } from './runtime-typecast';
 
 interface GraphQLOptions {
   url?: string;

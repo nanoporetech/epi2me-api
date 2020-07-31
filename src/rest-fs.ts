@@ -6,9 +6,8 @@ import fs from 'fs-extra';
 import path from 'path';
 import REST, { AsyncCallback } from './rest';
 import utils from './utils-fs';
-import { asFunction, asRecord, asOptFunction, asOptRecord } from './runtime-typecast';
+import { isFunction, asFunction, asRecord, asOptFunction, asOptRecord } from './runtime-typecast';
 import { ObjectDict } from './ObjectDict';
-import { isFunction } from 'util';
 
 export default class REST_FS extends REST {
   async workflows(cb?: AsyncCallback): Promise<unknown> {
