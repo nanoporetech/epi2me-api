@@ -5,6 +5,7 @@ export interface UploadState {
   success: SuccessState;
   //        failure: {}, // failed upload counts by error message
   types: ObjectDict<number>; // completely uploaded file counts by file type {".fastq": 1, ".vcf": 17}
+  failure?: ObjectDict;
   niceTypes: string; // "1 .fastq, 17.vcf"
   progress: ProgressState;
 }
