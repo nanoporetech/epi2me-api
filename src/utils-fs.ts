@@ -6,7 +6,6 @@
 
 import axios, { AxiosRequestConfig } from 'axios';
 import fs from 'fs-extra';
-import { flatten } from 'lodash';
 import path from 'path';
 import utils, { UtilityOptions, Utility } from './utils';
 
@@ -101,11 +100,12 @@ const utilsFS: UtilityFS = {
 
       for (const folderEntry of folderContents) {
         const fullPath = path.join(item, folderEntry);
-        const contents = await this.lsRecursive(rootFolder, fullPath, exclusionFilter);
-        recursiveFolderContents.push(contents);
+        for (const item of await this.lsRecursive(rootFolder, fullPath, exclusionFilter)) {
+          recursiveFolderContents.push(item);
+        }
       }
 
-      return flatten(recursiveFolderContents);
+      return recursiveFolderContents;
     }
 
     if (stat.isFile() && rootFolder === item) {
