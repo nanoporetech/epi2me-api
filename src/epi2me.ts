@@ -19,7 +19,7 @@ import utils from './utils';
 import { ObjectDict } from './ObjectDict';
 import { Logger, LogMethod, FallbackLogger } from './Logger';
 import { EPI2ME_OPTIONS } from './epi2me-options';
-import { asRecord, isRecord, asOptString, asOptBoolean, asFunction, asString, asNumber, asArrayRecursive, asBoolean, asOptNumber, asIndexable, asIndex } from './runtime-typecast';
+import { asRecord, isRecord, asOptString, asOptBoolean, asFunction, asString, asNumber, asArrayRecursive, asBoolean, asOptNumber, asIndexable, asIndex, asOptFunction, asOptRecord } from './runtime-typecast';
 import { createUploadState, createDownloadState, States, UploadState, DownloadState, WarningState, SuccessState, ProgressState } from './epi2me-state';
 import { Configuration } from './Configuration';
 import { DisposeTimer, createInterval } from './timers';
@@ -62,7 +62,7 @@ export default class EPI2ME {
 
   stateReportTime?: number;
   liveStates$ = new BehaviorSubject(this.states);
-  downloadWorkerPool?: unknown[];
+  downloadWorkerPool?: ObjectDict;
 
   config: Configuration
   REST: REST | REST_FS
@@ -127,8 +127,15 @@ export default class EPI2ME {
       apisecret: asOptString(opt.apisecret),
       id_workflow_instance: asOptNumber(opt.id_workflow_instance),
       debounceWindow: asOptNumber(opt.debounceWindow),
+      proxy: asOptString(opt.proxy),
       // EPI2ME-FS options
-      inputFolders: asArrayRecursive(opt.inputFolders, asString, [])
+      inputFolders: asArrayRecursive(opt.inputFolders, asString, []),
+      outputFolder: asOptString(opt.outputFolder),
+      awsAcceleration: asOptString(opt.awsAcceleration),
+      agent_address: asOptString(opt.agent_address),
+      telemetryCb: asOptFunction(opt.telemetryCb),
+      dataCb: asOptFunction(opt.dataCb),
+      remoteShutdownCb: asOptFunction(opt.remoteShutdownCb),
     };
 
     if (opt.inputFolder) {
@@ -165,9 +172,10 @@ export default class EPI2ME {
     if (idWorkflowInstance) {
       this.mySocket.watch(`workflow_instance:state:${idWorkflowInstance}`, (newWorkerStatus) => {
         const { instance: instanceConfig } = this.config;
-        if (instanceConfig?.chain?.components) {
+        const components = asOptRecord(instanceConfig.chain?.components);
+        if (components) {
           const summaryTelemetry = asRecord(instanceConfig.summaryTelemetry);
-          const workerStatus = Object.entries(instanceConfig.chain.components)
+          const workerStatus = Object.entries(components)
             .sort((a, b) => parseInt(a[0], 10) - parseInt(b[0], 10))
           const indexableNewWorkerStatus = asIndexable(newWorkerStatus);
           const results = []
@@ -204,12 +212,20 @@ export default class EPI2ME {
     this.timers[intervalName] = createInterval(intervalDuration, cb);
   }
 
-  stopTimer(intervalName: "downloadCheckInterval" | "stateCheckInterval" | "fileCheckInterval" | "summaryTelemetryInterval"): void {
-    const timer = this.timers[intervalName];
+  stopTimer(intervalGroupName: "downloadCheckInterval" | "stateCheckInterval" | "fileCheckInterval" | "summaryTelemetryInterval"): void {
+    const timer = this.timers[intervalGroupName];
     if (timer) {
-      this.log.debug(`clearing ${intervalName} interval`);
+      this.log.debug(`clearing ${intervalGroupName} interval`);
       timer();
-      delete this.timers[intervalName];
+      delete this.timers[intervalGroupName];
+    }
+  }
+
+  stopTimeout(timerGroupName: "transferTimeouts", timerName: string): void {
+    const timeout = this.timers[timerGroupName][timerName];
+    if (timeout) {
+      timeout();
+      delete this.timers[timerGroupName][timerName];
     }
   }
 
@@ -291,13 +307,16 @@ export default class EPI2ME {
     });
   }
 
-  uploadState(table: "success" | "progress", op: string, newData: ObjectDict<string>): void {
+  uploadState(table: "success" | "types" | "progress", op: string, newData: ObjectDict<number>): void {
     const direction = 'upload';
     const state: UploadState = this.states.upload ?? createUploadState();
 
     if (table === "success") {
       this.updateSuccessState(state.success, op, newData);
     }
+    else if (table === "types") {
+      this.updateTypesState(state.types, op, newData);
+    }
     else {
       this.updateProgressState(state.progress, op, newData);
     }
@@ -341,13 +360,16 @@ export default class EPI2ME {
     this.liveStates$.next({ ...this.states });
   }
 
-  downloadState(table: "success" | "progress", op: string, newData: ObjectDict<string>): void {
+  downloadState(table: "success" | "types" | "progress", op: string, newData: ObjectDict<number>): void {
     const direction = 'upload';
     const state: DownloadState = this.states.download ?? createDownloadState();
 
     if (table === "success") {
       this.updateSuccessState(state.success, op, newData);
     }
+    else if (table === "types") {
+      this.updateTypesState(state.types, op, newData);
+    }
     else {
       this.updateProgressState(state.progress, op, newData);
     }
@@ -391,12 +413,12 @@ export default class EPI2ME {
     this.liveStates$.next({ ...this.states });
   }
 
-  updateSuccessState(state: SuccessState, op: string, newData: ObjectDict<string>): void {
+  updateSuccessState(state: SuccessState, op: string, newData: ObjectDict<number>): void {
     const safeKeys = new Set(["files", "bytes", "reads"])
     for (const key of Object.keys(newData)) {
       // Increment or decrement
       const sign = op === 'incr' ? 1 : -1;
-      const delta = sign * parseInt(newData[key] + "", 10);
+      const delta = sign * (newData[key] ?? 0);
       if (safeKeys.has(key)) {
         const typedKey = key as ("files" | "bytes" | "reads");
         state[typedKey] = state[typedKey] + delta;
@@ -404,12 +426,21 @@ export default class EPI2ME {
     }
   }
 
-  updateProgressState(state: ProgressState, op: string, newData: ObjectDict<string>): void {
+  updateTypesState(state: ObjectDict, op: string, newData: ObjectDict<number>): void {
+    for (const key of Object.keys(newData)) {
+      // Increment or decrement
+      const sign = op === 'incr' ? 1 : -1;
+      const delta = sign * (newData[key] ?? 0);
+      state[key] = asNumber(state[key], 0) + delta;
+    }
+  }
+
+  updateProgressState(state: ProgressState, op: string, newData: ObjectDict<number>): void {
     const safeKeys = new Set(["bytes", "total"])
     for (const key of Object.keys(newData)) {
       // Increment or decrement
       const sign = op === 'incr' ? 1 : -1;
-      const delta = sign * parseInt(newData[key] + "", 10);
+      const delta = sign * (newData[key] ?? 0);
       if (safeKeys.has(key)) {
         const typedKey = key as ("bytes" | "total");
         state[typedKey] = state[typedKey] + delta;

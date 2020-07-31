@@ -7,8 +7,8 @@
  */
 
 import AWS from 'aws-sdk';
-import fs, { WriteStream } from 'fs-extra'; /* MC-565 handle EMFILE & EXDIR gracefully; use Promises */
-import { isArray, merge, isUndefined } from 'lodash';
+import fs from 'fs-extra'; /* MC-565 handle EMFILE & EXDIR gracefully; use Promises */
+import {merge} from 'lodash';
 import { EOL, homedir } from 'os';
 import path from 'path';
 import { resolve } from 'url';
@@ -26,10 +26,24 @@ import fastqSplitter from './splitters/fastq';
 import fastqGzipSplitter from './splitters/fastq-gz';
 import utils from './utils-fs';
 import { ObjectDict } from './ObjectDict';
-import { asOptString, asString, asOptNumber, asOptRecord, asRecord, asNumber, makeString, makeBoolean } from './runtime-typecast';
+import { asOptString, isArray, asString, asOptNumber, isUndefined, asOptRecord, asRecord, asNumber, makeString, makeBoolean, asArrayRecursive, makeNumber, asOptIndex, asOptFunction } from './runtime-typecast';
 import { FetchResult } from 'apollo-link';
 import { Configuration } from './Configuration';
 import { createInterval, DisposeTimer, createTimeout } from './timers';
+import { isString } from 'util';
+import { Readable, Writable } from 'stream';
+import { PromiseResult } from 'aws-sdk/lib/request';
+
+const networkStreamErrors: WeakSet<Writable> = new WeakSet();
+
+interface FileDescriptor {
+  id: string;
+  name: string;
+  path: string;
+  size: number;
+  relative: string;
+  skip?: boolean;
+}
 
 const rootDir = (): string => {
   /* Windows: C:\Users\rmp\AppData\EPI2ME
@@ -54,12 +68,14 @@ export default class EPI2ME_FS extends EPI2ME {
   static Factory = Factory;
 
   SampleReader: SampleReader;
-  uploadsInProgress: unknown[];
+  uploadsInProgress: { abort (): void }[];
   sessionManager?: SessionManager;
-  telemetryLogStream?: WriteStream;
+  telemetryLogStream?: fs.WriteStream;
   db?: DB;
   checkForDownloadsRunning?: boolean;
   dirScanInProgress?: boolean;
+  uploadMessageQueue?: unknown;
+  downloadMessageQueue?: unknown;
 
   constructor(optstring: ObjectDict | string) {
     super(optstring); // sets up this.config & this.log
@@ -102,11 +118,13 @@ export default class EPI2ME_FS extends EPI2ME {
         .promise();
     } catch (error) {
       this.log.error(`deleteMessage exception: ${String(error)}`);
-      if (!this.states.download.failure) this.states.download.failure = {};
+      if (!this.states.download.failure) {
+        this.states.download.failure = {};
+      }
       this.states.download.failure[error] = this.states.download.failure[error] ?
         asNumber(this.states.download.failure[error]) + 1 :
         1;
-      return Promise.reject(error);
+      throw error;
     }
   }
 
@@ -138,7 +156,7 @@ export default class EPI2ME_FS extends EPI2ME {
   }
 
   async queueLength(queueURL: string): Promise<unknown> {
-    if (!queueURL) return Promise.reject(new Error('no queueURL specified'));
+    if (!queueURL) throw new Error('no queueURL specified');
 
     const queueName = queueURL.match(/([\w\-_]+)$/)?.[0];
     this.log.debug(`querying queue length of ${queueName}`);
@@ -157,11 +175,11 @@ export default class EPI2ME_FS extends EPI2ME {
         return parseInt(len, 10);
       }
 
-      return Promise.reject(new Error('unexpected response'));
     } catch (err) {
       this.log.error(`error in getQueueAttributes ${String(err)}`);
       throw err;
     }
+    throw new Error('unexpected response');
   }
 
   async autoStart(workflowConfig: ObjectDict, cb: (msg: string) => void): Promise<ObjectDict> {
@@ -238,46 +256,42 @@ export default class EPI2ME_FS extends EPI2ME {
     return this.autoConfigure(instance, cb);
   }
 
-  setClassConfigGQL({
-    data: {
-      startData: {
-        bucket,
-        idUser,
-        remoteAddr,
-        userDefined = {},
-        instance: {
-          outputqueue,
-          keyId,
-          startDate,
-          idWorkflowInstance,
-          mappedTelemetry,
-          chain,
-          workflowImage: {
-            region: {
-              name
-            },
-            workflow: {
-              idWorkflow
-            },
-            inputqueue,
-          },
-        },
-      },
-    },
-  }: FetchResult<ObjectDict>): void {
-    const map = {
+  setClassConfigGQL(result: FetchResult<ObjectDict>): void {
+    const startData = asRecord(result.data?.startData);
+    const instance = asRecord(startData.instance);
+    const workflowImage = asRecord(instance.workflowImage);
+    const {
       bucket,
-      user_defined: userDefined,
-      id_user: parseInt(idUser),
-      remote_addr: remoteAddr,
-      id_workflow_instance: idWorkflowInstance,
-      key_id: keyId,
-      start_date: startDate,
-      outputQueueName: outputqueue,
-      summaryTelemetry: mappedTelemetry,
-      inputQueueName: inputqueue,
-      id_workflow: parseInt(idWorkflow),
-      region: name || this.config.options.region,
+      idUser,
+      remoteAddr,
+      userDefined = {},
+    } = startData;
+    const {
+      outputqueue,
+      keyId,
+      startDate,
+      idWorkflowInstance,
+      mappedTelemetry,
+    } = instance;
+
+    const chain = isString(instance.chain) ? instance.chain : asRecord(instance.chain);
+    const name = asRecord(workflowImage.region).name;
+    const idWorkflow = makeNumber(asRecord(workflowImage.workflow).idWorkflow);
+    const inputqueue = workflowImage.inputqueue;
+
+    const map = {
+      bucket: asOptString(bucket),
+      user_defined: asOptRecord(userDefined),
+      id_user: asOptIndex(idUser),
+      remote_addr: asOptString(remoteAddr),
+      id_workflow_instance: asOptNumber(idWorkflowInstance),
+      key_id: asOptString(keyId),
+      start_date: asOptString(startDate),
+      outputQueueName: asOptString(outputqueue),
+      summaryTelemetry: asOptRecord(mappedTelemetry),
+      inputQueueName: asOptString(inputqueue),
+      id_workflow: idWorkflow,
+      region: asString(name, this.config.options.region),
       bucketFolder: `${outputqueue}/${idUser}/${idWorkflowInstance}`,
       chain: utils.convertResponseToObject(chain),
     };
@@ -313,7 +327,7 @@ export default class EPI2ME_FS extends EPI2ME {
     }
   }
 
-  initSessionManager(opts: ObjectDict = {}, children: { config: { update: Function } }[] = []): SessionManager {
+  initSessionManager(opts?: ObjectDict|null, children: { config: { update: Function } }[] = []): SessionManager {
     return new SessionManager(
       this.config.instance.id_workflow_instance,
       this.REST,
@@ -324,7 +338,7 @@ export default class EPI2ME_FS extends EPI2ME {
         region: this.config.instance.region,
         log: this.log,
         useGraphQL: this.config.options.useGraphQL,
-        ...opts
+        ...(opts ?? {})
       },
       this.graphQL,
     );
@@ -388,7 +402,7 @@ export default class EPI2ME_FS extends EPI2ME {
     });
 
     if (autoStartCb) {
-      autoStartCb(null, this.config.instance);
+      autoStartCb(""); // WARN this used to pass (null, instance) except the callback doesn't appear to accept this anywhere it is defined
     }
 
     // MC-7056 periodically fetch summary telemetry for local reporting purposes
@@ -429,7 +443,7 @@ export default class EPI2ME_FS extends EPI2ME {
         }
 
         try {
-          let instanceObj;
+          let instanceObj: ObjectDict;
           if (this.config.options.useGraphQL) {
             const query = await this.graphQL.query(
               `query workflowInstance($idWorkflowInstance: ID!) {
@@ -443,17 +457,18 @@ export default class EPI2ME_FS extends EPI2ME {
                 idWorkflowInstance: this.config.instance.id_workflow_instance
               }
             });
-            instanceObj = asRecord(response.data).instanceObj;
+            instanceObj = asRecord(asRecord(response.data).instanceObj);
           } else {
             instanceObj = await this.REST.workflowInstance(asNumber(this.config.instance.id_workflow_instance));
           }
           if (instanceObj.state === 'stopped') {
             this.log.warn(`instance was stopped remotely at ${instanceObj.stop_date}. shutting down the workflow.`);
             try {
-              const stopResult = await this.stopEverything();
+              await this.stopEverything();
 
-              if (typeof stopResult.config.options.remoteShutdownCb === 'function') {
-                stopResult.config.options.remoteShutdownCb(`instance was stopped remotely at ${instanceObj.stop_date}`);
+              const remoteShutdownCb = asOptFunction(this.config.options.remoteShutdownCb);
+              if (remoteShutdownCb) {
+                remoteShutdownCb(`instance was stopped remotely at ${instanceObj.stop_date}`);
               }
             } catch (stopError) {
               this.log.error(`Error whilst stopping: ${String(stopError)}`);
@@ -486,7 +501,7 @@ export default class EPI2ME_FS extends EPI2ME {
     }
     this.uploadsInProgress = [];
 
-    await super.stopUpload();
+    super.stopUpload();
 
     this.log.debug('clearing split files');
     if (this.db) {
@@ -532,7 +547,7 @@ export default class EPI2ME_FS extends EPI2ME {
     if (downloadWorkerPoolRemaining >= this.config.options.transferPoolSize) {
       /* ensure downloadPool is limited but fully utilised */
       this.log.debug(`${downloadWorkerPoolRemaining} downloads already queued`);
-      return Promise.resolve();
+      return;
     }
 
     let receiveMessageSet;
@@ -634,7 +649,7 @@ export default class EPI2ME_FS extends EPI2ME {
     this.dirScanInProgress = false;
     this.log.debug('upload: finished directory scan');
 
-    return Promise.resolve();
+    return;
   }
 
   async enqueueUploadFiles(files: unknown): Promise<unknown> {
@@ -650,31 +665,38 @@ export default class EPI2ME_FS extends EPI2ME {
       requires_storage?: boolean;
     } = {};
 
-    if (!isArray(files) || !files.length) return Promise.resolve();
+    if (!isArray(files) || !files.length) {
+      return;
+    }
 
     this.log.info(`enqueueUploadFiles ${files.length} files: ${files.map(file => file.path).join(' ')}.`);
 
-    if ('workflow' in this.config) {
-      if ('workflow_attributes' in this.config.workflow) {
+    const workflow = asOptRecord(this.config.workflow);
+    if (workflow) {
+      const workflowAttributes = asOptRecord(workflow.workflow_attributes);
+      const attributes = asOptRecord(workflow.attributes);
+      if (workflowAttributes) {
         // started from GUI agent
-        settings = this.config.workflow.workflow_attributes;
-      } else if ('attributes' in this.config.workflow) {
+        settings = workflowAttributes;
+      } else if (attributes) {
         // started from CLI
-        let {
-          attributes: attrs
-        } = this.config.workflow;
-        if (!attrs) {
-          attrs = {};
+
+        if ('epi2me:max_size' in attributes) {
+          settings['max_size'] = makeNumber(attributes['epi2me:max_size']);
+        }
+        if ('epi2me:max_files' in attributes) {
+          settings['max_files'] = makeNumber(attributes['epi2me:max_files']);
+        }
+        if ('epi2me:split_size' in attributes) {
+          settings['split_size'] = makeNumber(attributes['epi2me:split_size']);
+        }
+        if ('epi2me:split_reads' in attributes) {
+          settings['split_reads'] = makeNumber(attributes['epi2me:split_reads']);
         }
 
-        ['max_size', 'max_files', 'split_size', 'split_reads'].forEach(attr => {
-          if (`epi2me:${attr}` in attrs) {
-            settings[attr] = parseInt(attrs[`epi2me:${attr}`], 10);
-          }
-        });
-
-        if ('epi2me:category' in attrs) {
-          const epi2meCategory = attrs['epi2me:category'];
+        if ('epi2me:category' in attributes) {
+          // WARN this assumes that the value is a string, could actually be an array? both have the includes method
+          const epi2meCategory = asString(attributes['epi2me:category']);
           if (epi2meCategory.includes('storage')) {
             settings.requires_storage = true;
           }
@@ -684,37 +706,38 @@ export default class EPI2ME_FS extends EPI2ME {
 
     this.log.info(`enqueueUploadFiles settings ${JSON.stringify(settings)}`);
 
-    if ('requires_storage' in settings) {
-      if (settings.requires_storage) {
-        if (!('storage_account' in this.config.workflow)) {
-          const warning = {
-            msg: 'ERROR: Workflow requires storage enabled. Please provide a valid storage account [ --storage ].',
-            type: 'WARNING_STORAGE_ENABLED',
-          };
-          this.log.error(warning.msg);
-          this.states.warnings.push(warning);
-          return Promise.resolve();
-        }
+    if (settings.requires_storage) {
+      if (!workflow) {
+        throw new Error('Workflow isn\'t set');
+      }
+      if (!('storage_account' in workflow)) {
+        const warning = {
+          msg: 'ERROR: Workflow requires storage enabled. Please provide a valid storage account [ --storage ].',
+          type: 'WARNING_STORAGE_ENABLED',
+        };
+        this.log.error(warning.msg);
+        this.states.warnings.push(warning);
+        return;
       }
     }
 
     if ('split_size' in settings) {
-      splitSize = parseInt(settings.split_size, 10);
+      splitSize = makeNumber(settings.split_size);
       this.log.info(`enqueueUploadFiles splitting supported files at ${splitSize} bytes`);
     }
 
     if ('split_reads' in settings) {
-      splitReads = parseInt(settings.split_reads, 10);
+      splitReads = makeNumber(settings.split_reads);
       this.log.info(`enqueueUploadFiles splitting supported files at ${splitReads} reads`);
     }
 
     if ('max_size' in settings) {
-      maxFileSize = parseInt(settings.max_size, 10);
+      maxFileSize = makeNumber(settings.max_size);
       this.log.info(`enqueueUploadFiles restricting file size to ${maxFileSize}`);
     }
 
     if ('max_files' in settings) {
-      maxFiles = parseInt(settings.max_files, 10);
+      maxFiles = makeNumber(settings.max_files);
       this.log.info(`enqueueUploadFiles restricting file count to ${maxFiles}`);
 
       if (files.length > maxFiles) {
@@ -724,14 +747,14 @@ export default class EPI2ME_FS extends EPI2ME {
         };
         this.log.error(warning.msg);
         this.states.warnings.push(warning);
-        return Promise.resolve();
+        return;
       }
     }
 
     //    this.uploadState('filesCount', 'incr', { files: files.length });
     this.states.upload.filesCount += files.length; // total count of files for an instance
 
-    const inputBatchQueue = files.map(async fileIn => {
+    const inputBatchQueue = files.map(async (fileIn: unknown) => {
       const file = fileIn;
 
       if (maxFiles && this.states.upload.filesCount > maxFiles) {
@@ -786,9 +809,12 @@ export default class EPI2ME_FS extends EPI2ME {
           bandwidth: this.config.options.transferPoolSize,
         });
         let chunkId = 0;
-        const chunkHandler = async chunkFile => {
+        const chunkHandler = async (chunkFile: string): Promise<void> => {
           this.log.debug(`chunkHandler for ${chunkFile}`);
           // mark start of chunk transfer. do it before the stop check so it's cleaned up correctly if stopped early
+          if (!this.db) {
+            throw new Error('Database is required but not initialized');
+          }
           await this.db.splitFile(chunkFile, file.path);
 
           if (this.stopped) {
@@ -798,42 +824,46 @@ export default class EPI2ME_FS extends EPI2ME {
           }
 
           chunkId += 1;
-          return filestats(chunkFile)
-            .then(stats => {
-              return {
-                name: path.basename(chunkFile), // "my.fastq"
-                path: chunkFile, // "/Users/rpettett/test_sets/zymo/demo/INPUT_PREFIX/my.fastq"
-                relative: chunkFile.replace(this.config.options.inputFolder, ''), // "INPUT_PREFIX/my.fastq"
-                id: `${fileId}_${chunkId}`,
-                stats,
-                size: stats.bytes,
-              };
-            })
-            .then(async chunkStruct => {
-              const p = new Promise(chunkResolve => {
-                queue.enqueue(() => {
-                  this.log.info(`chunk upload starting ${chunkStruct.id} ${chunkStruct.path}`);
-                  // this function may have been sat in a queue for a while, so check 'stopped' state again
-                  if (this.stopped) {
-                    this.log.info(`chunk upload skipped (stopped) ${chunkStruct.id} ${chunkStruct.path}`);
-                    queue.stop();
-                    //                    queue.clear();
-                    chunkResolve();
-                    return Promise.resolve(); // .reject(new Error('stopped'));
-                  }
 
-                  return this.uploadJob(chunkStruct)
-                    .then(() => {
-                      return this.db.splitDone(chunkStruct.path);
-                    })
-                    .catch(e => {
-                      this.log.error(`chunk upload failed ${chunkStruct.id} ${chunkStruct.path}: ${String(e)}`);
-                    })
-                    .finally(chunkResolve);
-                });
-              });
-              await p; // need to wait for p to resolve before resolving the filestats outer
+          /*
+            TODO inputFolder is not defined, so this should presumably be using inputFolders which is an array
+            fixing that is somewhat more involved. In the meantime relative paths are presumably not relative
+          */
+          const stats = await filestats(chunkFile);
+          const chunkStruct = {
+            name: path.basename(chunkFile), // "my.fastq"
+            path: chunkFile, // "/Users/rpettett/test_sets/zymo/demo/INPUT_PREFIX/my.fastq"
+            relative: chunkFile.replace(this.config.options.inputFolder, ''), // "INPUT_PREFIX/my.fastq"
+            id: `${fileId}_${chunkId}`,
+            stats,
+            size: stats.bytes,
+          };
+          const p = new Promise((chunkResolve: Function): void => {
+            queue.enqueue(async (): Promise<void> => {
+              this.log.info(`chunk upload starting ${chunkStruct.id} ${chunkStruct.path}`);
+              // this function may have been sat in a queue for a while, so check 'stopped' state again
+              if (this.stopped) {
+                this.log.info(`chunk upload skipped (stopped) ${chunkStruct.id} ${chunkStruct.path}`);
+                queue.stop();
+                //                    queue.clear();
+                chunkResolve();
+                return; // .reject(new Error('stopped'));
+              }
+
+              try {
+                await this.uploadJob(chunkStruct);
+                if (!this.db) {
+                  throw new Error('Database is required but not initialized');
+                }
+                await this.db.splitDone(chunkStruct.path);
+              }
+              catch (e) {
+                this.log.error(`chunk upload failed ${chunkStruct.id} ${chunkStruct.path}: ${String(e)}`);
+              }
+              chunkResolve();
             });
+          });
+          await p; // need to wait for p to resolve before resolving the filestats outer
         };
 
         try {
@@ -842,11 +872,14 @@ export default class EPI2ME_FS extends EPI2ME {
         } catch (splitterError) {
           queue.stop();
           if (String(splitterError) === 'Error: stopped') {
-            return Promise.resolve();
+            return;
           }
           throw splitterError;
         }
 
+        if (!this.db) {
+          throw new Error('Database is required but not initialized');
+        }
         // mark the original file as done
         return this.db.uploadFile(file.path);
       } else if (maxFileSize && file.size > maxFileSize) {
@@ -882,21 +915,24 @@ export default class EPI2ME_FS extends EPI2ME {
       this.log.info(`upload: inputBatchQueue (${inputBatchQueue.length} jobs) complete`);
       // try and load more files straight away. returns a promise which resolves after awaiting the new work
       return this.loadUploadFiles();
-      // return Promise.resolve();
     } catch (err) {
       this.log.error(`upload: enqueueUploadFiles exception ${String(err)}`);
-      return Promise.reject(err);
+      throw err;
     }
   }
 
-  async uploadJob(file: unknown): Promise<unknown> {
+  async uploadJob(file: FileDescriptor): Promise<void> {
     // Initiate file upload to S3
 
     if ('skip' in file) {
-      return this.db.skipFile(file.path);
+      if (!this.db) {
+        throw new Error('Database is required but not initialized');
+      }
+      await this.db.skipFile(file.path);
+      return;
     }
 
-    let file2;
+    let file2: FileDescriptor|null = null;
     let errorMsg;
     try {
       this.log.info(`upload: ${file.id} starting`);
@@ -907,18 +943,14 @@ export default class EPI2ME_FS extends EPI2ME {
       this.log.error(`upload: ${file.id} done, but failed: ${String(errorMsg)}`);
     }
 
-    if (!file2) {
-      file2 = {};
-    }
-
     if (errorMsg) {
       this.log.error(`uploadJob ${errorMsg}`);
+
       if (!this.states.upload.failure) {
         this.states.upload.failure = {};
       }
-
       this.states.upload.failure[errorMsg] = this.states.upload.failure[errorMsg] ?
-        this.states.upload.failure[errorMsg] + 1 :
+        asNumber(this.states.upload.failure[errorMsg]) + 1 :
         1;
 
       if (String(errorMsg).match(/AWS.SimpleQueueService.NonExistentQueue/)) {
@@ -927,18 +959,21 @@ export default class EPI2ME_FS extends EPI2ME {
         return this.stopEverything();
       }
     } else {
+      const update = {
+        bytes: file2?.size
+      }
+
       // this.uploadState('queueLength', 'decr', file2.stats); // this.states.upload.queueLength = this.states.upload.queueLength ? this.states.upload.queueLength - readCount : 0;
       this.uploadState(
         'success',
         'incr',
-        merge({
+        {
           files: 1,
+          ...update
         },
-          file2.stats,
-        ),
       ); // this.states.upload.success = this.states.upload.success ? this.states.upload.success + readCount : readCount;
 
-      if (file2.name) {
+      if (file2?.name) {
         // nb. we only count types for successful uploads
         const ext = path.extname(file2.name);
         this.uploadState('types', 'incr', {
@@ -946,24 +981,25 @@ export default class EPI2ME_FS extends EPI2ME {
         });
       }
     }
-
-    return Promise.resolve(); // file-by-file?
+    // file-by-file?
   }
 
-  async receiveMessages(receiveMessages: unknown): Promise<unknown> {
+  async receiveMessages(receiveMessages?: PromiseResult<AWS.SQS.ReceiveMessageResult, AWS.AWSError>): Promise<void> {
     if (!receiveMessages || !receiveMessages.Messages || !receiveMessages.Messages.length) {
       /* no work to do */
       this.log.info('complete (empty)');
-
-      return Promise.resolve();
+      return;
     }
 
     if (!this.downloadWorkerPool) {
       this.downloadWorkerPool = {};
     }
 
-    receiveMessages.Messages.forEach(message => {
-      this.downloadWorkerPool[message.MessageId] = 1;
+    const workerPool = this.downloadWorkerPool;
+
+    for (const message of receiveMessages.Messages) {
+      const id = makeString(message.MessageId);
+      workerPool[id] = 1;
 
       const timeoutHandle = createTimeout((60 + this.config.options.downloadTimeout) * 1000,
         () => {
@@ -979,33 +1015,32 @@ export default class EPI2ME_FS extends EPI2ME {
           timeoutHandle();
           if (message) {
             // message is null if split file & stopping
-            delete this.downloadWorkerPool[message.MessageId];
+            delete workerPool[id];
           }
         });
-    });
+    }
 
     this.log.info(`downloader queued ${receiveMessages.Messages.length} messages for processing`);
     // return Promise.all(this.downloadWorkerPool); // does awaiting here control parallelism better?
-    return Promise.resolve();
   }
 
-  async processMessage(message: unknown): Promise<unknown> {
-    let messageBody;
+  async processMessage(message?: AWS.SQS.Message): Promise<void> {
+    let messageBody: ObjectDict;
     let folder;
 
     if (!message) {
       this.log.debug('download.processMessage: empty message');
-      return Promise.resolve();
+      return;
     }
 
-    if ('Attributes' in message) {
+    if (message.Attributes) {
       if ('ApproximateReceiveCount' in message.Attributes) {
         this.log.debug(`download.processMessage: ${message.MessageId} / ${message.Attributes.ApproximateReceiveCount}`);
       }
     }
 
     try {
-      messageBody = JSON.parse(message.Body);
+      messageBody = JSON.parse(asString(message.Body));
     } catch (jsonError) {
       this.log.error(`error parsing JSON message.Body from message: ${JSON.stringify(message)} ${String(jsonError)}`);
       try {
@@ -1013,14 +1048,12 @@ export default class EPI2ME_FS extends EPI2ME {
       } catch (e) {
         this.log.error(`Exception deleting message: ${String(e)}`);
       }
-      return Promise.resolve();
+      return;
     }
 
     /* MC-405 telemetry log to file */
     if (messageBody.telemetry) {
-      const {
-        telemetry
-      } = messageBody;
+      const telemetry = asRecord(messageBody.telemetry)
 
       if (telemetry.tm_path) {
         try {
@@ -1028,13 +1061,19 @@ export default class EPI2ME_FS extends EPI2ME {
           const s3 = await this.sessionedS3();
           const data = await s3
             .getObject({
-              Bucket: messageBody.bucket,
-              Key: telemetry.tm_path,
+              Bucket: asString(messageBody.bucket),
+              Key: asString(telemetry.tm_path),
             })
             .promise();
           this.log.info(`download.processMessage: ${message.MessageId} fetched telemetry`);
+          
+          const body = data.Body;
 
-          telemetry.batch = data.Body.toString('utf-8')
+          if (isUndefined(body)) {
+            throw new Error('Telemetry body is undefined');
+          }
+
+          telemetry.batch = body.toString('utf-8')
             .split('\n')
             .filter(d => d?.length > 0)
             .map(row => {
@@ -1051,6 +1090,9 @@ export default class EPI2ME_FS extends EPI2ME {
       }
 
       try {
+        if (!this.telemetryLogStream) {
+          throw new Error('Telemetry log stream is not initialized');
+        }
         this.telemetryLogStream.write(JSON.stringify(telemetry) + EOL);
       } catch (telemetryWriteErr) {
         this.log.error(`error writing telemetry: ${telemetryWriteErr}`);
@@ -1062,23 +1104,27 @@ export default class EPI2ME_FS extends EPI2ME {
 
     if (!messageBody.path) {
       this.log.warn(`nothing to download`);
-      return Promise.resolve();
+      return;
     }
 
-    const match = messageBody.path.match(/[\w\W]*\/([\w\W]*?)$/);
+    const match = asString(messageBody.path).match(/[\w\W]*\/([\w\W]*?)$/);
     const fn = match ? match[1] : '';
     // MC-7519: Multiple instances running means multiple outputs need to be namespaced by id_workflow_instance
-    folder = path.join(this.config.options.outputFolder, this.config.instance.id_workflow_instance || '');
+    const idWorkflowInstance = this.config.instance.id_workflow_instance;
+    folder = path.join(asString(this.config.options.outputFolder), isUndefined(idWorkflowInstance) ? '' : makeString(idWorkflowInstance));
 
+    const telemetry = asOptRecord(messageBody.telemetry);
+    const telemetryHints = asOptRecord(telemetry?.hints);
+    const telemetryHintsFolder = asOptString(telemetryHints?.folder);
     /* MC-940: use folder hinting if present */
-    if (messageBody.telemetry?.hints?.folder) {
-      this.log.debug(`using folder hint ${messageBody.telemetry.hints.folder}`);
+    if (telemetryHintsFolder) {
+      this.log.debug(`using folder hint ${telemetryHintsFolder}`);
       // MC-4987 - folder hints may now be nested.
       // eg: HIGH_QUALITY/CLASSIFIED/ALIGNED
       // or: LOW_QUALITY
-      const codes = messageBody.telemetry.hints.folder
+      const codes = telemetryHintsFolder
         .split('/') // hints are always unix-style
-        .map(o => o.toUpperCase()); // MC-5612 cross-platform uppercase "pass" folder
+        .map((o: string) => o.toUpperCase()); // MC-5612 cross-platform uppercase "pass" folder
       folder = path.join.apply(null, [folder, ...codes]);
     }
 
@@ -1090,7 +1136,8 @@ export default class EPI2ME_FS extends EPI2ME {
 
       // MC-6190 extra file extensions generated by workflow
       const fetchSuffixes = ['']; // default message object
-      let extra = this.config?.workflow?.settings?.output_format ? this.config.workflow.settings.output_format : [];
+      const settings = asOptRecord(this.config.workflow?.settings)
+      let extra = asArrayRecursive(settings?.output_format, asString, []);
       if (typeof extra === 'string' || extra instanceof String) {
         extra = extra.trim().split(/[\s,]+/); // do not use commas in file extensions. Ha.ha.
       }
@@ -1112,9 +1159,9 @@ export default class EPI2ME_FS extends EPI2ME {
           // initiateDownloadStream with another Promise which permits fetch-with-suffix failures
           return new Promise((resolve, reject) => {
             this.initiateDownloadStream({
-              bucket: messageBody.bucket,
-              path: fetchObject,
-            },
+                bucket: asString(messageBody.bucket),
+                path: fetchObject,
+              },
               message,
               fetchFile,
             )
@@ -1139,7 +1186,7 @@ export default class EPI2ME_FS extends EPI2ME {
       try {
         // MC-2540 : if there is some postprocessing to do( e.g fastq extraction) - call the dataCallback
         // dataCallback might depend on the exit_status ( e.g. fastq can only be extracted from successful reads )
-        const exitStatus = messageBody.telemetry?.json ? messageBody.telemetry.json.exit_status : false;
+        const exitStatus = telemetry?.json ?? false;
         if (exitStatus && this.config.options.dataCb) {
           this.config.options.dataCb(outputFile, exitStatus);
         }
@@ -1147,10 +1194,9 @@ export default class EPI2ME_FS extends EPI2ME {
         this.log.warn(`failed to fire data callback: ${err}`);
       }
     } else {
+      const batchSummary = asOptRecord(telemetry?.batch_summary);
       // telemetry-only mode uses readcount from message
-      const readCount = messageBody.telemetry.batch_summary?.reads_num ?
-        messageBody.telemetry.batch_summary.reads_num :
-        1;
+      const readCount = asOptNumber(batchSummary?.reads_num) ?? 1
 
       this.downloadState('success', 'incr', {
         files: 1,
@@ -1178,10 +1224,9 @@ export default class EPI2ME_FS extends EPI2ME {
     });
 
     /* must signal completion */
-    return Promise.resolve();
   }
 
-  async initiateDownloadStream(s3Item: unknown, message: unknown, outputFile: unknown): Promise<unknown> {
+  async initiateDownloadStream(s3Item: { bucket: string; path: string }, message: AWS.SQS.Message, outputFile: string): Promise<unknown> {
     // eslint-disable-next-line
     return new Promise(async (resolve, reject) => {
       let s3;
@@ -1191,23 +1236,23 @@ export default class EPI2ME_FS extends EPI2ME {
         reject(e);
       }
 
-      let file;
-      let rs;
+      let file: fs.WriteStream;
+      let rs: Readable;
 
-      const onStreamError = err => {
+      const onStreamError = (err: unknown): void => {
         this.log.error(
           `Error during stream of bucket=${s3Item.bucket} path=${s3Item.path} to file=${outputFile} ${String(err)}`,
         );
-        clearTimeout(this.timers.transferTimeouts[outputFile]);
-        delete this.timers.transferTimeouts[outputFile];
+        
+        this.stopTimeout("transferTimeouts", outputFile);
 
-        if (file.networkStreamError) {
+        if (networkStreamErrors.has(file)) {
           // already dealing with it
           return;
         }
 
         try {
-          file.networkStreamError = 1; /* MC-1953 - signal the file end of the pipe this the network end of the pipe failed */
+          networkStreamErrors.add(file);/* MC-1953 - signal the file end of the pipe this the network end of the pipe failed */
           file.close();
 
           fs.remove(outputFile)
@@ -1218,7 +1263,7 @@ export default class EPI2ME_FS extends EPI2ME {
               this.log.warn(`failed to remove ${outputFile}. unlinkException: ${String(unlinkException)}`);
             });
 
-          if (rs.destroy) {
+          if (rs instanceof fs.ReadStream && rs.destroy) {
             // && !rs.destroyed) {
             this.log.error(`destroying read stream for ${outputFile}`);
             rs.destroy();
@@ -1237,10 +1282,13 @@ export default class EPI2ME_FS extends EPI2ME {
         // MC-6270 : disable append to avoid appending the same data
         // file = fs.createWriteStream(outputFile, { "flags": "a" });
         file = fs.createWriteStream(outputFile);
+        if (!s3) {
+          throw new Error('S3 is required but not initialized');
+        }
         const req = s3.getObject(params);
 
         // track request/response bytes expected
-        req.on('httpHeaders', (status, headers) => {
+        req.on('httpHeaders', (_status, headers) => {
           // status, headers, response
           this.downloadState('progress', 'incr', {
             total: parseInt(headers['content-length'], 10),
@@ -1258,7 +1306,7 @@ export default class EPI2ME_FS extends EPI2ME {
       rs.on('error', onStreamError);
 
       file.on('finish', async () => {
-        if (file.networkStreamError) {
+        if (networkStreamErrors.has(file)) {
           return;
         }
 
@@ -1269,14 +1317,28 @@ export default class EPI2ME_FS extends EPI2ME {
         try {
           const ext = path.extname(outputFile);
           const stats = await filestats(outputFile);
+          const update: {
+            bytes: number;
+            reads?: number;
+            sequences?: number;
+          } = {
+            bytes: stats.bytes
+          };
+
+          if ('reads' in stats) {
+            update.reads = stats.reads;
+          }
+          if ('sequences' in stats) {
+            update.sequences = stats.sequences;
+          }
+          
           this.downloadState(
             'success',
             'incr',
-            merge({
+            {
               files: 1,
+              ...update
             },
-              stats,
-            ),
           );
           this.downloadState('types', 'incr', {
             [ext]: 1,
@@ -1299,10 +1361,16 @@ export default class EPI2ME_FS extends EPI2ME {
         }
 
         /* must signal completion */
-        clearInterval(this.timers.visibilityIntervals[outputFile]);
-        delete this.timers.visibilityIntervals[outputFile];
-        clearTimeout(this.timers.transferTimeouts[outputFile]);
-        delete this.timers.transferTimeouts[outputFile];
+        const clearVisibilityInterval = this.timers.visibilityIntervals[outputFile];
+        if (clearVisibilityInterval) {
+          clearVisibilityInterval();
+          delete this.timers.visibilityIntervals[outputFile];
+        }
+        const clearTransferTimeout = this.timers.transferTimeouts[outputFile];
+        if (clearTransferTimeout) {
+          clearTransferTimeout();
+          delete this.timers.transferTimeouts[outputFile];
+        }
 
         // MC-2143 - check for more jobs
         setTimeout(this.checkForDownloads.bind(this));
@@ -1323,10 +1391,13 @@ export default class EPI2ME_FS extends EPI2ME {
         transferTimeoutFunc,
       ); /* download stream timeout in ms */
 
-      const updateVisibilityFunc = async (): void => {
+      const updateVisibilityFunc = async (): Promise<void> => {
         if (this.stopped) {
-          clearInterval(this.timers.visibilityIntervals[outputFile]);
-          delete this.timers.visibilityIntervals[outputFile];
+          const interval = this.timers.visibilityIntervals[outputFile];
+          if (interval) {
+            interval();
+            delete this.timers.visibilityIntervals[outputFile];
+          }
         }
 
         const queueUrl = this.config.instance.outputQueueURL;
@@ -1354,7 +1425,11 @@ export default class EPI2ME_FS extends EPI2ME {
           },
             'Error setting visibility',
           );
-          this.timers.visibilityIntervals[outputFile]();
+          const interval = this.timers.visibilityIntervals[outputFile];
+          if (interval) {
+            interval();
+            delete this.timers.visibilityIntervals[outputFile];
+          }
           // reject here?
         }
       };
@@ -1366,7 +1441,10 @@ export default class EPI2ME_FS extends EPI2ME {
 
       rs.on('data', chunk => {
         // reset timeout
-        this.timers.transferTimeouts[outputFile]();
+        const timeout = this.timers.transferTimeouts[outputFile];
+        if (timeout) {
+          timeout();
+        }
         this.timers.transferTimeouts[outputFile] = createTimeout(
           1000 * this.config.options.downloadTimeout,
           transferTimeoutFunc,
@@ -1379,11 +1457,11 @@ export default class EPI2ME_FS extends EPI2ME {
     });
   }
 
-  async uploadHandler(file: { id: string; name: string; path: string; size: number; relative: string }): Promise<unknown> {
+  async uploadHandler(file: FileDescriptor): Promise<FileDescriptor> {
     /** open readStream and pipe to S3.upload */
     const s3 = await this.sessionedS3();
 
-    let rs;
+    let rs: fs.ReadStream;
 
     const mangledRelative = file.relative
       .replace(/^[\\/]+/, '')
@@ -1401,8 +1479,8 @@ export default class EPI2ME_FS extends EPI2ME {
 
     let timeoutHandle: DisposeTimer;
 
-    const p = new Promise((resolve, reject) => {
-      const timeoutFunc = () => {
+    const p = new Promise((resolve: (file: FileDescriptor) => void, reject) => {
+      const timeoutFunc = (): void => {
         if (rs && !rs.closed) rs.close();
         reject(new Error(`${file.name} timed out`));
       };
@@ -1428,9 +1506,16 @@ export default class EPI2ME_FS extends EPI2ME {
         reject(new Error(errstr));
       });
 
-      rs.on('open', () => {
-        const params = {
-          Bucket: this.config.instance.bucket,
+      rs.on('open', async () => {
+        const params: {
+          Bucket: string;
+          Key: string;
+          Body: fs.ReadStream;
+          SSEKMSKeyId?: string;
+          ServerSideEncryption?: string;
+          'Content-Length'?: number;
+        } = {
+          Bucket: asString(this.config.instance.bucket), // bucket is required by sq.upload, so assert on it's existence
           Key: objectId,
           Body: rs,
         };
@@ -1458,7 +1543,7 @@ export default class EPI2ME_FS extends EPI2ME {
         const managedUpload = s3.upload(params, options);
         this.uploadsInProgress.push(managedUpload);
         const sessionManager = this.initSessionManager(null, [managedUpload.service]);
-        sessionManager.sts_expiration = this.sessionManager.sts_expiration; // No special options here, so use the main session and don't refetch until it's expired
+        sessionManager.sts_expiration = this.sessionManager?.sts_expiration; // No special options here, so use the main session and don't refetch until it's expired
 
         managedUpload.on('httpUploadProgress', async progress => {
           // Breaking out here causes this.states.progress.bytes to get out of sync.
@@ -1481,33 +1566,31 @@ export default class EPI2ME_FS extends EPI2ME {
           }
         });
 
-        managedUpload
-          .promise()
-          .then(() => {
-            this.log.info(`${file.id} S3 upload complete`);
-            rs.close();
-            timeoutHandle();
+        try {
+          await managedUpload.promise()
+          this.log.info(`${file.id} S3 upload complete`);
+          rs.close();
+          timeoutHandle();
 
-            this.uploadComplete(objectId, file) // send message
-              .then(() => {
-                resolve(file);
-              })
-              .catch(uploadCompleteErr => {
-                console.log('catch');
-                reject(uploadCompleteErr);
-              })
-              .finally(() => {
-                this.uploadState('progress', 'decr', {
-                  total: file.size,
-                  bytes: file.size,
-                }); // zero in-flight upload counters
-                this.uploadsInProgress = this.uploadsInProgress.filter(upload => upload !== managedUpload);
-              });
-          })
-          .catch(uploadStreamErr => {
-            this.log.warn(`${file.id} uploadStreamError ${uploadStreamErr}`);
-            reject(uploadStreamErr);
-          });
+          try {
+            await this.uploadComplete(objectId, file) // send message
+            resolve(file);
+          }
+          catch (uploadCompleteErr) {
+            console.log('catch');
+            reject(uploadCompleteErr);
+          }
+          finally {
+            this.uploadState('progress', 'decr', {
+              total: file.size,
+              bytes: file.size,
+            }); // zero in-flight upload counters
+            this.uploadsInProgress = this.uploadsInProgress.filter(upload => upload !== managedUpload);
+          }
+        } catch(uploadStreamErr) {
+          this.log.warn(`${file.id} uploadStreamError ${uploadStreamErr}`);
+          reject(uploadStreamErr);
+        }
       });
 
       //      rs.on('end', rs.close);
@@ -1527,7 +1610,7 @@ export default class EPI2ME_FS extends EPI2ME {
       bucket?: string;
       outputQueue?: string;
       remote_addr?: string;
-      user_defined?: ObjectDict;
+      user_defined: ObjectDict | null;
       apikey?: string;
       id_workflow_instance?: number;
       id_master?: number;
@@ -1573,15 +1656,18 @@ export default class EPI2ME_FS extends EPI2ME {
     }
 
     if (message.components) {
+      const components = asArrayRecursive(message.components, asRecord);
       // optionally populate input + output queues
-      Object.keys(message.components).forEach(o => {
-        if (message.components[o].inputQueueName === 'uploadMessageQueue') {
-          message.components[o].inputQueueName = this.uploadMessageQueue;
+      for (const component of components) {
+        switch (component?.inputQueueName) {
+          case "uploadMessageQueue":
+            component.inputQueueName = this.uploadMessageQueue;
+          break;
+          case "downloadMessageQueue":
+            component.inputQueueName = this.downloadMessageQueue;
+          break;
         }
-        if (message.components[o].inputQueueName === 'downloadMessageQueue') {
-          message.components[o].inputQueueName = this.downloadMessageQueue;
-        }
-      });
+      }
     }
 
     let sentMessage = {};
@@ -1650,11 +1736,10 @@ export default class EPI2ME_FS extends EPI2ME {
             fs.writeJSONSync(fn, body);
             this.reportState$.next(true);
             this.log.debug(`fetched telemetry summary ${fn}`);
-            return Promise.resolve(body);
+            return body;
           })
           .catch(e => {
             this.log.debug(`Error fetching telemetry: ${String(e)}`);
-            return Promise.resolve(null);
           }),
       );
     });

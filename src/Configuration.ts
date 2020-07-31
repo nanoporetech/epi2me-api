@@ -1,5 +1,6 @@
 import { EPI2ME_OPTIONS } from "./epi2me-options";
 import { ObjectDict } from "./ObjectDict";
+import { Index } from "./runtime-typecast";
 
 export interface Configuration {
   options: EPI2ME_OPTIONS;
@@ -13,7 +14,7 @@ export interface Configuration {
     bucket?: string;
     user_defined?: ObjectDict;
     start_date?: string;
-    id_user?: number;
+    id_user?: Index;
     bucketFolder?: string;
     remote_addr?: string;
     region?: string;
@@ -24,5 +25,5 @@ export interface Configuration {
       region: string;
     };
   };
-  workflow?: unknown;
+  workflow?: ObjectDict;
 }

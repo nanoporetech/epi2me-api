@@ -1,5 +1,4 @@
 import { Logger } from "./Logger";
-
 export interface EPI2ME_OPTIONS {
   log: Logger;
   local: boolean;
@@ -34,4 +33,7 @@ export interface EPI2ME_OPTIONS {
   outputFolder?: string;
   awsAcceleration?: string;
   agent_address?: string;
+  telemetryCb?: Function;
+  dataCb?: Function;
+  remoteShutdownCb?: Function;
 }
