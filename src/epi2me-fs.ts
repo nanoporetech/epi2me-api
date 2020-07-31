@@ -15,7 +15,7 @@ import { resolve } from 'url';
 import DB from './db';
 import EPI2ME from './epi2me';
 import Factory from './factory';
-import filestats from './filestats';
+import filestats, { MappedFileStats } from './filestats';
 import niceSize from './niceSize';
 import Profile from './profile-fs';
 import PromisePipeline from './promise-pipeline';
@@ -24,7 +24,7 @@ import SampleReader from './sample-reader';
 import SessionManager from './session-manager';
 import fastqSplitter from './splitters/fastq';
 import fastqGzipSplitter from './splitters/fastq-gz';
-import utils from './utils-fs';
+import utils, { FileStat } from './utils-fs';
 import { ObjectDict } from './ObjectDict';
 import { asOptString, isArray, asString, asOptNumber, isUndefined, asOptRecord, asRecord, asNumber, makeString, makeBoolean, asArrayRecursive, makeNumber, asOptIndex, asOptFunction } from './runtime-typecast';
 import { FetchResult } from 'apollo-link';
@@ -36,14 +36,7 @@ import { PromiseResult } from 'aws-sdk/lib/request';
 
 const networkStreamErrors: WeakSet<Writable> = new WeakSet();
 
-interface FileDescriptor {
-  id: string;
-  name: string;
-  path: string;
-  size: number;
-  relative: string;
-  skip?: boolean;
-}
+type FileDescriptor = FileStat & { skip?: string; stats?: MappedFileStats };
 
 const rootDir = (): string => {
   /* Windows: C:\Users\rmp\AppData\EPI2ME
@@ -652,7 +645,7 @@ export default class EPI2ME_FS extends EPI2ME {
     return;
   }
 
-  async enqueueUploadFiles(files: unknown): Promise<unknown> {
+  async enqueueUploadFiles(files?: FileStat[]): Promise<unknown> {
     let maxFiles = 0;
     let maxFileSize = 0;
     let splitSize = 0;
@@ -754,8 +747,7 @@ export default class EPI2ME_FS extends EPI2ME {
     //    this.uploadState('filesCount', 'incr', { files: files.length });
     this.states.upload.filesCount += files.length; // total count of files for an instance
 
-    const inputBatchQueue = files.map(async (fileIn: unknown) => {
-      const file = fileIn;
+    const inputBatchQueue = files.map(async (file: FileDescriptor) => {
 
       if (maxFiles && this.states.upload.filesCount > maxFiles) {
         //
