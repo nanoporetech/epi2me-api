@@ -1,15 +1,36 @@
-import { isFunction, isBoolean, isString, isNumber, isArray, isObject } from 'lodash';
 import { ObjectDict } from './ObjectDict';
 
 export function isRecord(obj: unknown): obj is ObjectDict {
   return typeof obj === "object" && Array.isArray(obj) === false;
 }
 
+export function isFunction(obj: unknown): obj is Function {
+  return typeof obj === "function";
+}
+
+export function isBoolean(obj: unknown): obj is boolean {
+  return typeof obj === "boolean";
+}
+
+export function isString(obj: unknown): obj is string {
+  return typeof obj === "string";
+}
+
+export function isNumber(obj: unknown): obj is number {
+  return typeof obj === "number";
+}
+
+export function isArray(obj: unknown): obj is unknown[] {
+  return Array.isArray(obj);
+}
+
 export function isUndefined(obj: unknown): obj is undefined {
   return typeof obj === "undefined";
 }
 
-export { isFunction, isBoolean, isString, isNumber, isArray };
+export function isNullish(obj: unknown): obj is (null|undefined) {
+  return obj === null || typeof obj === "undefined";
+}
 
 /*
   All of these helpers are made to _validate_ the types of an unknown
@@ -34,7 +55,7 @@ export function asString(obj: unknown, fallback?: string): string {
   if (isString(obj)) {
     return obj;
   }
-  if (typeof obj === "undefined" && typeof fallback !== "undefined") {
+  if (isNullish(obj) && typeof fallback !== "undefined") {
     return fallback;
   }
   throw new Error(`Unable to cast ${typeof obj} to String`);
@@ -44,7 +65,7 @@ export function asNumber(obj: unknown, fallback?: number): number {
   if (isNumber(obj)) {
     return obj as number;
   }
-  if (typeof obj === "undefined" && typeof fallback !== "undefined") {
+  if (isNullish(obj) && typeof fallback !== "undefined") {
     return fallback;
   }
   throw new Error(`Unable to cast ${typeof obj} to Number`);
@@ -97,23 +118,23 @@ export function makeBoolean(obj: unknown): boolean {
   throw new Error(`Unable to cast ${typeof obj} to Boolean`);
 }
 
-type Index = number | string;
+export type Index = number | string;
 
 export function asIndex(obj: unknown, fallback?: Index): Index {
   if (isNumber(obj) || isString(obj)) {
     return obj as Index;
   }
-  if (typeof obj === "undefined" && typeof fallback !== "undefined") {
+  if (isNullish(obj) && typeof fallback !== "undefined") {
     return fallback;
   }
   throw new Error(`Unable to cast ${typeof obj} to Index`);
 }
 
 export function asIndexable(obj: unknown, fallback?: Record<Index, unknown>): Record<Index, unknown> {
-  if (isObject(obj)) {
+  if (isRecord(obj)) {
     return obj as Record<Index, unknown>;
   }
-  if (typeof obj === "undefined" && typeof fallback !== "undefined") {
+  if (isNullish(obj) && typeof fallback !== "undefined") {
     return fallback;
   }
   throw new Error(`Unable to cast ${typeof obj} to Indexable`);
@@ -123,7 +144,7 @@ export function asBoolean(obj: unknown, fallback?: boolean): boolean {
   if (isBoolean(obj)) {
     return obj;
   }
-  if (typeof obj === "undefined" && typeof fallback !== "undefined") {
+  if (isNullish(obj) && typeof fallback !== "undefined") {
     return fallback;
   }
   throw new Error(`Unable to cast ${typeof obj} to Boolean`);
@@ -133,7 +154,7 @@ export function asArray(obj: unknown, fallback?: unknown[]): unknown[] {
   if (isArray(obj)) {
     return obj as unknown[];
   }
-  if (typeof obj === "undefined" && typeof fallback !== "undefined") {
+  if (isNullish(obj) && typeof fallback !== "undefined") {
     return fallback;
   }
   throw new Error(`Unable to cast ${typeof obj} to Array`);
@@ -143,7 +164,7 @@ export function asRecord(obj: unknown, fallback?: ObjectDict): ObjectDict {
   if (isRecord(obj)) {
     return obj;
   }
-  if (typeof obj === "undefined" && typeof fallback !== "undefined") {
+  if (isNullish(obj) && typeof fallback !== "undefined") {
     return fallback;
   }
   throw new Error(`Unable to cast ${typeof obj} to Record`);
@@ -153,14 +174,14 @@ export function asFunction(obj: unknown, fallback?: Function): Function {
   if (isFunction(obj)) {
     return obj;
   }
-  if (typeof obj === "undefined" && typeof fallback !== "undefined") {
+  if (isNullish(obj) && typeof fallback !== "undefined") {
     return fallback;
   }
   throw new Error(`Unable to cast ${typeof obj} to Function`);
 }
 
 export function asArrayRecursive<T>(obj: unknown, visitor: (obj: unknown) => T, fallback?: T[]): T[] {
-  if (typeof obj === "undefined" && typeof fallback !== "undefined") {
+  if (isNullish(obj) && typeof fallback !== "undefined") {
     return fallback;
   }
   if (isArray(obj)) {
@@ -170,7 +191,7 @@ export function asArrayRecursive<T>(obj: unknown, visitor: (obj: unknown) => T, 
 }
 
 export function asRecordRecursive<T>(obj: unknown, visitor: (obj: unknown) => T, fallback?: ObjectDict<T>): ObjectDict<T> {
-  if (typeof obj === "undefined" && typeof fallback !== "undefined") {
+  if (isNullish(obj) && typeof fallback !== "undefined") {
     return fallback;
   }
   if (typeof obj === "object" && Array.isArray(obj) === false) {
@@ -185,71 +206,71 @@ export function asRecordRecursive<T>(obj: unknown, visitor: (obj: unknown) => T,
 }
 
 export function asOptString(obj: unknown): string | undefined {
-  if (typeof obj === "undefined") {
-    return obj;
+  if (isNullish(obj)) {
+    return undefined;
   }
   return asString(obj);
 }
 
 export function asOptNumber(obj: unknown): number | undefined {
-  if (typeof obj === "undefined") {
-    return obj;
+  if (isNullish(obj)) {
+    return undefined;
   }
   return asNumber(obj);
 }
 
 export function asOptIndex(obj: unknown): Index | undefined {
-  if (typeof obj === "undefined") {
-    return obj;
+  if (isNullish(obj)) {
+    return undefined;
   }
   return asIndex(obj);
 }
 
 export function asOptIndexable(obj: unknown): Record<Index, unknown> | undefined {
-  if (typeof obj === "undefined") {
-    return obj;
+  if (isNullish(obj)) {
+    return undefined;
   }
   return asIndexable(obj);
 }
 
 export function asOptBoolean(obj: unknown): boolean | undefined {
-  if (typeof obj === "undefined") {
-    return obj;
+  if (isNullish(obj)) {
+    return undefined;
   }
   return asBoolean(obj);
 }
 
 export function asOptArray(obj: unknown): unknown[] | undefined {
-  if (typeof obj === "undefined") {
-    return obj;
+  if (isNullish(obj)) {
+    return undefined;
   }
   return asArray(obj);
 }
 
 export function asOptRecord(obj: unknown): ObjectDict | undefined {
-  if (typeof obj === "undefined") {
-    return obj;
+  if (isNullish(obj)) {
+    return undefined;
   }
   return asRecord(obj);
 }
 
 export function asOptFunction(obj: unknown): Function | undefined {
-  if (typeof obj === "undefined") {
-    return obj;
+  if (isNullish(obj)) {
+    return undefined;
   }
   return asFunction(obj);
 }
 
 export function asOptArrayRecursive<T>(obj: unknown, visitor: (obj: unknown) => T): T[] | undefined {
-  if (typeof obj === "undefined") {
-    return obj;
+  if (isNullish(obj)) {
+    return undefined;
   }
   return asArrayRecursive(obj, visitor);
 }
 
 export function asOptRecordRecursive<T>(obj: unknown, visitor: (obj: unknown) => T): ObjectDict<T> | undefined {
-  if (typeof obj === "undefined") {
-    return obj;
+  if (isNullish(obj)) {
+    return undefined;
   }
   return asRecordRecursive(obj, visitor);
 }
