@@ -33,7 +33,7 @@ export default class db {
               dbh.run(`INSERT INTO folders (folder_path) VALUES ${placeholders}`, inputFolders),
             ]);
 
-            return Promise.resolve(dbh);
+            return dbh;
           } catch (e) {
             this.log.error(e);
             return Promise.reject(e);

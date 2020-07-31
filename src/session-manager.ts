@@ -48,7 +48,7 @@ export default class SessionManager {
   async session(): Promise<void> {
     /* Ignore if session is still valid */
     if (this.sts_expiration && this.sts_expiration > Date.now()) {
-      return Promise.resolve();
+      return;
     }
 
     this.log.debug('new instance token needed');
@@ -93,7 +93,5 @@ export default class SessionManager {
     } catch (err) {
       this.log.warn(`failed to fetch instance token: ${String(err)}`);
     }
-
-    return Promise.resolve();
   }
 }

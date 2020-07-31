@@ -3,14 +3,14 @@
  * Authors: rpettett, gvanginkel
  */
 
-import { assign, filter, merge, countBy, isFunction, isUndefined } from 'lodash';
+import { assign, filter, merge, countBy } from 'lodash';
 import os from 'os';
 import { local, signing, url as baseURL, user_agent as userAgent } from './default_options.json';
 import utils from './utils';
 import { Logger } from './Logger';
 import { EPI2ME_OPTIONS } from './epi2me-options';
 import { AxiosResponse } from 'axios';
-import { asArray, asRecord, asString, asOptFunction, asArrayRecursive, asIndex, asIndexable, asOptArrayRecursive, asOptIndex, asRecordRecursive } from './runtime-typecast';
+import { asArray, asRecord, asString, asOptFunction, asArrayRecursive, isUndefined, isFunction, asIndex, asIndexable, asOptArrayRecursive, asOptIndex, asRecordRecursive } from './runtime-typecast';
 import { ObjectDict } from './ObjectDict';
 import { isArray } from 'util';
 
@@ -264,7 +264,7 @@ export default class REST {
 
     try {
       await Promise.all(promises);
-      return cb ? cb(null, workflow) : Promise.resolve(workflow);
+      return cb ? cb(null, workflow) : workflow;
     } catch (err) {
       this.log.error(`${id}: error fetching config and parameters ${String(err)}`);
       return cb ? cb(err) : Promise.reject(err);

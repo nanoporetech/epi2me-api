@@ -27,7 +27,7 @@ export default class REST_FS extends REST {
         .map(id => path.join(WORKFLOW_DIR, id, 'workflow.json'))
         .map(filepath => fs.readJsonSync(filepath));
 
-      return cb ? cb(null, data) : Promise.resolve(data);
+      return cb ? cb(null, data) : data;
     } catch (e) {
       this.log.warn(e);
       return cb ? cb(err, null) : Promise.reject(err);
@@ -102,7 +102,7 @@ export default class REST_FS extends REST {
         workflow.filename = filename;
         return workflow;
       });
-      return cb ? cb(null, data) : Promise.resolve(data);
+      return cb ? cb(null, data) : data;
     } catch (err) {
       return cb ? cb(err) : Promise.reject(err);
     }
@@ -173,10 +173,10 @@ export default class REST_FS extends REST {
           attributes: null,
         };
       });
-      return cb ? cb(null, data) : Promise.resolve(data);
+      return cb ? cb(null, data) : data;
     } catch (err) {
       this.log.warn(err);
-      return cb ? cb(null, []) : Promise.resolve([]);
+      return cb ? cb(null, []) : [];
     }
   }
 
