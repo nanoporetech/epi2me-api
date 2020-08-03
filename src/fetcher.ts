@@ -19,7 +19,7 @@ function isMethod(str: string): str is Method {
 export type Fetch = (uri: RequestInfo, init: RequestInit) => Promise<Response>;
 
 export function createCustomFetcher({ apikey, apisecret }: ApiOptions): Fetch {
-  return (uri: RequestInfo, init: RequestInit): Promise<Response> => {
+  return (uri: RequestInfo, init: RequestInit = {}): Promise<Response> => {
     let request: AxiosRequestConfig;
     if (!init.method || isMethod(init.method)) {
       request = init as AxiosRequestConfig;
