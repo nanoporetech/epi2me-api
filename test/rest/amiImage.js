@@ -101,24 +101,4 @@ describe('rest.amiImage', () => {
     }
 
   });
-
-  it('should bail without an id', async () => {
-    const data = {
-      aws_id: 'ami-12345',
-      name: 'mon ami',
-      description: 'foo bar baz',
-      id_region: 1,
-      is_active: 1,
-    };
-    const stub = sinon.stub(client, 'read').resolves(data);
-
-    try {
-      await client.amiImage(null);
-      assert.fail(`unexpected success`);
-    } catch (e) {
-      assert(String(e).match(/no id_ami_image specified/));
-    } finally {
-      stub.restore();
-    }
-  });
 });
