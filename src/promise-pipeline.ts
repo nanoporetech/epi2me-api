@@ -1,69 +1,47 @@
 import { createInterval, DisposeTimer } from "./timers";
 
-type Resolver<T> = (resolve: (value?: T) => void, reject: (reason?: unknown) => void) => void;
-
-export class QueryablePromise<T> extends Promise<T> {
-  private resolved = false;
-  private pending = true;
-  private rejected = false;
-
-  /*
-    NOTE any class that extends Promise MUST also be able to accept the standard
-    promise constructor arguments. This is because when "then" is called a new
-    instance of the sub class is instantiated with a resolver passed in. "then"
-    is also called when awaiting a promise
-  */
-  constructor(original: Resolver<T> | Promise<T> ) {
-    super((res, rej) => {
-      if (typeof original === "function") {
-        original(
-          (val?: T) => {
-            this.pending = false;
-            this.resolved = true;
-            res(val);
-          },
-          (err: unknown) => {
-            this.pending = false;
-            this.rejected = true;
-            rej(err);
-          }
-        )
-      }
-      else {
-        original.then(
-          (val: T) => {
-            this.pending = false;
-            this.resolved = true;
-            res(val);
-          },
-          (err: unknown) => {
-            this.pending = false;
-            this.rejected = true;
-            rej(err);
-          }
-        )
-      }
-    });
-  }
-  isResolved(): boolean {
-    return this.resolved;
-  }
-  isRejected(): boolean {
-    return this.rejected;
-  }
-  isPending(): boolean {
-    return this.pending;
-  }
+export interface QueryablePromise<T> extends Promise<T> {
+  isResolved (): boolean;
+  isRejected (): boolean;
+  isPending (): boolean;
 }
 
+export function createQueryablePromise<T> (promise: Promise<T>): QueryablePromise<T> {
+  let pending = true;
+  let resolved = false;
+  let rejected = false;
+
+  promise.then(
+    () => {
+      pending = false;
+      resolved = true;
+    },
+    () => {
+      pending = false;
+      rejected = true;
+    }
+  );
+
+  return Object.assign(promise, {
+    isResolved (): boolean {
+      return resolved;
+    },
+    isRejected (): boolean {
+      return rejected;
+    },
+    isPending (): boolean {
+      return pending;
+    }
+  });
+}
 export default class PromisePipeline<T = unknown> {
   static MakeQueryablePromise<O>(promiseIn: Promise<O> | QueryablePromise<O>): QueryablePromise<O> {
     // Don't modify any promise that has been already modified.
-    if (promiseIn instanceof QueryablePromise) {
+    if ("isResolved" in promiseIn) {
       return promiseIn;
     }
 
-    return new QueryablePromise(promiseIn);
+    return createQueryablePromise(promiseIn);
   }
 
   bandwidth: number;
