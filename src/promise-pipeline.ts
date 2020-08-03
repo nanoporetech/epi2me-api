@@ -92,20 +92,9 @@ export default class PromisePipeline<T = unknown> {
   }
 
   monitorInterval(): void {
-    // remove complete jobs from the pipeline. reverse order so splice doesn't change indices
-    const completedPositions: number[] = [];
-
-    for (let i = 0; i < this.running.length; i += 1) {
-      const o = this.running[i];
-      if (!o.isPending()) {
-        completedPositions.unshift(i);
-      }
-    }
-
-    completedPositions.forEach(pos => {
-      this.running.splice(pos, 1); // remove completed promises in-place
-      this.completed += 1;
-    });
+    const runningCount = this.running.length;
+    this.running = this.running.filter(promise => promise.isPending());
+    this.completed += runningCount - this.running.length;
 
     const availablePositions = this.bandwidth - this.running.length;
     for (let i = 0; i < availablePositions; i += 1) {
