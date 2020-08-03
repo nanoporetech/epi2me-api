@@ -80,8 +80,8 @@ describe('promise-pipeline', () => {
       pp.state(),
       {
         queued: 0,
-        running: 2,
-        completed: 1, // i'm sure this should have completed 2 here!
+        running: 1,
+        completed: 2,
         state: 'running',
       },
       'completed jobs & state change',
@@ -98,8 +98,8 @@ describe('promise-pipeline', () => {
       pp.state(),
       {
         queued: 0,
-        running: 1,
-        completed: 2, // i'm sure this should have completed 3 here!
+        running: 0,
+        completed: 3,
         state: 'stopped',
       },
       'complete jobs & state change',
