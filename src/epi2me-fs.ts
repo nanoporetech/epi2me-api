@@ -1532,9 +1532,12 @@ export default class EPI2ME_FS extends EPI2ME {
           Body: rs,
         };
 
+        const service = new AWS.S3();
+
         const options = {
           partSize: 10 * 1024 * 1024,
           queueSize: 1,
+          service
         };
 
         if (this.config.instance.key_id) {
@@ -1554,7 +1557,7 @@ export default class EPI2ME_FS extends EPI2ME {
 
         const managedUpload = s3.upload(params, options);
         this.uploadsInProgress.push(managedUpload);
-        const sessionManager = this.initSessionManager(null, [managedUpload.service]);
+        const sessionManager = this.initSessionManager(null, [service]);
         sessionManager.sts_expiration = this.sessionManager?.sts_expiration; // No special options here, so use the main session and don't refetch until it's expired
 
         managedUpload.on('httpUploadProgress', async progress => {
