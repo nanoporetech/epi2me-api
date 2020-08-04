@@ -66,6 +66,7 @@ describe('epi2me.uploadHandler', () => {
     );
 
     sinon.stub(client, 'uploadComplete').resolves();
+    client.config.instance.bucket = "fake bucket id";
 
     try {
       await client.uploadHandler({
@@ -154,6 +155,7 @@ describe('epi2me.uploadHandler', () => {
     });
 
     sinon.stub(client, 'uploadComplete').resolves();
+    client.config.instance.bucket = "fake bucket id";
 
     try {
       await client.uploadHandler({
