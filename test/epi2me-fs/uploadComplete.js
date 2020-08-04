@@ -88,10 +88,10 @@ describe('epi2me.uploadComplete', () => {
       assert.deepEqual(
         JSON.parse(obj.MessageBody),
         {
-          bucket: null,
-          outputQueue: null,
-          remote_addr: null,
-          user_defined: null,
+          // bucket: null,
+          // outputQueue: null,
+          // remote_addr: null,
+          // user_defined: null,
           utc: '1970-01-01T00:00:00.000Z',
           path: 'object-id',
           prefix: '',
@@ -152,10 +152,10 @@ describe('epi2me.uploadComplete', () => {
       assert.deepEqual(
         JSON.parse(obj.MessageBody),
         {
-          bucket: null,
-          outputQueue: null,
-          remote_addr: null,
-          user_defined: null,
+          // bucket: null,
+          // outputQueue: null,
+          // remote_addr: null,
+          // user_defined: null,
           utc: '1970-01-01T00:00:00.000Z',
           path: 'object-id',
           prefix: '',
@@ -210,10 +210,10 @@ describe('epi2me.uploadComplete', () => {
       assert.deepEqual(
         JSON.parse(obj.MessageBody),
         {
-          bucket: null,
-          outputQueue: null,
-          remote_addr: null,
-          user_defined: null,
+          // bucket: null,
+          // outputQueue: null,
+          // remote_addr: null,
+          // user_defined: null,
           utc: '1970-01-01T00:00:00.000Z',
           path: 'object-id',
           prefix: '',
