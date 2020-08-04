@@ -10,7 +10,7 @@ import utils from './utils';
 import { Logger } from './Logger';
 import { EPI2ME_OPTIONS } from './epi2me-options';
 import { AxiosResponse } from 'axios';
-import { asArray, asRecord, asString, asOptFunction, asArrayRecursive, isUndefined, isFunction, asIndex, asIndexable, asOptArrayRecursive, asOptIndex, asRecordRecursive } from './runtime-typecast';
+import { asArray, asRecord, asString, asOptFunction, asArrayRecursive, isUndefined, isFunction, asIndex, asIndexable, asOptArrayRecursive, asOptIndex, asRecordRecursive, asOptString } from './runtime-typecast';
 import { ObjectDict } from './ObjectDict';
 import { isArray } from 'util';
 
@@ -177,7 +177,7 @@ export default class REST {
     }
 
     // read with callback or promise
-    const id = asString(first);
+    const id = asOptString(first);
     const cb = asOptFunction(second);
 
     // two args: get object: (123, func)
