@@ -151,6 +151,7 @@ describe('epi2me-api.processMessage', () => {
       await client.processMessage(
         {
           Body: JSON.stringify({
+            bucket: '',
             path:
               'OUTPUT-UUID/INPUT-UUID/9999/999999/component-2/OK/pass/CLASSIFIED/fastq_runid_shasum_15.fastq/fastq_runid_shasum_15.fastq',
           }),
