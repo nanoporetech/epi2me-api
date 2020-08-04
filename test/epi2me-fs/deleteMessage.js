@@ -48,7 +48,7 @@ describe('epi2me.deleteMessage', () => {
 
     try {
       await client.deleteMessage({
-        message: 'test message',
+        ReceiptHandle: 'test message',
       });
     } catch (error) {
       assert.fail(error);
