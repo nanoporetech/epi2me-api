@@ -1469,6 +1469,7 @@ export default class EPI2ME_FS extends EPI2ME {
     const s3 = await this.sessionedS3();
 
     let rs: fs.ReadStream;
+    let closed = false;
 
     const mangledRelative = file.relative
       .replace(/^[\\/]+/, '')
@@ -1488,7 +1489,7 @@ export default class EPI2ME_FS extends EPI2ME {
 
     const p = new Promise((resolve: (file: FileDescriptor) => void, reject) => {
       const timeoutFunc = (): void => {
-        if (rs && !rs.closed) rs.close();
+        if (rs && !closed) rs.close();
         reject(new Error(`${file.name} timed out`));
       };
       // timeout to ensure this completeCb *always* gets called
@@ -1496,6 +1497,9 @@ export default class EPI2ME_FS extends EPI2ME {
 
       try {
         rs = fs.createReadStream(file.path);
+        rs.on("close", () => {
+          closed = true;
+        });
       } catch (createReadStreamException) {
         timeoutHandle();
 
