@@ -16,7 +16,7 @@ describe('rest.stopWorkflow', () => {
     const stub = sinon.stub(utils, 'put').callsFake((uri, id, payload, options) => {
       assert.equal(uri, 'workflow_instance/stop', 'type passed');
       assert.equal(id, 123456, 'id passed');
-      assert.equal(payload, null, 'payload passed');
+      assert.deepEqual(payload, {}, 'payload passed');
       assert.ok(options.log instanceof bunyan, 'options off');
     });
 
