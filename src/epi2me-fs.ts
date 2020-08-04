@@ -101,7 +101,7 @@ export default class EPI2ME_FS extends EPI2ME {
 
   async deleteMessage(message: { ReceiptHandle?: string }): Promise<unknown> {
     try {
-      const queueURL = await this.discoverQueue(asString(this.config.instance.outputQueueName));
+      const queueURL = await this.discoverQueue(asOptString(this.config.instance.outputQueueName));
       const sqs = await this.sessionedSQS();
       return sqs
         .deleteMessage({
@@ -121,7 +121,7 @@ export default class EPI2ME_FS extends EPI2ME {
     }
   }
 
-  async discoverQueue(queueName: string): Promise<string> {
+  async discoverQueue(queueName = ""): Promise<string> {
     if (this.config.instance.discoverQueueCache[queueName]) {
       return asString(this.config.instance.discoverQueueCache[queueName]);
     }
@@ -305,7 +305,7 @@ export default class EPI2ME_FS extends EPI2ME {
     conf.bucket = asOptString(instance.bucket);
     conf.user_defined = asOptRecord(instance.user_defined);
     conf.start_date = asOptString(instance.start_date);
-    conf.id_user = asOptNumber(instance.id_user);
+    conf.id_user = asOptIndex(instance.id_user);
 
     // copy tuples with different names / structures
     conf.inputQueueName = asOptString(instance.inputqueue);
@@ -515,7 +515,7 @@ export default class EPI2ME_FS extends EPI2ME {
     this.log.debug('checkForDownloads checking for downloads');
 
     try {
-      const queueURL = await this.discoverQueue(asString(this.config.instance.outputQueueName));
+      const queueURL = await this.discoverQueue(asOptString(this.config.instance.outputQueueName));
       const len = await this.queueLength(queueURL);
 
       if (!len) {
@@ -545,7 +545,7 @@ export default class EPI2ME_FS extends EPI2ME {
 
     let receiveMessageSet;
     try {
-      const queueURL = await this.discoverQueue(asString(this.config.instance.outputQueueName));
+      const queueURL = await this.discoverQueue(asOptString(this.config.instance.outputQueueName));
       this.log.debug('fetching messages');
 
       const sqs = await this.sessionedSQS();
@@ -559,7 +559,7 @@ export default class EPI2ME_FS extends EPI2ME {
         })
         .promise();
     } catch (err) {
-      const msg = makeString(err);
+      const msg = err.toString();
       this.log.error(`receiveMessage exception: ${msg}`);
       const failures = this.states.download.failure;
       if (failures) {
@@ -590,11 +590,12 @@ export default class EPI2ME_FS extends EPI2ME {
     this.log.debug('upload: started directory scan');
 
     try {
-      const db = this.db;
-      if (isUndefined(db)) {
-        throw new Error("Database has not been initialized");
-      }
-      const dbFilter = async (fileIn: string): Promise<boolean> => makeBoolean(await db.seenUpload(fileIn));
+      const dbFilter = async (fileIn: string): Promise<boolean> => {
+        if (isUndefined(this.db)) {
+          throw new Error("Database has not been initialized");
+        }
+        return makeBoolean(await this.db.seenUpload(fileIn));
+      };
 
       // find files waiting for upload
       const files = await utils.loadInputFiles(this.config.options, this.log, dbFilter);
@@ -951,8 +952,22 @@ export default class EPI2ME_FS extends EPI2ME {
         return this.stopEverything();
       }
     } else {
+      const stats = file2?.stats;
+
       const update = {
-        bytes: file2?.size
+        bytes: 0,
+        reads: 0,
+        sequences: 0
+      };
+
+      if (stats) {
+        if ('reads' in stats) {
+          update.reads = stats.reads;
+        }
+        if ('sequences' in stats) {
+          update.sequences = stats.sequences;
+        }
+        update.bytes = stats.bytes ?? 0;
       }
 
       // this.uploadState('queueLength', 'decr', file2.stats); // this.states.upload.queueLength = this.states.upload.queueLength ? this.states.upload.queueLength - readCount : 0;
@@ -1602,7 +1617,7 @@ export default class EPI2ME_FS extends EPI2ME {
       bucket?: string;
       outputQueue?: string;
       remote_addr?: string;
-      user_defined: ObjectDict | null;
+      user_defined?: ObjectDict;
       apikey?: string;
       id_workflow_instance?: number;
       id_master?: number;
@@ -1614,7 +1629,7 @@ export default class EPI2ME_FS extends EPI2ME {
       bucket: this.config.instance.bucket,
       outputQueue: this.config.instance.outputQueueName,
       remote_addr: this.config.instance.remote_addr,
-      user_defined: this.config.instance.user_defined || null, // MC-2397 - bind param this.config to each sqs message
+      user_defined: this.config.instance.user_defined, // MC-2397 - bind param this.config to each sqs message
       apikey: this.config.options.apikey,
       id_workflow_instance: this.config.instance.id_workflow_instance,
       id_master: this.config.instance.id_workflow,
@@ -1664,7 +1679,7 @@ export default class EPI2ME_FS extends EPI2ME {
 
     let sentMessage = {};
     try {
-      const inputQueueURL = await this.discoverQueue(asString(this.config.instance.inputQueueName));
+      const inputQueueURL = await this.discoverQueue(asOptString(this.config.instance.inputQueueName));
       const sqs = await this.sessionedSQS();
 
       this.log.info(`${file.id} sending SQS message to input queue`);
