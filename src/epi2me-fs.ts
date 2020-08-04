@@ -818,15 +818,19 @@ export default class EPI2ME_FS extends EPI2ME {
 
           chunkId += 1;
 
-          /*
-            TODO inputFolder is not defined, so this should presumably be using inputFolders which is an array
-            fixing that is somewhat more involved. In the meantime relative paths are presumably not relative
-          */
+          let relativePath: string | null = null;
+          for (const folder of this.config.options.inputFolders) {
+            if (chunkFile.includes(folder)) {
+              relativePath = chunkFile.replace(folder, '');
+              break;
+            }
+          }
+
           const stats = await filestats(chunkFile);
           const chunkStruct = {
             name: path.basename(chunkFile), // "my.fastq"
             path: chunkFile, // "/Users/rpettett/test_sets/zymo/demo/INPUT_PREFIX/my.fastq"
-            relative: chunkFile.replace(this.config.options.inputFolder, ''), // "INPUT_PREFIX/my.fastq"
+            relative: asString(relativePath), // "INPUT_PREFIX/my.fastq"
             id: `${fileId}_${chunkId}`,
             stats,
             size: stats.bytes,
