@@ -8,6 +8,6 @@ export default class db {
     skipFile(filename: string): Promise<sqlite.Statement>;
     splitFile(child: string, parent: string): Promise<sqlite.Statement>;
     splitDone(child: string): Promise<sqlite.Statement>;
-    splitClean(): Promise<any[]>;
+    splitClean(): Promise<void>;
     seenUpload(filename: string): Promise<number>;
 }

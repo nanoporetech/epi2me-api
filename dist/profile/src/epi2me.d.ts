@@ -1,122 +1,74 @@
-declare class EPI2ME {
-    constructor(OptString: any);
-    log: any;
+import { BehaviorSubject } from 'rxjs';
+import GraphQL from './graphql';
+import Profile, { AllProfileData } from './profile';
+import REST from './rest';
+import type REST_FS from './rest-fs';
+import type ProfileFS from './profile-fs';
+import Socket from './socket';
+import { ObjectDict } from './ObjectDict';
+import { Logger } from './Logger';
+import { EPI2ME_OPTIONS } from './epi2me-options';
+import { States, UploadState, DownloadState, WarningState, SuccessState, ProgressState } from './epi2me-state';
+import { Configuration } from './Configuration';
+import { DisposeTimer } from './timers';
+export default class EPI2ME {
+    static version: string;
+    static Profile: {
+        new (o: AllProfileData): Profile;
+    } | {
+        new (s?: string, r?: boolean): ProfileFS;
+    };
+    static REST: {
+        new (o: EPI2ME_OPTIONS): REST | REST_FS;
+    };
+    static utils: import("./utils").Utility;
+    readonly log: Logger;
     stopped: boolean;
     uploadState$: BehaviorSubject<boolean>;
     analyseState$: BehaviorSubject<boolean>;
     reportState$: BehaviorSubject<boolean>;
-    instanceTelemetry$: BehaviorSubject<null>;
-    experimentalWorkerStatus$: BehaviorSubject<null>;
     runningStates$: import("rxjs").Observable<[boolean, boolean, boolean]>;
-    states: {
-        upload: {
-            filesCount: number;
-            success: {
-                files: number;
-                bytes: number;
-                reads: number;
-            };
-            types: {};
-            niceTypes: string;
-            progress: {
-                bytes: number;
-                total: number;
-            };
-        };
-        download: {
-            progress: {};
-            success: {
-                files: number;
-                reads: number;
-                bytes: number;
-            };
-            fail: number;
-            types: {};
-            niceTypes: string;
-        };
-        warnings: never[];
-    };
-    liveStates$: BehaviorSubject<{
-        upload: {
-            filesCount: number;
-            success: {
-                files: number;
-                bytes: number;
-                reads: number;
-            };
-            types: {};
-            niceTypes: string;
-            progress: {
-                bytes: number;
-                total: number;
-            };
-        };
-        download: {
-            progress: {};
-            success: {
-                files: number;
-                reads: number;
-                bytes: number;
-            };
-            fail: number;
-            types: {};
-            niceTypes: string;
-        };
-        warnings: never[];
-    }>;
-    config: {
-        options: any;
-        instance: {
-            id_workflow_instance: any;
-            inputQueueName: null;
-            outputQueueName: null;
-            outputQueueURL: null;
-            discoverQueueCache: {};
-            bucket: null;
-            bucketFolder: null;
-            remote_addr: null;
-            chain: null;
-            key_id: null;
-        };
-    };
-    REST: REST;
-    graphQL: GraphQL;
+    instanceTelemetry$: BehaviorSubject<unknown>;
+    experimentalWorkerStatus$: BehaviorSubject<unknown>;
+    states: States;
     timers: {
-        downloadCheckInterval: null;
-        stateCheckInterval: null;
-        fileCheckInterval: null;
-        transferTimeouts: {};
-        visibilityIntervals: {};
-        summaryTelemetryInterval: null;
+        downloadCheckInterval?: DisposeTimer;
+        stateCheckInterval?: DisposeTimer;
+        fileCheckInterval?: DisposeTimer;
+        transferTimeouts: ObjectDict<DisposeTimer>;
+        visibilityIntervals: ObjectDict<DisposeTimer>;
+        summaryTelemetryInterval?: DisposeTimer;
     };
+    stateReportTime?: number;
+    liveStates$: BehaviorSubject<States>;
+    downloadWorkerPool?: ObjectDict;
+    config: Configuration;
+    REST: REST | REST_FS;
+    graphQL: GraphQL;
+    mySocket?: Socket;
+    constructor(optstring?: ObjectDict | string);
+    static parseOptObject(opt: ObjectDict): EPI2ME_OPTIONS;
+    static resolveLogger(log: unknown): Logger;
     socket(): Promise<Socket>;
-    mySocket: Socket | undefined;
-    realtimeFeedback(channel: any, object: any): Promise<void>;
-    stopTimer(intervalName: any): void;
+    realtimeFeedback(channel: string, object: unknown): Promise<void>;
+    setTimer(intervalName: "downloadCheckInterval" | "stateCheckInterval" | "fileCheckInterval" | "summaryTelemetryInterval", intervalDuration: number, cb: Function): void;
+    stopTimer(intervalGroupName: "downloadCheckInterval" | "stateCheckInterval" | "fileCheckInterval" | "summaryTelemetryInterval"): void;
+    stopTimeout(timerGroupName: "transferTimeouts", timerName: string): void;
     stopAnalysis(): Promise<void>;
-    stopUpload(): Promise<void>;
+    stopUpload(): void;
     stopEverything(): Promise<void>;
-    downloadWorkerPool: any;
     reportProgress(): void;
-    storeState(direction: any, table: any, op: any, newDataIn: any): void;
-    stateReportTime: number | undefined;
-    uploadState(table: any, op: any, newData: any): void;
-    downloadState(table: any, op: any, newData: any): void;
-    url(): any;
-    apikey(): any;
-    attr(key: any, value: any): any;
-    stats(key: any): any;
+    uploadState(table: "success" | "types" | "progress", op: string, newData: ObjectDict<number>): void;
+    downloadState(table: "success" | "types" | "progress", op: string, newData: ObjectDict<number>): void;
+    updateSuccessState(state: SuccessState, op: string, newData: ObjectDict<number>): void;
+    updateTypesState(state: ObjectDict, op: string, newData: ObjectDict<number>): void;
+    updateProgressState(state: ProgressState, op: string, newData: ObjectDict<number>): void;
+    url(): string | undefined;
+    apikey(): string | undefined;
+    /**
+     * @deprecated attr() breaks type guarantees for the configuration options
+     * and hence is depreciated.
+     */
+    attr(key: keyof EPI2ME_OPTIONS, value: EPI2ME_OPTIONS[keyof EPI2ME_OPTIONS]): EPI2ME_OPTIONS[keyof EPI2ME_OPTIONS] | this;
+    stats(key: keyof States): UploadState | DownloadState | WarningState;
 }
-declare namespace EPI2ME {
-    export const version: string;
-    export { Profile };
-    export { REST };
-    export { utils };
-}
-export default EPI2ME;
-import { BehaviorSubject } from "rxjs";
-import REST from "./rest";
-import GraphQL from "./graphql";
-import Socket from "./socket";
-import Profile from "./profile";
-import utils from "./utils";

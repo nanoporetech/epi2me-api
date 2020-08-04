@@ -1,1 +1,1 @@
-export { default } from './epi2me-fs';
+export { default } from './epi2me';

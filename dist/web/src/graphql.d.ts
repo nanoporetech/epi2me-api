@@ -1,86 +1,56 @@
-export default class GraphQL {
-    constructor(opts: any);
-    options: any;
-    log: any;
-    client: import("apollo-client").ApolloClient<import("apollo-cache-inmemory").NormalizedCacheObject>;
-    createContext: (contextIn: any) => any;
-    query: (queryString: any) => ({ context, variables, options }?: {
-        context?: {} | undefined;
-        variables?: {} | undefined;
-        options?: {} | undefined;
-    }) => Promise<import("apollo-client").ApolloQueryResult<any>>;
-    mutate: (queryString: any) => ({ context, variables, options }?: {
-        context?: {} | undefined;
-        variables?: {} | undefined;
-        options?: {} | undefined;
-    }) => Promise<import("apollo-link").FetchResult<any, Record<string, any>, Record<string, any>>>;
-    resetCache: () => void;
-    workflows: ({ context, variables, options }?: {
-        context?: {} | undefined;
-        variables?: {} | undefined;
-        options?: {} | undefined;
-    }) => Promise<import("apollo-client").ApolloQueryResult<any>>;
-    workflowPages: (requestedPage: any) => Promise<{
-        data: import("apollo-client").ApolloQueryResult<any>;
-        next: () => Promise<import("apollo-client").ApolloQueryResult<any>>;
-        previous: () => Promise<import("apollo-client").ApolloQueryResult<any>>;
-        first: () => Promise<import("apollo-client").ApolloQueryResult<any>>;
-        last: () => Promise<import("apollo-client").ApolloQueryResult<any>>;
-    }>;
-    workflow: ({ context, variables, options }?: {
-        context?: {} | undefined;
-        variables?: {} | undefined;
-        options?: {} | undefined;
-    }) => Promise<import("apollo-client").ApolloQueryResult<any>>;
-    workflowInstances: ({ context, variables, options }?: {
-        context?: {} | undefined;
-        variables?: {} | undefined;
-        options?: {} | undefined;
-    }) => Promise<import("apollo-client").ApolloQueryResult<any>>;
-    workflowInstance: ({ context, variables, options }?: {
-        context?: {} | undefined;
-        variables?: {} | undefined;
-        options?: {} | undefined;
-    }) => Promise<import("apollo-client").ApolloQueryResult<any>>;
-    startWorkflow: ({ context, variables, options }?: {
-        context?: {} | undefined;
-        variables?: {} | undefined;
-        options?: {} | undefined;
-    }) => Promise<import("apollo-link").FetchResult<any, Record<string, any>, Record<string, any>>>;
-    stopWorkflow: ({ context, variables, options }?: {
-        context?: {} | undefined;
-        variables?: {} | undefined;
-        options?: {} | undefined;
-    }) => Promise<import("apollo-link").FetchResult<any, Record<string, any>, Record<string, any>>>;
-    instanceToken: ({ context, variables, options }?: {
-        context?: {} | undefined;
-        variables?: {} | undefined;
-        options?: {} | undefined;
-    }) => Promise<import("apollo-link").FetchResult<any, Record<string, any>, Record<string, any>>>;
-    user: ({ context, variables, options }?: {
-        context?: {} | undefined;
-        variables?: {} | undefined;
-        options?: {} | undefined;
-    }) => Promise<import("apollo-client").ApolloQueryResult<any>>;
-    updateUser: ({ context, variables, options }?: {
-        context?: {} | undefined;
-        variables?: {} | undefined;
-        options?: {} | undefined;
-    }) => Promise<import("apollo-link").FetchResult<any, Record<string, any>, Record<string, any>>>;
-    register: ({ context, variables, options }?: {
-        context?: {} | undefined;
-        variables?: {} | undefined;
-        options?: {} | undefined;
-    }) => Promise<import("apollo-link").FetchResult<any, Record<string, any>, Record<string, any>>>;
-    status: ({ context, variables, options }?: {
-        context?: {} | undefined;
-        variables?: {} | undefined;
-        options?: {} | undefined;
-    }) => Promise<import("apollo-client").ApolloQueryResult<any>>;
-    healthCheck: () => Promise<any>;
-    regions: ({ context, variables, options }?: {
-        context?: {} | undefined;
-        variables?: {} | undefined;
-        options?: {} | undefined;
-    }) => Promise<import("apollo-client").ApolloQueryResult<any>>;
+import { Logger } from './Logger';
+import { DocumentNode } from 'graphql';
+import { ObjectDict } from './ObjectDict';
+import { FetchResult } from 'apollo-link';
+import { ApolloQueryResult } from 'apollo-client';
+interface GraphQLOptions {
+    url?: string;
+    log: Logger;
+    apikey?: string;
+    apisecret?: string;
 }
+interface GraphQLConfiguration {
+    url: string;
+    apikey?: string;
+    apisecret?: string;
+    agent_version: string;
+    local: boolean;
+    user_agent: string;
+    signing: boolean;
+}
+interface RequestContext {
+    apikey?: string;
+    apisecret?: string;
+    url: string;
+    [key: string]: unknown;
+}
+interface QueryOptions {
+    context?: ObjectDict;
+    variables?: ObjectDict;
+    options?: ObjectDict;
+}
+export default class GraphQL {
+    readonly log: Logger;
+    readonly client: import("apollo-client").ApolloClient<import("apollo-cache-inmemory").NormalizedCacheObject>;
+    readonly options: GraphQLConfiguration;
+    constructor(opts: GraphQLOptions);
+    createContext: (contextIn: ObjectDict) => RequestContext;
+    query(queryString: ((str: string) => DocumentNode) | string | DocumentNode): (opt?: QueryOptions) => Promise<ApolloQueryResult<unknown>>;
+    mutate(queryString: string | DocumentNode): (opt: QueryOptions) => Promise<FetchResult>;
+    resetCache: () => void;
+    workflows: (opt?: QueryOptions) => Promise<ApolloQueryResult<unknown>>;
+    workflowPages: (requestedPage: number) => Promise<unknown>;
+    workflow: (opt?: QueryOptions) => Promise<ApolloQueryResult<unknown>>;
+    workflowInstances: (opt?: QueryOptions) => Promise<ApolloQueryResult<unknown>>;
+    workflowInstance: (opt?: QueryOptions) => Promise<ApolloQueryResult<unknown>>;
+    startWorkflow: (opt: QueryOptions) => Promise<FetchResult>;
+    stopWorkflow: (opt: QueryOptions) => Promise<FetchResult>;
+    instanceToken: (opt: QueryOptions) => Promise<FetchResult>;
+    user: (opt?: QueryOptions) => Promise<ApolloQueryResult<unknown>>;
+    updateUser: (opt: QueryOptions) => Promise<FetchResult>;
+    register: (opt: QueryOptions) => Promise<FetchResult>;
+    status: (opt?: QueryOptions) => Promise<ApolloQueryResult<unknown>>;
+    healthCheck: () => Promise<unknown>;
+    regions: (opt?: QueryOptions) => Promise<ApolloQueryResult<unknown>>;
+}
+export {};

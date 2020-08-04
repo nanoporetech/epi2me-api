@@ -1,13 +1,23 @@
-export default utils;
-declare namespace utils {
-    export function pipe(uriIn: any, filepath: any, options: any, progressCb: any): Promise<any>;
-    export function getFileID(): string;
-    export function lsRecursive(rootFolderIn: any, item: any, exclusionFilter: any): any;
-    export function loadInputFiles({ inputFolders, outputFolder, filetype: filetypesIn }: {
-        inputFolders: any;
-        outputFolder: any;
-        filetype: any;
-    }, log: any, extraFilter: any): Promise<any>;
-    export function stripFile(filename: any): string[];
+/// <reference types="node" />
+import fs from 'fs-extra';
+import { UtilityOptions, Utility } from './utils';
+export interface FileStat {
+    name: string;
+    path: string;
+    relative: string;
+    size: number;
+    id: string;
 }
-import utils from "./utils";
+export interface UtilityFS extends Utility {
+    pipe(uri: string, path: string, options: UtilityOptions, progressCallback: (e: unknown) => void): Promise<unknown>;
+    getFileID(): string;
+    lsRecursive(rootFolderIn: string, item: string, exclusionFilter: (str: string, stat: fs.Stats) => Promise<boolean>): Promise<FileStat[]>;
+    loadInputFiles({ inputFolders, outputFolder, filetype: filetypesIn }: {
+        inputFolders: string[];
+        outputFolder?: string;
+        filetype: string | string[];
+    }, _log: unknown, extraFilter?: (file: string) => Promise<boolean>): Promise<FileStat[]>;
+    stripFile(filename: string): [string, string];
+}
+declare const utilsFS: UtilityFS;
+export default utilsFS;

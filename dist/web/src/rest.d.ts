@@ -1,27 +1,47 @@
+import { Logger } from './Logger';
+import { EPI2ME_OPTIONS } from './epi2me-options';
+import { ObjectDict } from './ObjectDict';
+export declare type AsyncCallback = (err: unknown, data: unknown) => void;
 export default class REST {
-    constructor(options: any);
-    options: any;
-    log: any;
-    cachedResponses: {};
-    list(entity: any): Promise<any>;
-    read(entity: any, id: any): Promise<any>;
-    user(): Promise<any>;
-    status(): Promise<any>;
-    jwt(): Promise<any>;
-    instanceToken(id: any, opts: any): Promise<any>;
-    installToken(id: any): Promise<any>;
-    attributes(): Promise<any>;
-    workflows(): Promise<any>;
-    amiImages(): Promise<any>;
-    amiImage(first: any, second: any): Promise<any>;
-    workflow(first: any, second: any, third: any): Promise<any>;
-    startWorkflow(config: any): Promise<any>;
-    stopWorkflow(idWorkflowInstance: any): Promise<any>;
-    workflowInstances(query: any): Promise<any>;
-    workflowInstance(id: any): Promise<any>;
-    workflowConfig(id: any): Promise<any>;
-    register(code: any, description: any): Promise<any>;
-    datasets(queryIn: any): Promise<any>;
-    dataset(id: any): Promise<any>;
-    fetchContent(url: any): Promise<any>;
+    options: EPI2ME_OPTIONS;
+    log: Logger;
+    cachedResponses: Map<string, {
+        etag: string;
+        response: ObjectDict;
+    }>;
+    constructor(options: EPI2ME_OPTIONS);
+    list(entity: string): Promise<unknown[]>;
+    read(entity: string, id: string): Promise<ObjectDict>;
+    user(): Promise<ObjectDict>;
+    status(): Promise<ObjectDict>;
+    jwt(): Promise<string>;
+    instanceToken(id: unknown, opts: {}): Promise<ObjectDict>;
+    installToken(id: unknown): Promise<ObjectDict>;
+    attributes(): Promise<unknown>;
+    workflows(cb?: (err: unknown, data: unknown) => void): Promise<unknown>;
+    amiImages(): Promise<unknown>;
+    /**
+     * @deprecated
+     * Use the more specific updateAmiImage/createAmiImage/readAmiImage calls
+     */
+    amiImage(first: string | ObjectDict, second?: ObjectDict): Promise<ObjectDict>;
+    updateAmiImage(id: string, obj: ObjectDict): Promise<ObjectDict>;
+    createAmiImage(obj: ObjectDict): Promise<ObjectDict>;
+    readAmiImage(id: string): Promise<ObjectDict>;
+    workflow(first: unknown, second: unknown, third: unknown): Promise<unknown>;
+    updateWorkflow(id: string, obj: ObjectDict, cb?: Function): Promise<ObjectDict>;
+    createWorkflow(obj: ObjectDict, cb?: Function): Promise<ObjectDict>;
+    startWorkflow(config: ObjectDict): Promise<ObjectDict>;
+    stopWorkflow(idWorkflowInstance: number): Promise<ObjectDict>;
+    workflowInstances(query?: {
+        run_id?: string;
+    }): Promise<unknown>;
+    workflowInstance(id: number): Promise<ObjectDict>;
+    workflowConfig(id: string): Promise<ObjectDict>;
+    register(code: string, description: unknown): Promise<ObjectDict>;
+    datasets(query?: {
+        show?: string;
+    } | AsyncCallback): Promise<unknown>;
+    dataset(id: string): Promise<unknown>;
+    fetchContent(url: string): Promise<ObjectDict>;
 }

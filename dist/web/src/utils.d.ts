@@ -1,10 +1,33 @@
-export default utils;
-declare const utils: {
+import { AxiosRequestConfig, AxiosResponse } from 'axios';
+import { LogMethod } from './Logger';
+import { ObjectDict } from './ObjectDict';
+export interface Utility {
     version: string;
-    headers: (req: any, optionsIn: any) => void;
-    head: (uriIn: any, options: any) => Promise<any>;
-    get: (uriIn: any, options: any) => Promise<any>;
-    post: (uriIn: any, obj: any, options: any) => Promise<any>;
-    put: (uriIn: any, id: any, obj: any, options: any) => Promise<any>;
-    convertResponseToObject(data: any): any;
-};
+    headers(request: AxiosRequestConfig, options: UtilityOptions): void;
+    head(uri: string, options: UtilityOptions): Promise<AxiosResponse>;
+    get(uri: string, options: UtilityOptions): Promise<ObjectDict>;
+    post<T = ObjectDict>(uriIn: string, obj: ObjectDict, options: UtilityOptions & {
+        handler?: (res: AxiosResponse) => Promise<T>;
+    }): Promise<T | ObjectDict>;
+    put(uri: string, id: string, obj: ObjectDict, options: UtilityOptions): Promise<ObjectDict>;
+    mangleURL(uri: string, options: UtilityOptions): string;
+    processLegacyForm(req: AxiosRequestConfig, data: ObjectDict): void;
+    convertResponseToObject(data: string | ObjectDict): ObjectDict;
+}
+export interface UtilityOptions {
+    url: string;
+    skip_url_mangle?: boolean;
+    user_agent?: string;
+    agent_version?: string;
+    headers?: ObjectDict;
+    signing?: boolean;
+    proxy?: string;
+    apisecret?: string;
+    apikey?: string;
+    log?: {
+        debug: LogMethod;
+    };
+    legacy_form?: boolean;
+}
+declare const utils: Utility;
+export default utils;

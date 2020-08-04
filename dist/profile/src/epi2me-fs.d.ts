@@ -1,82 +1,80 @@
-declare class EPI2ME_FS extends EPI2ME {
-    constructor(optString: any);
+/// <reference types="node" />
+import AWS from 'aws-sdk';
+import fs from 'fs-extra';
+import DB from './db';
+import EPI2ME from './epi2me';
+import Factory from './factory';
+import { MappedFileStats } from './filestats';
+import Profile from './profile-fs';
+import REST_FS from './rest-fs';
+import SampleReader from './sample-reader';
+import SessionManager from './session-manager';
+import { FileStat } from './utils-fs';
+import { ObjectDict } from './ObjectDict';
+import { FetchResult } from 'apollo-link';
+import { Configuration } from './Configuration';
+import { PromiseResult } from 'aws-sdk/lib/request';
+declare type FileDescriptor = FileStat & {
+    skip?: string;
+    stats?: MappedFileStats;
+};
+export default class EPI2ME_FS extends EPI2ME {
+    static version: string;
+    static REST: typeof REST_FS;
+    static utils: import("./utils-fs").UtilityFS;
+    static SessionManager: typeof SessionManager;
+    static EPI2ME_HOME: string;
+    static Profile: typeof Profile;
+    static Factory: typeof Factory;
     SampleReader: SampleReader;
-    uploadsInProgress: any[];
+    uploadsInProgress: {
+        abort(): void;
+    }[];
+    sessionManager?: SessionManager;
+    telemetryLogStream?: fs.WriteStream;
+    db?: DB;
+    checkForDownloadsRunning?: boolean;
+    dirScanInProgress?: boolean;
+    uploadMessageQueue?: unknown;
+    downloadMessageQueue?: unknown;
+    constructor(optstring: ObjectDict | string);
     sessionedS3(): Promise<AWS.S3>;
-    sessionManager: SessionManager | undefined;
     sessionedSQS(): Promise<AWS.SQS>;
-    deleteMessage(message: any): Promise<{
-        $response: AWS.Response<{}, AWS.AWSError>;
-    }>;
-    discoverQueue(queueName: any): Promise<any>;
-    queueLength(queueURL: any): Promise<string>;
-    autoStart(workflowConfig: any, cb: any): Promise<any>;
-    autoStartGQL(variables: any, cb: any): Promise<any>;
-    autoStartGeneric(workflowConfig: any, startFn: any, cb: any): Promise<any>;
-    autoJoin(id: any, cb: any): Promise<any>;
-    setClassConfigGQL({ data: { startData: { bucket, idUser, remoteAddr, userDefined, instance: { outputqueue, keyId, startDate, idWorkflowInstance, mappedTelemetry, chain, workflowImage: { region: { name }, workflow: { idWorkflow }, inputqueue, }, }, }, }, }: {
-        data: {
-            startData: {
-                bucket: any;
-                idUser: any;
-                remoteAddr: any;
-                userDefined?: {} | undefined;
-                instance: {
-                    outputqueue: any;
-                    keyId: any;
-                    startDate: any;
-                    idWorkflowInstance: any;
-                    mappedTelemetry: any;
-                    chain: any;
-                    workflowImage: {
-                        region: {
-                            name: any;
-                        };
-                        workflow: {
-                            idWorkflow: any;
-                        };
-                        inputqueue: any;
-                    };
-                };
-            };
+    deleteMessage(message: {
+        ReceiptHandle?: string;
+    }): Promise<unknown>;
+    discoverQueue(queueName?: string): Promise<string>;
+    queueLength(queueURL: string): Promise<unknown>;
+    autoStart(workflowConfig: ObjectDict, cb?: (msg: string) => void): Promise<ObjectDict>;
+    autoStartGQL(variables: ObjectDict, cb?: (msg: string) => void): Promise<Configuration["instance"]>;
+    autoStartGeneric<T>(workflowConfig: unknown, startFn: () => T, cb?: (msg: string) => void): Promise<T>;
+    autoJoin(id: number, cb?: (msg: string) => void): Promise<unknown>;
+    setClassConfigGQL(result: FetchResult<ObjectDict>): void;
+    setClassConfigREST(instance: ObjectDict): void;
+    initSessionManager(opts?: ObjectDict | null, children?: {
+        config: {
+            update: Function;
         };
-    }): void;
-    setClassConfigREST(instance: any): void;
-    initSessionManager(opts: any, children: any): SessionManager;
-    autoConfigure(instance: any, autoStartCb: any): Promise<any>;
-    db: DB | undefined;
-    telemetryLogStream: fs.WriteStream | undefined;
+    }[]): SessionManager;
+    autoConfigure<T>(instance: T, autoStartCb?: (msg: string) => void): Promise<T>;
+    stopUpload(): Promise<void>;
+    stopEverything(): Promise<void>;
     checkForDownloads(): Promise<void>;
-    checkForDownloadsRunning: boolean | undefined;
-    downloadAvailable(): Promise<void>;
-    loadUploadFiles(): Promise<void>;
-    dirScanInProgress: boolean | undefined;
-    enqueueUploadFiles(files: any): Promise<void>;
-    uploadJob(file: any): Promise<void | import("sqlite").Statement>;
-    receiveMessages(receiveMessages: any): Promise<void>;
-    processMessage(message: any): Promise<void>;
-    initiateDownloadStream(s3Item: any, message: any, outputFile: any): Promise<any>;
-    uploadHandler(file: any): Promise<any>;
-    uploadComplete(objectId: any, file: any): Promise<import("sqlite").Statement>;
+    downloadAvailable(): Promise<unknown>;
+    loadUploadFiles(): Promise<unknown>;
+    enqueueUploadFiles(files?: FileStat[]): Promise<unknown>;
+    uploadJob(file: FileDescriptor): Promise<void>;
+    receiveMessages(receiveMessages?: PromiseResult<AWS.SQS.ReceiveMessageResult, AWS.AWSError>): Promise<void>;
+    processMessage(message?: AWS.SQS.Message): Promise<void>;
+    initiateDownloadStream(s3Item: {
+        bucket: string;
+        path: string;
+    }, message: AWS.SQS.Message, outputFile: string): Promise<unknown>;
+    uploadHandler(file: FileDescriptor): Promise<FileDescriptor>;
+    uploadComplete(objectId: string, file: {
+        id: string;
+        path: string;
+    }): Promise<unknown>;
     fetchTelemetry(): Promise<void>;
 }
-declare namespace EPI2ME_FS {
-    export const version: any;
-    export { REST };
-    export { utils };
-    export { SessionManager };
-    export const EPI2ME_HOME: string;
-    export { Profile };
-    export { Factory };
-}
-export default EPI2ME_FS;
-import EPI2ME from "./epi2me";
-import SampleReader from "./sample-reader";
-import AWS from "aws-sdk";
-import SessionManager from "./session-manager";
-import DB from "./db";
-import fs from "fs-extra";
-import REST from "./rest-fs";
-import utils from "./utils-fs";
-import Profile from "./profile-fs";
-import Factory from "./factory";
+export {};
