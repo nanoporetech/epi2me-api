@@ -207,9 +207,7 @@ describe('epi2me.uploadJob', () => {
 
     sinon.stub(client, 'uploadHandler').callsFake(file => Promise.resolve(file));
     // client.states.upload.queueLength = { reads: 8192 };
-    client.states.upload.success = {
-      files: 25,
-    };
+    client.states.upload.success.files = 25;
 
     try {
       const x = {
@@ -230,11 +228,17 @@ describe('epi2me.uploadJob', () => {
       {
         download: {
           fail: 0,
-          progress: {},
+          progress: {
+            bytes: 0,
+            niceSize: 0,
+            total: 0
+          },
           success: {
             files: 0,
             bytes: 0,
             reads: 0,
+            niceReads: 0,
+            niceSize: 0,
           },
           types: {},
           niceTypes: '',
@@ -242,6 +246,7 @@ describe('epi2me.uploadJob', () => {
         upload: {
           filesCount: 0, // dirty
           success: {
+            bytes: 0,
             files: 26,
             reads: 4096,
             niceSize: '0',
