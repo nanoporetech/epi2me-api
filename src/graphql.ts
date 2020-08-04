@@ -15,7 +15,6 @@ import { DocumentNode } from 'graphql';
 import { ObjectDict } from './ObjectDict';
 import { FetchResult } from 'apollo-link';
 import { ApolloQueryResult } from 'apollo-client';
-import { isString } from './runtime-typecast';
 
 interface GraphQLOptions {
   url?: string;
@@ -36,8 +35,8 @@ interface GraphQLConfiguration {
 }
 
 interface RequestContext {
-  apikey: string;
-  apisecret: string;
+  apikey?: string;
+  apisecret?: string;
   url: string;
   [key: string]: unknown;
 }
@@ -76,15 +75,12 @@ export default class GraphQL {
   createContext = (contextIn: ObjectDict): RequestContext => {
     // Merge any passed in context with requiredContext
     const { apikey, apisecret } = this.options;
-    if (isString(apikey) && isString(apisecret)) {
-      return {
-        apikey,
-        apisecret,
-        url: this.options.url,
-        ...contextIn,
-      }
-    } else {
-      throw new Error('Unable to create GQL context without credentials');
+
+    return {
+      apikey,
+      apisecret,
+      url: this.options.url,
+      ...contextIn,
     }
   };
 
