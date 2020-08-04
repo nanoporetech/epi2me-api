@@ -1417,10 +1417,11 @@ export default class EPI2ME_FS extends EPI2ME {
         );
 
         try {
-          await this.sqs
+          const sqs = await this.sessionedSQS();
+          await sqs
             .changeMessageVisibility({
-              QueueUrl: queueUrl,
-              ReceiptHandle: receiptHandle,
+              QueueUrl: asString(queueUrl),
+              ReceiptHandle: asString(receiptHandle),
               VisibilityTimeout: this.config.options.inFlightDelay,
             })
             .promise();
