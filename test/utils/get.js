@@ -46,7 +46,6 @@ describe('utils.get', () => {
       'http://epi2me.test/entity/123',
       {
         url: 'http://epi2me.test/entity/123',
-        gzip: true,
         headers: {
           Accept: 'application/json',
           'Content-Type': 'application/json',
@@ -59,7 +58,7 @@ describe('utils.get', () => {
   });
 
   it('should invoke get without url mangling', async () => {
-    stubs.push(sinon.stub(axios, 'get').resolves({ data: { data: 'data' } }));
+    stubs.push(sinon.stub(axios, 'get').resolves({ data: { data: 'data'} }));
     const data = await utils.get('https://epi2me.internal/entity/123', {
       skip_url_mangle: true,
       apikey: 'foo',
@@ -73,7 +72,6 @@ describe('utils.get', () => {
       'https://epi2me.internal/entity/123',
       {
         url: 'https://epi2me.internal/entity/123',
-        gzip: true,
         headers: {
           Accept: 'application/json',
           'Content-Type': 'application/json',
@@ -86,7 +84,7 @@ describe('utils.get', () => {
   });
 
   it('should invoke get with proxy', async () => {
-    stubs.push(sinon.stub(axios, 'get').resolves({ data: { data: 'data' } }));
+    stubs.push(sinon.stub(axios, 'get').resolves({data: { data: 'data' } }));
     const data = await utils.get('entity/123', {
       proxy: 'http://proxy.internal:3128/',
       apikey: 'foo',
@@ -101,7 +99,6 @@ describe('utils.get', () => {
       'http://epi2me.test/entity/123',
       {
         url: 'http://epi2me.test/entity/123',
-        gzip: true,
         proxy: false, // disabled when using custom agent
         headers: {
           Accept: 'application/json',
