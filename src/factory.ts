@@ -52,7 +52,7 @@ export default class Factory {
     this.version = api.version;
   }
 
-  async startRun(options: EPI2ME_OPTIONS, workflowConfig: unknown): Promise<EPI2ME | EPI2ME_FS> {
+  async startRun(options: EPI2ME_OPTIONS, workflowConfig: ObjectDict): Promise<EPI2ME | EPI2ME_FS> {
     const newInstance = new this.EPI2ME({ ...this.options, ...options });
     if (!(newInstance instanceof EPI2ME_FS)) {
       throw new Error('Factory only works with EPI2ME_FS at this time');
@@ -72,14 +72,14 @@ export default class Factory {
     return newInstance;
   }
 
-  async startGQLRun(options: EPI2ME_OPTIONS, variables: unknown): Promise<EPI2ME | EPI2ME_FS> {
+  async startGQLRun(options: EPI2ME_OPTIONS, variables: ObjectDict): Promise<EPI2ME | EPI2ME_FS> {
     const newInstance = new this.EPI2ME({ ...this.options, ...options, useGraphQL: true });
     if (!(newInstance instanceof EPI2ME_FS)) {
       throw new Error('Factory only works with EPI2ME_FS at this time');
     }
     try {
       const workflowData = await newInstance.autoStartGQL(variables);
-      const id = workflowData.id_workflow_instance;
+      const id = asIndex(workflowData.id_workflow_instance);
       this.runningInstances[id] = newInstance;
       // TODO does this actually need to be here?
       this.log.debug(workflowData);

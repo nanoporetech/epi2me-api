@@ -175,7 +175,7 @@ export default class EPI2ME_FS extends EPI2ME {
     throw new Error('unexpected response');
   }
 
-  async autoStart(workflowConfig: ObjectDict, cb: (msg: string) => void): Promise<ObjectDict> {
+  async autoStart(workflowConfig: ObjectDict, cb?: (msg: string) => void): Promise<ObjectDict> {
     const instance = await this.autoStartGeneric(workflowConfig, () => this.REST.startWorkflow(workflowConfig), cb);
     this.setClassConfigREST(instance);
     return this.autoConfigure(instance, cb);
