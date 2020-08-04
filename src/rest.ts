@@ -3,14 +3,14 @@
  * Authors: rpettett, gvanginkel
  */
 
-import { assign, filter, merge, countBy } from 'lodash';
+import { assign, merge, countBy } from 'lodash';
 import os from 'os';
 import { local, signing, url as baseURL, user_agent as userAgent } from './default_options.json';
 import utils from './utils';
 import { Logger } from './Logger';
 import { EPI2ME_OPTIONS } from './epi2me-options';
 import { AxiosResponse } from 'axios';
-import { asArray, asRecord, asString, asOptFunction, asArrayRecursive, isUndefined, isFunction, asIndex, asIndexable, asOptArrayRecursive, asOptIndex, asRecordRecursive, asOptString } from './runtime-typecast';
+import { asArray, asRecord, asString, asOptFunction, asArrayRecursive, isUndefined, isFunction, asIndex, asIndexable, asOptArrayRecursive, asOptIndex, asOptString } from './runtime-typecast';
 import { ObjectDict } from './ObjectDict';
 import { isArray } from 'util';
 
@@ -216,15 +216,15 @@ export default class REST {
     }
 
     // NOTE it would appear that params can be either an array or an object, the tests are not consistent
-    const params = isArray(workflow.params) ? asArrayRecursive(workflow.params, asRecord) : asRecordRecursive(workflow.params, asRecord)
-
+    const params = isArray(workflow.params) ? asArray(workflow.params) : asRecord(workflow.params)
     // MC-6483 - fetch ajax options for "AJAX drop down widget"
-    const toFetch = filter(params, {
-      widget: 'ajax_dropdown',
-    });
+
+    const toFetch = Object.values(params)
+      .map((value: unknown) => asRecord(value))
+      .filter((obj: ObjectDict) => obj.widget === 'ajax_dropdown');
 
     const promises = [
-      ...toFetch.map(param => {
+      ...toFetch.map((param: ObjectDict) => {
         // const param = toFetch[i]; // so we can explicitly reassign to the iterator without eslint complaints
         return new Promise((resolve, reject) => {
           if (isUndefined(param)) {
