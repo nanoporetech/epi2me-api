@@ -40,7 +40,7 @@ export default class REST_FS extends REST {
     }
 
     const WORKFLOW_DIR = path.join(this.options.url, 'workflows');
-    const filename = path.join(WORKFLOW_DIR, id + "", 'workflow.json');
+    const filename = path.join(WORKFLOW_DIR, id + '', 'workflow.json');
 
     // HACK this is the original behavior, due to the somewhat questionable conditional
     // cb is in fact "never" here, so doesn't work. Commenting this out has not changed
@@ -141,8 +141,9 @@ export default class REST_FS extends REST {
 
     const DATASET_DIR = path.join(this.options.url, 'datasets');
     try {
-      const folders = (await fs.readdir(DATASET_DIR))
-        .filter((id: string) => fs.statSync(path.join(DATASET_DIR, id)).isDirectory());
+      const folders = (await fs.readdir(DATASET_DIR)).filter((id: string) =>
+        fs.statSync(path.join(DATASET_DIR, id)).isDirectory(),
+      );
 
       let idDataset = 0;
       const data = folders.sort().map(id => {
