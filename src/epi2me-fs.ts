@@ -85,6 +85,8 @@ export default class EPI2ME_FS extends EPI2ME {
   uploadMessageQueue?: unknown;
   downloadMessageQueue?: unknown;
 
+  REST: REST_FS;
+
   constructor(optstring: ObjectDict | string) {
     super(optstring); // sets up this.config & this.log
 
@@ -1619,23 +1621,17 @@ export default class EPI2ME_FS extends EPI2ME {
           this.log.info(`${file.id} S3 upload complete`);
           rs.close();
           timeoutHandle();
-
-          try {
-            await this.uploadComplete(objectId, file); // send message
-            resolve(file);
-          } catch (uploadCompleteErr) {
-            console.log('catch');
-            reject(uploadCompleteErr);
-          } finally {
-            this.uploadState('progress', 'decr', {
-              total: file.size,
-              bytes: file.size,
-            }); // zero in-flight upload counters
-            this.uploadsInProgress = this.uploadsInProgress.filter(upload => upload !== managedUpload);
-          }
+          await this.uploadComplete(objectId, file); // send message
+          resolve(file);
         } catch (uploadStreamErr) {
           this.log.warn(`${file.id} uploadStreamError ${uploadStreamErr}`);
           reject(uploadStreamErr);
+        } finally {
+          this.uploadState('progress', 'decr', {
+            total: file.size,
+            bytes: file.size,
+          }); // zero in-flight upload counters
+          this.uploadsInProgress = this.uploadsInProgress.filter(upload => upload !== managedUpload);
         }
       });
 
