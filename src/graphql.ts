@@ -4,7 +4,6 @@
  */
 
 import gql from 'graphql-tag';
-import { local, signing, url as baseUrl, user_agent as userAgent } from './default_options.json';
 import PageFragment from './fragments/PageFragment';
 import WorkflowFragment from './fragments/WorkflowFragment';
 import WorkflowInstanceFragment from './fragments/WorkflowInstanceFragment';
@@ -15,15 +14,7 @@ import { DocumentNode } from 'graphql';
 import { ObjectDict } from './ObjectDict';
 import { FetchResult } from 'apollo-link';
 import { ApolloQueryResult } from 'apollo-client';
-
-interface GraphQLOptions {
-  url?: string;
-
-  log: Logger;
-  apikey?: string;
-  apisecret?: string;
-}
-
+import { EPI2ME_OPTIONS } from './epi2me-options';
 interface GraphQLConfiguration {
   url: string;
   apikey?: string;
@@ -47,45 +38,58 @@ interface QueryOptions {
   options?: ObjectDict;
 }
 
+type AsyncAQR<T = unknown> = Promise<ApolloQueryResult<T>>;
+
+interface WorkflowPages {
+  data: ApolloQueryResult<unknown>;
+  next(): AsyncAQR;
+  previous(): AsyncAQR;
+  first(): AsyncAQR;
+  last(): AsyncAQR;
+}
+
 export default class GraphQL {
   readonly log: Logger;
   readonly client = client;
   readonly options: GraphQLConfiguration;
 
-  constructor(opts: GraphQLOptions) {
-    let url = opts.url ?? baseUrl;
+  constructor(opts: EPI2ME_OPTIONS) {
+    let url = opts.url;
     // https://epi2me-dev.bla => https://graphql.epi2me-dev.bla
     url = url.replace(/:\/\//, '://graphql.');
     // https://epi2me-dev.graphql.bla/ => https://graphql.epi2me-dev.bla
     url = url.replace(/\/$/, '');
 
+    const { apikey, apisecret, log, local, signing } = opts;
+
+    // WARN most of these options aren't used in this file.
+    // They are _maybe_ being used `utils.get` but we need to resolve this.
     this.options = {
       url,
       agent_version: utils.version,
       local,
-      user_agent: userAgent,
+      user_agent: opts.user_agent,
       signing,
-      apikey: opts.apikey,
-      apisecret: opts.apisecret,
-      // ...opts
+      apikey,
+      apisecret,
     };
-    this.log = opts.log;
+    this.log = log;
   }
 
   createContext = (contextIn: ObjectDict): RequestContext => {
     // Merge any passed in context with requiredContext
-    const { apikey, apisecret } = this.options;
+    const { apikey, apisecret, url } = this.options;
 
     return {
       apikey,
       apisecret,
-      url: this.options.url,
+      url,
       ...contextIn,
     };
   };
 
-  query(queryString: ((str: string) => DocumentNode) | string | DocumentNode) {
-    return (opt: QueryOptions = {}): Promise<ApolloQueryResult<unknown>> => {
+  query(queryString: ((str: string) => DocumentNode) | string | DocumentNode): (opt: QueryOptions) => AsyncAQR {
+    return (opt: QueryOptions = {}): AsyncAQR => {
       const context = opt.context ?? {};
       const variables = opt.variables ?? {};
       const options = opt.options ?? {};
@@ -152,14 +156,14 @@ export default class GraphQL {
     }
   `);
 
-  workflowPages = async (requestedPage: number): Promise<unknown> => {
+  workflowPages = async (requestedPage: number): Promise<WorkflowPages> => {
     let page: number = requestedPage;
     let data = await this.workflows({
       variables: {
         page,
       },
     });
-    const updatePage = async (newPage: number): Promise<unknown> => {
+    const updatePage = async (newPage: number): AsyncAQR => {
       page = newPage;
       data = await this.workflows({
         variables: {
@@ -168,12 +172,13 @@ export default class GraphQL {
       });
       return data;
     };
+
     return {
       data,
-      next: (): Promise<unknown> => updatePage(page + 1),
-      previous: (): Promise<unknown> => updatePage(page - 1),
-      first: (): Promise<unknown> => updatePage(1),
-      last: (): Promise<unknown> => updatePage(0),
+      next: (): AsyncAQR => updatePage(page + 1),
+      previous: (): AsyncAQR => updatePage(page - 1),
+      first: (): AsyncAQR => updatePage(1),
+      last: (): AsyncAQR => updatePage(0),
     };
   };
 
