@@ -1,96 +1,94 @@
-import EPI2ME from "./epi2me";
 import EPI2ME_FS from "./epi2me-fs";
-import { Logger } from "./Logger";
-import GraphQL from "./graphql";
-import REST from "./rest";
-import SampleReader from "./sample-reader";
-import type { Utility } from "./utils";
-import type { UtilityFS } from "./utils-fs";
-import REST_FS from "./rest-fs";
-import { EPI2ME_OPTIONS } from "./epi2me-options";
-import { ObjectDict } from "./ObjectDict";
 import { asIndex } from "./runtime-typecast";
 
-type API_CTOR = {
-  new(optstring: EPI2ME_OPTIONS | string): EPI2ME | EPI2ME_FS;
-  version: string;
-  utils: Utility | UtilityFS;
-};
+import type REST_FS from "./rest-fs";
+import type GraphQL from "./graphql";
+import type { Logger } from "./Logger";
+import type { ObjectDict } from "./ObjectDict";
+import type SampleReader from "./sample-reader";
+import type { UtilityFS } from "./utils-fs";
 
 /*
 Factory seems to be designed with the intention that a version of the EPI2ME
-API can be passed in, then used as the base. However, other parts
+API can be passed in, then used as the base. However, at the moment it only
+supports using the EPI2ME_FS
 */
 export default class Factory {
-  EPI2ME: API_CTOR;
-  options: EPI2ME_OPTIONS;
-  masterInstance: EPI2ME | EPI2ME_FS;
-  log: Logger
-  REST: REST | REST_FS;
-  graphQL: GraphQL;
-  SampleReader?: SampleReader;
-  utils: Utility | UtilityFS;
-  version: string;
-  runningInstances: ObjectDict = {};
+  private readonly EPI2ME: typeof EPI2ME_FS;
+  private readonly options: ObjectDict;
+  private readonly primary: EPI2ME_FS;
+  private readonly runningInstances: ObjectDict = {};
 
-  constructor(api: API_CTOR, opts: EPI2ME_OPTIONS) {
+  constructor(api: typeof EPI2ME_FS, opts: ObjectDict = {}) {
     this.EPI2ME = api;
     this.options = opts;
-
-    const inst = new api(this.options);
-
-    this.log = inst.log;
-    this.REST = inst.REST;
-    this.graphQL = inst.graphQL;
-
-    if (inst instanceof EPI2ME_FS) {
-      this.SampleReader = inst.SampleReader;
-    }
-
-    this.masterInstance = inst;
-    this.utils = api.utils;
-    this.version = api.version;
+    this.primary = this.instantiate();
   }
 
-  async startRun(options: EPI2ME_OPTIONS, workflowConfig: ObjectDict): Promise<EPI2ME | EPI2ME_FS> {
-    const newInstance = new this.EPI2ME({ ...this.options, ...options });
-    if (!(newInstance instanceof EPI2ME_FS)) {
-      throw new Error('Factory only works with EPI2ME_FS at this time');
-    }
+  get utils (): UtilityFS {
+    return this.EPI2ME.utils;
+  }
+
+  get version (): string {
+    return this.EPI2ME.version;
+  }
+
+  get log (): Logger {
+    return this.primary.log;
+  }
+
+  get REST (): REST_FS {
+    return this.primary.REST;
+  }
+
+  get graphQL (): GraphQL {
+    return this.primary.graphQL;
+  }
+
+  get SampleReader (): SampleReader {
+    return this.primary.SampleReader;
+  }
+
+  private instantiate (options: ObjectDict = {}): EPI2ME_FS {
+    return new this.EPI2ME({
+      ...this.options,
+      ...options
+    });
+  }
+
+  async startRun(options: ObjectDict, workflowConfig: ObjectDict): Promise<EPI2ME_FS> {
+    const inst = this.instantiate(options);
     try {
-      const workflowData = await newInstance.autoStart(workflowConfig);
+      const workflowData = await inst.autoStart(workflowConfig);
       const id = asIndex(workflowData.id_workflow_instance);
-      this.runningInstances[id] = newInstance;
+      this.runningInstances[id] = inst;
     } catch (startErr) {
       this.log.error('Experienced error starting', startErr);
       try {
-        await newInstance.stopEverything();
+        await inst.stopEverything();
       } catch (stopErr) {
         this.log.error('Also experienced error stopping', stopErr);
       }
     }
-    return newInstance;
+    return inst;
   }
 
-  async startGQLRun(options: EPI2ME_OPTIONS, variables: ObjectDict): Promise<EPI2ME | EPI2ME_FS> {
-    const newInstance = new this.EPI2ME({ ...this.options, ...options, useGraphQL: true });
-    if (!(newInstance instanceof EPI2ME_FS)) {
-      throw new Error('Factory only works with EPI2ME_FS at this time');
-    }
+  async startGQLRun(options: ObjectDict, variables: ObjectDict): Promise<EPI2ME_FS> {
+    const inst = this.instantiate({ ...options, useGraphQL: true });
     try {
-      const workflowData = await newInstance.autoStartGQL(variables);
+      const workflowData = await inst.autoStartGQL(variables);
       const id = asIndex(workflowData.id_workflow_instance);
-      this.runningInstances[id] = newInstance;
+      this.runningInstances[id] = inst;
       // TODO does this actually need to be here?
       this.log.debug(workflowData);
     } catch (startErr) {
       this.log.error(`Experienced error starting ${String(startErr)}`);
       try {
-        await newInstance.stopEverything();
+        await inst.stopEverything();
       } catch (stopErr) {
         this.log.error(`Also experienced error stopping ${String(stopErr)}`);
       }
     }
-    return newInstance;
+    return inst;
   }
 }
