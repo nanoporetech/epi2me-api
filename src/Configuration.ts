@@ -1,6 +1,6 @@
-import { EPI2ME_OPTIONS } from "./epi2me-options";
-import { ObjectDict } from "./ObjectDict";
-import { Index } from "./runtime-typecast";
+import { EPI2ME_OPTIONS } from './epi2me-options';
+import { ObjectDict } from './ObjectDict';
+import { Index } from './runtime-typecast';
 
 export interface Configuration {
   options: EPI2ME_OPTIONS;

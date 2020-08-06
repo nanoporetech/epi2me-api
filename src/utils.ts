@@ -20,7 +20,11 @@ export interface Utility {
   headers(request: AxiosRequestConfig, options: UtilityOptions): void;
   head(uri: string, options: UtilityOptions): Promise<AxiosResponse>;
   get(uri: string, options: UtilityOptions): Promise<ObjectDict>;
-  post<T = ObjectDict>(uriIn: string, obj: ObjectDict, options: UtilityOptions & { handler?: (res: AxiosResponse) => Promise<T> }): Promise<T | ObjectDict>;
+  post<T = ObjectDict>(
+    uriIn: string,
+    obj: ObjectDict,
+    options: UtilityOptions & { handler?: (res: AxiosResponse) => Promise<T> },
+  ): Promise<T | ObjectDict>;
   put(uri: string, id: string, obj: ObjectDict, options: UtilityOptions): Promise<ObjectDict>;
   mangleURL(uri: string, options: UtilityOptions): string;
   processLegacyForm(req: AxiosRequestConfig, data: ObjectDict): void;
@@ -107,7 +111,7 @@ const utils: Utility = (function magic(): Utility {
       if (r && r.status >= 400) {
         let msg = `Network error ${r.status}`;
         if (json.error) {
-          msg = json.error + "";
+          msg = json.error + '';
         }
 
         if (r.status === 504) {
@@ -119,7 +123,7 @@ const utils: Utility = (function magic(): Utility {
       }
 
       if (json.error) {
-        throw new Error(json.error + "");
+        throw new Error(json.error + '');
       }
 
       return json;
@@ -129,11 +133,10 @@ const utils: Utility = (function magic(): Utility {
   return {
     version: VERSION,
     headers(req: AxiosRequestConfig, options: UtilityOptions): void {
-
       // common headers required for everything
       req.headers = merge(
         {
-          'Accept': 'application/json',
+          Accept: 'application/json',
           'Content-Type': 'application/json',
           'X-EPI2ME-Client': options.user_agent || 'api', // new world order
           'X-EPI2ME-Version': options.agent_version || utils.version, // new world order
@@ -185,7 +188,7 @@ const utils: Utility = (function magic(): Utility {
 
     async head(uriIn: string, options: UtilityOptions): Promise<AxiosResponse> {
       // do something to get/set data in epi2me
-      const call = this.mangleURL(uriIn, options)
+      const call = this.mangleURL(uriIn, options);
       const req: AxiosRequestConfig = { url: call };
 
       this.headers(req, options);
@@ -213,7 +216,7 @@ const utils: Utility = (function magic(): Utility {
 
     async get(uriIn: string, options: UtilityOptions): Promise<ObjectDict> {
       // do something to get/set data in epi2me
-      const call = this.mangleURL(uriIn, options)
+      const call = this.mangleURL(uriIn, options);
       const req: AxiosRequestConfig = { url: call };
 
       this.headers(req, options);
@@ -232,8 +235,11 @@ const utils: Utility = (function magic(): Utility {
       return internal.responseHandler(res);
     },
 
-    async post<T = ObjectDict>(uriIn: string, obj: ObjectDict, options: UtilityOptions & { handler?: (res: AxiosResponse) => Promise<T> }): Promise<T | ObjectDict> {
-
+    async post<T = ObjectDict>(
+      uriIn: string,
+      obj: ObjectDict,
+      options: UtilityOptions & { handler?: (res: AxiosResponse) => Promise<T> },
+    ): Promise<T | ObjectDict> {
       let srv = options.url;
       srv = srv.replace(/\/+$/, ''); // clip trailing slashes
       const uri = uriIn.replace(/\/+/g, '/'); // clip multiple slashes
@@ -250,9 +256,7 @@ const utils: Utility = (function magic(): Utility {
 
       this.headers(req, options);
 
-      const {
-        data
-      } = req;
+      const { data } = req;
       delete req.data;
 
       const log = options.log ?? NoopLogger;
@@ -273,7 +277,6 @@ const utils: Utility = (function magic(): Utility {
     },
 
     async put(uriIn: string, id: string, obj: ObjectDict, options: UtilityOptions): Promise<ObjectDict> {
-
       let srv = options.url;
       srv = srv.replace(/\/+$/, ''); // clip trailing slashes
       const uri = uriIn.replace(/\/+/g, '/'); // clip multiple slashes
@@ -291,9 +294,7 @@ const utils: Utility = (function magic(): Utility {
       this.headers(req, options);
 
       // TODO fix whatever this is doing
-      const {
-        data
-      } = req;
+      const { data } = req;
       delete req.data;
 
       const log = options.log ?? NoopLogger;
@@ -324,14 +325,11 @@ const utils: Utility = (function magic(): Utility {
     processLegacyForm(req: AxiosRequestConfig, data: ObjectDict): void {
       // include legacy form parameters
       const params: string[] = [];
-      const form = merge(
-        { json: JSON.stringify(data) },
-        data,
-      );
+      const form = merge({ json: JSON.stringify(data) }, data);
       Object.keys(form)
         .sort()
         .forEach(attr => {
-          params.push(`${attr}=${escape(form[attr] + "")}`);
+          params.push(`${attr}=${escape(form[attr] + '')}`);
         });
       req.data = params.join('&');
       req.headers['Content-Type'] = 'application/x-www-form-urlencoded';

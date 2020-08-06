@@ -48,9 +48,9 @@ interface QueryOptions {
 }
 
 export default class GraphQL {
-  readonly log: Logger
-  readonly client = client
-  readonly options: GraphQLConfiguration
+  readonly log: Logger;
+  readonly client = client;
+  readonly options: GraphQLConfiguration;
 
   constructor(opts: GraphQLOptions) {
     let url = opts.url ?? baseUrl;
@@ -66,7 +66,7 @@ export default class GraphQL {
       user_agent: userAgent,
       signing,
       apikey: opts.apikey,
-      apisecret: opts.apisecret
+      apisecret: opts.apisecret,
       // ...opts
     };
     this.log = opts.log;
@@ -81,7 +81,7 @@ export default class GraphQL {
       apisecret,
       url: this.options.url,
       ...contextIn,
-    }
+    };
   };
 
   query(queryString: ((str: string) => DocumentNode) | string | DocumentNode) {
@@ -111,7 +111,7 @@ export default class GraphQL {
         ...options,
         context: requestContext,
       });
-    }
+    };
   }
 
   mutate(queryString: string | DocumentNode): (opt: QueryOptions) => Promise<FetchResult> {
@@ -134,7 +134,7 @@ export default class GraphQL {
         ...options,
         context: requestContext,
       });
-    }
+    };
   }
 
   resetCache = (): void => {
