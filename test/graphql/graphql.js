@@ -2,7 +2,6 @@ import assert from 'assert';
 import axios from 'axios';
 import bunyan from 'bunyan';
 import gql from 'graphql-tag';
-import { merge } from 'lodash';
 import sinon from 'sinon';
 import DEFAULTS from '../../src/default_options.json';
 import { createCustomFetcher } from '../../src/fetcher';
@@ -18,14 +17,11 @@ const makeGQL = profile => {
     name: 'log',
     stream: ringbuf,
   });
-  return new GraphQL(
-    merge(
-      {
-        log,
-      },
-      profile,
-    ),
-  );
+  return new GraphQL({
+    log,
+    url: '',
+    ...profile,
+  });
 };
 
 const makeRegisteredGQL = () => {
@@ -40,14 +36,11 @@ const makeRegisteredGQL = () => {
     apikey: 'bd2e57b8cbaffe1c957616c4afca0f6734ae9012',
     apisecret: 'a527f9aa0713a5f9cfd99af9a174b73d4df34dcbb3be13b97ccd108314ab0f17',
   };
-  return new GraphQL(
-    merge(
-      {
-        log,
-      },
-      profile,
-    ),
-  );
+  return new GraphQL({
+    log,
+    url: '',
+    ...profile,
+  });
 };
 
 describe('graphql.constructor MC-7563', () => {
