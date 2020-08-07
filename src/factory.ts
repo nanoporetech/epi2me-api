@@ -7,6 +7,8 @@ import type { Logger } from "./Logger";
 import type { ObjectDict } from "./ObjectDict";
 import type SampleReader from "./sample-reader";
 import type { UtilityFS } from "./utils-fs";
+import type { Index } from "./runtime-typecast";
+import type { EPI2ME_OPTIONS } from "./epi2me-options";
 
 /*
 Factory seems to be designed with the intention that a version of the EPI2ME
@@ -15,11 +17,11 @@ supports using the EPI2ME_FS
 */
 export default class Factory {
   private readonly EPI2ME: typeof EPI2ME_FS;
-  private readonly options: ObjectDict;
-  private readonly primary: EPI2ME_FS;
-  private readonly runningInstances: ObjectDict = {};
+  private options: Partial<EPI2ME_OPTIONS>;
+  private primary: EPI2ME_FS;
+  private runningInstances: ObjectDict<EPI2ME_FS> = {};
 
-  constructor(api: typeof EPI2ME_FS, opts: ObjectDict = {}) {
+  constructor(api: typeof EPI2ME_FS, opts: Partial<EPI2ME_OPTIONS> = {}) {
     this.EPI2ME = api;
     this.options = opts;
     this.primary = this.instantiate();
@@ -49,14 +51,25 @@ export default class Factory {
     return this.primary.SampleReader;
   }
 
-  private instantiate (options: ObjectDict = {}): EPI2ME_FS {
+  reset (options: Partial<EPI2ME_OPTIONS> = {}): void {
+    this.options = options;
+    // WARN what happens to the running instances here?
+    this.runningInstances = {};
+    this.primary = this.instantiate();
+  }
+
+  getRunningInstance (id: Index): EPI2ME_FS | undefined {
+    return this.runningInstances[id];
+  }
+
+  private instantiate (options: Partial<EPI2ME_OPTIONS> = {}): EPI2ME_FS {
     return new this.EPI2ME({
       ...this.options,
       ...options
     });
   }
 
-  async startRun(options: ObjectDict, workflowConfig: ObjectDict): Promise<EPI2ME_FS> {
+  async startRun(options: Partial<EPI2ME_OPTIONS>, workflowConfig: ObjectDict): Promise<EPI2ME_FS> {
     const inst = this.instantiate(options);
     try {
       const workflowData = await inst.autoStart(workflowConfig);

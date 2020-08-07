@@ -69,11 +69,14 @@ export default class EPI2ME {
   graphQL: GraphQL
   mySocket?: Socket
 
-  constructor(optstring: ObjectDict | string = {}) {
+  constructor(optstring: Partial<EPI2ME_OPTIONS> | string = {}) {
 
     let options: EPI2ME_OPTIONS;
     if (typeof optstring === 'string') {
       const json = asRecord(JSON.parse(optstring));
+      // WARN maybe we should put a depreciation warning here
+      // it's not particularly useful accepting a json string
+      // and increases the required validation code
       options = EPI2ME.parseOptObject(json);
     }
     else {
@@ -98,10 +101,11 @@ export default class EPI2ME {
 
   // placeholders for all the timers we might want to cancel if forcing a stop
 
-  static parseOptObject(opt: ObjectDict): EPI2ME_OPTIONS {
+  static parseOptObject(opt: ObjectDict | Partial<EPI2ME_OPTIONS>): EPI2ME_OPTIONS {
     // URL preference is opt.endpoint > opt.url > DEFAULT.url
     const legacyURL = asString(opt.url, DEFAULTS.url);
     const options = {
+      agent_version: asString(opt.agent_version, utils.version),
       log: this.resolveLogger(opt.log),
       local: asBoolean(opt.local, DEFAULTS.local),
       url: asString(opt.endpoint, legacyURL),

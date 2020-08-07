@@ -1,7 +1,9 @@
-import { Logger } from "./Logger";
+import { Logger } from './Logger';
 export interface EPI2ME_OPTIONS {
+  agent_version: string;
   log: Logger;
   local: boolean;
+  endpoint?: string;
   url: string;
   region: string;
   user_agent: string;
@@ -29,6 +31,7 @@ export interface EPI2ME_OPTIONS {
   proxy?: string;
 
   // EPI2ME-FS options
+  inputFolder?: string;
   inputFolders: string[];
   outputFolder?: string;
   awsAcceleration?: string;
