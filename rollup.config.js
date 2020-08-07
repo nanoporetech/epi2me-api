@@ -62,7 +62,7 @@ const plugins = [
 ];
 
 const epi2meFull = {
-  input: 'src/epi2me-fs.ts',
+  input: 'src/index.ts',
   output: [
     {
       file: path.join(path.dirname(pkg.main), 'index.js'),
@@ -133,7 +133,7 @@ const epi2meProfile = {
 };
 
 const epi2meWeb = {
-  input: 'src/epi2me.ts',
+  input: 'src/index-web.ts',
   output: [
     {
       file: path.join(path.dirname(pkg.main), 'web/index.js'),
