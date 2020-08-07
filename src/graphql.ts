@@ -9,13 +9,16 @@ import WorkflowFragment from './fragments/WorkflowFragment';
 import WorkflowInstanceFragment from './fragments/WorkflowInstanceFragment';
 import client from './gql-client';
 import utils from './utils';
-import { Logger, NoopLogMethod } from './Logger';
-import { DocumentNode } from 'graphql';
-import { ObjectDict } from './ObjectDict';
-import { FetchResult } from 'apollo-link';
-import { ApolloQueryResult } from 'apollo-client';
-import { EPI2ME_OPTIONS } from './epi2me-options';
-interface GraphQLConfiguration {
+import { NoopLogMethod } from './Logger';
+
+import type { Logger } from './Logger'; 
+import type { DocumentNode } from 'graphql';
+import type { ObjectDict } from './ObjectDict';
+import type { FetchResult } from 'apollo-link';
+import type { ApolloQueryResult } from 'apollo-client';
+import type { EPI2ME_OPTIONS } from './epi2me-options';
+
+export interface GraphQLConfiguration {
   url: string;
   apikey?: string;
   apisecret?: string;
@@ -25,22 +28,22 @@ interface GraphQLConfiguration {
   signing: boolean;
 }
 
-interface RequestContext {
+export interface RequestContext {
   apikey?: string;
   apisecret?: string;
   url: string;
   [key: string]: unknown;
 }
 
-interface QueryOptions {
+export interface QueryOptions {
   context?: ObjectDict;
   variables?: ObjectDict;
   options?: ObjectDict;
 }
 
-type AsyncAQR<T = unknown> = Promise<ApolloQueryResult<T>>;
+export type AsyncAQR<T = unknown> = Promise<ApolloQueryResult<T>>;
 
-interface WorkflowPages {
+export interface WorkflowPages {
   data: ApolloQueryResult<unknown>;
   next(): AsyncAQR;
   previous(): AsyncAQR;
@@ -48,7 +51,7 @@ interface WorkflowPages {
   last(): AsyncAQR;
 }
 
-export default class GraphQL {
+export class GraphQL {
   readonly log: Logger;
   readonly client = client;
   readonly options: GraphQLConfiguration;
@@ -66,7 +69,7 @@ export default class GraphQL {
     // They are _maybe_ being used `utils.get` but we need to resolve this.
     this.options = {
       url,
-      agent_version: utils.version,
+      agent_version: opts.agent_version,
       local,
       user_agent: opts.user_agent,
       signing,
@@ -339,3 +342,5 @@ export default class GraphQL {
     }
   `);
 }
+
+export default GraphQL;
