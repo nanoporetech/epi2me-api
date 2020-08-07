@@ -1,20 +1,14 @@
 import sinon from 'sinon';
 import assert from 'assert';
-import bunyan from 'bunyan';
 import REST from '../../src/rest';
 import utils from '../../src/utils';
+import EPI2ME from '../../src/epi2me';
 
 describe('rest.read', () => {
-  let ringbuf;
-  let log;
   let stubs;
-  let rest;
 
   beforeEach(() => {
-    ringbuf = new bunyan.RingBuffer({ limit: 100 });
-    log = bunyan.createLogger({ name: 'log', stream: ringbuf });
     stubs = [];
-    rest = new REST({ log, agent_version: '3.0.0' });
   });
 
   afterEach(() => {
@@ -26,21 +20,15 @@ describe('rest.read', () => {
   it('must invoke get with options', async () => {
     const stub = sinon.stub(utils, 'get').resolves({ id_thing: 5, name: 'thing five' });
     stubs.push(stub);
+    const options = EPI2ME.parseOptObject({
+      agent_version: '3.0.0',
+    });
+    const rest = new REST(options);
 
     try {
       const struct = await rest.read('thing', 5);
       assert.deepEqual(struct, { id_thing: 5, name: 'thing five' });
-      assert.deepEqual(stub.lastCall.args, [
-        'thing/5',
-        {
-          log,
-          agent_version: '3.0.0',
-          local: false,
-          signing: true,
-          url: 'https://epi2me.nanoporetech.com',
-          user_agent: 'EPI2ME API',
-        },
-      ]);
+      assert.deepEqual(stub.lastCall.args, ['thing/5', options]);
     } catch (e) {
       assert.fail(e);
     }
@@ -50,6 +38,8 @@ describe('rest.read', () => {
     const fake = sinon.fake();
     const stub = sinon.stub(utils, 'get').rejects(new Error('get failure'));
     stubs.push(stub);
+    const options = EPI2ME.parseOptObject({});
+    const rest = new REST(options);
 
     try {
       await rest.read('thing', 5, fake);

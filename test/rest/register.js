@@ -1,28 +1,14 @@
 import sinon from 'sinon';
 import assert from 'assert';
-import bunyan from 'bunyan';
 import os from 'os';
 import REST from '../../src/rest';
 import utils from '../../src/utils';
+import EPI2ME from '../../src/epi2me';
 
 describe('rest.register', () => {
-  let ringbuf;
-  let log;
   let stubs;
-  let rest;
 
   beforeEach(() => {
-    ringbuf = new bunyan.RingBuffer({
-      limit: 100,
-    });
-    log = bunyan.createLogger({
-      name: 'log',
-      stream: ringbuf,
-    });
-    rest = new REST({
-      log,
-      agent_version: '3.0.0',
-    });
     stubs = [];
   });
 
@@ -41,6 +27,10 @@ describe('rest.register', () => {
       })),
     );
     stubs.push(sinon.stub(os, 'hostname').callsFake(() => 'testhost'));
+    const options = EPI2ME.parseOptObject({
+      agent_version: '3.0.0',
+    });
+    const rest = new REST(options);
 
     try {
       await rest.register('abcdefg');
@@ -53,14 +43,7 @@ describe('rest.register', () => {
           {
             description: 'testuser@testhost',
           },
-          {
-            log,
-            signing: false,
-            agent_version: '3.0.0',
-            local: false,
-            url: 'https://epi2me.nanoporetech.com',
-            user_agent: 'EPI2ME API',
-          },
+          { ...options, signing: false },
         ],
         'put args',
       );

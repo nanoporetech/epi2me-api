@@ -1,31 +1,19 @@
 import sinon from 'sinon';
 import assert from 'assert';
-import bunyan from 'bunyan';
 import REST from '../../src/rest';
 import utils from '../../src/utils';
+import EPI2ME from '../../src/epi2me';
 
 describe('rest.installToken', () => {
-  let log;
-  let rest;
-
-  beforeEach(() => {
-    const ringbuf = new bunyan.RingBuffer({
-      limit: 100,
-    });
-    log = bunyan.createLogger({
-      name: 'log',
-      stream: ringbuf,
-    });
-    rest = new REST({
-      log,
-      agent_version: '3.0.0',
-    });
-  });
-
   it('must invoke post with options', async () => {
     const stub = sinon.stub(utils, 'post').resolves({
       data: 'some data',
     });
+
+    const options = EPI2ME.parseOptObject({
+      agent_version: '3.0.0',
+    });
+    const rest = new REST(options);
 
     let token;
     try {
@@ -44,19 +32,15 @@ describe('rest.installToken', () => {
           id_workflow: '12345',
         },
         {
+          ...options,
           legacy_form: true,
-          agent_version: '3.0.0',
-          local: false,
-          signing: true,
-          url: 'https://epi2me.nanoporetech.com',
-          user_agent: 'EPI2ME API',
-          log,
         },
       ],
       'post args',
     );
     assert.deepEqual(
-      token, {
+      token,
+      {
         data: 'some data',
       },
       'token content',
@@ -65,6 +49,8 @@ describe('rest.installToken', () => {
 
   it('must handle error', async () => {
     const stub = sinon.stub(utils, 'post').rejects(new Error('token fail'));
+    const options = EPI2ME.parseOptObject({});
+    const rest = new REST(options);
 
     let err;
     try {

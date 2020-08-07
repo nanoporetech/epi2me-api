@@ -5,37 +5,42 @@
 
 import { assign, merge, countBy } from 'lodash';
 import os from 'os';
-import { local, signing, url as baseURL, user_agent as userAgent } from './default_options.json';
 import utils from './utils';
 import { Logger } from './Logger';
 import { EPI2ME_OPTIONS } from './epi2me-options';
 import { AxiosResponse } from 'axios';
-import { asArray, asRecord, asString, asOptFunction, asArrayRecursive, isUndefined, isFunction, asIndex, asIndexable, asOptArrayRecursive, asOptIndex, asOptString } from './runtime-typecast';
+import {
+  asArray,
+  asRecord,
+  asString,
+  asOptFunction,
+  asArrayRecursive,
+  isUndefined,
+  isFunction,
+  isArray,
+  asIndex,
+  asIndexable,
+  asOptArrayRecursive,
+  asOptIndex,
+  asOptString,
+} from './runtime-typecast';
 import { ObjectDict } from './ObjectDict';
-import { isArray } from 'util';
 
 export type AsyncCallback = (err: unknown, data: unknown) => void;
 
 export default class REST {
   options: EPI2ME_OPTIONS;
   log: Logger;
-  cachedResponses: Map<string, {
-    etag: string;
-    response: ObjectDict;
-  }> = new Map();
+  cachedResponses: Map<
+    string,
+    {
+      etag: string;
+      response: ObjectDict;
+    }
+  > = new Map();
 
   constructor(options: EPI2ME_OPTIONS) {
-    // {log, ...options}) {
-    this.options = assign({
-      agent_version: utils.version,
-      local,
-      url: baseURL,
-      user_agent: userAgent,
-      signing,
-    },
-      options,
-    );
-
+    this.options = options;
     this.log = this.options.log;
   }
 
@@ -55,11 +60,13 @@ export default class REST {
   async user(): Promise<ObjectDict> {
     if (this.options.local) {
       return {
-        accounts: [{
-          id_user_account: 'none',
-          number: 'NONE',
-          name: 'None',
-        },],
+        accounts: [
+          {
+            id_user_account: 'none',
+            number: 'NONE',
+            name: 'None',
+          },
+        ],
       }; // fake user with accounts
     }
     return utils.get('user', this.options);
@@ -94,9 +101,10 @@ export default class REST {
 
   async installToken(id: unknown): Promise<ObjectDict> {
     return utils.post(
-      'token/install', {
-      id_workflow: id,
-    },
+      'token/install',
+      {
+        id_workflow: id,
+      },
       assign({}, this.options, {
         legacy_form: true,
       }),
@@ -148,7 +156,7 @@ export default class REST {
       return utils.post('ami_image', asRecord(first), this.options);
       // otherwise we should have 1 string argument
     } else {
-      return this.read('ami_image', asString(first))
+      return this.read('ami_image', asString(first));
     }
   }
 
@@ -161,11 +169,10 @@ export default class REST {
   }
 
   readAmiImage(id: string): Promise<ObjectDict> {
-    return this.read('ami_image', id)
+    return this.read('ami_image', id);
   }
 
   async workflow(first: unknown, second: unknown, third: unknown): Promise<unknown> {
-
     if (first && second && third instanceof Function) {
       return this.updateWorkflow(asString(first), asRecord(second), third);
     } else if (first && second instanceof Object && !(second instanceof Function)) {
@@ -191,7 +198,7 @@ export default class REST {
     try {
       const struct = await this.read('workflow', id);
       if (struct.error) {
-        throw new Error(struct.error + "");
+        throw new Error(struct.error + '');
       }
       merge(workflow, struct);
     } catch (err) {
@@ -207,7 +214,7 @@ export default class REST {
     try {
       const workflowConfig = await utils.get(`workflow/config/${id}`, this.options);
       if (workflowConfig.error) {
-        throw new Error(workflowConfig.error + "");
+        throw new Error(workflowConfig.error + '');
       }
       merge(workflow, workflowConfig);
     } catch (err) {
@@ -216,7 +223,7 @@ export default class REST {
     }
 
     // NOTE it would appear that params can be either an array or an object, the tests are not consistent
-    const params = isArray(workflow.params) ? asArray(workflow.params) : asRecord(workflow.params)
+    const params = isArray(workflow.params) ? asArray(workflow.params) : asRecord(workflow.params);
     // MC-6483 - fetch ajax options for "AJAX drop down widget"
 
     const toFetch = Object.values(params)
@@ -229,11 +236,13 @@ export default class REST {
         return new Promise((resolve, reject) => {
           if (isUndefined(param)) {
             // NOTE should be unreachable
-            throw new Error("parameter is undefined");
+            throw new Error('parameter is undefined');
           }
           const values = asRecord(param.values);
           const items = asRecord(values.items);
-          const uri = asString(values.source).replace('{{EPI2ME_HOST}}', '').replace(/&?apikey=\{\{EPI2ME_API_KEY\}\}/, '');
+          const uri = asString(values.source)
+            .replace('{{EPI2ME_HOST}}', '')
+            .replace(/&?apikey=\{\{EPI2ME_API_KEY\}\}/, '');
 
           utils
             .get(uri, this.options) // e.g. {datasets:[...]} from the /dataset.json list response
@@ -275,7 +284,7 @@ export default class REST {
     const promise = utils.put('workflow', id, obj, this.options);
     if (cb) {
       try {
-        cb(null, await promise)
+        cb(null, await promise);
       } catch (err) {
         cb(err);
       }
@@ -289,18 +298,14 @@ export default class REST {
       try {
         cb(null, await promise);
       } catch (err) {
-        countBy(err)
+        countBy(err);
       }
     }
     return promise;
   }
 
   async startWorkflow(config: ObjectDict): Promise<ObjectDict> {
-    return utils.post(
-      'workflow_instance',
-      config,
-      { ...this.options, legacy_form: true },
-    );
+    return utils.post('workflow_instance', config, { ...this.options, legacy_form: true });
   }
 
   async stopWorkflow(idWorkflowInstance: number): Promise<ObjectDict> {
@@ -333,7 +338,7 @@ export default class REST {
   }
 
   async workflowInstance(id: number): Promise<ObjectDict> {
-    return this.read('workflow_instance', id + "");
+    return this.read('workflow_instance', id + '');
   }
 
   async workflowConfig(id: string): Promise<ObjectDict> {
@@ -343,9 +348,10 @@ export default class REST {
   async register(code: string, description: unknown): Promise<ObjectDict> {
     return utils.put(
       'reg',
-      code, {
-      description: description || `${os.userInfo().username}@${os.hostname()}`,
-    },
+      code,
+      {
+        description: description || `${os.userInfo().username}@${os.hostname()}`,
+      },
       assign({}, this.options, {
         signing: false,
       }),
@@ -406,7 +412,7 @@ export default class REST {
     if (etag) {
       this.cachedResponses.set(url, {
         etag,
-        response
+        response,
       });
     }
     return response;
