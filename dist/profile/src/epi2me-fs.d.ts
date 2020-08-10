@@ -11,9 +11,11 @@ import SampleReader from './sample-reader';
 import SessionManager from './session-manager';
 import { FileStat } from './utils-fs';
 import { ObjectDict } from './ObjectDict';
+import { Index } from './runtime-typecast';
 import { FetchResult } from 'apollo-link';
 import { Configuration } from './Configuration';
 import { PromiseResult } from 'aws-sdk/lib/request';
+import { EPI2ME_OPTIONS } from './epi2me-options';
 declare type FileDescriptor = FileStat & {
     skip?: string;
     stats?: MappedFileStats;
@@ -37,7 +39,8 @@ export default class EPI2ME_FS extends EPI2ME {
     dirScanInProgress?: boolean;
     uploadMessageQueue?: unknown;
     downloadMessageQueue?: unknown;
-    constructor(optstring: ObjectDict | string);
+    REST: REST_FS;
+    constructor(optstring: Partial<EPI2ME_OPTIONS> | string);
     sessionedS3(): Promise<AWS.S3>;
     sessionedSQS(): Promise<AWS.SQS>;
     deleteMessage(message: {
@@ -46,7 +49,24 @@ export default class EPI2ME_FS extends EPI2ME {
     discoverQueue(queueName?: string): Promise<string>;
     queueLength(queueURL: string): Promise<unknown>;
     autoStart(workflowConfig: ObjectDict, cb?: (msg: string) => void): Promise<ObjectDict>;
-    autoStartGQL(variables: ObjectDict, cb?: (msg: string) => void): Promise<Configuration["instance"]>;
+    autoStartGQL(variables: {
+        idWorkflow: Index;
+        computeAccountId: Index;
+        storageAccountId?: Index;
+        isConsentedHuman?: boolean;
+        idDataset?: Index;
+        storeResults?: boolean;
+        region?: string;
+        userDefined?: {
+            [componentId: string]: {
+                [paramOverride: string]: unknown;
+            };
+        };
+        instanceAttributes?: {
+            id_attribute: string;
+            value: string;
+        }[];
+    }, cb?: (msg: string) => void): Promise<Configuration['instance']>;
     autoStartGeneric<T>(workflowConfig: unknown, startFn: () => T, cb?: (msg: string) => void): Promise<T>;
     autoJoin(id: number, cb?: (msg: string) => void): Promise<unknown>;
     setClassConfigGQL(result: FetchResult<ObjectDict>): void;

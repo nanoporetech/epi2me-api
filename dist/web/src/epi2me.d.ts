@@ -46,8 +46,8 @@ export default class EPI2ME {
     REST: REST | REST_FS;
     graphQL: GraphQL;
     mySocket?: Socket;
-    constructor(optstring?: ObjectDict | string);
-    static parseOptObject(opt: ObjectDict): EPI2ME_OPTIONS;
+    constructor(optstring?: Partial<EPI2ME_OPTIONS> | string);
+    static parseOptObject(opt: ObjectDict | Partial<EPI2ME_OPTIONS>): EPI2ME_OPTIONS;
     static resolveLogger(log: unknown): Logger;
     socket(): Promise<Socket>;
     realtimeFeedback(channel: string, object: unknown): Promise<void>;

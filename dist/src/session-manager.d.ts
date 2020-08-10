@@ -1,6 +1,7 @@
 import { Logger } from './Logger';
 import REST from './rest';
 import GraphQL from './graphql';
+import { Index } from './runtime-typecast';
 interface SessionManagerOptions {
     log: Logger;
     useGraphQL?: unknown;
@@ -17,14 +18,14 @@ export default class SessionManager {
     readonly REST: REST;
     readonly graphQL: GraphQL;
     readonly options: SessionManagerOptions;
-    readonly id_workflow_instance: unknown;
+    readonly id_workflow_instance: Index;
     readonly children: {
         config: {
             update: Function;
         };
     }[];
     sts_expiration?: number;
-    constructor(idWorkflowInstance: unknown, REST: REST, children: {
+    constructor(idWorkflowInstance: Index, REST: REST, children: {
         config: {
             update: Function;
         };
