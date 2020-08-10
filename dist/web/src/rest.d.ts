@@ -1,5 +1,6 @@
 import { Logger } from './Logger';
 import { EPI2ME_OPTIONS } from './epi2me-options';
+import { Index } from './runtime-typecast';
 import { ObjectDict } from './ObjectDict';
 export declare type AsyncCallback = (err: unknown, data: unknown) => void;
 export default class REST {
@@ -32,11 +33,11 @@ export default class REST {
     updateWorkflow(id: string, obj: ObjectDict, cb?: Function): Promise<ObjectDict>;
     createWorkflow(obj: ObjectDict, cb?: Function): Promise<ObjectDict>;
     startWorkflow(config: ObjectDict): Promise<ObjectDict>;
-    stopWorkflow(idWorkflowInstance: number): Promise<ObjectDict>;
+    stopWorkflow(idWorkflowInstance: Index): Promise<ObjectDict>;
     workflowInstances(query?: {
         run_id?: string;
     }): Promise<unknown>;
-    workflowInstance(id: number): Promise<ObjectDict>;
+    workflowInstance(id: Index): Promise<ObjectDict>;
     workflowConfig(id: string): Promise<ObjectDict>;
     register(code: string, description: unknown): Promise<ObjectDict>;
     datasets(query?: {
