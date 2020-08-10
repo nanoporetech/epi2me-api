@@ -1,6 +1,6 @@
 {
   "name": "@metrichor/epi2me-api",
-  "version": "3.0.1503",
+  "version": "3.0.1731",
   "license": "MPL-2.0",
   "repository": "git@github.com:nanoporetech/epi2me-api.git",
   "description": "API for communicating with the EPI2ME website(s)",
@@ -92,8 +92,8 @@
   },
   "scripts": {
     "build:version": "jq \".version=\\\"$(jq -r .version package.json | cut -d . -f 1-2).${PATCH:-$(date +%-H%M)}\\\"\" < package.json > package.json.tmp && mv package.json.tmp package.json",
-    "lint-js": "eslint --ignore-path .eslintignore --ignore-pattern \"!**/.*\" .",
-    "lint:errors": "eslint --quiet --ignore-path .eslintignore --ignore-pattern \"!**/.*\" .",
+    "lint-js": "eslint --ext .ts --ignore-path .eslintignore --ignore-pattern \"!**/.*\" .",
+    "lint:errors": "eslint --ext .ts --quiet --ignore-path .eslintignore --ignore-pattern \"!**/.*\" .",
     "fix-js": "npm run lint-js --fix",
     "lint": "npm run lint-js",
     "deps": "npm ci",
