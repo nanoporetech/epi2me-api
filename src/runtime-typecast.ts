@@ -20,6 +20,10 @@ export function isNumber(obj: unknown): obj is number {
   return typeof obj === 'number';
 }
 
+export function isIndex(obj: unknown): obj is Index {
+  return typeof obj === 'number' || typeof obj === 'string';
+}
+
 export function isArray(obj: unknown): obj is unknown[] {
   return Array.isArray(obj);
 }
@@ -121,7 +125,7 @@ export function makeBoolean(obj: unknown): boolean {
 export type Index = number | string;
 
 export function asIndex(obj: unknown, fallback?: Index): Index {
-  if (isNumber(obj) || isString(obj)) {
+  if (isIndex(obj)) {
     return obj as Index;
   }
   if (isNullish(obj) && typeof fallback !== 'undefined') {
