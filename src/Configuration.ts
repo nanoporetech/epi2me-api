@@ -5,8 +5,8 @@ import { Index } from './runtime-typecast';
 export interface Configuration {
   options: EPI2ME_OPTIONS;
   instance: {
-    id_workflow_instance?: number;
-    id_workflow?: number;
+    id_workflow_instance?: Index;
+    id_workflow?: Index;
     inputQueueName?: string;
     outputQueueName?: string;
     outputQueueURL?: string;

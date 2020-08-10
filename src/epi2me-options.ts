@@ -1,4 +1,5 @@
 import { Logger } from './Logger';
+import { Index } from './runtime-typecast';
 export interface EPI2ME_OPTIONS {
   agent_version: string;
   log: Logger;
@@ -26,7 +27,7 @@ export interface EPI2ME_OPTIONS {
   useGraphQL?: boolean;
   apikey?: string;
   apisecret?: string;
-  id_workflow_instance?: number;
+  id_workflow_instance?: Index;
   debounceWindow?: number;
   proxy?: string;
 

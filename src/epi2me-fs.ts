@@ -261,7 +261,7 @@ export default class EPI2ME_FS extends EPI2ME {
     return instance;
   }
 
-  async autoJoin(id: number, cb?: (msg: string) => void): Promise<unknown> {
+  async autoJoin(id: Index, cb?: (msg: string) => void): Promise<unknown> {
     this.stopped = false;
     this.config.instance.id_workflow_instance = id;
     let instance;
@@ -297,7 +297,7 @@ export default class EPI2ME_FS extends EPI2ME {
 
     const chain = isString(instance.chain) ? instance.chain : asRecord(instance.chain);
     const name = asRecord(workflowImage.region).name;
-    const idWorkflow = makeNumber(asRecord(workflowImage.workflow).idWorkflow);
+    const idWorkflow = asOptIndex(asRecord(workflowImage.workflow).idWorkflow);
     const inputqueue = workflowImage.inputqueue;
 
     const map = {
@@ -305,7 +305,7 @@ export default class EPI2ME_FS extends EPI2ME {
       user_defined: asOptRecord(userDefined),
       id_user: asOptIndex(idUser),
       remote_addr: asOptString(remoteAddr),
-      id_workflow_instance: asOptNumber(idWorkflowInstance),
+      id_workflow_instance: asOptIndex(idWorkflowInstance),
       key_id: asOptString(keyId),
       start_date: asOptString(startDate),
       outputQueueName: asOptString(outputqueue),
@@ -326,8 +326,8 @@ export default class EPI2ME_FS extends EPI2ME {
   setClassConfigREST(instance: ObjectDict): void {
     const conf = this.config.instance;
 
-    conf.id_workflow_instance = asOptNumber(instance.id_workflow_instance);
-    conf.id_workflow = asOptNumber(instance.id_workflow);
+    conf.id_workflow_instance = asOptIndex(instance.id_workflow_instance);
+    conf.id_workflow = asOptIndex(instance.id_workflow);
     conf.remote_addr = asOptString(instance.remote_addr);
     conf.key_id = asOptString(instance.key_id);
     conf.bucket = asOptString(instance.bucket);
@@ -1670,8 +1670,8 @@ export default class EPI2ME_FS extends EPI2ME {
       remote_addr?: string;
       user_defined?: ObjectDict;
       apikey?: string;
-      id_workflow_instance?: number;
-      id_master?: number;
+      id_workflow_instance?: Index;
+      id_master?: Index;
       utc: string;
       path: string;
       prefix: string;

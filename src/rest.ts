@@ -23,6 +23,7 @@ import {
   asOptArrayRecursive,
   asOptIndex,
   asOptString,
+  Index,
 } from './runtime-typecast';
 import { ObjectDict } from './ObjectDict';
 
@@ -308,7 +309,7 @@ export default class REST {
     return utils.post('workflow_instance', config, { ...this.options, legacy_form: true });
   }
 
-  async stopWorkflow(idWorkflowInstance: number): Promise<ObjectDict> {
+  async stopWorkflow(idWorkflowInstance: Index): Promise<ObjectDict> {
     return utils.put(
       'workflow_instance/stop',
       idWorkflowInstance.toString(),
@@ -337,7 +338,7 @@ export default class REST {
     }));
   }
 
-  async workflowInstance(id: number): Promise<ObjectDict> {
+  async workflowInstance(id: Index): Promise<ObjectDict> {
     return this.read('workflow_instance', id + '');
   }
 

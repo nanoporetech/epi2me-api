@@ -19,7 +19,7 @@ import utils from './utils';
 import { ObjectDict } from './ObjectDict';
 import { Logger, LogMethod, FallbackLogger } from './Logger';
 import { EPI2ME_OPTIONS } from './epi2me-options';
-import { asRecord, isRecord, asOptString, asOptBoolean, asFunction, asString, asNumber, asArrayRecursive, asBoolean, asOptNumber, asIndexable, asIndex, asOptFunction, asOptRecord } from './runtime-typecast';
+import { asRecord, isRecord, asOptString, asOptBoolean, asFunction, asString, asNumber, asArrayRecursive, asBoolean, asOptNumber, asIndexable, asIndex, asOptFunction, asOptRecord, asOptIndex } from './runtime-typecast';
 import { createUploadState, createDownloadState, States, UploadState, DownloadState, WarningState, SuccessState, ProgressState } from './epi2me-state';
 import { Configuration } from './Configuration';
 import { DisposeTimer, createInterval } from './timers';
@@ -129,7 +129,7 @@ export default class EPI2ME {
       useGraphQL: asOptBoolean(opt.useGraphQL),
       apikey: asOptString(opt.apikey),
       apisecret: asOptString(opt.apisecret),
-      id_workflow_instance: asOptNumber(opt.id_workflow_instance),
+      id_workflow_instance: asOptIndex(opt.id_workflow_instance),
       debounceWindow: asOptNumber(opt.debounceWindow),
       proxy: asOptString(opt.proxy),
       // EPI2ME-FS options
