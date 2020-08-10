@@ -23,8 +23,8 @@ describe('Factory', () => {
     const factory = new Factory(EPI2ME);
     const runningInstance = await factory.startRun({}, {});
     assert.strictEqual(startStub.calledOnce, true);
-    assert.deepEqual(Object.keys(factory.runningInstances), [dummyInstance.id_workflow_instance.toString()]);
-    assert.deepEqual(runningInstance, factory.runningInstances[dummyInstance.id_workflow_instance]);
+    assert.deepEqual([...factory.runningInstances.keys()], [dummyInstance.id_workflow_instance]);
+    assert.deepEqual(runningInstance, factory.runningInstances.get(dummyInstance.id_workflow_instance));
   });
   it('on error thrown starting, it calls stop everything', async () => {
     const errorStub = sinon.stub(EPI2ME.prototype, 'autoStart').throws();
