@@ -10,6 +10,15 @@ import type { UtilityFS } from "./utils-fs";
 import type { Index } from "./runtime-typecast";
 import type { EPI2ME_OPTIONS } from "./epi2me-options";
 
+function printError (log: Logger, msg: string, err: unknown): void {
+  if (err instanceof Error) {
+    log.error(msg, err.stack);
+  }
+  else {
+    log.error(msg, err);
+  }
+}
+
 /*
 Factory seems to be designed with the intention that a version of the EPI2ME
 API can be passed in, then used as the base. However, at the moment it only
@@ -19,7 +28,7 @@ export default class Factory {
   private readonly EPI2ME: typeof EPI2ME_FS;
   private options: Partial<EPI2ME_OPTIONS>;
   private primary: EPI2ME_FS;
-  private runningInstances: ObjectDict<EPI2ME_FS> = {};
+  private runningInstances: Map<Index, EPI2ME_FS> = new Map();
 
   constructor(api: typeof EPI2ME_FS, opts: Partial<EPI2ME_OPTIONS> = {}) {
     this.EPI2ME = api;
@@ -54,12 +63,16 @@ export default class Factory {
   reset (options: Partial<EPI2ME_OPTIONS> = {}): void {
     this.options = options;
     // WARN what happens to the running instances here?
-    this.runningInstances = {};
+    this.runningInstances.clear()
     this.primary = this.instantiate();
   }
 
   getRunningInstance (id: Index): EPI2ME_FS | undefined {
-    return this.runningInstances[id];
+    return this.runningInstances.get(id);
+  }
+
+  getAllRunningInstances (): EPI2ME_FS[] {
+    return Array.from(this.runningInstances.values());
   }
 
   private instantiate (options: Partial<EPI2ME_OPTIONS> = {}): EPI2ME_FS {
@@ -74,32 +87,42 @@ export default class Factory {
     try {
       const workflowData = await inst.autoStart(workflowConfig);
       const id = asIndex(workflowData.id_workflow_instance);
-      this.runningInstances[id] = inst;
+      this.runningInstances.set(id, inst);
     } catch (startErr) {
-      this.log.error('Experienced error starting', startErr);
+      printError(this.log, 'Experienced error starting', startErr);
       try {
         await inst.stopEverything();
       } catch (stopErr) {
-        this.log.error('Also experienced error stopping', stopErr);
+        printError(this.log, 'Also experienced error stopping', stopErr);
       }
     }
     return inst;
   }
 
-  async startGQLRun(options: ObjectDict, variables: ObjectDict): Promise<EPI2ME_FS> {
+  async startGQLRun(options: ObjectDict, variables: {
+    idWorkflow: Index;
+    computeAccountId: Index;
+    storageAccountId?: Index;
+    isConsentedHuman?: boolean;
+    idDataset?: Index;
+    storeResults?: boolean;
+    region?: string;
+    userDefined?: { [componentId: string]: { [paramOverride: string]: unknown } };
+    instanceAttributes?: { id_attribute: string; value: string }[];
+  }): Promise<EPI2ME_FS> {
     const inst = this.instantiate({ ...options, useGraphQL: true });
     try {
       const workflowData = await inst.autoStartGQL(variables);
       const id = asIndex(workflowData.id_workflow_instance);
-      this.runningInstances[id] = inst;
+      this.runningInstances.set(id, inst);
       // TODO does this actually need to be here?
       this.log.debug(workflowData);
     } catch (startErr) {
-      this.log.error(`Experienced error starting ${String(startErr)}`);
+      printError(this.log, 'Experienced error starting', startErr);
       try {
         await inst.stopEverything();
       } catch (stopErr) {
-        this.log.error(`Also experienced error stopping ${String(stopErr)}`);
+        printError(this.log, 'Also experienced error stopping', stopErr);
       }
     }
     return inst;

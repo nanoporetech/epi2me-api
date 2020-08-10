@@ -41,6 +41,8 @@ import {
   makeNumber,
   asOptIndex,
   asOptFunction,
+  Index,
+  asIndex,
 } from './runtime-typecast';
 import { FetchResult } from 'apollo-link';
 import { Configuration } from './Configuration';
@@ -200,7 +202,20 @@ export default class EPI2ME_FS extends EPI2ME {
     return this.autoConfigure(instance, cb);
   }
 
-  async autoStartGQL(variables: ObjectDict, cb?: (msg: string) => void): Promise<Configuration['instance']> {
+  async autoStartGQL(
+    variables: {
+      idWorkflow: Index;
+      computeAccountId: Index;
+      storageAccountId?: Index;
+      isConsentedHuman?: boolean;
+      idDataset?: Index;
+      storeResults?: boolean;
+      region?: string;
+      userDefined?: { [componentId: string]: { [paramOverride: string]: unknown } };
+      instanceAttributes?: { id_attribute: string; value: string }[];
+    },
+    cb?: (msg: string) => void,
+  ): Promise<Configuration['instance']> {
     /*
     variables: {
       idWorkflow: ID!
@@ -335,7 +350,7 @@ export default class EPI2ME_FS extends EPI2ME {
 
   initSessionManager(opts?: ObjectDict | null, children: { config: { update: Function } }[] = []): SessionManager {
     return new SessionManager(
-      this.config.instance.id_workflow_instance,
+      asIndex(this.config.instance.id_workflow_instance),
       this.REST,
       [AWS, ...children],
       {

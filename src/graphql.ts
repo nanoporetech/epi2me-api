@@ -17,6 +17,8 @@ import type { ObjectDict } from './ObjectDict';
 import type { FetchResult } from 'apollo-link';
 import type { ApolloQueryResult } from 'apollo-client';
 import type { EPI2ME_OPTIONS } from './epi2me-options';
+import { asBoolean, Index } from './runtime-typecast';
+import { PaginatedWorkflowType, WorkflowType, PaginatedWorkflowInstanceType, WorkflowInstanceType, WorkflowInstanceMutation, StopWorkflowInstanceMutation, InstanceTokenMutation, UserObjectType, UpdateUserMutation, RegisterTokenMutation, StatusType, RegionType } from './graphql-types';
 
 export interface GraphQLConfiguration {
   url: string;
@@ -35,22 +37,13 @@ export interface RequestContext {
   [key: string]: unknown;
 }
 
-export interface QueryOptions {
-  context?: ObjectDict;
-  variables?: ObjectDict;
-  options?: ObjectDict;
+export interface QueryOptions<Var = ObjectDict, Ctx = ObjectDict, Opt = ObjectDict> {
+  context?: Ctx;
+  variables?: Var;
+  options?: Opt;
 }
 
 export type AsyncAQR<T = unknown> = Promise<ApolloQueryResult<T>>;
-
-export interface WorkflowPages {
-  data: ApolloQueryResult<unknown>;
-  next(): AsyncAQR;
-  previous(): AsyncAQR;
-  first(): AsyncAQR;
-  last(): AsyncAQR;
-}
-
 export class GraphQL {
   readonly log: Logger;
   readonly client = client;
@@ -91,11 +84,11 @@ export class GraphQL {
     };
   };
 
-  query(queryString: ((str: string) => DocumentNode) | string | DocumentNode): (opt: QueryOptions) => AsyncAQR {
-    return (opt: QueryOptions = {}): AsyncAQR => {
-      const context = opt.context ?? {};
-      const variables = opt.variables ?? {};
-      const options = opt.options ?? {};
+  query<T = unknown, Var extends {} = {}>(queryString: ((str: string) => DocumentNode) | string | DocumentNode): (opt?: QueryOptions<Var>) => AsyncAQR<T> {
+    return (opt?: QueryOptions<Var>): AsyncAQR<T> => {
+      const context = opt?.context ?? {};
+      const variables = opt?.variables ?? {};
+      const options = opt?.options ?? {};
       const requestContext = this.createContext(context);
       let query: DocumentNode;
       // This lets us write queries using the gql tags and
@@ -112,7 +105,7 @@ export class GraphQL {
         query = queryString;
       }
 
-      return this.client.query({
+      return this.client.query<T>({
         query,
         variables,
         ...options,
@@ -121,11 +114,11 @@ export class GraphQL {
     };
   }
 
-  mutate(queryString: string | DocumentNode): (opt: QueryOptions) => Promise<FetchResult> {
-    return (opt: QueryOptions = {}): Promise<FetchResult> => {
-      const context = opt.context ?? {};
-      const variables = opt.variables ?? {};
-      const options = opt.options ?? {};
+  mutate<T = unknown, Var extends {} = {}>(queryString: string | DocumentNode): (opt?: QueryOptions<Var>) => Promise<FetchResult<T>> {
+    return (opt?: QueryOptions<Var>): Promise<FetchResult<T>> => {
+      const context = opt?.context ?? {};
+      const variables = opt?.variables ?? {};
+      const options = opt?.options ?? {};
       const requestContext = this.createContext(context);
       let mutation;
       if (typeof queryString === 'string') {
@@ -135,7 +128,7 @@ export class GraphQL {
       } else {
         mutation = queryString;
       }
-      return this.client.mutate({
+      return this.client.mutate<T>({
         mutation,
         variables,
         ...options,
@@ -147,8 +140,8 @@ export class GraphQL {
   resetCache = (): void => {
     this.client.resetStore();
   };
-
-  workflows = this.query(gql`
+  
+  workflows = this.query<{ allWorkflows: PaginatedWorkflowType}, { isActive?: number; page?: number; pageSize?: number; orderBy?: string; region?: string }>(gql`
     query allWorkflows($page: Int, $pageSize: Int, $isActive: Int, $orderBy: String, $region: String) {
       allWorkflows(page: $page, pageSize: $pageSize, isActive: $isActive, orderBy: $orderBy, region: $region) {
         ${PageFragment}
@@ -159,14 +152,20 @@ export class GraphQL {
     }
   `);
 
-  workflowPages = async (requestedPage: number): Promise<WorkflowPages> => {
+  workflowPages = async (requestedPage: number): Promise<{
+    data: ApolloQueryResult<{ allWorkflows: PaginatedWorkflowType}>;
+    next(): AsyncAQR<{ allWorkflows: PaginatedWorkflowType}>;
+    previous(): AsyncAQR<{ allWorkflows: PaginatedWorkflowType}>;
+    first(): AsyncAQR<{ allWorkflows: PaginatedWorkflowType}>;
+    last(): AsyncAQR<{ allWorkflows: PaginatedWorkflowType}>;
+  }> => {
     let page: number = requestedPage;
     let data = await this.workflows({
       variables: {
         page,
       },
     });
-    const updatePage = async (newPage: number): AsyncAQR => {
+    const updatePage = async (newPage: number): AsyncAQR<{ allWorkflows: PaginatedWorkflowType}> => {
       page = newPage;
       data = await this.workflows({
         variables: {
@@ -178,14 +177,14 @@ export class GraphQL {
 
     return {
       data,
-      next: (): AsyncAQR => updatePage(page + 1),
-      previous: (): AsyncAQR => updatePage(page - 1),
-      first: (): AsyncAQR => updatePage(1),
-      last: (): AsyncAQR => updatePage(0),
+      next: (): AsyncAQR<{ allWorkflows: PaginatedWorkflowType}> => updatePage(page + 1),
+      previous: (): AsyncAQR<{ allWorkflows: PaginatedWorkflowType}> => updatePage(page - 1),
+      first: (): AsyncAQR<{ allWorkflows: PaginatedWorkflowType}> => updatePage(1),
+      last: (): AsyncAQR<{ allWorkflows: PaginatedWorkflowType}> => updatePage(0),
     };
   };
 
-  workflow = this.query(gql`
+  workflow = this.query<{ workflow: WorkflowType }, { idWorkflow: Index }>(gql`
     query workflow($idWorkflow: ID!) {
       workflow(idWorkflow: $idWorkflow) {
         ${WorkflowFragment}
@@ -193,7 +192,7 @@ export class GraphQL {
     }
    `);
 
-  workflowInstances = this.query(gql`
+  workflowInstances = this.query<{ allWorkflowInstances: PaginatedWorkflowInstanceType}, { idUser?: number; shared?: boolean; page?: number; pageSize?: number; orderBy?: string }>(gql`
   query allWorkflowInstances($page: Int, $pageSize: Int, $shared: Boolean, $idUser: ID, $orderBy: String) {
     allWorkflowInstances(page: $page, pageSize: $pageSize, shared: $shared, idUser: $idUser, orderBy: $orderBy) {
       ${PageFragment}
@@ -204,7 +203,7 @@ export class GraphQL {
   }
    `);
 
-  workflowInstance = this.query(gql`
+  workflowInstance = this.query<{ workflowInstance: WorkflowInstanceType }, { idWorkflowInstance: Index }>(gql`
       query workflowInstance($idWorkflowInstance: ID!) {
         workflowInstance(idWorkflowInstance: $idWorkflowInstance) {
           ${WorkflowInstanceFragment}
@@ -212,7 +211,7 @@ export class GraphQL {
       }
    `);
 
-  startWorkflow = this.mutate(gql`
+  startWorkflow = this.mutate<{ startData: WorkflowInstanceMutation }, { idWorkflow: Index; computeAccountId: Index; storageAccountId?: Index; isConsentedHuman?: boolean; idDataset?: Index; storeResults?: boolean; region?: string; userDefined?: { [componentId: string]: { [paramOverride: string]: unknown } }; instanceAttributes?: { id_attribute: string; value: string }[]}>(gql`
     mutation startWorkflow(
       $idWorkflow: ID!
       $computeAccountId: ID!
@@ -258,7 +257,7 @@ export class GraphQL {
     }
   `);
 
-  stopWorkflow = this.mutate(gql`
+  stopWorkflow = this.mutate<{ stopData: StopWorkflowInstanceMutation }, { idWorkflowInstance: Index }>(gql`
     mutation stopWorkflowInstance($idWorkflowInstance: ID!) {
       stopData: stopWorkflowInstance(idWorkflowInstance: $idWorkflowInstance) {
         success
@@ -267,7 +266,7 @@ export class GraphQL {
     }
   `);
 
-  instanceToken = this.mutate(gql`
+  instanceToken = this.mutate<{ token: InstanceTokenMutation}, { idWorkflowInstance: Index }>(gql`
     mutation getInstanceToken($idWorkflowInstance: ID!) {
       token: getInstanceToken(idWorkflowInstance: $idWorkflowInstance) {
         id_workflow_instance: idWorkflowInstance
@@ -282,7 +281,7 @@ export class GraphQL {
 
   // user - me
 
-  user = this.query(gql`
+  user = this.query<{ me: UserObjectType }, {}>(gql`
     query user {
       me {
         username
@@ -294,7 +293,7 @@ export class GraphQL {
     }
   `);
 
-  updateUser = this.mutate(gql`
+  updateUser = this.mutate<{ updateUser: UpdateUserMutation }, { idRegionPreferred: Index }>(gql`
     mutation updateUser($idRegionPreferred: ID!) {
       updateUser(idRegionPreferred: $idRegionPreferred) {
         idRegionPreferred
@@ -305,7 +304,7 @@ export class GraphQL {
   // dataset(s)
   // show=show
 
-  register = this.mutate(gql`
+  register = this.mutate<{ registerToken: RegisterTokenMutation }, { code: string; description?: string }>(gql`
     mutation registerToken($code: String!, $description: String) {
       registerToken(code: $code, description: $description) {
         apikey
@@ -316,7 +315,7 @@ export class GraphQL {
   `);
 
   // status
-  status = this.query(gql`
+  status = this.query<{ status: StatusType }, {}>(gql`
     query status {
       status {
         portalVersion
@@ -328,11 +327,18 @@ export class GraphQL {
     }
   `);
 
-  healthCheck = (): Promise<unknown> => utils.get('/status', { ...this.options, log: { debug: NoopLogMethod } });
+
+  async healthCheck (): Promise<{ status: boolean }> {
+    const result = await utils.get('/status', { ...this.options, log: { debug: NoopLogMethod } });
+
+    return {
+      status: asBoolean(result.status)
+    };
+  }
 
   // Regions
 
-  regions = this.query(gql`
+  regions = this.query<{ regions: RegionType[] }, {}>(gql`
     query regions {
       regions {
         idRegion
