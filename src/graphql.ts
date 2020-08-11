@@ -49,6 +49,13 @@ export class GraphQL {
   readonly client = client;
   readonly options: GraphQLConfiguration;
 
+  // See: https://www.apollographql.com/docs/react/api/react-apollo/#optionsfetchpolicy
+  static NETWORK_ONLY = 'network-only';
+  static CACHE_FIRST = 'cache-first';
+  static CACHE_AND_NETWORK = 'cache-and-network';
+  static CACHE_ONLY = 'cache-only';
+  static NO_CACHE = 'no-cache';
+
   constructor(opts: EPI2ME_OPTIONS) {
     let url = opts.url;
     // https://epi2me-dev.bla => https://graphql.epi2me-dev.bla
