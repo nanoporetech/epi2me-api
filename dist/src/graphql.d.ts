@@ -31,6 +31,11 @@ export declare class GraphQL {
     readonly log: Logger;
     readonly client: import("apollo-client").ApolloClient<import("apollo-cache-inmemory").NormalizedCacheObject>;
     readonly options: GraphQLConfiguration;
+    static NETWORK_ONLY: string;
+    static CACHE_FIRST: string;
+    static CACHE_AND_NETWORK: string;
+    static CACHE_ONLY: string;
+    static NO_CACHE: string;
     constructor(opts: EPI2ME_OPTIONS);
     createContext: (contextIn: ObjectDict) => RequestContext;
     query<T = unknown, Var extends {} = {}>(queryString: ((str: string) => DocumentNode) | string | DocumentNode): (opt?: QueryOptions<Var>) => AsyncAQR<T>;
