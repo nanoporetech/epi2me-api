@@ -43,6 +43,7 @@ import {
   asOptFunction,
   Index,
   asIndex,
+  asRecordRecursive,
 } from './runtime-typecast';
 import { FetchResult } from 'apollo-link';
 import { Configuration } from './Configuration';
@@ -1714,9 +1715,9 @@ export default class EPI2ME_FS extends EPI2ME {
     }
 
     if (message.components) {
-      const components = asArrayRecursive(message.components, asRecord);
+      const components = asRecordRecursive(message.components, asRecord);
       // optionally populate input + output queues
-      for (const component of components) {
+      for (const component of Object.values(components)) {
         switch (component?.inputQueueName) {
           case 'uploadMessageQueue':
             component.inputQueueName = this.uploadMessageQueue;

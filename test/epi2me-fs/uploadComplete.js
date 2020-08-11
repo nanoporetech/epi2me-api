@@ -6,7 +6,6 @@ import tmp from 'tmp';
 import DB from '../../src/db';
 import EPI2ME from '../../src/epi2me-fs';
 
-
 describe('epi2me.uploadComplete', () => {
   const clientFactory = opts => {
     const client = new EPI2ME(
@@ -160,7 +159,7 @@ describe('epi2me.uploadComplete', () => {
           path: 'object-id',
           prefix: '',
           targetComponentId: 1, // this
-          components: [], // this
+          components: {}, // this
           key_id: 'data-secret', // this
           agent_address: {
             // this
@@ -176,7 +175,7 @@ describe('epi2me.uploadComplete', () => {
     });
 
     client.config.instance.chain = {
-      components: [],
+      components: {},
       targetComponentId: 1,
     };
     client.config.instance.key_id = 'data-secret';
@@ -218,7 +217,7 @@ describe('epi2me.uploadComplete', () => {
           path: 'object-id',
           prefix: '',
           targetComponentId: 1, // this
-          components: [], // this
+          components: {}, // this
           key_id: 'data-secret', // this
         },
         'uploadComplete payload',
@@ -229,7 +228,7 @@ describe('epi2me.uploadComplete', () => {
     });
 
     client.config.instance.chain = {
-      components: [],
+      components: {},
       targetComponentId: 1,
     };
     client.config.instance.key_id = 'data-secret';
@@ -259,16 +258,16 @@ describe('epi2me.uploadComplete', () => {
     sinon.stub(sqs, 'sendMessage').callsFake(obj => {
       assert.deepEqual(
         JSON.parse(obj.MessageBody).components,
-        [
-          {
+        {
+          '0': {
             id: 1,
             inputQueueName: 'upload-q',
           },
-          {
+          '1': {
             id: 2,
             inputQueueName: 'download-q',
           },
-        ],
+        },
         'uploadComplete replaced component queue names',
       );
       return {
@@ -279,16 +278,16 @@ describe('epi2me.uploadComplete', () => {
     client.uploadMessageQueue = 'upload-q';
     client.downloadMessageQueue = 'download-q';
     client.config.instance.chain = {
-      components: [
-        {
+      components: {
+        '0': {
           id: 1,
           inputQueueName: 'uploadMessageQueue',
         },
-        {
+        '1': {
           id: 2,
           inputQueueName: 'downloadMessageQueue',
         },
-      ],
+      },
     };
 
     try {
