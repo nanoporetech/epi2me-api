@@ -11,7 +11,7 @@ import * as tunnel from 'tunnel';
 import { version as VERSION } from '../package.json';
 import { NoopLogger, LogMethod } from './Logger';
 import { ObjectDict } from './ObjectDict';
-import { asRecord } from './runtime-typecast';
+import { isRecord } from './runtime-typecast';
 
 axios.defaults.validateStatus = (status: number): boolean => status <= 504; // Reject only if the status code is greater than or equal to 500
 
@@ -102,15 +102,11 @@ const utils: Utility = (function magic(): Utility {
     },
 
     responseHandler(r: AxiosResponse<unknown>): ObjectDict {
-      const json = r ? asRecord(r.data) : null;
-
-      if (!json) {
-        throw new Error('unexpected non-json response');
-      }
+      const json = r && isRecord(r.data) ? r.data : null;
 
       if (r && r.status >= 400) {
         let msg = `Network error ${r.status}`;
-        if (json.error) {
+        if (json?.error) {
           msg = json.error + '';
         }
 
@@ -120,6 +116,10 @@ const utils: Utility = (function magic(): Utility {
         }
 
         throw new Error(msg);
+      }
+
+      if (!json) {
+        throw new Error('unexpected non-json response');
       }
 
       if (json.error) {

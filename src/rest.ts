@@ -388,12 +388,13 @@ export default class REST {
   }
 
   async fetchContent(url: string): Promise<ObjectDict> {
-    const options = assign({}, this.options, {
+    const options = {
+      ...this.options,
       skip_url_mangle: true,
       headers: {
         'Content-Type': '',
       },
-    });
+    };
 
     let etag;
     try {
