@@ -186,8 +186,11 @@ export default class EPI2ME {
           for (const [key, value] of workerStatus) {
             if (key in indexableNewWorkerStatus) {
               const step = +key;
-              const wid = asIndex(asRecord(value).wid);
-              const name = (step && Object.keys(asArrayRecursive(summaryTelemetry[wid], asRecord)[0])) ?? 'ROOT';
+              let name = 'ROOT';
+              if (step !== 0) {
+                const wid = asIndex(asRecord(value).wid);
+                name = Object.keys(asRecord(summaryTelemetry[wid]))[0] ?? 'ROOT';
+              }
               const [running, complete, error] = asString(indexableNewWorkerStatus[key])
                 .split(',')
                 .map(componentID => Math.max(0, +componentID)); // It's dodgy but assuming the componentID is a number happens all over the place
