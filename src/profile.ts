@@ -5,6 +5,7 @@ export interface ProfileCredentials {
   apikey?: string;
   apisecret?: string;
   endpoint?: string;
+  url?: string;
   billing_account?: string;
   compute_account?: string;
 }
