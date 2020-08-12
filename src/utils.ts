@@ -6,7 +6,6 @@
 
 import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 import crypto from 'crypto';
-import { merge } from 'lodash';
 import * as tunnel from 'tunnel';
 import { version as VERSION } from '../package.json';
 import { NoopLogger, LogMethod } from './Logger';
@@ -134,16 +133,14 @@ const utils: Utility = (function magic(): Utility {
     version: VERSION,
     headers(req: AxiosRequestConfig, options: UtilityOptions): void {
       // common headers required for everything
-      req.headers = merge(
-        {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-          'X-EPI2ME-Client': options.user_agent || 'api', // new world order
-          'X-EPI2ME-Version': options.agent_version || utils.version, // new world order
-        },
-        req.headers,
-        options.headers,
-      );
+      req.headers = {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'X-EPI2ME-Client': options.user_agent || 'api', // new world order
+        'X-EPI2ME-Version': options.agent_version || utils.version, // new world order
+        ...req.headers,
+        ...options.headers,
+      };
 
       if (options.signing ?? true) {
         // if not present: sign
@@ -325,7 +322,10 @@ const utils: Utility = (function magic(): Utility {
     processLegacyForm(req: AxiosRequestConfig, data: ObjectDict): void {
       // include legacy form parameters
       const params: string[] = [];
-      const form = merge({ json: JSON.stringify(data) }, data);
+      const form: ObjectDict = {
+        json: JSON.stringify(data),
+        ...data,
+      };
       Object.keys(form)
         .sort()
         .forEach(attr => {
