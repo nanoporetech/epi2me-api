@@ -82,7 +82,15 @@ export default class Factory {
     });
   }
 
-  async startRun(options: Partial<EPI2ME_OPTIONS>, workflowConfig: ObjectDict): Promise<EPI2ME_FS> {
+  async startRun(options: Partial<EPI2ME_OPTIONS>, workflowConfig: {
+    id_workflow: string;
+    is_consented_human: 0 | 1;
+    user_defined: unknown;
+    instance_attributes: unknown;
+    compute_account?: string;
+    storage_account?: string;
+    store_results?: boolean;
+  }): Promise<EPI2ME_FS> {
     const inst = this.instantiate(options);
     try {
       const workflowData = await inst.autoStart(workflowConfig);
