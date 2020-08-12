@@ -324,3 +324,39 @@ export declare type WorkflowType = {
     params?: Maybe<Scalars['GenericScalar']>;
     mappedAttributes?: Maybe<Scalars['GenericScalar']>;
 };
+export declare type ResponseAllWorkflows = {
+    allWorkflows: PaginatedWorkflowType;
+};
+export declare type ResponseWorkflow = {
+    workflow: WorkflowType;
+};
+export declare type ResponseAllWorkflowInstances = {
+    allWorkflowInstances: PaginatedWorkflowInstanceType;
+};
+export declare type ResponseWorkflowInstance = {
+    workflowInstance: WorkflowInstanceType;
+};
+export declare type ResponseStartWorkflow = {
+    startData: WorkflowInstanceMutation;
+};
+export declare type ResponseStopWorkflowInstance = {
+    stopData: StopWorkflowInstanceMutation;
+};
+export declare type ResponseGetInstanceToken = {
+    token: InstanceTokenMutation;
+};
+export declare type ResponseUser = {
+    me: UserObjectType;
+};
+export declare type ResponseUpdateUser = {
+    updateUser: UpdateUserMutation;
+};
+export declare type ResponseRegisterToken = {
+    registerToken: RegisterTokenMutation;
+};
+export declare type ResponseStatus = {
+    status: StatusType;
+};
+export declare type ResponseRegions = {
+    regions: RegionType[];
+};

@@ -5,7 +5,7 @@ import type { FetchResult } from 'apollo-link';
 import type { ApolloQueryResult } from 'apollo-client';
 import type { EPI2ME_OPTIONS } from './epi2me-options';
 import { Index } from './runtime-typecast';
-import { PaginatedWorkflowType, WorkflowType, PaginatedWorkflowInstanceType, WorkflowInstanceType, WorkflowInstanceMutation, StopWorkflowInstanceMutation, InstanceTokenMutation, UserObjectType, UpdateUserMutation, RegisterTokenMutation, StatusType, RegionType } from './graphql-types';
+import { ResponseWorkflowInstance, ResponseAllWorkflowInstances, ResponseStartWorkflow, ResponseWorkflow, ResponseAllWorkflows, ResponseStopWorkflowInstance, ResponseGetInstanceToken, ResponseUser, ResponseRegisterToken, ResponseUpdateUser, ResponseStatus, ResponseRegions } from './graphql-types';
 export interface GraphQLConfiguration {
     url: string;
     apikey?: string;
@@ -47,45 +47,27 @@ export declare class GraphQL {
         pageSize?: number | undefined;
         orderBy?: string | undefined;
         region?: string | undefined;
-    }, Record<string, unknown>, Record<string, unknown>> | undefined) => AsyncAQR<{
-        allWorkflows: PaginatedWorkflowType;
-    }>;
+    }, Record<string, unknown>, Record<string, unknown>> | undefined) => AsyncAQR<ResponseAllWorkflows>;
     workflowPages: (requestedPage: number) => Promise<{
-        data: ApolloQueryResult<{
-            allWorkflows: PaginatedWorkflowType;
-        }>;
-        next(): AsyncAQR<{
-            allWorkflows: PaginatedWorkflowType;
-        }>;
-        previous(): AsyncAQR<{
-            allWorkflows: PaginatedWorkflowType;
-        }>;
-        first(): AsyncAQR<{
-            allWorkflows: PaginatedWorkflowType;
-        }>;
-        last(): AsyncAQR<{
-            allWorkflows: PaginatedWorkflowType;
-        }>;
+        data: ApolloQueryResult<ResponseAllWorkflows>;
+        next(): AsyncAQR<ResponseAllWorkflows>;
+        previous(): AsyncAQR<ResponseAllWorkflows>;
+        first(): AsyncAQR<ResponseAllWorkflows>;
+        last(): AsyncAQR<ResponseAllWorkflows>;
     }>;
     workflow: (opt?: QueryOptions<{
         idWorkflow: Index;
-    }, Record<string, unknown>, Record<string, unknown>> | undefined) => AsyncAQR<{
-        workflow: WorkflowType;
-    }>;
+    }, Record<string, unknown>, Record<string, unknown>> | undefined) => AsyncAQR<ResponseWorkflow>;
     workflowInstances: (opt?: QueryOptions<{
         idUser?: number | undefined;
         shared?: boolean | undefined;
         page?: number | undefined;
         pageSize?: number | undefined;
         orderBy?: string | undefined;
-    }, Record<string, unknown>, Record<string, unknown>> | undefined) => AsyncAQR<{
-        allWorkflowInstances: PaginatedWorkflowInstanceType;
-    }>;
+    }, Record<string, unknown>, Record<string, unknown>> | undefined) => AsyncAQR<ResponseAllWorkflowInstances>;
     workflowInstance: (opt?: QueryOptions<{
         idWorkflowInstance: Index;
-    }, Record<string, unknown>, Record<string, unknown>> | undefined) => AsyncAQR<{
-        workflowInstance: WorkflowInstanceType;
-    }>;
+    }, Record<string, unknown>, Record<string, unknown>> | undefined) => AsyncAQR<ResponseWorkflowInstance>;
     startWorkflow: (opt?: QueryOptions<{
         idWorkflow: Index;
         computeAccountId: Index;
@@ -103,41 +85,25 @@ export declare class GraphQL {
             id_attribute: string;
             value: string;
         }[] | undefined;
-    }, Record<string, unknown>, Record<string, unknown>> | undefined) => Promise<FetchResult<{
-        startData: WorkflowInstanceMutation;
-    }, Record<string, any>, Record<string, any>>>;
+    }, Record<string, unknown>, Record<string, unknown>> | undefined) => Promise<FetchResult<ResponseStartWorkflow, Record<string, any>, Record<string, any>>>;
     stopWorkflow: (opt?: QueryOptions<{
         idWorkflowInstance: Index;
-    }, Record<string, unknown>, Record<string, unknown>> | undefined) => Promise<FetchResult<{
-        stopData: StopWorkflowInstanceMutation;
-    }, Record<string, any>, Record<string, any>>>;
+    }, Record<string, unknown>, Record<string, unknown>> | undefined) => Promise<FetchResult<ResponseStopWorkflowInstance, Record<string, any>, Record<string, any>>>;
     instanceToken: (opt?: QueryOptions<{
         idWorkflowInstance: Index;
-    }, Record<string, unknown>, Record<string, unknown>> | undefined) => Promise<FetchResult<{
-        token: InstanceTokenMutation;
-    }, Record<string, any>, Record<string, any>>>;
-    user: (opt?: QueryOptions<{}, Record<string, unknown>, Record<string, unknown>> | undefined) => AsyncAQR<{
-        me: UserObjectType;
-    }>;
+    }, Record<string, unknown>, Record<string, unknown>> | undefined) => Promise<FetchResult<ResponseGetInstanceToken, Record<string, any>, Record<string, any>>>;
+    user: (opt?: QueryOptions<{}, Record<string, unknown>, Record<string, unknown>> | undefined) => AsyncAQR<ResponseUser>;
     updateUser: (opt?: QueryOptions<{
         idRegionPreferred: Index;
-    }, Record<string, unknown>, Record<string, unknown>> | undefined) => Promise<FetchResult<{
-        updateUser: UpdateUserMutation;
-    }, Record<string, any>, Record<string, any>>>;
+    }, Record<string, unknown>, Record<string, unknown>> | undefined) => Promise<FetchResult<ResponseUpdateUser, Record<string, any>, Record<string, any>>>;
     register: (opt?: QueryOptions<{
         code: string;
         description?: string | undefined;
-    }, Record<string, unknown>, Record<string, unknown>> | undefined) => Promise<FetchResult<{
-        registerToken: RegisterTokenMutation;
-    }, Record<string, any>, Record<string, any>>>;
-    status: (opt?: QueryOptions<{}, Record<string, unknown>, Record<string, unknown>> | undefined) => AsyncAQR<{
-        status: StatusType;
-    }>;
+    }, Record<string, unknown>, Record<string, unknown>> | undefined) => Promise<FetchResult<ResponseRegisterToken, Record<string, any>, Record<string, any>>>;
+    status: (opt?: QueryOptions<{}, Record<string, unknown>, Record<string, unknown>> | undefined) => AsyncAQR<ResponseStatus>;
     healthCheck(): Promise<{
         status: boolean;
     }>;
-    regions: (opt?: QueryOptions<{}, Record<string, unknown>, Record<string, unknown>> | undefined) => AsyncAQR<{
-        regions: RegionType[];
-    }>;
+    regions: (opt?: QueryOptions<{}, Record<string, unknown>, Record<string, unknown>> | undefined) => AsyncAQR<ResponseRegions>;
 }
 export default GraphQL;
