@@ -28,8 +28,14 @@ export default class EPI2ME {
     analyseState$: BehaviorSubject<boolean>;
     reportState$: BehaviorSubject<boolean>;
     runningStates$: import("rxjs").Observable<[boolean, boolean, boolean]>;
-    instanceTelemetry$: BehaviorSubject<unknown>;
-    experimentalWorkerStatus$: BehaviorSubject<unknown>;
+    instanceTelemetry$: BehaviorSubject<unknown[]>;
+    experimentalWorkerStatus$: BehaviorSubject<{
+        running: number;
+        complete: number;
+        error: number;
+        step: number;
+        name: string;
+    }[]>;
     states: States;
     timers: {
         downloadCheckInterval?: DisposeTimer;

@@ -16,6 +16,7 @@ import { FetchResult } from 'apollo-link';
 import { Configuration } from './Configuration';
 import { PromiseResult } from 'aws-sdk/lib/request';
 import { EPI2ME_OPTIONS } from './epi2me-options';
+import GraphQL from './graphql';
 declare type FileDescriptor = FileStat & {
     skip?: string;
     stats?: MappedFileStats;
@@ -28,6 +29,7 @@ export default class EPI2ME_FS extends EPI2ME {
     static EPI2ME_HOME: string;
     static Profile: typeof Profile;
     static Factory: typeof Factory;
+    static GraphQL: typeof GraphQL;
     SampleReader: SampleReader;
     uploadsInProgress: {
         abort(): void;
@@ -57,13 +59,9 @@ export default class EPI2ME_FS extends EPI2ME {
         idDataset?: Index;
         storeResults?: boolean;
         region?: string;
-        userDefined?: {
-            [componentId: string]: {
-                [paramOverride: string]: unknown;
-            };
-        };
+        userDefined?: ObjectDict<ObjectDict>;
         instanceAttributes?: {
-            id_attribute: string;
+            id_attribute: Index;
             value: string;
         }[];
     }, cb?: (msg: string) => void): Promise<Configuration['instance']>;

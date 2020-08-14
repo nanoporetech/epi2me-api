@@ -18,12 +18,24 @@ export default class Factory {
     get log(): Logger;
     get REST(): REST_FS;
     get graphQL(): GraphQL;
-    get SampleReader(): SampleReader;
+    get sampleReader(): SampleReader;
     reset(options?: Partial<EPI2ME_OPTIONS>): void;
     getRunningInstance(id: Index): EPI2ME_FS | undefined;
     getAllRunningInstances(): EPI2ME_FS[];
     private instantiate;
-    startRun(options: Partial<EPI2ME_OPTIONS>, workflowConfig: ObjectDict): Promise<EPI2ME_FS>;
+    startRun(options: Partial<EPI2ME_OPTIONS>, workflowConfig: {
+        id_workflow: string;
+        is_consented_human: 0 | 1;
+        user_defined: unknown;
+        instance_attributes: unknown;
+        compute_account?: string;
+        storage_account?: string;
+        store_results?: boolean;
+    }): Promise<EPI2ME_FS>;
+    /**
+     * @param {Object<string, any>} options
+     * @param {GQLRunVariables} variables { userDefined: { [componentID]: { [paramOverride]: any } } }
+     */
     startGQLRun(options: ObjectDict, variables: {
         idWorkflow: Index;
         computeAccountId: Index;
@@ -32,13 +44,9 @@ export default class Factory {
         idDataset?: Index;
         storeResults?: boolean;
         region?: string;
-        userDefined?: {
-            [componentId: string]: {
-                [paramOverride: string]: unknown;
-            };
-        };
+        userDefined?: ObjectDict<ObjectDict>;
         instanceAttributes?: {
-            id_attribute: string;
+            id_attribute: Index;
             value: string;
         }[];
     }): Promise<EPI2ME_FS>;

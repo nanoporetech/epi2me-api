@@ -14,7 +14,15 @@ export default class REST {
     list(entity: string): Promise<unknown[]>;
     read(entity: string, id: string): Promise<ObjectDict>;
     user(): Promise<ObjectDict>;
-    status(): Promise<ObjectDict>;
+    status(): Promise<{
+        agent_url: string;
+        agent_version: string;
+        db_version: string;
+        minimum_agent: string;
+        portal_version: string;
+        remote_addr: string;
+        server_time: string;
+    }>;
     jwt(): Promise<string>;
     instanceToken(id: unknown, opts: {}): Promise<ObjectDict>;
     installToken(id: unknown): Promise<ObjectDict>;
@@ -29,7 +37,7 @@ export default class REST {
     updateAmiImage(id: string, obj: ObjectDict): Promise<ObjectDict>;
     createAmiImage(obj: ObjectDict): Promise<ObjectDict>;
     readAmiImage(id: string): Promise<ObjectDict>;
-    workflow(first: unknown, second: unknown, third: unknown): Promise<unknown>;
+    workflow(first: string | ObjectDict, second?: ObjectDict | Function, third?: Function): Promise<unknown>;
     updateWorkflow(id: string, obj: ObjectDict, cb?: Function): Promise<ObjectDict>;
     createWorkflow(obj: ObjectDict, cb?: Function): Promise<ObjectDict>;
     startWorkflow(config: ObjectDict): Promise<ObjectDict>;

@@ -76,13 +76,9 @@ export declare class GraphQL {
         idDataset?: string | number | undefined;
         storeResults?: boolean | undefined;
         region?: string | undefined;
-        userDefined?: {
-            [componentId: string]: {
-                [paramOverride: string]: unknown;
-            };
-        } | undefined;
+        userDefined?: Record<string, Record<string, unknown> | undefined> | undefined;
         instanceAttributes?: {
-            id_attribute: string;
+            id_attribute: Index;
             value: string;
         }[] | undefined;
     }, Record<string, unknown>, Record<string, unknown>> | undefined) => Promise<FetchResult<ResponseStartWorkflow, Record<string, any>, Record<string, any>>>;
