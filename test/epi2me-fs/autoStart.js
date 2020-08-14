@@ -97,7 +97,7 @@ describe('epi2me.autoStart', () => {
     const sub = client.instanceTelemetry$.subscribe(telemetry => {
       theTelemetry = telemetry;
     });
-    assert.deepEqual(theTelemetry, null);
+    assert.deepEqual(theTelemetry, []);
     client.instanceTelemetry$.next({ foo: 'bar' });
     assert.deepEqual(theTelemetry, { foo: 'bar' });
 

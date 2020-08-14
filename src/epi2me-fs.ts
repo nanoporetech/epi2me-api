@@ -52,6 +52,7 @@ import { isString } from 'util';
 import { Readable, Writable } from 'stream';
 import { PromiseResult } from 'aws-sdk/lib/request';
 import { EPI2ME_OPTIONS } from './epi2me-options';
+import GraphQL from './graphql';
 
 const networkStreamErrors: WeakSet<Writable> = new WeakSet();
 
@@ -78,6 +79,7 @@ export default class EPI2ME_FS extends EPI2ME {
   static EPI2ME_HOME = rootDir();
   static Profile = Profile;
   static Factory = Factory;
+  static GraphQL = GraphQL;
 
   SampleReader: SampleReader;
   uploadsInProgress: { abort(): void }[];
@@ -212,8 +214,8 @@ export default class EPI2ME_FS extends EPI2ME {
       idDataset?: Index;
       storeResults?: boolean;
       region?: string;
-      userDefined?: { [componentId: string]: { [paramOverride: string]: unknown } };
-      instanceAttributes?: { id_attribute: string; value: string }[];
+      userDefined?: ObjectDict<ObjectDict>;
+      instanceAttributes?: { id_attribute: Index; value: string }[];
     },
     cb?: (msg: string) => void,
   ): Promise<Configuration['instance']> {

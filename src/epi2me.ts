@@ -6,7 +6,7 @@
  *
  */
 
-import { BehaviorSubject, combineLatest, ReplaySubject } from 'rxjs';
+import { BehaviorSubject, combineLatest } from 'rxjs';
 import DEFAULTS from './default_options.json';
 import GraphQL from './graphql';
 import niceSize from './niceSize';
@@ -38,14 +38,14 @@ export default class EPI2ME {
   reportState$ = new BehaviorSubject(false);
   runningStates$ = combineLatest(this.uploadState$, this.analyseState$, this.reportState$);
 
-  instanceTelemetry$ = new ReplaySubject<unknown>(1);
-  experimentalWorkerStatus$ = new ReplaySubject<{
+  instanceTelemetry$ = new BehaviorSubject<unknown[]>([]);
+  experimentalWorkerStatus$ = new BehaviorSubject<{
     running: number;
     complete: number;
     error: number;
     step: number;
     name: string;
-  }[]>(1);
+  }[]>([]);
 
   states: States = {
     download: createDownloadState(),

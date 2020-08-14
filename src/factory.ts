@@ -56,7 +56,7 @@ export default class Factory {
     return this.primary.graphQL;
   }
 
-  get SampleReader (): SampleReader {
+  get sampleReader (): SampleReader {
     return this.primary.SampleReader;
   }
 
@@ -107,6 +107,10 @@ export default class Factory {
     return inst;
   }
 
+  /**
+   * @param {Object<string, any>} options
+   * @param {GQLRunVariables} variables { userDefined: { [componentID]: { [paramOverride]: any } } }
+   */
   async startGQLRun(options: ObjectDict, variables: {
     idWorkflow: Index;
     computeAccountId: Index;
@@ -115,8 +119,8 @@ export default class Factory {
     idDataset?: Index;
     storeResults?: boolean;
     region?: string;
-    userDefined?: { [componentId: string]: { [paramOverride: string]: unknown } };
-    instanceAttributes?: { id_attribute: string; value: string }[];
+    userDefined?: ObjectDict<ObjectDict>;
+    instanceAttributes?: { id_attribute: Index; value: string }[];
   }): Promise<EPI2ME_FS> {
     const inst = this.instantiate({ ...options, useGraphQL: true });
     try {

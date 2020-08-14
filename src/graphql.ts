@@ -218,7 +218,7 @@ export class GraphQL {
       }
    `);
 
-  startWorkflow = this.mutate<ResponseStartWorkflow, { idWorkflow: Index; computeAccountId: Index; storageAccountId?: Index; isConsentedHuman?: boolean; idDataset?: Index; storeResults?: boolean; region?: string; userDefined?: { [componentId: string]: { [paramOverride: string]: unknown } }; instanceAttributes?: { id_attribute: string; value: string }[]}>(gql`
+  startWorkflow = this.mutate<ResponseStartWorkflow, { idWorkflow: Index; computeAccountId: Index; storageAccountId?: Index; isConsentedHuman?: boolean; idDataset?: Index; storeResults?: boolean; region?: string; userDefined?: ObjectDict<ObjectDict>; instanceAttributes?: { id_attribute: Index; value: string }[]}>(gql`
     mutation startWorkflow(
       $idWorkflow: ID!
       $computeAccountId: ID!

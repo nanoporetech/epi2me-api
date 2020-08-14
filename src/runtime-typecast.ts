@@ -1,10 +1,12 @@
 import { ObjectDict } from './ObjectDict';
 
+export type UnknownFunction = (...args: unknown[]) => unknown;
+
 export function isRecord(obj: unknown): obj is ObjectDict {
   return typeof obj === 'object' && Array.isArray(obj) === false;
 }
 
-export function isFunction(obj: unknown): obj is Function {
+export function isFunction(obj: unknown): obj is UnknownFunction {
   return typeof obj === 'function';
 }
 
@@ -34,6 +36,10 @@ export function isUndefined(obj: unknown): obj is undefined {
 
 export function isNullish(obj: unknown): obj is null | undefined {
   return obj === null || typeof obj === 'undefined';
+}
+
+export function isDefined<T>(obj: T | undefined): obj is T {
+  return !isNullish(obj);
 }
 
 /*
@@ -73,6 +79,17 @@ export function asNumber(obj: unknown, fallback?: number): number {
     return fallback;
   }
   throw new Error(`Unable to cast ${typeof obj} to Number`);
+}
+
+export function asDefined<T>(obj: T | undefined, fallback?: T): T {
+  if (isDefined(obj)) {
+    return obj;
+  }
+  // obj will always be nullish in this case
+  if (typeof fallback !== 'undefined') {
+    return fallback;
+  }
+  throw new Error(`Value is undefined`);
 }
 
 export function makeString(obj: unknown): string {
@@ -174,7 +191,7 @@ export function asRecord(obj: unknown, fallback?: ObjectDict): ObjectDict {
   throw new Error(`Unable to cast ${typeof obj} to Record`);
 }
 
-export function asFunction(obj: unknown, fallback?: Function): Function {
+export function asFunction(obj: unknown, fallback?: UnknownFunction): UnknownFunction {
   if (isFunction(obj)) {
     return obj;
   }

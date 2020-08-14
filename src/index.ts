@@ -10,9 +10,10 @@ import type { UtilityFS } from './utils-fs';
 import type { EPI2ME_OPTIONS as Options } from './epi2me-options';
 import type { Logger } from './Logger';
 import type * as graphQLSchema from './graphql-types';
+import type SampleReader from './sample-reader';
 
 export { EPI2ME, REST, GraphQL, utils, SessionManager, Profile, Factory };
 export const version = utils.version;
 export const EPI2ME_HOME = EPI2ME.EPI2ME_HOME;
 
-export type { UtilityFS, Options, Logger, graphQLSchema };
+export type { UtilityFS, Options, Logger, graphQLSchema, SampleReader };

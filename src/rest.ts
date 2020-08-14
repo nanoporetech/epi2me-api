@@ -3,7 +3,7 @@
  * Authors: rpettett, gvanginkel
  */
 
-import { assign, merge, countBy } from 'lodash';
+import { assign, merge } from 'lodash';
 import os from 'os';
 import utils from './utils';
 import { Logger } from './Logger';
@@ -13,7 +13,6 @@ import {
   asArray,
   asRecord,
   asString,
-  asOptFunction,
   asArrayRecursive,
   isUndefined,
   isFunction,
@@ -22,9 +21,11 @@ import {
   asIndexable,
   asOptArrayRecursive,
   asOptIndex,
-  asOptString,
   Index,
+  asOptString,
+  asOptFunction,
 } from './runtime-typecast';
+
 import { ObjectDict } from './ObjectDict';
 
 export type AsyncCallback = (err: unknown, data: unknown) => void;
@@ -73,8 +74,25 @@ export default class REST {
     return utils.get('user', this.options);
   }
 
-  async status(): Promise<ObjectDict> {
-    return utils.get('status', this.options);
+  async status(): Promise<{
+    agent_url: string;
+    agent_version: string;
+    db_version: string;
+    minimum_agent: string;
+    portal_version: string;
+    remote_addr: string;
+    server_time: string;
+  }> {
+    const res = await utils.get('status', this.options);
+    return {
+      agent_url: asString(res.agent_url),
+      agent_version: asString(res.agent_version),
+      db_version: asString(res.db_version),
+      minimum_agent: asString(res.minimum_agent),
+      portal_version: asString(res.portal_version),
+      remote_addr: asString(res.remote_addr),
+      server_time: asString(res.server_time),
+    };
   }
 
   async jwt(): Promise<string> {
@@ -173,7 +191,7 @@ export default class REST {
     return this.read('ami_image', id);
   }
 
-  async workflow(first: unknown, second: unknown, third: unknown): Promise<unknown> {
+  async workflow(first: string | ObjectDict, second?: ObjectDict | Function, third?: Function): Promise<unknown> {
     if (first && second && third instanceof Function) {
       return this.updateWorkflow(asString(first), asRecord(second), third);
     } else if (first && second instanceof Object && !(second instanceof Function)) {
@@ -204,7 +222,11 @@ export default class REST {
       merge(workflow, struct);
     } catch (err) {
       this.log.error(`${id}: error fetching workflow ${String(err)}`);
-      return cb ? cb(err) : Promise.reject(err);
+      if (cb) {
+        cb(err);
+        return;
+      }
+      throw err;
     }
 
     // placeholder
@@ -220,7 +242,11 @@ export default class REST {
       merge(workflow, workflowConfig);
     } catch (err) {
       this.log.error(`${id}: error fetching workflow config ${String(err)}`);
-      return cb ? cb(err) : Promise.reject(err);
+      if (cb) {
+        cb(err);
+        return;
+      }
+      throw err;
     }
 
     // NOTE it would appear that params can be either an array or an object, the tests are not consistent
@@ -232,53 +258,61 @@ export default class REST {
       .filter((obj: ObjectDict) => obj.widget === 'ajax_dropdown');
 
     const promises = [
-      ...toFetch.map((param: ObjectDict) => {
-        // const param = toFetch[i]; // so we can explicitly reassign to the iterator without eslint complaints
-        return new Promise((resolve, reject) => {
-          if (isUndefined(param)) {
-            // NOTE should be unreachable
-            throw new Error('parameter is undefined');
+      ...toFetch.map(async (param: ObjectDict) => {
+        if (isUndefined(param)) {
+          // NOTE should be unreachable
+          throw new Error('parameter is undefined');
+        }
+
+        const values = asRecord(param.values);
+        const items = asRecord(values.items);
+        const uri = asString(values.source)
+          .replace('{{EPI2ME_HOST}}', '')
+          .replace(/&?apikey=\{\{EPI2ME_API_KEY\}\}/, '');
+
+        let workflowParam;
+        try {
+          workflowParam = await utils.get(uri, this.options);
+        } catch (err) {
+          this.log.error(`failed to fetch ${uri}`);
+          if (cb) {
+            cb(err);
+            return;
           }
-          const values = asRecord(param.values);
-          const items = asRecord(values.items);
-          const uri = asString(values.source)
-            .replace('{{EPI2ME_HOST}}', '')
-            .replace(/&?apikey=\{\{EPI2ME_API_KEY\}\}/, '');
+          throw err;
+        }
+        // e.g. {datasets:[...]} from the /dataset.json list response
+        // NOTE unclear if data_root is number | string
 
-          utils
-            .get(uri, this.options) // e.g. {datasets:[...]} from the /dataset.json list response
-            .then(workflowParam => {
-              // NOTE unclear if data_root is number | string
+        const index = asOptIndex(values.data_root);
+        // NOTE dataRoot appears to be an array of object/arrays
+        const dataRoot = asOptArrayRecursive(isUndefined(index) ? index : workflowParam[index], asIndexable); // e.g. [{dataset},{dataset}]
 
-              const index = asOptIndex(values.data_root);
-              // NOTE dataRoot appears to be an array of object/arrays
-              const dataRoot = asOptArrayRecursive(isUndefined(index) ? index : workflowParam[index], asIndexable); // e.g. [{dataset},{dataset}]
-
-              if (dataRoot) {
-                param.values = dataRoot.map(o => ({
-                  // does this really end up back in workflow object?
-                  label: o[asIndex(items.label_key)],
-                  value: o[asIndex(items.value_key)],
-                }));
-              }
-              return resolve();
-            })
-
-            .catch(err => {
-              this.log.error(`failed to fetch ${uri}`);
-              return reject(err);
-            });
-        });
+        if (dataRoot) {
+          param.values = dataRoot.map(o => ({
+            // does this really end up back in workflow object?
+            label: o[asIndex(items.label_key)],
+            value: o[asIndex(items.value_key)],
+          }));
+        }
+        // });
       }),
     ];
 
     try {
       await Promise.all(promises);
-      return cb ? cb(null, workflow) : workflow;
+      if (cb) {
+        cb(null, workflow);
+      }
     } catch (err) {
       this.log.error(`${id}: error fetching config and parameters ${String(err)}`);
-      return cb ? cb(err) : Promise.reject(err);
+      if (cb) {
+        cb(err);
+      } else {
+        throw err;
+      }
     }
+    return workflow;
   }
 
   async updateWorkflow(id: string, obj: ObjectDict, cb?: Function): Promise<ObjectDict> {
@@ -299,7 +333,7 @@ export default class REST {
       try {
         cb(null, await promise);
       } catch (err) {
-        countBy(err);
+        cb(err);
       }
     }
     return promise;

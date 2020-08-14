@@ -33,7 +33,7 @@ export default class REST_FS extends REST {
     }
   }
 
-  async workflow(id: unknown, obj: unknown, cb?: AsyncCallback): Promise<unknown> {
+  async workflow(id: string | ObjectDict, obj?: ObjectDict | Function, cb?: Function): Promise<unknown> {
     if (!this.options.local || !id || typeof id === 'object' || cb) {
       // yuck. probably wrong.
       return super.workflow(id, obj, cb);
