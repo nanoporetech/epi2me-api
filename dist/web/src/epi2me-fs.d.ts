@@ -17,6 +17,7 @@ import { Configuration } from './Configuration';
 import { PromiseResult } from 'aws-sdk/lib/request';
 import { EPI2ME_OPTIONS } from './epi2me-options';
 import GraphQL from './graphql';
+import { ResponseStartWorkflow } from './graphql-types';
 declare type FileDescriptor = FileStat & {
     skip?: string;
     stats?: MappedFileStats;
@@ -67,7 +68,7 @@ export default class EPI2ME_FS extends EPI2ME {
     }, cb?: (msg: string) => void): Promise<Configuration['instance']>;
     autoStartGeneric<T>(workflowConfig: unknown, startFn: () => T, cb?: (msg: string) => void): Promise<T>;
     autoJoin(id: Index, cb?: (msg: string) => void): Promise<unknown>;
-    setClassConfigGQL(result: FetchResult<ObjectDict>): void;
+    setClassConfigGQL(result: FetchResult<ResponseStartWorkflow>): void;
     setClassConfigREST(instance: ObjectDict): void;
     initSessionManager(opts?: ObjectDict | null, children?: {
         config: {

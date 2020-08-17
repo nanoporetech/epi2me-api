@@ -11,7 +11,6 @@ export interface Configuration {
         outputQueueURL?: string;
         discoverQueueCache: ObjectDict;
         bucket?: string;
-        user_defined?: ObjectDict;
         start_date?: string;
         id_user?: Index;
         bucketFolder?: string;
