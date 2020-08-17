@@ -53,6 +53,7 @@ import { Readable, Writable } from 'stream';
 import { PromiseResult } from 'aws-sdk/lib/request';
 import { EPI2ME_OPTIONS } from './epi2me-options';
 import GraphQL from './graphql';
+import { ResponseStartWorkflow } from './graphql-types';
 
 const networkStreamErrors: WeakSet<Writable> = new WeakSet();
 
@@ -291,21 +292,20 @@ export default class EPI2ME_FS extends EPI2ME {
     return this.autoConfigure(instance, cb);
   }
 
-  setClassConfigGQL(result: FetchResult<ObjectDict>): void {
-    const startData = asRecord(result.data?.startData);
-    const instance = asRecord(startData.instance);
-    const workflowImage = asRecord(instance.workflowImage);
-    const { bucket, idUser, remoteAddr, userDefined = {} } = startData;
-    const { outputqueue, keyId, startDate, idWorkflowInstance, mappedTelemetry } = instance;
+  setClassConfigGQL(result: FetchResult<ResponseStartWorkflow>): void {
+    const startData = result.data?.startData;
+    const instance = startData?.instance;
+    const workflowImage = instance?.workflowImage;
+    const { bucket, idUser, remoteAddr } = startData ?? {};
+    const { outputqueue, keyId, startDate, idWorkflowInstance, mappedTelemetry } = instance ?? {};
 
-    const chain = isString(instance.chain) ? instance.chain : asRecord(instance.chain);
-    const name = asRecord(workflowImage.region).name;
-    const idWorkflow = asOptIndex(asRecord(workflowImage.workflow).idWorkflow);
-    const inputqueue = workflowImage.inputqueue;
+    const chain = isString(instance?.chain) ? asString(instance?.chain) : asRecord(instance?.chain);
+    const name = workflowImage?.region.name;
+    const idWorkflow = asOptIndex(workflowImage?.workflow.idWorkflow);
+    const inputqueue = workflowImage?.inputqueue;
 
     const map = {
       bucket: asOptString(bucket),
-      user_defined: asOptRecord(userDefined),
       id_user: asOptIndex(idUser),
       remote_addr: asOptString(remoteAddr),
       id_workflow_instance: asOptIndex(idWorkflowInstance),
@@ -334,7 +334,6 @@ export default class EPI2ME_FS extends EPI2ME {
     conf.remote_addr = asOptString(instance.remote_addr);
     conf.key_id = asOptString(instance.key_id);
     conf.bucket = asOptString(instance.bucket);
-    conf.user_defined = asOptRecord(instance.user_defined);
     conf.start_date = asOptString(instance.start_date);
     conf.id_user = asOptIndex(instance.id_user);
 
@@ -1671,7 +1670,6 @@ export default class EPI2ME_FS extends EPI2ME {
       bucket?: string;
       outputQueue?: string;
       remote_addr?: string;
-      user_defined?: ObjectDict;
       apikey?: string;
       id_workflow_instance?: Index;
       id_master?: Index;
@@ -1683,7 +1681,6 @@ export default class EPI2ME_FS extends EPI2ME {
       bucket: this.config.instance.bucket,
       outputQueue: this.config.instance.outputQueueName,
       remote_addr: this.config.instance.remote_addr,
-      user_defined: this.config.instance.user_defined, // MC-2397 - bind param this.config to each sqs message
       apikey: this.config.options.apikey,
       id_workflow_instance: this.config.instance.id_workflow_instance,
       id_master: this.config.instance.id_workflow,
@@ -1792,29 +1789,26 @@ export default class EPI2ME_FS extends EPI2ME {
       const fn = path.join(thisInstanceDir, `${componentId}.json`);
 
       toFetch.push(
-        this.REST.fetchContent(url)
-          .then(body => {
+        (async (): Promise<ObjectDict | null> => {
+          try {
+            const body = await this.REST.fetchContent(url);
             fs.writeJSONSync(fn, body);
             this.reportState$.next(true);
             this.log.debug(`fetched telemetry summary ${fn}`);
             return body;
-          })
-          .catch(e => {
-            this.log.debug(`Error fetching telemetry: ${String(e)}`);
-          }),
+          } catch (err) {
+            this.log.debug(`Error fetching telemetry`, err);
+            return null;
+          }
+        })(),
       );
     });
 
-    let errCount = 0;
     try {
       const allTelemetryPayloads = await Promise.all(toFetch);
       this.instanceTelemetry$.next(allTelemetryPayloads);
     } catch (err) {
-      errCount += 1;
-    }
-
-    if (errCount) {
-      this.log.warn('summary telemetry incomplete');
+      this.log.warn('summary telemetry incomplete', err);
     }
   }
 }
