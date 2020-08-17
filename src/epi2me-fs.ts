@@ -999,29 +999,11 @@ export default class EPI2ME_FS extends EPI2ME {
         return this.stopEverything();
       }
     } else {
-      const stats = file2?.stats;
-
-      const update = {
-        bytes: 0,
-        reads: 0,
-        sequences: 0,
-      };
-
-      if (stats) {
-        if ('reads' in stats) {
-          update.reads = stats.reads;
-        }
-        if ('sequences' in stats) {
-          update.sequences = stats.sequences;
-        }
-        update.bytes = stats.bytes ?? 0;
-      }
+      const { bytes = 0, reads = 0, sequences = 0 } = file2?.stats ?? {};
 
       // this.uploadState('queueLength', 'decr', file2.stats); // this.states.upload.queueLength = this.states.upload.queueLength ? this.states.upload.queueLength - readCount : 0;
-      this.uploadState('success', 'incr', {
-        files: 1,
-        ...update,
-      }); // this.states.upload.success = this.states.upload.success ? this.states.upload.success + readCount : readCount;
+      this.uploadState('success', 'incr', { files: 1, bytes, reads, sequences });
+      // this.states.upload.success = this.states.upload.success ? this.states.upload.success + readCount : readCount;
 
       if (file2?.name) {
         // nb. we only count types for successful uploads
@@ -1374,32 +1356,20 @@ export default class EPI2ME_FS extends EPI2ME {
         // MC-1993 - store total size of downloaded files
         try {
           const ext = path.extname(outputFile);
-          const stats = await filestats(outputFile);
-          const update: {
-            bytes: number;
-            reads?: number;
-            sequences?: number;
-          } = {
-            bytes: stats.bytes,
-          };
-
-          if ('reads' in stats) {
-            update.reads = stats.reads;
-          }
-          if ('sequences' in stats) {
-            update.sequences = stats.sequences;
-          }
+          const { bytes, reads, sequences } = await filestats(outputFile);
 
           this.downloadState('success', 'incr', {
             files: 1,
-            ...update,
+            bytes,
+            reads,
+            sequences,
           });
           this.downloadState('types', 'incr', {
             [ext]: 1,
           });
           this.downloadState('progress', 'decr', {
-            total: stats.bytes,
-            bytes: stats.bytes,
+            total: bytes,
+            bytes,
           }); // reset in-flight counters
         } catch (err) {
           this.log.warn(`failed to stat ${outputFile}: ${String(err)}`);
