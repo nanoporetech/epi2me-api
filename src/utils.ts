@@ -322,6 +322,7 @@ const utils: Utility = (function magic(): Utility {
     processLegacyForm(req: AxiosRequestConfig, data: ObjectDict): void {
       // include legacy form parameters
       const params: string[] = [];
+      // WARN this behavior seems suspicious, the backend for this should be inspected
       const form: ObjectDict = {
         json: JSON.stringify(data),
         ...data,
