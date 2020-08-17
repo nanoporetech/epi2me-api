@@ -1100,10 +1100,10 @@ export default class EPI2ME_FS extends EPI2ME {
       return;
     }
 
-    /* MC-405 telemetry log to file */
-    if (messageBody.telemetry) {
-      const telemetry = asRecord(messageBody.telemetry);
+    const telemetry = asOptRecord(messageBody.telemetry);
 
+    /* MC-405 telemetry log to file */
+    if (telemetry) {
       if (telemetry.tm_path) {
         try {
           this.log.debug(`download.processMessage: ${message.MessageId} fetching telemetry`);
@@ -1166,9 +1166,7 @@ export default class EPI2ME_FS extends EPI2ME {
       isUndefined(idWorkflowInstance) ? '' : makeString(idWorkflowInstance),
     );
 
-    const telemetry = asOptRecord(messageBody.telemetry);
-    const telemetryHints = asOptRecord(telemetry?.hints);
-    const telemetryHintsFolder = asOptString(telemetryHints?.folder);
+    const telemetryHintsFolder = asOptString(asOptRecord(telemetry?.hints)?.folder);
     /* MC-940: use folder hinting if present */
     if (telemetryHintsFolder) {
       this.log.debug(`using folder hint ${telemetryHintsFolder}`);
