@@ -12,7 +12,7 @@ export interface UtilityFS extends Utility {
     pipe(uri: string, path: string, options: UtilityOptions, progressCallback: (e: unknown) => void): Promise<unknown>;
     getFileID(): string;
     lsRecursive(rootFolderIn: string, item: string, exclusionFilter: (str: string, stat: fs.Stats) => Promise<boolean>): Promise<FileStat[]>;
-    loadInputFiles({ inputFolders, outputFolder, filetype: filetypesIn }: {
+    loadInputFiles({ inputFolders, outputFolder, filetype: filetypesIn, }: {
         inputFolders: string[];
         outputFolder?: string;
         filetype: string | string[];

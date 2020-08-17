@@ -24,15 +24,32 @@ export interface FileStat {
 export interface UtilityFS extends Utility {
   pipe(uri: string, path: string, options: UtilityOptions, progressCallback: (e: unknown) => void): Promise<unknown>;
   getFileID(): string;
-  lsRecursive(rootFolderIn: string, item: string, exclusionFilter: (str: string, stat: fs.Stats) => Promise<boolean>): Promise<FileStat[]>;
-  loadInputFiles({ inputFolders, outputFolder, filetype: filetypesIn }: { inputFolders: string[]; outputFolder?: string; filetype: string | string[] }, _log: unknown, extraFilter?: (file: string) => Promise<boolean>): Promise<FileStat[]>;
+  lsRecursive(
+    rootFolderIn: string,
+    item: string,
+    exclusionFilter: (str: string, stat: fs.Stats) => Promise<boolean>,
+  ): Promise<FileStat[]>;
+  loadInputFiles(
+    {
+      inputFolders,
+      outputFolder,
+      filetype: filetypesIn,
+    }: { inputFolders: string[]; outputFolder?: string; filetype: string | string[] },
+    _log: unknown,
+    extraFilter?: (file: string) => Promise<boolean>,
+  ): Promise<FileStat[]>;
   stripFile(filename: string): [string, string];
 }
 
 const utilsFS: UtilityFS = {
   ...utils,
 
-  async pipe(uriIn: string, filepath: string, options: UtilityOptions, progressCb: (e: unknown) => void): Promise<unknown> {
+  async pipe(
+    uriIn: string,
+    filepath: string,
+    options: UtilityOptions,
+    progressCb: (e: unknown) => void,
+  ): Promise<unknown> {
     let srv = options.url;
     let uri = `/${uriIn}`; // note no forced extension for piped requests
     srv = srv.replace(/\/+$/, ''); // clip trailing slashes
@@ -42,7 +59,7 @@ const utilsFS: UtilityFS = {
       url: call,
       headers: {
         'Accept-Encoding': 'gzip',
-        'Accept': 'application/gzip',
+        Accept: 'application/gzip',
       },
     };
 
@@ -113,8 +130,13 @@ const utilsFS: UtilityFS = {
     return `FILE_${IdCounter}`;
   },
 
-  async lsRecursive(rootFolderIn: string, item: string, exclusionFilter: (str: string, stat: fs.Stats) => Promise<boolean>): Promise<FileStat[]> {
+  async lsRecursive(
+    rootFolderIn: string,
+    item: string,
+    exclusionFilter: (str: string, stat: fs.Stats) => Promise<boolean>,
+  ): Promise<FileStat[]> {
     let rootFolder = rootFolderIn;
+    // TODO refactor to use fdir ( see sample-reader ) to simplify this
     const stat = fs.statSync(item); // hmm. prefer database over fs statting?
 
     if (exclusionFilter) {
@@ -153,7 +175,15 @@ const utilsFS: UtilityFS = {
     ];
   },
 
-  async loadInputFiles({ inputFolders, outputFolder, filetype: filetypesIn }: { inputFolders: string[]; outputFolder?: string; filetype: string | string[] }, _log: unknown, extraFilter?: (file: string) => Promise<boolean>): Promise<FileStat[]> {
+  async loadInputFiles(
+    {
+      inputFolders,
+      outputFolder,
+      filetype: filetypesIn,
+    }: { inputFolders: string[]; outputFolder?: string; filetype: string | string[] },
+    _log: unknown,
+    extraFilter?: (file: string) => Promise<boolean>,
+  ): Promise<FileStat[]> {
     // console.log(inputFolders, outputFolder, filetypesIn);
     /**
      * Entry point for new .fast5 / .fastq files.
@@ -170,8 +200,7 @@ const utilsFS: UtilityFS = {
     let filetypes: string[];
     if (Array.isArray(filetypesIn)) {
       filetypes = filetypesIn;
-    }
-    else {
+    } else {
       // MC-6727 support array of types: backwards compatibility support for single string value
       filetypes = [filetypesIn];
     }
@@ -204,19 +233,18 @@ const utilsFS: UtilityFS = {
         }),
         extraFilter
           ? new Promise((resolve, reject) => {
-            extraFilter(file).then(result => {
-              return result ? reject(new Error(`${file} failed extraFilter`)) : resolve('extra ok');
-            });
-          })
+              extraFilter(file).then(result => {
+                return result ? reject(new Error(`${file} failed extraFilter`)) : resolve('extra ok');
+              });
+            })
           : Promise.resolve('extra skip'),
       ];
 
       try {
         await Promise.all(promises);
-        return false;  // falsy == do not exclude
-      }
-      // rejection just means don't keep
-      catch (e) {
+        return false; // falsy == do not exclude
+      } catch (e) {
+        // rejection just means don't keep
         return true; // truthy == exclude
       }
     };
@@ -231,7 +259,7 @@ const utilsFS: UtilityFS = {
 
   stripFile(filename: string): [string, string] {
     return [path.dirname(filename), path.basename(filename)];
-  }
+  },
 };
 
 export default utilsFS;
