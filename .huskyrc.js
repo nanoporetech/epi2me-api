@@ -3,6 +3,6 @@ const tasks = arr => arr.join(' && ');
 module.exports = {
   hooks: {
     'pre-commit': tasks(['npm run test']),
-    'pre-push': tasks(['npm run clean', 'npm run test', 'npm run build:dist', 'git add dist --force']),
+    'pre-push': tasks(['echo " \u001b[31mDID YOU REMEMBER TO BUILD??\u001b[0m"']),
   },
 };
