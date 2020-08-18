@@ -8,6 +8,7 @@ import { createCustomFetcher } from '../../src/fetcher';
 import client from '../../src/gql-client';
 import gqlUtils from '../../src/gql-utils';
 import GraphQL from '../../src/graphql';
+import utils from '../../src/utils';
 
 const makeGQL = (profile) => {
   const ringbuf = new bunyan.RingBuffer({
@@ -62,6 +63,49 @@ describe('stubbed tests', () => {
   afterEach(() => {
     stubs.forEach((s) => {
       s.restore();
+    });
+  });
+
+  describe('graphql.convertONTJWT', () => {
+    it('signature requires a description', async () => {
+      const graphqlObj = makeRegisteredGQL();
+      const response = {
+        access: 'RANDOMJWTLIKESTRINGHERE',
+      };
+      stubs.push(sinon.stub(utils, 'post').resolves(response));
+      assert.rejects(
+        async () => await graphqlObj.convertONTJWT({ token_type: 'signature' }, 'RANDOMJWTLIKESTRINGHERE'),
+        Error,
+        'Description required for signature requests',
+      );
+    });
+    it('all requires a description', async () => {
+      const graphqlObj = makeRegisteredGQL();
+      const response = {
+        access: 'RANDOMJWTLIKESTRINGHERE',
+      };
+      stubs.push(sinon.stub(utils, 'post').resolves(response));
+      assert.rejects(
+        async () => await graphqlObj.convertONTJWT({ token_type: 'all' }, 'RANDOMJWTLIKESTRINGHERE'),
+        Error,
+        'Description required for signature requests',
+      );
+    });
+    it('jwt passed to request', async () => {
+      const graphqlObj = makeRegisteredGQL();
+      const response = {
+        access: 'METRICHORRANDOMJWTLIKESTRINGHERE',
+      };
+      const stub = sinon.stub(utils, 'post').resolves(response);
+      stubs.push(stub);
+      const reqData = { token_type: 'jwt' };
+      const JWTString = 'RANDOMJWTLIKESTRINGHERE';
+      const res = await graphqlObj.convertONTJWT(reqData, JWTString);
+      assert.equal(res.access, response.access);
+      const calledArgs = stub.getCall(0).args;
+      assert.equal(calledArgs[0], 'convert-ont');
+      assert.equal(calledArgs[1], reqData);
+      assert.deepEqual(calledArgs[2].headers, { 'X-ONT-JWT': JWTString });
     });
   });
 
