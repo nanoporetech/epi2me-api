@@ -1,5 +1,5 @@
 /// <reference types="socket.io-client" />
-import type { Logger } from "./Logger";
+import type { Logger } from './Logger';
 import REST from './rest';
 interface SocketOptions {
     log: Logger;

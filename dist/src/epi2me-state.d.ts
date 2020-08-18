@@ -1,4 +1,4 @@
-import { ObjectDict } from "./ObjectDict";
+import { ObjectDict } from './ObjectDict';
 export interface UploadState {
     filesCount: number;
     success: SuccessState;

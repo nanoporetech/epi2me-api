@@ -1,12 +1,12 @@
-import EPI2ME_FS from "./epi2me-fs";
-import type REST_FS from "./rest-fs";
-import type GraphQL from "./graphql";
-import type { Logger } from "./Logger";
-import type { ObjectDict } from "./ObjectDict";
-import type SampleReader from "./sample-reader";
-import type { UtilityFS } from "./utils-fs";
-import type { Index } from "./runtime-typecast";
-import type { EPI2ME_OPTIONS } from "./epi2me-options";
+import EPI2ME_FS from './epi2me-fs';
+import type REST_FS from './rest-fs';
+import type GraphQL from './graphql';
+import type { Logger } from './Logger';
+import type { ObjectDict } from './ObjectDict';
+import type SampleReader from './sample-reader';
+import type { UtilityFS } from './utils-fs';
+import type { Index } from './runtime-typecast';
+import type { EPI2ME_OPTIONS } from './epi2me-options';
 export default class Factory {
     private readonly EPI2ME;
     private options;

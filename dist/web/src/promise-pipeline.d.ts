@@ -1,4 +1,4 @@
-import { DisposeTimer } from "./timers";
+import { DisposeTimer } from './timers';
 export interface QueryablePromise<T> extends Promise<T> {
     isResolved(): boolean;
     isRejected(): boolean;
@@ -13,7 +13,7 @@ export default class PromisePipeline<T = unknown> {
     running: Array<QueryablePromise<T>>;
     completed: number;
     timer: DisposeTimer | null;
-    constructor({ bandwidth, interval, start }: {
+    constructor({ bandwidth, interval, start, }: {
         bandwidth?: number;
         interval?: number;
         start?: boolean;
