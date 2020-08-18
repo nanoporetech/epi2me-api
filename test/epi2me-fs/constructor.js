@@ -42,7 +42,6 @@ describe('epi2me', () => {
         info: () => {},
         warn: () => {},
         error: () => {},
-        json: () => {},
       };
 
       // Default
@@ -126,7 +125,6 @@ describe('epi2me', () => {
         warn: sinon.stub(console, 'warn').callsFake(),
         error: sinon.stub(console, 'error').callsFake(),
         debug: sinon.stub(console, 'debug').callsFake(),
-        json: sinon.stub(console, 'log').callsFake(),
       };
 
       assert.doesNotThrow(
@@ -134,7 +132,7 @@ describe('epi2me', () => {
           client = new EPI2ME({
             loglevel: 'debug',
           });
-          Object.keys(stubs).forEach(o => {
+          Object.keys(stubs).forEach((o) => {
             client.log[o](`hello ${o}`);
           });
         },
@@ -142,9 +140,9 @@ describe('epi2me', () => {
         'client obtained',
       );
 
-      Object.keys(stubs).forEach(o => {
+      Object.keys(stubs).forEach((o) => {
         stubs[o].restore();
-        assert.ok(stubs[o].args[0][0].match(`hello ${o}`), 'correct log level called with message');
+        assert.ok(stubs[o].args[0][1].match(`hello ${o}`), 'correct log level called with message');
       });
     });
   });

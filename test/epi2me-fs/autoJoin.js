@@ -6,9 +6,13 @@ describe('epi2me.autoJoin', () => {
   const stubs = [];
 
   function newApi(error, instance) {
-    const client = new EPI2ME();
-    stubs.forEach(s => {
-      s.restore();
+    const client = new EPI2ME({
+      log: {
+        debug: sinon.stub(),
+        info: sinon.stub(),
+        warn: sinon.stub(),
+        error: sinon.stub(),
+      },
     });
 
     stubs.push(
@@ -22,13 +26,15 @@ describe('epi2me.autoJoin', () => {
 
     stubs.push(sinon.stub(client, 'autoConfigure').resolves());
 
-    sinon.stub(client.log, 'warn');
-    sinon.stub(client.log, 'debug');
-    sinon.stub(client.log, 'error');
-    sinon.stub(client.log, 'info');
-
     return client;
   }
+
+  afterEach(() => {
+    for (const stub of stubs) {
+      stub.restore();
+    }
+    stubs.length = 0;
+  });
 
   it('should join an existing workflow instance (with callback)', async () => {
     const client = newApi(null, {

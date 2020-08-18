@@ -31,6 +31,8 @@ describe('rest.startWorkflow', () => {
       });
     } catch (e) {
       assert.fail(`unexpected error ${String(e)}`);
+    } finally {
+      stub.restore();
     }
 
     assert.deepEqual(
@@ -41,6 +43,5 @@ describe('rest.startWorkflow', () => {
       },
       'workflow_instance start response',
     );
-    stub.restore();
   });
 });

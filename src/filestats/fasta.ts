@@ -1,6 +1,6 @@
 import fs from 'fs-extra';
 
-export default function(filePath: string): Promise<{ type: string; bytes: number; sequences: number }> {
+export default function (filePath: string): Promise<{ type: string; bytes: number; sequences: number }> {
   return new Promise((resolve, reject) => {
     const linesPerRead = 2;
     let lineCount = 1;

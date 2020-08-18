@@ -78,7 +78,7 @@ describe('epi2me.autoStart', () => {
 
     sinon.stub(fs, 'writeJSONSync');
 
-    client.REST.fetchContent = async url => ({
+    client.REST.fetchContent = async (url) => ({
       dummy: url,
     });
 
@@ -94,10 +94,10 @@ describe('epi2me.autoStart', () => {
           'https://epi2me-dev.nanoporetech.com/workflow_instance/666/basecalling_1d_barcode-v1.json',
       },
     };
-    const sub = client.instanceTelemetry$.subscribe(telemetry => {
+    const sub = client.instanceTelemetry$.subscribe((telemetry) => {
       theTelemetry = telemetry;
     });
-    assert.deepEqual(theTelemetry, null);
+    assert.deepEqual(theTelemetry, []);
     client.instanceTelemetry$.next({ foo: 'bar' });
     assert.deepEqual(theTelemetry, { foo: 'bar' });
 

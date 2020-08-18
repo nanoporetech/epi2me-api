@@ -8,7 +8,7 @@ import { merge } from 'lodash';
 import REST from '../../src/rest-fs';
 
 describe('rest.workflow', () => {
-  const restFactory = opts => {
+  const restFactory = (opts) => {
     const ringbuf = new bunyan.RingBuffer({ limit: 100 });
     const log = bunyan.createLogger({ name: 'log', stream: ringbuf });
     return new REST(merge({ log, local: true }, opts));

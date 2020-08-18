@@ -4,11 +4,13 @@
  */
 import fs from 'fs-extra';
 import path from 'path';
-import REST from './rest';
+import REST, { AsyncCallback } from './rest';
 import utils from './utils-fs';
+import { isFunction, asFunction, asRecord, asOptFunction, asOptRecord } from './runtime-typecast';
+import { ObjectDict } from './ObjectDict';
 
 export default class REST_FS extends REST {
-  async workflows(cb) {
+  async workflows(cb?: AsyncCallback): Promise<unknown> {
     if (!this.options.local) {
       return super.workflows(cb);
     }
@@ -20,37 +22,46 @@ export default class REST_FS extends REST {
     try {
       const tmp = await fs.readdir(WORKFLOW_DIR);
       data = tmp // ouch
-        .filter(id => fs.statSync(path.join(WORKFLOW_DIR, id)).isDirectory())
-        .map(id => path.join(WORKFLOW_DIR, id, 'workflow.json'))
-        .map(filepath => fs.readJsonSync(filepath));
+        .filter((id) => fs.statSync(path.join(WORKFLOW_DIR, id)).isDirectory())
+        .map((id) => path.join(WORKFLOW_DIR, id, 'workflow.json'))
+        .map((filepath) => fs.readJsonSync(filepath));
 
-      return cb ? cb(null, data) : Promise.resolve(data);
+      return cb ? cb(null, data) : data;
     } catch (e) {
       this.log.warn(e);
-      return cb ? cb(err) : Promise.reject(err);
+      return cb ? cb(err, null) : Promise.reject(err);
     }
   }
 
-  async workflow(id, obj, cb) {
+  async workflow(id: string | ObjectDict, obj?: ObjectDict | Function, cb?: Function): Promise<unknown> {
     if (!this.options.local || !id || typeof id === 'object' || cb) {
       // yuck. probably wrong.
       return super.workflow(id, obj, cb);
     }
 
     const WORKFLOW_DIR = path.join(this.options.url, 'workflows');
-    const filename = path.join(WORKFLOW_DIR, id, 'workflow.json');
+    const filename = path.join(WORKFLOW_DIR, id + '', 'workflow.json');
 
-    try {
-      const json = await fs.readJson(filename);
-      return cb ? cb(null, json) : Promise.resolve(json);
-    } catch (readWorkflowException) {
-      return cb ? cb(readWorkflowException) : Promise.reject(readWorkflowException);
-    }
+    // HACK this is the original behavior, due to the somewhat questionable conditional
+    // cb is in fact "never" here, so doesn't work. Commenting this out has not changed
+    // the current behavior, but that top conditional is likely not behaving correctly anyway.
+
+    // try {
+    //   const json = await fs.readJson(filename);
+    //   return cb ? cb(null, json) : Promise.resolve(json);
+    // } catch (readWorkflowException) {
+    //   return cb ? cb(readWorkflowException) : Promise.reject(readWorkflowException);
+    // }
+
+    return fs.readJSON(filename);
   }
 
-  async workflowInstances(first, second) {
+  async workflowInstances(first?: ObjectDict | AsyncCallback, second?: ObjectDict): Promise<unknown> {
     if (!this.options.local) {
-      return super.workflowInstances(first, second);
+      if (isFunction(first) || second) {
+        throw new Error('Local workflows cannot accept a callback');
+      }
+      return super.workflowInstances(asOptRecord(first));
     }
     let cb;
     let query;
@@ -58,7 +69,7 @@ export default class REST_FS extends REST {
       // no second argument and first argument is not a callback
       query = first;
     } else {
-      cb = first;
+      cb = asOptFunction(first);
       query = second;
     }
 
@@ -71,8 +82,8 @@ export default class REST_FS extends REST {
 
     try {
       let data = await fs.readdir(INSTANCE_DIR);
-      data = data.filter(id => fs.statSync(path.join(INSTANCE_DIR, id)).isDirectory());
-      data = data.map(id => {
+      data = data.filter((id) => fs.statSync(path.join(INSTANCE_DIR, id)).isDirectory());
+      data = data.map((id) => {
         const filename = path.join(INSTANCE_DIR, id, 'workflow.json');
 
         let workflow;
@@ -90,46 +101,52 @@ export default class REST_FS extends REST {
         workflow.filename = filename;
         return workflow;
       });
-      return cb ? cb(null, data) : Promise.resolve(data);
+      return cb ? cb(null, data) : data;
     } catch (err) {
       return cb ? cb(err) : Promise.reject(err);
     }
   }
 
-  async datasets(first, second) {
-    if (!this.options.local) {
-      return super.datasets(first, second);
-    }
-    let cb;
-    let query;
+  async datasets(first: { show?: string } | AsyncCallback, second?: { show?: string }): Promise<unknown> {
+    let cb: AsyncCallback | undefined;
+    let query: { show?: string };
 
     if (first && !(first instanceof Function) && second === undefined) {
       // no second argument and first argument is not a callback
       query = first;
     } else {
-      cb = first;
-      query = second;
-    }
-
-    if (!query) {
-      query = {};
+      cb = asFunction(first) as AsyncCallback;
+      query = second ?? {};
     }
 
     if (!query.show) {
       query.show = 'mine';
     }
 
+    if (!this.options.local) {
+      if (cb) {
+        throw new Error('Callback is not supported in local mode');
+      }
+      return super.datasets(asRecord(first));
+    }
+
     if (query.show !== 'mine') {
-      return cb(new Error('querying of local datasets unsupported in local mode'));
+      const err = new Error('querying of local datasets unsupported in local mode');
+      if (cb) {
+        return cb(err, null);
+      } else {
+        throw err;
+      }
     }
 
     const DATASET_DIR = path.join(this.options.url, 'datasets');
     try {
-      let data = await fs.readdir(DATASET_DIR);
-      data = data.filter(id => fs.statSync(path.join(DATASET_DIR, id)).isDirectory());
+      const folders = (await fs.readdir(DATASET_DIR)).filter((id: string) =>
+        fs.statSync(path.join(DATASET_DIR, id)).isDirectory(),
+      );
 
       let idDataset = 0;
-      data = data.sort().map(id => {
+      const data = folders.sort().map((id) => {
         idDataset += 1;
         return {
           is_reference_dataset: true,
@@ -156,14 +173,14 @@ export default class REST_FS extends REST {
           attributes: null,
         };
       });
-      return cb ? cb(null, data) : Promise.resolve(data);
+      return cb ? cb(null, data) : data;
     } catch (err) {
       this.log.warn(err);
-      return cb ? cb(null, []) : Promise.resolve([]);
+      return cb ? cb(null, []) : [];
     }
   }
 
-  async bundleWorkflow(idWorkflow, filepath, progressCb) {
+  async bundleWorkflow(idWorkflow: string, filepath: string, progressCb: (e: unknown) => void): Promise<unknown> {
     // clean out target folder?
     // download tarball including workflow json
     // allocate install_token with STS credentials

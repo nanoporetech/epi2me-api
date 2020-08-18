@@ -23,7 +23,7 @@ describe('rest.workflowInstances', () => {
   });
 
   it('must invoke list with promise', async () => {
-    sinon.stub(rest, 'list').resolves([
+    const stub = sinon.stub(rest, 'list').resolves([
       {
         id_workflow_instance: '12345',
       },
@@ -39,6 +39,8 @@ describe('rest.workflowInstances', () => {
     } catch (err) {
       assert.fail(err);
     }
+
+    stub.restore();
   });
 
   it('must invoke get with query', async () => {

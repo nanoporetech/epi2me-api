@@ -6,7 +6,7 @@ import EPI2ME from '../../src/epi2me-fs';
 describe('epi2me.checkForDownloads', () => {
   let debug;
   let warn;
-  const clientFactory = opts =>
+  const clientFactory = (opts) =>
     new EPI2ME(
       merge(
         {

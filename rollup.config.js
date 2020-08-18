@@ -16,7 +16,7 @@ const plugins = [
   json(),
   analyze(),
   eslint({
-    throwOnError: true, //  Will eventually be set to true
+    throwOnError: true,
     throwOnWarning: false, //  Will eventually be set to true
     exclude: ['node_modules/**', './**/*.json'],
   }),
@@ -61,16 +61,50 @@ const plugins = [
   }),
 ];
 
-const epi2meFull = {
-  input: 'src/epi2me-fs.js',
+const epi2meFullESM = {
+  input: 'src/index.ts',
+  output: [
+    {
+      file: path.join(path.dirname(pkg.module), 'index.es.js'),
+      format: 'es',
+    },
+  ],
+  external,
+  plugins: [
+    ...plugins,
+    copy([
+      {
+        files: ['./README.md', './LICENCE'],
+        dest: 'dist',
+        options: {
+          verbose: true,
+        },
+      },
+      {
+        files: ['./src/migrations/*'],
+        dest: 'dist/migrations',
+        options: {
+          verbose: true,
+        },
+      },
+    ]),
+    generatePackageJson({
+      outputFolder: 'dist',
+      baseContents: {
+        name: pkg.name,
+        private: true,
+        version: pkg.verbose,
+      },
+    }),
+  ],
+};
+
+const epi2meFullCJS = {
+  input: 'src/epi2me-fs.ts',
   output: [
     {
       file: path.join(path.dirname(pkg.main), 'index.js'),
       format: 'cjs',
-    },
-    {
-      file: path.join(path.dirname(pkg.module), 'index.es.js'),
-      format: 'es',
     },
   ],
   external,
@@ -133,7 +167,7 @@ const epi2meProfile = {
 };
 
 const epi2meWeb = {
-  input: 'src/epi2me.js',
+  input: 'src/index-web.ts',
   output: [
     {
       file: path.join(path.dirname(pkg.main), 'web/index.js'),
@@ -158,4 +192,4 @@ const epi2meWeb = {
   ],
 };
 
-export default [epi2meFull, epi2meProfile, epi2meWeb];
+export default [epi2meFullESM, epi2meFullCJS, epi2meProfile, epi2meWeb];

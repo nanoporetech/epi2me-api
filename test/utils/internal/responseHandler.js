@@ -10,7 +10,7 @@ describe('utils.internal.responseHandler', () => {
   });
 
   afterEach(() => {
-    stubs.forEach(s => {
+    stubs.forEach((s) => {
       s.restore();
     });
   });

@@ -2,15 +2,14 @@ import assert from 'assert';
 import axios from 'axios';
 import bunyan from 'bunyan';
 import gql from 'graphql-tag';
-import { merge } from 'lodash';
 import sinon from 'sinon';
 import DEFAULTS from '../../src/default_options.json';
-import customFetcher from '../../src/fetcher';
+import { createCustomFetcher } from '../../src/fetcher';
 import client from '../../src/gql-client';
 import gqlUtils from '../../src/gql-utils';
 import GraphQL from '../../src/graphql';
 
-const makeGQL = profile => {
+const makeGQL = (profile) => {
   const ringbuf = new bunyan.RingBuffer({
     limit: 100,
   });
@@ -18,14 +17,11 @@ const makeGQL = profile => {
     name: 'log',
     stream: ringbuf,
   });
-  return new GraphQL(
-    merge(
-      {
-        log,
-      },
-      profile,
-    ),
-  );
+  return new GraphQL({
+    log,
+    url: '',
+    ...profile,
+  });
 };
 
 const makeRegisteredGQL = () => {
@@ -40,14 +36,11 @@ const makeRegisteredGQL = () => {
     apikey: 'bd2e57b8cbaffe1c957616c4afca0f6734ae9012',
     apisecret: 'a527f9aa0713a5f9cfd99af9a174b73d4df34dcbb3be13b97ccd108314ab0f17',
   };
-  return new GraphQL(
-    merge(
-      {
-        log,
-      },
-      profile,
-    ),
-  );
+  return new GraphQL({
+    log,
+    url: '',
+    ...profile,
+  });
 };
 
 describe('graphql.constructor MC-7563', () => {
@@ -67,7 +60,7 @@ describe('stubbed tests', () => {
   });
 
   afterEach(() => {
-    stubs.forEach(s => {
+    stubs.forEach((s) => {
       s.restore();
     });
   });
@@ -247,7 +240,7 @@ describe('stubbed tests', () => {
       const stub = sinon.stub(client, 'query').resolves(response);
       stubs.push(stub);
       graphqlObj.query(
-        pageFragment => `query aWorkflow {
+        (pageFragment) => `query aWorkflow {
         allWorkflows {
           ${pageFragment}
             results {
@@ -434,14 +427,10 @@ describe('graphql.unittests', () => {
   });
   it('custom fetcher calls setHeaders', () => {
     const uri = 'https://graphql.epi2me.nanoporetech.com';
-    const requestOptions = {
-      headers: {
-        keys: {
-          apikey: 'a0207e050372b7b0b10cdce458e9e7f3a9cb3bd6',
-          apisecret: 'vo6QhSWdu9MqKQk9IC1ql9X7jI9zU1ptN9pqrJ0kPJ4fANYcGvKbB4Pp9QMG164J',
-        },
-      },
-    };
+    const fetcher = createCustomFetcher({
+      apikey: 'a0207e050372b7b0b10cdce458e9e7f3a9cb3bd6',
+      apisecret: 'vo6QhSWdu9MqKQk9IC1ql9X7jI9zU1ptN9pqrJ0kPJ4fANYcGvKbB4Pp9QMG164J',
+    });
     sinon.stub(axios, 'request').resolves({
       data: {
         random: 'data',
@@ -449,7 +438,7 @@ describe('graphql.unittests', () => {
       headers: {},
     });
     const setHeadersStub = sinon.stub(gqlUtils, 'setHeaders');
-    customFetcher(uri, requestOptions);
+    fetcher(uri);
     assert(setHeadersStub.called);
     sinon.restore();
   });

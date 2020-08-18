@@ -17,7 +17,7 @@ describe('epi2me.splitters.fastq-gz', () => {
 
   it('should not split if no maxchunksize', async () => {
     const tmpfile = path.join(tmp.dirSync().name, 'foo.fq.gz');
-    await new Promise(resolve => {
+    await new Promise((resolve) => {
       zlib.gzip(
         '@A_read\nACTGCATG\n+\n12345678\n@A_nother_read\n+\nCTGACTGA\n23456781\n@B_read\nTGCATGAC\n+\n34567812\n@B_nother_read\n+\nGACTGACT\n45678123\n',
         (_, buf) => fs.writeFile(tmpfile, buf).then(resolve),
@@ -45,7 +45,7 @@ describe('epi2me.splitters.fastq-gz', () => {
 
   it('should not split if under maxchunksize', async () => {
     const tmpfile = path.join(tmp.dirSync().name, 'foo.fq.gz');
-    await new Promise(resolve => {
+    await new Promise((resolve) => {
       zlib.gzip(
         '@A_read\nACTGCATG\n+\n12345678\n@A_nother_read\n+\nCTGACTGA\n23456781\n@B_read\nTGCATGAC\n+\n34567812\n@B_nother_read\n+\nGACTGACT\n45678123\n',
         (_, buf) => fs.writeFile(tmpfile, buf).then(resolve),
@@ -79,7 +79,7 @@ describe('epi2me.splitters.fastq-gz', () => {
 
   it('should pretend to split if under maxchunkreads', async () => {
     const tmpfile = path.join(tmp.dirSync().name, 'foo.fq.gz');
-    await new Promise(resolve => {
+    await new Promise((resolve) => {
       zlib.gzip(
         '@A_read\nACTGCATG\n+\n12345678\n@A_nother_read\n+\nCTGACTGA\n23456781\n@B_read\nTGCATGAC\n+\n34567812\n@B_nother_read\n+\nGACTGACT\n45678123\n',
         (_, buf) => fs.writeFile(tmpfile, buf).then(resolve),
@@ -116,7 +116,7 @@ describe('epi2me.splitters.fastq-gz', () => {
 
   it('should split if over maxchunksize', async () => {
     const tmpfile = path.join(tmp.dirSync().name, 'foo.fq.gz');
-    await new Promise(resolve => {
+    await new Promise((resolve) => {
       zlib.gzip(
         '@A_read\nACTGCATG\n+\n12345678\n@A_nother_read\n+\nCTGACTGA\n23456781\n@B_read\nTGCATGAC\n+\n34567812\n@B_nother_read\n+\nGACTGACT\n45678123\n',
         (_, buf) => fs.writeFile(tmpfile, buf).then(resolve),
@@ -161,7 +161,7 @@ describe('epi2me.splitters.fastq-gz', () => {
 
   it('should split if over maxchunkreads', async () => {
     const tmpfile = path.join(tmp.dirSync().name, 'foo.fq.gz');
-    await new Promise(resolve => {
+    await new Promise((resolve) => {
       zlib.gzip(
         '@A_read\nACTGCATG\n+\n12345678\n@A_nother_read\n+\nCTGACTGA\n23456781\n@B_read\nTGCATGAC\n+\n34567812\n@B_nother_read\n+\nGACTGACT\n45678123\n',
         (_, buf) => fs.writeFile(tmpfile, buf).then(resolve),

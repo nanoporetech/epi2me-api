@@ -3,10 +3,11 @@ import sinon from 'sinon';
 import tmp from 'tmp';
 import { merge } from 'lodash';
 import EPI2ME from '../../src/epi2me-fs';
+import { createInterval } from '../../src/timers';
 
 describe('epi2me.stopEverything', () => {
   let clock;
-  const clientFactory = opts => {
+  const clientFactory = (opts) => {
     const tmpdir = tmp.dirSync().name;
     const client = new EPI2ME(
       merge(
@@ -38,7 +39,7 @@ describe('epi2me.stopEverything', () => {
   it('should clear download interval', async () => {
     const client = clientFactory();
     sinon.stub(client.REST, 'stopWorkflow').resolves();
-    client.timers.downloadCheckInterval = setInterval(() => {}, 100);
+    client.timers.downloadCheckInterval = createInterval(100, () => {});
 
     try {
       await client.stopEverything();
@@ -51,7 +52,7 @@ describe('epi2me.stopEverything', () => {
   it('should clear statecheck interval', async () => {
     const client = clientFactory();
     sinon.stub(client.REST, 'stopWorkflow').resolves();
-    client.timers.stateCheckInterval = setInterval(() => {}, 100);
+    client.timers.stateCheckInterval = createInterval(100, () => {});
 
     try {
       await client.stopEverything();
@@ -65,9 +66,9 @@ describe('epi2me.stopEverything', () => {
     const client = clientFactory();
     sinon.stub(client.REST, 'stopWorkflow').callsFake();
 
-    client.timers.downloadCheckInterval = setInterval(() => {}, 100);
-    client.timers.stateCheckInterval = setInterval(() => {}, 100);
-    client.timers.fileCheckInterval = setInterval(() => {}, 100);
+    client.timers.downloadCheckInterval = createInterval(100, () => {});
+    client.timers.stateCheckInterval = createInterval(100, () => {});
+    client.timers.fileCheckInterval = createInterval(100, () => {});
 
     try {
       await client.stopEverything();

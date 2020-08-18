@@ -32,7 +32,8 @@ describe('rest.fetchContent', () => {
       rest.fetchContent('/a/uri');
     } catch (e) {
       assert.fail(e);
+    } finally {
+      stub.restore();
     }
-    stub.restore();
   });
 });

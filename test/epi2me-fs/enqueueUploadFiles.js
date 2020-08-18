@@ -11,7 +11,7 @@ describe('epi2me.enqueueUploadFiles', () => {
   let json;
   let stubs;
 
-  const clientFactory = opts =>
+  const clientFactory = (opts) =>
     new EPI2ME(
       merge(
         {
@@ -38,7 +38,7 @@ describe('epi2me.enqueueUploadFiles', () => {
     stubs = [];
   });
   afterEach(() => {
-    stubs.forEach(s => {
+    stubs.forEach((s) => {
       s.restore();
     });
   });

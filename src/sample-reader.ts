@@ -1,6 +1,7 @@
 import fdir from 'fdir';
 import path from 'path';
 import DEFAULTS from './default_options.json';
+import { ObjectDict } from './ObjectDict';
 
 export interface Sample {
   flowcell: string;
@@ -13,9 +14,7 @@ export interface Experiment {
   startDate: string;
 }
 
-export interface Experiments {
-  [experimentName: string]: Experiment;
-}
+export type Experiments = ObjectDict<Experiment>;
 
 export default class SampleReader {
   /*
@@ -62,22 +61,34 @@ export default class SampleReader {
       return;
     }
 
-    this.experiments = files.reduce<Experiments>((experimentsObj, absPath) => {
+    this.experiments = {};
+
+    for (const absPath of files) {
       const [experiment, sample] = absPath.split(path.sep).slice(-3);
       const parser = /(?<date>[0-9]{8})_(?<time>[0-9]{4})_.*_(?<flowcell>\w+\d+)_\w+/;
-      if (!parser.test(sample)) return experimentsObj;
+      if (!parser.test(sample)) {
+        continue;
+      }
       const { date, time, flowcell } = parser.exec(sample)?.groups as { date: string; time: string; flowcell: string };
       const dateString = `${date.slice(0, 4)}-${date.slice(4, 6)}-${date.slice(6, 8)}`;
       const timeString = `T${time.slice(0, 2)}:${time.slice(2, 4)}:00`;
       const startDate = new Date(dateString + timeString);
-      experimentsObj[experiment] = {
-        startDate: `${startDate.toDateString()} ${startDate.toLocaleTimeString()}`,
-        samples: [
-          ...(experimentsObj[experiment] ? experimentsObj[experiment].samples : []),
-          { sample, flowcell, path: `${path.dirname(absPath)}/fastq_pass` },
-        ],
-      };
-      return experimentsObj;
-    }, {});
+
+      const newSample = { sample, flowcell, path: `${path.dirname(absPath)}/fastq_pass` };
+      const startDateString = `${startDate.toDateString()} ${startDate.toLocaleTimeString()}`;
+      const existing = this.experiments[experiment];
+
+      if (existing) {
+        // WARN the old version used to update existing entries with a new start date
+        // this behavior has been preserved, but is it correct?
+        existing.startDate = startDateString;
+        existing.samples.push(newSample);
+      } else {
+        this.experiments[experiment] = {
+          startDate: startDateString,
+          samples: [newSample],
+        };
+      }
+    }
   }
 }

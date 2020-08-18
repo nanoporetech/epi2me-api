@@ -1,4 +1,4 @@
-import sinon from 'sinon';
+import sinon, { expectation } from 'sinon';
 import assert from 'assert';
 import bunyan from 'bunyan';
 import tmp from 'tmp';
@@ -24,15 +24,11 @@ describe('rest-fs.datasets', () => {
 
   it('must pass through to super if not local', () => {
     rest = new REST({ log });
-    const stub = sinon.stub(RESTSuper.prototype, 'datasets').callsFake(cb => {
-      cb();
-    });
-    const fake = sinon.fake();
+    const stub = sinon.stub(RESTSuper.prototype, 'datasets');
     assert.doesNotThrow(() => {
-      rest.datasets(fake);
+      rest.datasets({});
     });
     assert.ok(stub.calledOnce, 'super invoked');
-    assert.ok(fake.calledOnce, 'callback invoked');
     stub.restore();
   });
 

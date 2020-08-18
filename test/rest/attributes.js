@@ -12,7 +12,7 @@ describe('rest.attributes', () => {
       name: 'log',
       stream: ringbuf,
     });
-    const stub = sinon.stub(REST.prototype, 'list').callsFake(uri => {
+    const stub = sinon.stub(REST.prototype, 'list').callsFake((uri) => {
       assert.equal(uri, 'attribute', 'default uri');
       return Promise.resolve();
     });
@@ -24,8 +24,8 @@ describe('rest.attributes', () => {
       await rest.attributes();
     } catch (e) {
       assert.fail(`unexpected failure: ${String(e)}`);
+    } finally {
+      stub.restore();
     }
-
-    stub.restore();
   });
 });
