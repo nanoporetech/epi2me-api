@@ -348,6 +348,9 @@ export class GraphQL {
   // dataset(s)
   // show=show
 
+  // Registration related calls
+
+  // This requires an authenticated request, and so is fairly useless
   register = this.mutate<ResponseRegisterToken, { code: string; description?: string }>(gql`
     mutation registerToken($code: String!, $description: String) {
       registerToken(code: $code, description: $description) {
@@ -357,6 +360,25 @@ export class GraphQL {
       }
     }
   `);
+
+  async convertONTJWT(
+    requestData: { token_type: 'jwt' | 'signature' | 'all'; description?: 'string' } = { token_type: 'jwt' },
+    JWT: string,
+  ): Promise<{
+    apikey?: string;
+    apisecret?: string;
+    description?: string;
+    access?: string;
+  }> {
+    if (requestData.token_type !== 'jwt' && !requestData.description) {
+      throw new Error('Description required for signature requests');
+    }
+    return utils.post('convert-ont', requestData, {
+      ...this.options,
+      log: { debug: NoopLogMethod },
+      headers: { 'X-ONT-JWT': JWT },
+    });
+  }
 
   // status
   status = this.query<ResponseStatus, {}>(gql`

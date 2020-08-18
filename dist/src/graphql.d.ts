@@ -95,6 +95,15 @@ export declare class GraphQL {
         code: string;
         description?: string | undefined;
     }, Record<string, unknown>, Record<string, unknown>> | undefined) => Promise<FetchResult<ResponseRegisterToken, Record<string, any>, Record<string, any>>>;
+    convertONTJWT(requestData: {
+        token_type: 'jwt' | 'signature' | 'all';
+        description?: "string" | undefined;
+    } | undefined, JWT: string): Promise<{
+        apikey?: string;
+        apisecret?: string;
+        description?: string;
+        access?: string;
+    }>;
     status: (opt?: QueryOptions<{}, Record<string, unknown>, Record<string, unknown>> | undefined) => AsyncAQR<ResponseStatus>;
     healthCheck(): Promise<{
         status: boolean;
