@@ -15,7 +15,8 @@ describe('rest.fetchContent', () => {
     });
     const stub = sinon.stub(utils, 'get').resolves((uri, options) => {
       assert.deepEqual(
-        options, {
+        options,
+        {
           skip_url_mangle: true,
           log,
         },

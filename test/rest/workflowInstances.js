@@ -23,15 +23,19 @@ describe('rest.workflowInstances', () => {
   });
 
   it('must invoke list with promise', async () => {
-    const stub = sinon.stub(rest, 'list').resolves([{
-      id_workflow_instance: '12345',
-    }]);
+    const stub = sinon.stub(rest, 'list').resolves([
+      {
+        id_workflow_instance: '12345',
+      },
+    ]);
 
     try {
       const data = await rest.workflowInstances();
-      assert.deepEqual(data, [{
-        id_workflow_instance: '12345',
-      }]);
+      assert.deepEqual(data, [
+        {
+          id_workflow_instance: '12345',
+        },
+      ]);
     } catch (err) {
       assert.fail(err);
     }
@@ -41,13 +45,15 @@ describe('rest.workflowInstances', () => {
 
   it('must invoke get with query', async () => {
     const stub = sinon.stub(utils, 'get').resolves({
-      data: [{
-        id_ins: 1,
-        id_flo: 2,
-        run_id: 'abcdefabcdef',
-        desc: 'test wf 2',
-        rev: '0.0.1',
-      }],
+      data: [
+        {
+          id_ins: 1,
+          id_flo: 2,
+          run_id: 'abcdefabcdef',
+          desc: 'test wf 2',
+          rev: '0.0.1',
+        },
+      ],
     });
     try {
       const data = await rest.workflowInstances({

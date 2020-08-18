@@ -11,11 +11,11 @@ describe('rest.workflow', () => {
     stubs = [];
   });
   afterEach(() => {
-    stubs.forEach(s => {
+    stubs.forEach((s) => {
       s.restore();
     });
   });
-  const restFactory = opts => {
+  const restFactory = (opts) => {
     const ringbuf = new bunyan.RingBuffer({ limit: 100 });
     const log = bunyan.createLogger({ name: 'log', stream: ringbuf });
     return new REST(merge({ log }, opts));
@@ -135,7 +135,7 @@ describe('rest.workflow', () => {
       });
     });
 
-    const stub2 = sinon.stub(utils, 'get').callsFake(uri => {
+    const stub2 = sinon.stub(utils, 'get').callsFake((uri) => {
       if (uri === 'workflow/config/12345') {
         return Promise.resolve({});
       }
@@ -293,7 +293,7 @@ describe('rest.workflow', () => {
       });
     });
 
-    const stub2 = sinon.stub(utils, 'get').callsFake(uri => {
+    const stub2 = sinon.stub(utils, 'get').callsFake((uri) => {
       if (uri === 'workflow/config/12345') {
         return Promise.resolve({});
       }
@@ -354,7 +354,7 @@ describe('rest.workflow', () => {
       });
     });
 
-    const stub2 = sinon.stub(utils, 'get').callsFake(uri => {
+    const stub2 = sinon.stub(utils, 'get').callsFake((uri) => {
       if (uri === 'workflow/config/12345') {
         return Promise.reject(new Error('forbidden'));
       }
@@ -403,7 +403,7 @@ describe('rest.workflow', () => {
       });
     });
 
-    const stub2 = sinon.stub(utils, 'get').callsFake(uri => {
+    const stub2 = sinon.stub(utils, 'get').callsFake((uri) => {
       if (uri === 'workflow/config/12345') {
         return Promise.resolve({});
       }

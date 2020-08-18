@@ -119,7 +119,7 @@ const utilsFS: UtilityFS = {
       writer.on('finish', () => {
         resolve(filepath);
       });
-      writer.on('error', error => {
+      writer.on('error', (error) => {
         reject(new Error(`writer failed ${String(error)}`));
       });
     });
@@ -205,7 +205,7 @@ const utilsFS: UtilityFS = {
       filetypes = [filetypesIn];
     }
 
-    filetypes = filetypes.map(ft => {
+    filetypes = filetypes.map((ft) => {
       return ft && ft.indexOf('.') !== 0 ? `.${ft}` : ft;
     });
 
@@ -225,7 +225,7 @@ const utilsFS: UtilityFS = {
         }),
         new Promise((resolve, reject) => {
           const filetypeRe = filetypes.length ? new RegExp(`(?:${filetypes.join('|')})$`) : null;
-          return file.split(path.sep).filter(x => x.match(/^[.]/)).length || // MC-6941 do not upload from any location beginning with dot
+          return file.split(path.sep).filter((x) => x.match(/^[.]/)).length || // MC-6941 do not upload from any location beginning with dot
             (outputFolder && basename === path.basename(outputFolder)) ||
             (filetypeRe && !file.match(filetypeRe) && stat.isFile()) // exclude any file not matching wanted file extension
             ? reject(new Error(`${file} failed extended filename`))
@@ -233,7 +233,7 @@ const utilsFS: UtilityFS = {
         }),
         extraFilter
           ? new Promise((resolve, reject) => {
-              extraFilter(file).then(result => {
+              extraFilter(file).then((result) => {
                 return result ? reject(new Error(`${file} failed extraFilter`)) : resolve('extra ok');
               });
             })
@@ -252,7 +252,7 @@ const utilsFS: UtilityFS = {
     const results: FileStat[] = [];
     for (const folder of inputFolders) {
       const contents = await this.lsRecursive(folder, folder, exclusionFilter);
-      results.push(...contents.filter(c => !!c));
+      results.push(...contents.filter((c) => !!c));
     }
     return results;
   },

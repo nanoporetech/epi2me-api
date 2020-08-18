@@ -1,12 +1,12 @@
-import { createInterval, DisposeTimer } from "./timers";
+import { createInterval, DisposeTimer } from './timers';
 
 export interface QueryablePromise<T> extends Promise<T> {
-  isResolved (): boolean;
-  isRejected (): boolean;
-  isPending (): boolean;
+  isResolved(): boolean;
+  isRejected(): boolean;
+  isPending(): boolean;
 }
 
-export function createQueryablePromise<T> (promise: Promise<T>): QueryablePromise<T> {
+export function createQueryablePromise<T>(promise: Promise<T>): QueryablePromise<T> {
   let pending = true;
   let resolved = false;
   let rejected = false;
@@ -19,25 +19,25 @@ export function createQueryablePromise<T> (promise: Promise<T>): QueryablePromis
     () => {
       pending = false;
       rejected = true;
-    }
+    },
   );
 
   return Object.assign(promise, {
-    isResolved (): boolean {
+    isResolved(): boolean {
       return resolved;
     },
-    isRejected (): boolean {
+    isRejected(): boolean {
       return rejected;
     },
-    isPending (): boolean {
+    isPending(): boolean {
       return pending;
-    }
+    },
   });
 }
 export default class PromisePipeline<T = unknown> {
   static MakeQueryablePromise<O>(promiseIn: Promise<O> | QueryablePromise<O>): QueryablePromise<O> {
     // Don't modify any promise that has been already modified.
-    if ("isResolved" in promiseIn) {
+    if ('isResolved' in promiseIn) {
       return promiseIn;
     }
 
@@ -51,8 +51,15 @@ export default class PromisePipeline<T = unknown> {
   completed = 0;
   timer: DisposeTimer | null = null;
 
-  constructor({ bandwidth = 1, interval = 500, start = true }: { bandwidth?: number; interval?: number; start?: boolean }) {
-
+  constructor({
+    bandwidth = 1,
+    interval = 500,
+    start = true,
+  }: {
+    bandwidth?: number;
+    interval?: number;
+    start?: boolean;
+  }) {
     this.bandwidth = bandwidth;
     this.interval = interval;
 
@@ -93,7 +100,7 @@ export default class PromisePipeline<T = unknown> {
 
   monitorInterval(): void {
     const runningCount = this.running.length;
-    this.running = this.running.filter(promise => promise.isPending());
+    this.running = this.running.filter((promise) => promise.isPending());
     this.completed += runningCount - this.running.length;
 
     const availablePositions = this.bandwidth - this.running.length;

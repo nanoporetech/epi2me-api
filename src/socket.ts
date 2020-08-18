@@ -1,7 +1,7 @@
 import io from 'socket.io-client';
 import { merge } from 'lodash';
 
-import type { Logger } from "./Logger";
+import type { Logger } from './Logger';
 import REST from './rest';
 
 interface SocketOptions {
@@ -11,10 +11,10 @@ interface SocketOptions {
 }
 
 export default class Socket {
-  debounces: Set<unknown> = new Set
-  log: Logger
-  debounceWindow: number
-  socket?: SocketIOClient.Socket
+  debounces: Set<unknown> = new Set();
+  log: Logger;
+  debounceWindow: number;
+  socket?: SocketIOClient.Socket;
 
   constructor(rest: REST, opts: SocketOptions) {
     this.debounceWindow = opts.debounceWindow ?? 2000;
@@ -39,8 +39,7 @@ export default class Socket {
       this.socket.on('connect', () => {
         this.log.debug('socket ready');
       });
-    }
-    catch (err) {
+    } catch (err) {
       this.log.error('socket connection failed - JWT authentication error');
     }
   }

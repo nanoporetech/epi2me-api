@@ -6,7 +6,7 @@ import utils from '../../src/utils-fs';
 
 describe('epi2me.loadUploadFiles', () => {
   let stubs = [];
-  const clientFactory = opts => {
+  const clientFactory = (opts) => {
     const client = new EPI2ME(
       merge(
         {
@@ -32,7 +32,7 @@ describe('epi2me.loadUploadFiles', () => {
   });
 
   afterEach(() => {
-    stubs.forEach(s => {
+    stubs.forEach((s) => {
       s.restore();
     });
   });

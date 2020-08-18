@@ -14,7 +14,7 @@ describe('epi2me.initiateDownloadStream', () => {
   let stubs;
   let clock;
 
-  const clientFactory = opts => {
+  const clientFactory = (opts) => {
     const client = new EPI2ME(
       merge(
         {
@@ -50,7 +50,7 @@ describe('epi2me.initiateDownloadStream', () => {
 
   afterEach(() => {
     clock.restore();
-    stubs.forEach(s => {
+    stubs.forEach((s) => {
       s.restore();
     });
   });

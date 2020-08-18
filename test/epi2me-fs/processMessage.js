@@ -8,7 +8,7 @@ import AWS from 'aws-sdk';
 import EPI2ME from '../../src/epi2me-fs';
 
 describe('epi2me-api.processMessage', () => {
-  const clientFactory = opts => {
+  const clientFactory = (opts) => {
     const client = new EPI2ME(
       merge(
         {
@@ -25,7 +25,7 @@ describe('epi2me-api.processMessage', () => {
       ),
     );
     sinon.stub(client, 'socket').resolves({
-      emit: () => { },
+      emit: () => {},
     });
     return client;
   };
@@ -36,12 +36,12 @@ describe('epi2me-api.processMessage', () => {
   });
 
   afterEach(() => {
-    stubs.forEach(s => {
+    stubs.forEach((s) => {
       s.restore();
     });
   });
 
-  it('should handle bad message json', done => {
+  it('should handle bad message json', (done) => {
     const client = clientFactory({
       downloadMode: 'telemetry',
     });
@@ -53,7 +53,7 @@ describe('epi2me-api.processMessage', () => {
     };
 
     assert.doesNotThrow(() => {
-      client.processMessage(msg, () => { });
+      client.processMessage(msg, () => {});
     });
 
     sinon.assert.calledWith(stub, msg);
@@ -62,7 +62,7 @@ describe('epi2me-api.processMessage', () => {
     done();
   });
 
-  it('should parse message json', done => {
+  it('should parse message json', (done) => {
     const client = clientFactory({
       downloadMode: 'telemetry',
     });
@@ -75,7 +75,7 @@ describe('epi2me-api.processMessage', () => {
         {
           Body: '{"message": "body"}',
         },
-        () => { },
+        () => {},
       );
     });
     assert(client.log.warn.calledOnce); // No path
@@ -116,7 +116,7 @@ describe('epi2me-api.processMessage', () => {
             },
           }),
         },
-        () => { },
+        () => {},
       );
     } catch (err) {
       assert.fail(err);
@@ -156,7 +156,7 @@ describe('epi2me-api.processMessage', () => {
               'OUTPUT-UUID/INPUT-UUID/9999/999999/component-2/OK/pass/CLASSIFIED/fastq_runid_shasum_15.fastq/fastq_runid_shasum_15.fastq',
           }),
         },
-        () => { },
+        () => {},
       );
     } catch (err) {
       assert.fail(err);
@@ -373,7 +373,7 @@ describe('epi2me-api.processMessage', () => {
             id_master: '1694',
           }),
         },
-        () => { },
+        () => {},
       );
     } catch (err) {
       assert.fail(err);

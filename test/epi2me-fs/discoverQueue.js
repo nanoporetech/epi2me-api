@@ -4,7 +4,7 @@ import { merge } from 'lodash';
 import EPI2ME from '../../src/epi2me-fs';
 
 describe('epi2me.discoverQueue', () => {
-  const clientFactory = opts =>
+  const clientFactory = (opts) =>
     new EPI2ME(
       merge(
         {

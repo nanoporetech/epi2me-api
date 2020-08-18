@@ -7,7 +7,9 @@ export interface Logger {
   warn: LogMethod;
 }
 
-export const NoopLogMethod: LogMethod = (...args: unknown[]): void => { (args) };
+export const NoopLogMethod: LogMethod = (...args: unknown[]): void => {
+  args;
+};
 
 export const NoopLogger: Logger = {
   debug: NoopLogMethod,

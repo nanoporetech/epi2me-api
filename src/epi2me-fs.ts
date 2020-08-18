@@ -420,7 +420,7 @@ export default class EPI2ME_FS extends EPI2ME {
     const telemetryLogFolder = path.join(this.config.options.outputFolder, 'epi2me-logs');
     const telemetryLogPath = path.join(telemetryLogFolder, fileName);
 
-    fs.mkdirp(telemetryLogFolder, mkdirException => {
+    fs.mkdirp(telemetryLogFolder, (mkdirException) => {
       if (mkdirException && !String(mkdirException).match(/EEXIST/)) {
         this.log.error(`error opening telemetry log stream: mkdirpException:${String(mkdirException)}`);
       } else {
@@ -646,7 +646,7 @@ export default class EPI2ME_FS extends EPI2ME {
 
       let running = 0;
       const chunkFunc = (): Promise<void> => {
-        return new Promise(resolve => {
+        return new Promise((resolve) => {
           if (this.stopped) {
             files.length = 0;
             this.log.debug(`upload: skipping, stopped`);
@@ -667,7 +667,7 @@ export default class EPI2ME_FS extends EPI2ME {
 
           this.enqueueUploadFiles(filesChunk)
             .then()
-            .catch(e => {
+            .catch((e) => {
               this.log.error(`upload: exception in enqueueUploadFiles: ${String(e)}`);
             })
             .finally(() => {
@@ -706,7 +706,7 @@ export default class EPI2ME_FS extends EPI2ME {
       return;
     }
 
-    this.log.info(`enqueueUploadFiles ${files.length} files: ${files.map(file => file.path).join(' ')}.`);
+    this.log.info(`enqueueUploadFiles ${files.length} files: ${files.map((file) => file.path).join(' ')}.`);
 
     const workflow = asOptRecord(this.config.workflow);
     if (workflow) {
@@ -1039,7 +1039,7 @@ export default class EPI2ME_FS extends EPI2ME {
       });
 
       this.processMessage(message)
-        .catch(err => {
+        .catch((err) => {
           this.log.error(`processMessage ${String(err)}`);
         })
         .finally(() => {
@@ -1107,8 +1107,8 @@ export default class EPI2ME_FS extends EPI2ME {
           telemetry.batch = body
             .toString('utf-8')
             .split('\n')
-            .filter(d => d?.length > 0)
-            .map(row => {
+            .filter((d) => d?.length > 0)
+            .map((row) => {
               try {
                 return JSON.parse(row);
               } catch (e) {
@@ -1183,7 +1183,7 @@ export default class EPI2ME_FS extends EPI2ME {
       }
 
       try {
-        const fetchPromises = fetchSuffixes.map(suffix => {
+        const fetchPromises = fetchSuffixes.map((suffix) => {
           const fetchObject = messageBody.path + suffix;
           const fetchFile = outputFile + suffix;
           this.log.debug(`download.processMessage: ${message.MessageId} downloading ${fetchObject} to ${fetchFile}`);
@@ -1200,7 +1200,7 @@ export default class EPI2ME_FS extends EPI2ME {
               fetchFile,
             )
               .then(resolve)
-              .catch(e => {
+              .catch((e) => {
                 this.log.error(`Caught exception waiting for initiateDownloadStream: ${String(e)}`);
                 if (suffix) {
                   reject(e);
@@ -1253,7 +1253,7 @@ export default class EPI2ME_FS extends EPI2ME {
       component_id: '0',
       message_id: merge(message).MessageId,
       id_user: this.config.instance.id_user,
-    }).catch(e => {
+    }).catch((e) => {
       this.log.warn(`realtimeFeedback failed: ${String(e)}`);
     });
 
@@ -1299,7 +1299,7 @@ export default class EPI2ME_FS extends EPI2ME {
             .then(() => {
               this.log.warn(`removed failed download ${outputFile}`);
             })
-            .catch(unlinkException => {
+            .catch((unlinkException) => {
               this.log.warn(`failed to remove ${outputFile}. unlinkException: ${String(unlinkException)}`);
             });
 
@@ -1466,7 +1466,7 @@ export default class EPI2ME_FS extends EPI2ME {
         updateVisibilityFunc,
       ); /* message in flight timeout in ms, less 10% */
 
-      rs.on('data', chunk => {
+      rs.on('data', (chunk) => {
         // reset timeout
         const timeout = this.timers.transferTimeouts[outputFile];
         if (timeout) {
@@ -1529,7 +1529,7 @@ export default class EPI2ME_FS extends EPI2ME {
         return;
       }
 
-      rs.on('error', readStreamError => {
+      rs.on('error', (readStreamError) => {
         rs.close();
         let errstr = 'error in upload readstream';
         if (readStreamError?.message) {
@@ -1581,7 +1581,7 @@ export default class EPI2ME_FS extends EPI2ME {
         const sessionManager = this.initSessionManager(null, [service]);
         sessionManager.sts_expiration = this.sessionManager?.sts_expiration; // No special options here, so use the main session and don't refetch until it's expired
 
-        managedUpload.on('httpUploadProgress', async progress => {
+        managedUpload.on('httpUploadProgress', async (progress) => {
           // Breaking out here causes this.states.progress.bytes to get out of sync.
           // if (this.stopped) {
           //   reject(new Error('stopped'));
@@ -1617,7 +1617,7 @@ export default class EPI2ME_FS extends EPI2ME {
             total: file.size,
             bytes: file.size,
           }); // zero in-flight upload counters
-          this.uploadsInProgress = this.uploadsInProgress.filter(upload => upload !== managedUpload);
+          this.uploadsInProgress = this.uploadsInProgress.filter((upload) => upload !== managedUpload);
         }
       });
 
@@ -1720,7 +1720,7 @@ export default class EPI2ME_FS extends EPI2ME {
       component_id: '0',
       message_id: merge(sentMessage).MessageId,
       id_user: this.config.instance.id_user,
-    }).catch(e => {
+    }).catch((e) => {
       this.log.warn(`realtimeFeedback failed: ${String(e)}`);
     });
 
@@ -1741,7 +1741,7 @@ export default class EPI2ME_FS extends EPI2ME {
     const toFetch: Promise<unknown>[] = [];
 
     const summaryTelemetry = asRecord(this.config.instance.summaryTelemetry);
-    Object.keys(summaryTelemetry).forEach(componentId => {
+    Object.keys(summaryTelemetry).forEach((componentId) => {
       const component = asRecord(summaryTelemetry[componentId]) ?? {};
       const firstReport = Object.keys(component)[0]; // poor show
       let url = asOptString(component[firstReport]);

@@ -22,9 +22,9 @@ export default class REST_FS extends REST {
     try {
       const tmp = await fs.readdir(WORKFLOW_DIR);
       data = tmp // ouch
-        .filter(id => fs.statSync(path.join(WORKFLOW_DIR, id)).isDirectory())
-        .map(id => path.join(WORKFLOW_DIR, id, 'workflow.json'))
-        .map(filepath => fs.readJsonSync(filepath));
+        .filter((id) => fs.statSync(path.join(WORKFLOW_DIR, id)).isDirectory())
+        .map((id) => path.join(WORKFLOW_DIR, id, 'workflow.json'))
+        .map((filepath) => fs.readJsonSync(filepath));
 
       return cb ? cb(null, data) : data;
     } catch (e) {
@@ -82,8 +82,8 @@ export default class REST_FS extends REST {
 
     try {
       let data = await fs.readdir(INSTANCE_DIR);
-      data = data.filter(id => fs.statSync(path.join(INSTANCE_DIR, id)).isDirectory());
-      data = data.map(id => {
+      data = data.filter((id) => fs.statSync(path.join(INSTANCE_DIR, id)).isDirectory());
+      data = data.map((id) => {
         const filename = path.join(INSTANCE_DIR, id, 'workflow.json');
 
         let workflow;
@@ -146,7 +146,7 @@ export default class REST_FS extends REST {
       );
 
       let idDataset = 0;
-      const data = folders.sort().map(id => {
+      const data = folders.sort().map((id) => {
         idDataset += 1;
         return {
           is_reference_dataset: true,

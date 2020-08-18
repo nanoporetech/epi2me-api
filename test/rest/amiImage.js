@@ -53,7 +53,6 @@ describe('rest.amiImage', () => {
     assert.deepEqual(obj, {
       status: 'success',
     });
-
   });
 
   it('should create an amiImage', async () => {
@@ -78,7 +77,6 @@ describe('rest.amiImage', () => {
     } finally {
       stub.restore();
     }
-
   });
 
   it('should read an amiImage', async () => {
@@ -99,6 +97,5 @@ describe('rest.amiImage', () => {
     } finally {
       stub.restore();
     }
-
   });
 });

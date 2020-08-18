@@ -11,14 +11,27 @@ import client from './gql-client';
 import utils from './utils';
 import { NoopLogMethod } from './Logger';
 
-import type { Logger } from './Logger'; 
+import type { Logger } from './Logger';
 import type { DocumentNode } from 'graphql';
 import type { ObjectDict } from './ObjectDict';
 import type { FetchResult } from 'apollo-link';
 import type { ApolloQueryResult } from 'apollo-client';
 import type { EPI2ME_OPTIONS } from './epi2me-options';
 import { asBoolean, Index } from './runtime-typecast';
-import { ResponseWorkflowInstance, ResponseAllWorkflowInstances, ResponseStartWorkflow, ResponseWorkflow, ResponseAllWorkflows, ResponseStopWorkflowInstance, ResponseGetInstanceToken, ResponseUser, ResponseRegisterToken, ResponseUpdateUser, ResponseStatus, ResponseRegions } from './graphql-types';
+import {
+  ResponseWorkflowInstance,
+  ResponseAllWorkflowInstances,
+  ResponseStartWorkflow,
+  ResponseWorkflow,
+  ResponseAllWorkflows,
+  ResponseStopWorkflowInstance,
+  ResponseGetInstanceToken,
+  ResponseUser,
+  ResponseRegisterToken,
+  ResponseUpdateUser,
+  ResponseStatus,
+  ResponseRegions,
+} from './graphql-types';
 
 export interface GraphQLConfiguration {
   url: string;
@@ -91,7 +104,9 @@ export class GraphQL {
     };
   };
 
-  query<T = unknown, Var extends {} = {}>(queryString: ((str: string) => DocumentNode) | string | DocumentNode): (opt?: QueryOptions<Var>) => AsyncAQR<T> {
+  query<T = unknown, Var extends {} = {}>(
+    queryString: ((str: string) => DocumentNode) | string | DocumentNode,
+  ): (opt?: QueryOptions<Var>) => AsyncAQR<T> {
     return (opt?: QueryOptions<Var>): AsyncAQR<T> => {
       const context = opt?.context ?? {};
       const variables = opt?.variables ?? {};
@@ -121,7 +136,9 @@ export class GraphQL {
     };
   }
 
-  mutate<T = unknown, Var extends {} = {}>(queryString: string | DocumentNode): (opt?: QueryOptions<Var>) => Promise<FetchResult<T>> {
+  mutate<T = unknown, Var extends {} = {}>(
+    queryString: string | DocumentNode,
+  ): (opt?: QueryOptions<Var>) => Promise<FetchResult<T>> {
     return (opt?: QueryOptions<Var>): Promise<FetchResult<T>> => {
       const context = opt?.context ?? {};
       const variables = opt?.variables ?? {};
@@ -147,8 +164,11 @@ export class GraphQL {
   resetCache = (): void => {
     this.client.resetStore();
   };
-  
-  workflows = this.query<ResponseAllWorkflows, { isActive?: number; page?: number; pageSize?: number; orderBy?: string; region?: string }>(gql`
+
+  workflows = this.query<
+    ResponseAllWorkflows,
+    { isActive?: number; page?: number; pageSize?: number; orderBy?: string; region?: string }
+  >(gql`
     query allWorkflows($page: Int, $pageSize: Int, $isActive: Int, $orderBy: String, $region: String) {
       allWorkflows(page: $page, pageSize: $pageSize, isActive: $isActive, orderBy: $orderBy, region: $region) {
         ${PageFragment}
@@ -159,7 +179,9 @@ export class GraphQL {
     }
   `);
 
-  workflowPages = async (requestedPage: number): Promise<{
+  workflowPages = async (
+    requestedPage: number,
+  ): Promise<{
     data: ApolloQueryResult<ResponseAllWorkflows>;
     next(): AsyncAQR<ResponseAllWorkflows>;
     previous(): AsyncAQR<ResponseAllWorkflows>;
@@ -199,7 +221,10 @@ export class GraphQL {
     }
    `);
 
-  workflowInstances = this.query<ResponseAllWorkflowInstances, { idUser?: number; shared?: boolean; page?: number; pageSize?: number; orderBy?: string }>(gql`
+  workflowInstances = this.query<
+    ResponseAllWorkflowInstances,
+    { idUser?: number; shared?: boolean; page?: number; pageSize?: number; orderBy?: string }
+  >(gql`
   query allWorkflowInstances($page: Int, $pageSize: Int, $shared: Boolean, $idUser: ID, $orderBy: String) {
     allWorkflowInstances(page: $page, pageSize: $pageSize, shared: $shared, idUser: $idUser, orderBy: $orderBy) {
       ${PageFragment}
@@ -218,7 +243,20 @@ export class GraphQL {
       }
    `);
 
-  startWorkflow = this.mutate<ResponseStartWorkflow, { idWorkflow: Index; computeAccountId: Index; storageAccountId?: Index; isConsentedHuman?: boolean; idDataset?: Index; storeResults?: boolean; region?: string; userDefined?: ObjectDict<ObjectDict>; instanceAttributes?: { id_attribute: Index; value: string }[]}>(gql`
+  startWorkflow = this.mutate<
+    ResponseStartWorkflow,
+    {
+      idWorkflow: Index;
+      computeAccountId: Index;
+      storageAccountId?: Index;
+      isConsentedHuman?: boolean;
+      idDataset?: Index;
+      storeResults?: boolean;
+      region?: string;
+      userDefined?: ObjectDict<ObjectDict>;
+      instanceAttributes?: { id_attribute: Index; value: string }[];
+    }
+  >(gql`
     mutation startWorkflow(
       $idWorkflow: ID!
       $computeAccountId: ID!
@@ -334,12 +372,11 @@ export class GraphQL {
     }
   `);
 
-
-  async healthCheck (): Promise<{ status: boolean }> {
+  async healthCheck(): Promise<{ status: boolean }> {
     const result = await utils.get('/status', { ...this.options, log: { debug: NoopLogMethod } });
 
     return {
-      status: asBoolean(result.status)
+      status: asBoolean(result.status),
     };
   }
 

@@ -23,7 +23,7 @@ export default class db {
       .mkdirp(dbRoot)
       .then(() => {
         this.log.debug(`opening ${dbRoot}/db.sqlite`);
-        return sqlite.open(path.join(dbRoot, 'db.sqlite')).then(async dbh => {
+        return sqlite.open(path.join(dbRoot, 'db.sqlite')).then(async (dbh) => {
           this.log.debug(`opened ${dbRoot}/db.sqlite`); // eslint-disable-line no-console
           await dbh.migrate({ migrationsPath: path.join(__dirname, 'migrations') });
           const placeholders = inputFolders.map(() => '(?)').join(',');
@@ -40,7 +40,7 @@ export default class db {
           }
         });
       })
-      .catch(e => {
+      .catch((e) => {
         this.log.error(e);
         throw e;
       });
@@ -105,12 +105,12 @@ export default class db {
     this.log.info(`cleaning ${toClean.length} split files`);
     this.log.debug(
       `going to clean: ${toClean
-        .map(o => {
+        .map((o) => {
           return o.filename;
         })
         .join(' ')}`,
     );
-    const cleanupPromises = toClean.map(cleanObj => {
+    const cleanupPromises = toClean.map((cleanObj) => {
       return fs.unlink(path.join(cleanObj.folder_path, cleanObj.filename)).catch(() => {
         console.warn(`Failed to cleanup ${path.join(cleanObj.folder_path, cleanObj.filename)}`);
       }); // should this module really be responsible for this cleanup operation?
@@ -132,7 +132,7 @@ export default class db {
         relative,
         dir,
       ),
-    ]).then(results => {
+    ]).then((results) => {
       // console.log(`checked seenUpload ${filename} \n ${results}`); // eslint-disable-line no-console
       return remove(results, undefined).length;
     });

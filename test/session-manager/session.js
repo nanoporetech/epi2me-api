@@ -15,7 +15,7 @@ describe('session-manager', () => {
 
     afterEach(() => {
       clock.restore();
-      stubs.forEach(s => {
+      stubs.forEach((s) => {
         s.restore();
       });
     });

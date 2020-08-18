@@ -289,7 +289,7 @@ export default class REST {
         const dataRoot = asOptArrayRecursive(isUndefined(index) ? index : workflowParam[index], asIndexable); // e.g. [{dataset},{dataset}]
 
         if (dataRoot) {
-          param.values = dataRoot.map(o => ({
+          param.values = dataRoot.map((o) => ({
             // does this really end up back in workflow object?
             label: o[asIndex(items.label_key)],
             value: o[asIndex(items.value_key)],
@@ -418,7 +418,7 @@ export default class REST {
 
     const datasets = asArrayRecursive(await this.datasets(), asRecord);
 
-    return datasets.find(o => o.id_dataset === id);
+    return datasets.find((o) => o.id_dataset === id);
   }
 
   async fetchContent(url: string): Promise<ObjectDict> {

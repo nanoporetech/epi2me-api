@@ -88,15 +88,12 @@ const utils: Utility = (function magic(): Utility {
 
         Object.keys(req.headers)
           .sort()
-          .filter(o => o.match(/^x-epi2me/i))
-          .map(o => `${o}:${req.headers[o]}`)
+          .filter((o) => o.match(/^x-epi2me/i))
+          .map((o) => `${o}:${req.headers[o]}`)
           .join('\n'),
       ].join('\n');
 
-      const digest = crypto
-        .createHmac('sha1', options.apisecret)
-        .update(message)
-        .digest('hex');
+      const digest = crypto.createHmac('sha1', options.apisecret).update(message).digest('hex');
       req.headers['X-EPI2ME-SignatureV0'] = digest;
     },
 
@@ -329,7 +326,7 @@ const utils: Utility = (function magic(): Utility {
       };
       Object.keys(form)
         .sort()
-        .forEach(attr => {
+        .forEach((attr) => {
           params.push(`${attr}=${escape(form[attr] + '')}`);
         });
       req.data = params.join('&');

@@ -27,7 +27,7 @@ describe('utils.get', () => {
   });
 
   afterEach(() => {
-    stubs.forEach(s => {
+    stubs.forEach((s) => {
       s.restore();
     });
   });
@@ -58,7 +58,7 @@ describe('utils.get', () => {
   });
 
   it('should invoke get without url mangling', async () => {
-    stubs.push(sinon.stub(axios, 'get').resolves({ data: { data: 'data'} }));
+    stubs.push(sinon.stub(axios, 'get').resolves({ data: { data: 'data' } }));
     const data = await utils.get('https://epi2me.internal/entity/123', {
       skip_url_mangle: true,
       apikey: 'foo',
@@ -84,7 +84,7 @@ describe('utils.get', () => {
   });
 
   it('should invoke get with proxy', async () => {
-    stubs.push(sinon.stub(axios, 'get').resolves({data: { data: 'data' } }));
+    stubs.push(sinon.stub(axios, 'get').resolves({ data: { data: 'data' } }));
     const data = await utils.get('entity/123', {
       proxy: 'http://proxy.internal:3128/',
       apikey: 'foo',

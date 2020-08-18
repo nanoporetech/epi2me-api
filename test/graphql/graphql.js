@@ -9,7 +9,7 @@ import client from '../../src/gql-client';
 import gqlUtils from '../../src/gql-utils';
 import GraphQL from '../../src/graphql';
 
-const makeGQL = profile => {
+const makeGQL = (profile) => {
   const ringbuf = new bunyan.RingBuffer({
     limit: 100,
   });
@@ -60,7 +60,7 @@ describe('stubbed tests', () => {
   });
 
   afterEach(() => {
-    stubs.forEach(s => {
+    stubs.forEach((s) => {
       s.restore();
     });
   });
@@ -240,7 +240,7 @@ describe('stubbed tests', () => {
       const stub = sinon.stub(client, 'query').resolves(response);
       stubs.push(stub);
       graphqlObj.query(
-        pageFragment => `query aWorkflow {
+        (pageFragment) => `query aWorkflow {
         allWorkflows {
           ${pageFragment}
             results {

@@ -16,7 +16,7 @@ describe('epi2me.autoConfigure', () => {
     clock.restore();
   });
 
-  const clientFactory = opts =>
+  const clientFactory = (opts) =>
     new EPI2ME(
       merge(
         {

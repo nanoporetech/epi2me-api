@@ -1,4 +1,4 @@
-import { ObjectDict } from "./ObjectDict";
+import { ObjectDict } from './ObjectDict';
 
 export interface UploadState {
   filesCount: number; // internal. do not use
@@ -68,8 +68,8 @@ export function createUploadState(): UploadState {
     success: createSuccessState(),
     types: {},
     filesCount: 0,
-    niceTypes: "",
-  }
+    niceTypes: '',
+  };
 }
 
 export function createDownloadState(): DownloadState {
@@ -78,6 +78,6 @@ export function createDownloadState(): DownloadState {
     success: createSuccessState(),
     types: {},
     fail: 0,
-    niceTypes: "",
-  }
+    niceTypes: '',
+  };
 }

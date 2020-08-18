@@ -7,7 +7,7 @@ import DB from '../../src/db';
 import EPI2ME from '../../src/epi2me-fs';
 
 describe('epi2me.uploadComplete', () => {
-  const clientFactory = opts => {
+  const clientFactory = (opts) => {
     const client = new EPI2ME(
       merge(
         {
@@ -83,7 +83,7 @@ describe('epi2me.uploadComplete', () => {
     sinon.stub(client, 'discoverQueue').resolves('http://my-queue/');
     sinon.stub(client, 'sessionedSQS').callsFake(() => sqs);
 
-    sinon.stub(sqs, 'sendMessage').callsFake(obj => {
+    sinon.stub(sqs, 'sendMessage').callsFake((obj) => {
       assert.deepEqual(
         JSON.parse(obj.MessageBody),
         {
@@ -147,7 +147,7 @@ describe('epi2me.uploadComplete', () => {
     sinon.stub(client, 'discoverQueue').resolves('http://my-queue/');
     sinon.stub(client, 'sessionedSQS').callsFake(() => sqs);
 
-    sinon.stub(sqs, 'sendMessage').callsFake(obj => {
+    sinon.stub(sqs, 'sendMessage').callsFake((obj) => {
       assert.deepEqual(
         JSON.parse(obj.MessageBody),
         {
@@ -205,7 +205,7 @@ describe('epi2me.uploadComplete', () => {
     sinon.stub(client, 'discoverQueue').resolves('http://my-queue/');
     sinon.stub(client, 'sessionedSQS').callsFake(() => sqs);
 
-    sinon.stub(sqs, 'sendMessage').callsFake(obj => {
+    sinon.stub(sqs, 'sendMessage').callsFake((obj) => {
       assert.deepEqual(
         JSON.parse(obj.MessageBody),
         {
@@ -255,7 +255,7 @@ describe('epi2me.uploadComplete', () => {
     sinon.stub(client, 'discoverQueue').resolves('http://my-queue/');
     sinon.stub(client, 'sessionedSQS').callsFake(() => sqs);
 
-    sinon.stub(sqs, 'sendMessage').callsFake(obj => {
+    sinon.stub(sqs, 'sendMessage').callsFake((obj) => {
       assert.deepEqual(
         JSON.parse(obj.MessageBody).components,
         {
@@ -310,7 +310,7 @@ describe('epi2me.uploadComplete', () => {
     sinon.stub(client, 'discoverQueue').resolves('http://my-queue/');
     sinon.stub(client, 'sessionedSQS').callsFake(() => sqs);
 
-    sinon.stub(sqs, 'sendMessage').callsFake(obj => {
+    sinon.stub(sqs, 'sendMessage').callsFake((obj) => {
       const struct = JSON.parse(obj.MessageBody);
 
       assert.deepEqual(
@@ -349,7 +349,7 @@ describe('epi2me.uploadComplete', () => {
     sinon.stub(client, 'discoverQueue').resolves('http://my-queue/');
     sinon.stub(client, 'sessionedSQS').callsFake(() => sqs);
 
-    sinon.stub(sqs, 'sendMessage').callsFake(obj => {
+    sinon.stub(sqs, 'sendMessage').callsFake((obj) => {
       const struct = JSON.parse(obj.MessageBody);
 
       assert.deepEqual(

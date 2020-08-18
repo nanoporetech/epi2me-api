@@ -5,21 +5,17 @@ import { createHttpLink } from 'apollo-link-http';
 import { resolve } from 'url';
 import { createCustomFetcher, Fetch } from './fetcher';
 
-type NativeFetch = WindowOrWorkerGlobalScope["fetch"];
+type NativeFetch = WindowOrWorkerGlobalScope['fetch'];
 
 function convertFetchToNativeFetch(fetcher: Fetch | NativeFetch): NativeFetch {
   // HACK Apollo link incorrectly uses the types for native fetch which does not match with node-fetch.
   // https://github.com/apollographql/apollo-link/issues/513
   // The types are largly compatible, but it doesn't look like they will fix this anytime soon.
-  return fetcher as unknown as NativeFetch;
+  return (fetcher as unknown) as NativeFetch;
 }
 
-const link = new ApolloLink(operation => {
-  const {
-    apikey,
-    apisecret,
-    url
-  } = operation.getContext();
+const link = new ApolloLink((operation) => {
+  const { apikey, apisecret, url } = operation.getContext();
 
   const fetcher = createCustomFetcher({ apikey, apisecret });
 

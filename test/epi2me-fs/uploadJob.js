@@ -6,7 +6,7 @@ import DB from '../../src/db';
 import EPI2ME from '../../src/epi2me-fs';
 
 describe('epi2me.uploadJob', () => {
-  const clientFactory = opts => {
+  const clientFactory = (opts) => {
     const client = new EPI2ME(
       merge(
         {
@@ -184,7 +184,7 @@ describe('epi2me.uploadJob', () => {
     const clock = sinon.useFakeTimers();
     const client = clientFactory();
 
-    sinon.stub(client, 'uploadHandler').callsFake(file => Promise.resolve(file));
+    sinon.stub(client, 'uploadHandler').callsFake((file) => Promise.resolve(file));
 
     try {
       const x = {
@@ -205,7 +205,7 @@ describe('epi2me.uploadJob', () => {
     const clock = sinon.useFakeTimers();
     const client = clientFactory();
 
-    sinon.stub(client, 'uploadHandler').callsFake(file => Promise.resolve(file));
+    sinon.stub(client, 'uploadHandler').callsFake((file) => Promise.resolve(file));
     // client.states.upload.queueLength = { reads: 8192 };
     client.states.upload.success.files = 25;
 
@@ -231,7 +231,7 @@ describe('epi2me.uploadJob', () => {
           progress: {
             bytes: 0,
             niceSize: 0,
-            total: 0
+            total: 0,
           },
           success: {
             files: 0,

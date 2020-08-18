@@ -44,16 +44,13 @@ const gqlUtils = ((): GQLUtility => {
       const message = [
         Object.keys(req.headers)
           .sort()
-          .filter(o => o.match(/^x-epi2me/i))
-          .map(o => `${o}:${req.headers[o]}`)
+          .filter((o) => o.match(/^x-epi2me/i))
+          .map((o) => `${o}:${req.headers[o]}`)
           .join('\n'),
         req.body,
       ].join('\n');
 
-      const digest = crypto
-        .createHmac('sha1', options.apisecret)
-        .update(message)
-        .digest('hex');
+      const digest = crypto.createHmac('sha1', options.apisecret).update(message).digest('hex');
       req.headers['X-EPI2ME-SIGNATUREV0'] = digest;
     },
   };

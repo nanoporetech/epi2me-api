@@ -20,7 +20,7 @@ describe('rest.amiImages', () => {
   });
 
   afterEach(() => {
-    stubs.forEach(s => {
+    stubs.forEach((s) => {
       s.restore();
     });
   });
@@ -29,7 +29,7 @@ describe('rest.amiImages', () => {
     const rest = new REST({
       log,
     });
-    const stub = sinon.stub(rest, 'list').callsFake(uri => {
+    const stub = sinon.stub(rest, 'list').callsFake((uri) => {
       assert.equal(uri, 'ami_image', 'default uri');
     });
     stubs.push(stub);
@@ -45,7 +45,7 @@ describe('rest.amiImages', () => {
       log,
       local: true,
     });
-    const stub = sinon.stub(rest, 'list').callsFake(uri => {
+    const stub = sinon.stub(rest, 'list').callsFake((uri) => {
       assert.equal(uri, 'ami_image', 'default uri');
     });
     stubs.push(stub);

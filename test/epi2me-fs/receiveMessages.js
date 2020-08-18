@@ -35,7 +35,7 @@ describe('epi2me.receiveMessages', () => {
 
   it('should queue and process download messages using downloadWorkerPool', async () => {
     sinon.stub(client, 'processMessage').callsFake(() => {
-      const p = new Promise(resolve => {
+      const p = new Promise((resolve) => {
         setTimeout(() => {
           resolve();
         }, 1);

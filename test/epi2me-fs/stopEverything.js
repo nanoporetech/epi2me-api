@@ -7,7 +7,7 @@ import { createInterval } from '../../src/timers';
 
 describe('epi2me.stopEverything', () => {
   let clock;
-  const clientFactory = opts => {
+  const clientFactory = (opts) => {
     const tmpdir = tmp.dirSync().name;
     const client = new EPI2ME(
       merge(

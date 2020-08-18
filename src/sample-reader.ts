@@ -83,14 +83,12 @@ export default class SampleReader {
         // this behavior has been preserved, but is it correct?
         existing.startDate = startDateString;
         existing.samples.push(newSample);
-      }
-      else {
+      } else {
         this.experiments[experiment] = {
           startDate: startDateString,
-          samples: [newSample]
+          samples: [newSample],
         };
       }
     }
   }
 }
-

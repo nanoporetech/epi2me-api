@@ -10,7 +10,7 @@ describe('epi2me.downloadAvailable', () => {
   let error;
   let json;
 
-  const clientFactory = opts =>
+  const clientFactory = (opts) =>
     new EPI2ME(
       merge(
         {

@@ -40,7 +40,8 @@ describe('rest.dataset', () => {
     }
 
     assert.deepEqual(
-      dataset, {
+      dataset,
+      {
         id_dataset: 1,
       },
       'dataset object',
@@ -50,7 +51,8 @@ describe('rest.dataset', () => {
   it('must filter local datasets', async () => {
     rest.options.local = true;
 
-    const stub = sinon.stub(rest, 'datasets').resolves([{
+    const stub = sinon.stub(rest, 'datasets').resolves([
+      {
         id_dataset: 1,
         name: 'one',
       },
@@ -70,7 +72,8 @@ describe('rest.dataset', () => {
     }
 
     assert.deepEqual(
-      dataset, {
+      dataset,
+      {
         id_dataset: 27,
         name: 'twenty seven',
       },

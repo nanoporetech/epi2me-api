@@ -4,7 +4,7 @@ import sinon from 'sinon';
 import EPI2ME from '../../src/epi2me-fs';
 
 describe('epi2me.setClassConfigREST', () => {
-  const clientFactory = opts =>
+  const clientFactory = (opts) =>
     new EPI2ME(
       merge(
         {
@@ -98,7 +98,7 @@ describe('epi2me.setClassConfigREST', () => {
         targetComponentId: 1,
       },
     });
-    Object.keys(expected).forEach(k => {
+    Object.keys(expected).forEach((k) => {
       assert.deepStrictEqual(client.config.instance[k], expected[k]);
     });
   });
@@ -153,7 +153,7 @@ describe('epi2me.setClassConfigREST', () => {
         },
       },
     });
-    Object.keys(expected).forEach(k => {
+    Object.keys(expected).forEach((k) => {
       assert.deepStrictEqual(client.config.instance[k], expected[k]);
     });
   });

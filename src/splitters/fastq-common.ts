@@ -3,7 +3,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import { merge } from 'lodash';
 
-export default async function(
+export default async function (
   filePath: string,
   opts: {},
   handler: any,
@@ -44,7 +44,7 @@ export default async function(
     });
   }
 
-  const outerPromise = new Promise(resolveOuter => {
+  const outerPromise = new Promise((resolveOuter) => {
     let chunkId = 0;
     let lineInRead = 0;
     let readBuf = '';
@@ -60,7 +60,7 @@ export default async function(
 
     let resolveSafety: any;
 
-    const safety = new Promise(resolve => {
+    const safety = new Promise((resolve) => {
       resolveSafety = resolve;
     });
     const chunkPromises = [safety];
@@ -140,7 +140,7 @@ export default async function(
         // log.debug(`Finished chunking ${filePath}`);
         chunkStream.end(); // make sure inner chunk is closed off correctly
         resolveSafety(); // this shouldn't be required, as the Promise.all follows, but removing it breaks behaviour
-        Promise.all(chunkPromises).then(chunks => {
+        Promise.all(chunkPromises).then((chunks) => {
           chunks.shift(); // remove safety
           resolveOuter(
             merge(
@@ -152,7 +152,7 @@ export default async function(
           );
         });
       })
-      .on('error', err => {
+      .on('error', (err) => {
         log.error(`Error chunking ${filePath}: ${String(err)}`);
       });
   });

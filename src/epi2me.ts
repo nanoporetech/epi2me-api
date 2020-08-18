@@ -19,15 +19,40 @@ import utils from './utils';
 import { ObjectDict } from './ObjectDict';
 import { Logger, LogMethod, FallbackLogger } from './Logger';
 import { EPI2ME_OPTIONS } from './epi2me-options';
-import { asRecord, isRecord, asOptString, asOptBoolean, asFunction, asString, asNumber, asArrayRecursive, asBoolean, asOptNumber, asIndexable, asIndex, asOptFunction, asOptRecord, asOptIndex } from './runtime-typecast';
-import { createUploadState, createDownloadState, States, UploadState, DownloadState, WarningState, SuccessState, ProgressState } from './epi2me-state';
+import {
+  asRecord,
+  isRecord,
+  asOptString,
+  asOptBoolean,
+  asFunction,
+  asString,
+  asNumber,
+  asArrayRecursive,
+  asBoolean,
+  asOptNumber,
+  asIndexable,
+  asIndex,
+  asOptFunction,
+  asOptRecord,
+  asOptIndex,
+} from './runtime-typecast';
+import {
+  createUploadState,
+  createDownloadState,
+  States,
+  UploadState,
+  DownloadState,
+  WarningState,
+  SuccessState,
+  ProgressState,
+} from './epi2me-state';
 import { Configuration } from './Configuration';
 import { DisposeTimer, createInterval } from './timers';
 
 export default class EPI2ME {
   static version = utils.version;
-  static Profile: { new(o: AllProfileData): Profile } | { new(s?: string, r?: boolean): ProfileFS } = Profile;
-  static REST: { new(o: EPI2ME_OPTIONS): REST | REST_FS } = REST; // to allow import { REST } from '@metrichor/epi2me-api'
+  static Profile: { new (o: AllProfileData): Profile } | { new (s?: string, r?: boolean): ProfileFS } = Profile;
+  static REST: { new (o: EPI2ME_OPTIONS): REST | REST_FS } = REST; // to allow import { REST } from '@metrichor/epi2me-api'
   static utils = utils;
 
   readonly log: Logger;
@@ -39,13 +64,15 @@ export default class EPI2ME {
   runningStates$ = combineLatest(this.uploadState$, this.analyseState$, this.reportState$);
 
   instanceTelemetry$ = new BehaviorSubject<unknown[]>([]);
-  experimentalWorkerStatus$ = new BehaviorSubject<{
-    running: number;
-    complete: number;
-    error: number;
-    step: number;
-    name: string;
-  }[]>([]);
+  experimentalWorkerStatus$ = new BehaviorSubject<
+    {
+      running: number;
+      complete: number;
+      error: number;
+      step: number;
+      name: string;
+    }[]
+  >([]);
 
   states: States = {
     download: createDownloadState(),
@@ -63,21 +90,20 @@ export default class EPI2ME {
     visibilityIntervals: ObjectDict<DisposeTimer>;
     summaryTelemetryInterval?: DisposeTimer;
   } = {
-      transferTimeouts: {},
-      visibilityIntervals: {},
-    };
+    transferTimeouts: {},
+    visibilityIntervals: {},
+  };
 
   stateReportTime?: number;
   liveStates$ = new BehaviorSubject(this.states);
   downloadWorkerPool?: ObjectDict;
 
-  config: Configuration
-  REST: REST | REST_FS
-  graphQL: GraphQL
-  mySocket?: Socket
+  config: Configuration;
+  REST: REST | REST_FS;
+  graphQL: GraphQL;
+  mySocket?: Socket;
 
   constructor(optstring: Partial<EPI2ME_OPTIONS> | string = {}) {
-
     let options: EPI2ME_OPTIONS;
     if (typeof optstring === 'string') {
       const json = asRecord(JSON.parse(optstring));
@@ -85,8 +111,7 @@ export default class EPI2ME {
       // it's not particularly useful accepting a json string
       // and increases the required validation code
       options = EPI2ME.parseOptObject(json);
-    }
-    else {
+    } else {
       options = EPI2ME.parseOptObject(optstring);
     }
 
@@ -97,7 +122,7 @@ export default class EPI2ME {
         discoverQueueCache: {},
         awssettings: {
           region: options.region,
-        }
+        },
       },
     };
 
@@ -161,7 +186,7 @@ export default class EPI2ME {
           info: asFunction(log.info) as LogMethod,
           debug: asFunction(log.debug) as LogMethod,
           warn: asFunction(log.warn) as LogMethod,
-          error: asFunction(log.error) as LogMethod
+          error: asFunction(log.error) as LogMethod,
         };
       } catch (e) {
         throw new Error('expected log object to have error, debug, info and warn methods');
@@ -184,10 +209,9 @@ export default class EPI2ME {
         const components = asOptRecord(instanceConfig.chain?.components);
         if (components) {
           const summaryTelemetry = asRecord(instanceConfig.summaryTelemetry);
-          const workerStatus = Object.entries(components)
-            .sort((a, b) => parseInt(a[0], 10) - parseInt(b[0], 10))
+          const workerStatus = Object.entries(components).sort((a, b) => parseInt(a[0], 10) - parseInt(b[0], 10));
           const indexableNewWorkerStatus = asIndexable(newWorkerStatus);
-          const results = []
+          const results = [];
           for (const [key, value] of workerStatus) {
             if (key in indexableNewWorkerStatus) {
               const step = +key;
@@ -198,10 +222,14 @@ export default class EPI2ME {
               }
               const [running, complete, error] = asString(indexableNewWorkerStatus[key])
                 .split(',')
-                .map(componentID => Math.max(0, +componentID)); // It's dodgy but assuming the componentID is a number happens all over the place
+                .map((componentID) => Math.max(0, +componentID)); // It's dodgy but assuming the componentID is a number happens all over the place
 
               results.push({
-                running, complete, error, step, name
+                running,
+                complete,
+                error,
+                step,
+                name,
               });
             }
           }
@@ -217,14 +245,24 @@ export default class EPI2ME {
     socket.emit(channel, object);
   }
 
-  setTimer(intervalName: "downloadCheckInterval" | "stateCheckInterval" | "fileCheckInterval" | "summaryTelemetryInterval", intervalDuration: number, cb: Function): void {
+  setTimer(
+    intervalName: 'downloadCheckInterval' | 'stateCheckInterval' | 'fileCheckInterval' | 'summaryTelemetryInterval',
+    intervalDuration: number,
+    cb: Function,
+  ): void {
     if (this.timers[intervalName]) {
       throw new Error(`An interval with the name ${intervalName} has already been created`);
     }
     this.timers[intervalName] = createInterval(intervalDuration, cb);
   }
 
-  stopTimer(intervalGroupName: "downloadCheckInterval" | "stateCheckInterval" | "fileCheckInterval" | "summaryTelemetryInterval"): void {
+  stopTimer(
+    intervalGroupName:
+      | 'downloadCheckInterval'
+      | 'stateCheckInterval'
+      | 'fileCheckInterval'
+      | 'summaryTelemetryInterval',
+  ): void {
     const timer = this.timers[intervalGroupName];
     if (timer) {
       this.log.debug(`clearing ${intervalGroupName} interval`);
@@ -233,7 +271,7 @@ export default class EPI2ME {
     }
   }
 
-  stopTimeout(timerGroupName: "transferTimeouts", timerName: string): void {
+  stopTimeout(timerGroupName: 'transferTimeouts', timerName: string): void {
     const timeout = this.timers[timerGroupName][timerName];
     if (timeout) {
       timeout();
@@ -285,7 +323,7 @@ export default class EPI2ME {
       const timer = this.timers.transferTimeouts[key];
       // NOTE id should always be defined here, this is purely for type checking
       if (timer) {
-        timer()
+        timer();
       }
       delete this.timers.transferTimeouts[key];
     }
@@ -294,7 +332,7 @@ export default class EPI2ME {
       this.log.debug(`clearing visibilityInterval for ${key}`);
       const timer = this.timers.visibilityIntervals[key];
       if (timer) {
-        timer()
+        timer();
       }
       delete this.timers.visibilityIntervals[key];
     }
@@ -319,17 +357,15 @@ export default class EPI2ME {
     });
   }
 
-  uploadState(table: "success" | "types" | "progress", op: string, newData: ObjectDict<number>): void {
+  uploadState(table: 'success' | 'types' | 'progress', op: string, newData: ObjectDict<number>): void {
     const direction = 'upload';
     const state: UploadState = this.states.upload ?? createUploadState();
 
-    if (table === "success") {
+    if (table === 'success') {
       this.updateSuccessState(state.success, op, newData);
-    }
-    else if (table === "types") {
+    } else if (table === 'types') {
       this.updateTypesState(state.types, op, newData);
-    }
-    else {
+    } else {
       this.updateProgressState(state.progress, op, newData);
     }
 
@@ -342,9 +378,7 @@ export default class EPI2ME {
 
     try {
       // complete plus in-transit
-      state.progress.niceSize = niceSize(
-        state.success.bytes + state.progress.bytes ?? 0,
-      );
+      state.progress.niceSize = niceSize(state.success.bytes + state.progress.bytes ?? 0);
     } catch (ignore) {
       state.progress.niceSize = 0;
     }
@@ -358,7 +392,7 @@ export default class EPI2ME {
 
     state.niceTypes = Object.keys(this.states[direction].types || {})
       .sort()
-      .map(fileType => {
+      .map((fileType) => {
         return `${this.states[direction].types[fileType]} ${fileType}`;
       })
       .join(', ');
@@ -372,17 +406,15 @@ export default class EPI2ME {
     this.liveStates$.next({ ...this.states });
   }
 
-  downloadState(table: "success" | "types" | "progress", op: string, newData: ObjectDict<number>): void {
+  downloadState(table: 'success' | 'types' | 'progress', op: string, newData: ObjectDict<number>): void {
     const direction = 'upload';
     const state: DownloadState = this.states.download ?? createDownloadState();
 
-    if (table === "success") {
+    if (table === 'success') {
       this.updateSuccessState(state.success, op, newData);
-    }
-    else if (table === "types") {
+    } else if (table === 'types') {
       this.updateTypesState(state.types, op, newData);
-    }
-    else {
+    } else {
       this.updateProgressState(state.progress, op, newData);
     }
 
@@ -395,9 +427,7 @@ export default class EPI2ME {
 
     try {
       // complete plus in-transit
-      state.progress.niceSize = niceSize(
-        state.success.bytes + state.progress.bytes ?? 0,
-      );
+      state.progress.niceSize = niceSize(state.success.bytes + state.progress.bytes ?? 0);
     } catch (ignore) {
       state.progress.niceSize = 0;
     }
@@ -411,7 +441,7 @@ export default class EPI2ME {
 
     state.niceTypes = Object.keys(this.states[direction].types || {})
       .sort()
-      .map(fileType => {
+      .map((fileType) => {
         return `${this.states[direction].types[fileType]} ${fileType}`;
       })
       .join(', ');
@@ -426,13 +456,13 @@ export default class EPI2ME {
   }
 
   updateSuccessState(state: SuccessState, op: string, newData: ObjectDict<number>): void {
-    const safeKeys = new Set(["files", "bytes", "reads"])
+    const safeKeys = new Set(['files', 'bytes', 'reads']);
     for (const key of Object.keys(newData)) {
       // Increment or decrement
       const sign = op === 'incr' ? 1 : -1;
       const delta = sign * (newData[key] ?? 0);
       if (safeKeys.has(key)) {
-        const typedKey = key as ("files" | "bytes" | "reads");
+        const typedKey = key as 'files' | 'bytes' | 'reads';
         state[typedKey] = state[typedKey] + delta;
       }
     }
@@ -448,13 +478,13 @@ export default class EPI2ME {
   }
 
   updateProgressState(state: ProgressState, op: string, newData: ObjectDict<number>): void {
-    const safeKeys = new Set(["bytes", "total"])
+    const safeKeys = new Set(['bytes', 'total']);
     for (const key of Object.keys(newData)) {
       // Increment or decrement
       const sign = op === 'incr' ? 1 : -1;
       const delta = sign * (newData[key] ?? 0);
       if (safeKeys.has(key)) {
-        const typedKey = key as ("bytes" | "total");
+        const typedKey = key as 'bytes' | 'total';
         state[typedKey] = state[typedKey] + delta;
       }
     }
@@ -470,39 +500,42 @@ export default class EPI2ME {
 
   /**
    * @deprecated attr() breaks type guarantees for the configuration options
-   * and hence is depreciated. 
+   * and hence is depreciated.
    */
-  attr(key: keyof EPI2ME_OPTIONS, value: EPI2ME_OPTIONS[keyof EPI2ME_OPTIONS]): EPI2ME_OPTIONS[keyof EPI2ME_OPTIONS] | this {
+  attr(
+    key: keyof EPI2ME_OPTIONS,
+    value: EPI2ME_OPTIONS[keyof EPI2ME_OPTIONS],
+  ): EPI2ME_OPTIONS[keyof EPI2ME_OPTIONS] | this {
     if (value) {
       switch (key) {
-        case "url":
-        case "region":
-        case "user_agent":
-        case "downloadMode":
-        case "sampleDirectory":
-        case "apikey":
-        case "apisecret":
+        case 'url':
+        case 'region':
+        case 'user_agent':
+        case 'downloadMode':
+        case 'sampleDirectory':
+        case 'apikey':
+        case 'apisecret':
           this.config.options[key] = asString(value);
           break;
-        case "id_workflow_instance":
-        case "sessionGrace":
-        case "uploadTimeout":
-        case "fileCheckInterval":
-        case "downloadCheckInterval":
-        case "stateCheckInterval":
-        case "inFlightDelay":
-        case "waitTimeSeconds":
-        case "waitTokenError":
-        case "transferPoolSize":
-        case "debounceWindow":
+        case 'id_workflow_instance':
+        case 'sessionGrace':
+        case 'uploadTimeout':
+        case 'fileCheckInterval':
+        case 'downloadCheckInterval':
+        case 'stateCheckInterval':
+        case 'inFlightDelay':
+        case 'waitTimeSeconds':
+        case 'waitTokenError':
+        case 'transferPoolSize':
+        case 'debounceWindow':
           this.config.options[key] = asNumber(value);
           break;
-        case "signing":
-        case "useGraphQL":
-        case "local":
+        case 'signing':
+        case 'useGraphQL':
+        case 'local':
           this.config.options[key] = asBoolean(value);
           break;
-        case "filetype":
+        case 'filetype':
           this.config.options[key] = asArrayRecursive(value, asString);
           break;
         default:

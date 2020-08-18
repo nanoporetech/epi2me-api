@@ -11,9 +11,10 @@ describe('epi2me.autoJoin', () => {
         debug: sinon.stub(),
         info: sinon.stub(),
         warn: sinon.stub(),
-        error: sinon.stub()
-      }});
-    
+        error: sinon.stub(),
+      },
+    });
+
     stubs.push(
       sinon.stub(client.REST, 'workflowInstance').callsFake(() => {
         if (error) {

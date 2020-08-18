@@ -34,10 +34,7 @@ export default async function filestats(filePath?: string): Promise<MappedFileSt
     return { type: 'unknown', bytes: NaN };
   }
 
-  let ext = path
-    .extname(filePath)
-    .toLowerCase()
-    .replace(/^[.]/, ''); // strip leading dot
+  let ext = path.extname(filePath).toLowerCase().replace(/^[.]/, ''); // strip leading dot
 
   const mappedForm = longForm.get(ext);
   if (mappedForm) {

@@ -5,7 +5,7 @@ import { merge } from 'lodash';
 import REST from '../../src/rest';
 
 describe('rest.workflow', () => {
-  const restFactory = opts => {
+  const restFactory = (opts) => {
     const ringbuf = new bunyan.RingBuffer({
       limit: 100,
     });
@@ -14,7 +14,8 @@ describe('rest.workflow', () => {
       stream: ringbuf,
     });
     return new REST(
-      merge({
+      merge(
+        {
           log,
         },
         opts,
