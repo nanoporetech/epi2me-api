@@ -16,7 +16,7 @@ const plugins = [
   json(),
   analyze(),
   eslint({
-    throwOnError: true, //  Will eventually be set to true
+    throwOnError: true,
     throwOnWarning: false, //  Will eventually be set to true
     exclude: ['node_modules/**', './**/*.json'],
   }),

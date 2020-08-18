@@ -1,10 +1,10 @@
 {
   "window.title": "${dirty} ${activeEditorMedium}${separator}${rootName}",
-  "editor.formatOnSave": true,
-  "eslint.validate": ["typescript"],
+  "eslint.validate": [
+    "typescript"
+  ],
   "eslint.alwaysShowStatus": true,
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": true
-  },
-  "editor.defaultFormatter": "esbenp.prettier-vscode"
+  }
 }
