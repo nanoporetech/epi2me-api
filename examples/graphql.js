@@ -55,10 +55,4 @@ api.graphQL
   .then(console.info)
   .catch(console.error);
 
-// api.graphQL
-//   .convertONTJWT(
-//     { token_type: 'signature' },
-//     process.env.JWT,
-//   )
-//   .then(console.info)
-//   .catch(console.error);
+// api.graphQL.convertONTJWT({ token_type: 'jwt' }, process.env.JWT).then(console.info).catch(console.error);
