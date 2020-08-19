@@ -45,7 +45,7 @@ import {
   asIndex,
   asRecordRecursive,
 } from './runtime-typecast';
-import { FetchResult } from '@apollo/client';
+import { FetchResult } from '@apollo/client/core';
 import { Configuration } from './Configuration';
 import { createInterval, DisposeTimer, createTimeout } from './timers';
 import { isString } from 'util';

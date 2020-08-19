@@ -12,7 +12,7 @@ import SessionManager from './session-manager';
 import { FileStat } from './utils-fs';
 import { ObjectDict } from './ObjectDict';
 import { Index } from './runtime-typecast';
-import { FetchResult } from '@apollo/client';
+import { FetchResult } from '@apollo/client/core';
 import { Configuration } from './Configuration';
 import { PromiseResult } from 'aws-sdk/lib/request';
 import { EPI2ME_OPTIONS } from './epi2me-options';
