@@ -14,8 +14,7 @@ import { NoopLogMethod } from './Logger';
 import type { Logger } from './Logger';
 import type { DocumentNode } from 'graphql';
 import type { ObjectDict } from './ObjectDict';
-import type { FetchResult } from 'apollo-link';
-import type { ApolloQueryResult } from 'apollo-client';
+import type { ApolloQueryResult, FetchResult } from '@apollo/client/core';
 import type { EPI2ME_OPTIONS } from './epi2me-options';
 import { asBoolean, Index } from './runtime-typecast';
 import {
