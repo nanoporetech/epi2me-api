@@ -1,7 +1,4 @@
-import { InMemoryCache } from 'apollo-cache-inmemory';
-import ApolloClient from 'apollo-client';
-import { ApolloLink, execute } from 'apollo-link';
-import { createHttpLink } from 'apollo-link-http';
+import { ApolloClient, ApolloLink, execute, createHttpLink, InMemoryCache } from '@apollo/client/core';
 import { resolve } from 'url';
 import { createCustomFetcher, Fetch } from './fetcher';
 

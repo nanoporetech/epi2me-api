@@ -1,8 +1,7 @@
 import type { Logger } from './Logger';
 import type { DocumentNode } from 'graphql';
 import type { ObjectDict } from './ObjectDict';
-import type { FetchResult } from 'apollo-link';
-import type { ApolloQueryResult } from 'apollo-client';
+import type { ApolloQueryResult, FetchResult } from '@apollo/client/core';
 import type { EPI2ME_OPTIONS } from './epi2me-options';
 import { Index } from './runtime-typecast';
 import { ResponseWorkflowInstance, ResponseAllWorkflowInstances, ResponseStartWorkflow, ResponseWorkflow, ResponseAllWorkflows, ResponseStopWorkflowInstance, ResponseGetInstanceToken, ResponseUser, ResponseRegisterToken, ResponseUpdateUser, ResponseStatus, ResponseRegions } from './graphql-types';
@@ -29,7 +28,7 @@ export interface QueryOptions<Var = ObjectDict, Ctx = ObjectDict, Opt = ObjectDi
 export declare type AsyncAQR<T = unknown> = Promise<ApolloQueryResult<T>>;
 export declare class GraphQL {
     readonly log: Logger;
-    readonly client: import("apollo-client").ApolloClient<import("apollo-cache-inmemory").NormalizedCacheObject>;
+    readonly client: import("@apollo/client/core").ApolloClient<import("@apollo/client/core").NormalizedCacheObject>;
     readonly options: GraphQLConfiguration;
     static NETWORK_ONLY: string;
     static CACHE_FIRST: string;

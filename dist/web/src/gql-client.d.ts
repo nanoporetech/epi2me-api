@@ -1,3 +1,3 @@
-import ApolloClient from 'apollo-client';
-declare const client: ApolloClient<import("apollo-cache-inmemory").NormalizedCacheObject>;
+import { ApolloClient } from '@apollo/client/core';
+declare const client: ApolloClient<import("@apollo/client/core").NormalizedCacheObject>;
 export default client;

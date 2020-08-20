@@ -45,7 +45,7 @@ import {
   asIndex,
   asRecordRecursive,
 } from './runtime-typecast';
-import { FetchResult } from 'apollo-link';
+import { FetchResult } from '@apollo/client/core';
 import { Configuration } from './Configuration';
 import { createInterval, DisposeTimer, createTimeout } from './timers';
 import { isString } from 'util';
@@ -371,7 +371,7 @@ export default class EPI2ME_FS extends EPI2ME {
     /*
     Ensure
     this.setClassConfigREST is called on REST responses to set fields as below:
-  
+
      * region
      * id_workflow_instance
      * inputqueue
