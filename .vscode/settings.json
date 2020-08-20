@@ -1,8 +1,6 @@
 {
   "window.title": "${dirty} ${activeEditorMedium}${separator}${rootName}",
-  "eslint.validate": [
-    "typescript"
-  ],
+  "eslint.validate": ["typescript"],
   "eslint.alwaysShowStatus": true,
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": true
