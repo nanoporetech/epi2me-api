@@ -7,14 +7,15 @@ import gql from 'graphql-tag';
 import PageFragment from './fragments/PageFragment';
 import WorkflowFragment from './fragments/WorkflowFragment';
 import WorkflowInstanceFragment from './fragments/WorkflowInstanceFragment';
-import client from './gql-client';
+import { createClient } from './gql-client';
 import utils from './utils';
 import { NoopLogMethod } from './Logger';
+import fetch, { Headers } from 'cross-fetch';
 
 import type { Logger } from './Logger';
 import type { DocumentNode } from 'graphql';
 import type { ObjectDict } from './ObjectDict';
-import type { ApolloQueryResult, FetchResult } from '@apollo/client/core';
+import type { ApolloQueryResult, FetchResult, NormalizedCacheObject, ApolloClient } from '@apollo/client/core';
 import type { EPI2ME_OPTIONS } from './epi2me-options';
 import { asBoolean, Index } from './runtime-typecast';
 import {
@@ -31,12 +32,14 @@ import {
   ResponseStatus,
   ResponseRegions,
 } from './graphql-types';
+import { writeCommonHeaders } from './network';
 
 export interface GraphQLConfiguration {
   url: string;
   apikey?: string;
   apisecret?: string;
   agent_version: string;
+  jwt?: string;
   local: boolean;
   user_agent: string;
   signing: boolean;
@@ -58,8 +61,8 @@ export interface QueryOptions<Var = ObjectDict, Ctx = ObjectDict, Opt = ObjectDi
 export type AsyncAQR<T = unknown> = Promise<ApolloQueryResult<T>>;
 export class GraphQL {
   readonly log: Logger;
-  readonly client = client;
   readonly options: GraphQLConfiguration;
+  client: ApolloClient<NormalizedCacheObject>;
 
   // See: https://www.apollographql.com/docs/react/api/react-apollo/#optionsfetchpolicy
   static NETWORK_ONLY = 'network-only';
@@ -75,7 +78,7 @@ export class GraphQL {
     // https://epi2me-dev.graphql.bla/ => https://graphql.epi2me-dev.bla
     url = url.replace(/\/$/, '');
 
-    const { apikey, apisecret, log, local, signing } = opts;
+    const { apikey, apisecret, jwt, log, local, signing } = opts;
 
     // WARN most of these options aren't used in this file.
     // They are _maybe_ being used `utils.get` but we need to resolve this.
@@ -87,9 +90,24 @@ export class GraphQL {
       signing,
       apikey,
       apisecret,
+      jwt,
     };
     this.log = log;
+
+    this.client = this.initClient();
   }
+
+  initClient = (): ApolloClient<NormalizedCacheObject> => {
+    return createClient(() => {
+      return (uri: RequestInfo, init: RequestInit = {}): Promise<Response> => {
+        const headers = writeCommonHeaders({ headers: new Headers(init.headers) });
+        // jwt stuff here please
+        headers.set('Authorization', `Bearer ${this.options.jwt}`);
+        init.headers = headers;
+        return fetch(uri, init);
+      };
+    });
+  };
 
   createContext = (contextIn: ObjectDict): RequestContext => {
     // Merge any passed in context with requiredContext

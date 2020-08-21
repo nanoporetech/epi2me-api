@@ -56,7 +56,7 @@ const gqlUtils = ((): GQLUtility => {
   };
   return {
     version: VERSION,
-    setHeaders: (req: AxiosRequestConfig & { body: string }, options: HeaderOptions = {}): void => {
+    setHeaders: (req: RequestInit, options: HeaderOptions = {}): void => {
       // common headers required for everything
 
       req.headers = merge(

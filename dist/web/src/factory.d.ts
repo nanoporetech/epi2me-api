@@ -1,4 +1,6 @@
 import EPI2ME_FS from './epi2me-fs';
+import { BehaviorSubject } from 'rxjs';
+import { Map as ImmutableMap } from 'immutable';
 import type REST_FS from './rest-fs';
 import type GraphQL from './graphql';
 import type { Logger } from './Logger';
@@ -11,7 +13,9 @@ export default class Factory {
     private readonly EPI2ME;
     private options;
     private primary;
-    private runningInstances;
+    readonly runningInstances$: BehaviorSubject<ImmutableMap<Index, EPI2ME_FS>>;
+    private readonly addRunningInstance$;
+    private readonly removeRunningInstancebyId$;
     constructor(api: typeof EPI2ME_FS, opts?: Partial<EPI2ME_OPTIONS>);
     get utils(): UtilityFS;
     get version(): string;
@@ -21,7 +25,6 @@ export default class Factory {
     get sampleReader(): SampleReader;
     reset(options?: Partial<EPI2ME_OPTIONS>): void;
     getRunningInstance(id: Index): EPI2ME_FS | undefined;
-    getAllRunningInstances(): EPI2ME_FS[];
     private instantiate;
     startRun(options: Partial<EPI2ME_OPTIONS>, workflowConfig: {
         id_workflow: string;

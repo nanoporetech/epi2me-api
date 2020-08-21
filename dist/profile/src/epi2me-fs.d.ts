@@ -16,7 +16,7 @@ import { FetchResult } from '@apollo/client/core';
 import { Configuration } from './Configuration';
 import { PromiseResult } from 'aws-sdk/lib/request';
 import { EPI2ME_OPTIONS } from './epi2me-options';
-import GraphQL from './graphql';
+import { GraphQLFS } from './graphql-fs';
 import { ResponseStartWorkflow } from './graphql-types';
 declare type FileDescriptor = FileStat & {
     skip?: string;
@@ -30,7 +30,7 @@ export default class EPI2ME_FS extends EPI2ME {
     static EPI2ME_HOME: string;
     static Profile: typeof Profile;
     static Factory: typeof Factory;
-    static GraphQL: typeof GraphQL;
+    static GraphQL: typeof GraphQLFS;
     SampleReader: SampleReader;
     uploadsInProgress: {
         abort(): void;

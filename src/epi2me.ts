@@ -8,12 +8,10 @@
 
 import { BehaviorSubject, combineLatest } from 'rxjs';
 import DEFAULTS from './default_options.json';
-import GraphQL from './graphql';
+import { GraphQLFS } from './graphql-fs';
 import niceSize from './niceSize';
 import Profile, { AllProfileData } from './profile';
 import REST from './rest';
-import type REST_FS from './rest-fs';
-import type ProfileFS from './profile-fs';
 import Socket from './socket';
 import utils from './utils';
 import { ObjectDict } from './ObjectDict';
@@ -35,6 +33,7 @@ import {
   asOptFunction,
   asOptRecord,
   asOptIndex,
+  Index,
 } from './runtime-typecast';
 import {
   createUploadState,
@@ -48,6 +47,9 @@ import {
 } from './epi2me-state';
 import { Configuration } from './Configuration';
 import { DisposeTimer, createInterval } from './timers';
+
+import type REST_FS from './rest-fs';
+import type ProfileFS from './profile-fs';
 
 export default class EPI2ME {
   static version = utils.version;
@@ -100,7 +102,7 @@ export default class EPI2ME {
 
   config: Configuration;
   REST: REST | REST_FS;
-  graphQL: GraphQL;
+  graphQL: GraphQLFS;
   mySocket?: Socket;
 
   constructor(optstring: Partial<EPI2ME_OPTIONS> | string = {}) {
@@ -128,7 +130,11 @@ export default class EPI2ME {
 
     this.log = options.log;
     this.REST = new REST(options);
-    this.graphQL = new GraphQL(options);
+    this.graphQL = new GraphQLFS(options);
+  }
+
+  get id(): Index {
+    return asIndex(this.config.instance.id_workflow_instance);
   }
 
   static parseOptObject(opt: ObjectDict | Partial<EPI2ME_OPTIONS>): EPI2ME_OPTIONS {
@@ -162,6 +168,7 @@ export default class EPI2ME {
       id_workflow_instance: asOptIndex(opt.id_workflow_instance),
       debounceWindow: asOptNumber(opt.debounceWindow),
       proxy: asOptString(opt.proxy),
+      jwt: asOptString(opt.jwt),
       // EPI2ME-FS options
       inputFolders: asArrayRecursive(opt.inputFolders, asString, []),
       outputFolder: asOptString(opt.outputFolder),
