@@ -1,10 +1,8 @@
 import assert from 'assert';
-import axios from 'axios';
 import bunyan from 'bunyan';
 import gql from 'graphql-tag';
 import sinon from 'sinon';
 import DEFAULTS from '../../src/default_options.json';
-import { createCustomFetcher } from '../../src/fetcher';
 import client from '../../src/gql-client';
 import gqlUtils from '../../src/gql-utils';
 import GraphQL from '../../src/graphql';
@@ -119,7 +117,7 @@ describe('stubbed tests', () => {
         apisecret: 'a527f9aa0713a5f9cfd99af9a174b73d4df34dcbb3be13b97ccd108314ab0f17',
         description: 'user@localmachine',
       };
-      stubs.push(sinon.stub(client, 'mutate').resolves(response));
+      stubs.push(sinon.stub(graphqlObj.client, 'mutate').resolves(response));
       await graphqlObj.register(code, (_, creds) => {
         assert.strictEqual(creds, response);
       });
@@ -134,7 +132,7 @@ describe('stubbed tests', () => {
         apisecret: 'a527f9aa0713a5f9cfd99af9a174b73d4df34dcbb3be13b97ccd108314ab0f17',
         description: 'description',
       };
-      stubs.push(sinon.stub(client, 'mutate').resolves(response));
+      stubs.push(sinon.stub(graphqlObj.client, 'mutate').resolves(response));
       await graphqlObj.register(code, 'description', (_, creds) => {
         assert.strictEqual(creds, response);
       });
@@ -153,7 +151,7 @@ describe('stubbed tests', () => {
           ],
         },
       };
-      stubs.push(sinon.stub(client, 'query').resolves(response));
+      stubs.push(sinon.stub(graphqlObj.client, 'query').resolves(response));
       graphqlObj.workflows().then(({ data }) => assert.strictEqual(data, response.data));
       // .catch(err => console.log(err));
     });
@@ -171,7 +169,7 @@ describe('stubbed tests', () => {
           ],
         },
       };
-      stubs.push(sinon.stub(client, 'query').resolves(response));
+      stubs.push(sinon.stub(graphqlObj.client, 'query').resolves(response));
       const variables = {
         page: 2,
       };
@@ -194,7 +192,7 @@ describe('stubbed tests', () => {
           },
         },
       };
-      stubs.push(sinon.stub(client, 'query').resolves(response));
+      stubs.push(sinon.stub(graphqlObj.client, 'query').resolves(response));
       graphqlObj
         .workflow({
           idWorkflow: '49',
@@ -216,7 +214,7 @@ describe('stubbed tests', () => {
           ],
         },
       };
-      stubs.push(sinon.stub(client, 'query').resolves(response));
+      stubs.push(sinon.stub(graphqlObj.client, 'query').resolves(response));
       graphqlObj.workflowInstances().then(({ data }) => assert.strictEqual(data, response.data));
       // .catch(err => console.log(err));
     });
@@ -233,7 +231,7 @@ describe('stubbed tests', () => {
           __typename: 'WorkflowInstanceType',
         },
       };
-      stubs.push(sinon.stub(client, 'query').resolves(response));
+      stubs.push(sinon.stub(graphqlObj.client, 'query').resolves(response));
       await graphqlObj
         .workflowInstance({
           idWorkflowInstance: 121,
@@ -258,7 +256,7 @@ describe('stubbed tests', () => {
           },
         },
       };
-      stubs.push(sinon.stub(client, 'mutate').resolves(response));
+      stubs.push(sinon.stub(graphqlObj.client, 'mutate').resolves(response));
       graphqlObj
         .startWorkflow({
           idWorkflow: 1403,
@@ -281,7 +279,7 @@ describe('stubbed tests', () => {
           ],
         },
       };
-      const stub = sinon.stub(client, 'query').resolves(response);
+      const stub = sinon.stub(graphqlObj.client, 'query').resolves(response);
       stubs.push(stub);
       graphqlObj.query(
         (pageFragment) => `query aWorkflow {
@@ -327,7 +325,7 @@ describe('stubbed tests', () => {
           ],
         },
       };
-      const stub = sinon.stub(client, 'query').resolves(response);
+      const stub = sinon.stub(graphqlObj.client, 'query').resolves(response);
       stubs.push(stub);
       graphqlObj.query(
         `query aWorkflow {
@@ -377,7 +375,7 @@ describe('stubbed tests', () => {
           ],
         },
       };
-      const stub = sinon.stub(client, 'query').resolves(response);
+      const stub = sinon.stub(graphqlObj.client, 'query').resolves(response);
       stubs.push(stub);
       graphqlObj.query(
         gql`
@@ -469,23 +467,23 @@ describe('graphql.unittests', () => {
     });
     sinon.restore();
   });
-  it('custom fetcher calls setHeaders', () => {
-    const uri = 'https://graphql.epi2me.nanoporetech.com';
-    const fetcher = createCustomFetcher({
-      apikey: 'a0207e050372b7b0b10cdce458e9e7f3a9cb3bd6',
-      apisecret: 'vo6QhSWdu9MqKQk9IC1ql9X7jI9zU1ptN9pqrJ0kPJ4fANYcGvKbB4Pp9QMG164J',
-    });
-    sinon.stub(axios, 'request').resolves({
-      data: {
-        random: 'data',
-      },
-      headers: {},
-    });
-    const setHeadersStub = sinon.stub(gqlUtils, 'setHeaders');
-    fetcher(uri);
-    assert(setHeadersStub.called);
-    sinon.restore();
-  });
+  // it('custom fetcher calls setHeaders', () => {
+  //   const uri = 'https://graphql.epi2me.nanoporetech.com';
+  //   const fetcher = createCustomFetcher({
+  //     apikey: 'a0207e050372b7b0b10cdce458e9e7f3a9cb3bd6',
+  //     apisecret: 'vo6QhSWdu9MqKQk9IC1ql9X7jI9zU1ptN9pqrJ0kPJ4fANYcGvKbB4Pp9QMG164J',
+  //   });
+  //   sinon.stub(axios, 'request').resolves({
+  //     data: {
+  //       random: 'data',
+  //     },
+  //     headers: {},
+  //   });
+  //   const setHeadersStub = sinon.stub(gqlUtils, 'setHeaders');
+  //   fetcher(uri);
+  //   assert(setHeadersStub.called);
+  //   sinon.restore();
+  // });
 });
 
 // Check actual signing works as expected
