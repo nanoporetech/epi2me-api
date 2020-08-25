@@ -5,7 +5,7 @@ import sinon from 'sinon';
 import DEFAULTS from '../../src/default_options.json';
 import gqlUtils from '../../src/gql-utils';
 import GraphQL from '../../src/graphql';
-import utils from '../../src/utils';
+import { Network } from '../../src/network';
 
 const makeGQL = (profile) => {
   const ringbuf = new bunyan.RingBuffer({
@@ -69,7 +69,7 @@ describe('stubbed tests', () => {
       const response = {
         access: 'RANDOMJWTLIKESTRINGHERE',
       };
-      stubs.push(sinon.stub(utils, 'post').resolves(response));
+      stubs.push(sinon.stub(Network, 'post').resolves(response));
       assert.rejects(
         async () => await graphqlObj.convertONTJWT({ token_type: 'signature' }, 'RANDOMJWTLIKESTRINGHERE'),
         Error,
@@ -81,7 +81,7 @@ describe('stubbed tests', () => {
       const response = {
         access: 'RANDOMJWTLIKESTRINGHERE',
       };
-      stubs.push(sinon.stub(utils, 'post').resolves(response));
+      stubs.push(sinon.stub(Network, 'post').resolves(response));
       assert.rejects(
         async () => await graphqlObj.convertONTJWT({ token_type: 'all' }, 'RANDOMJWTLIKESTRINGHERE'),
         Error,
@@ -93,7 +93,7 @@ describe('stubbed tests', () => {
       const response = {
         access: 'METRICHORRANDOMJWTLIKESTRINGHERE',
       };
-      const stub = sinon.stub(utils, 'post').resolves(response);
+      const stub = sinon.stub(Network, 'post').resolves(response);
       stubs.push(stub);
       const reqData = { token_type: 'jwt' };
       const JWTString = 'RANDOMJWTLIKESTRINGHERE';

@@ -7,6 +7,7 @@ import { Index } from './runtime-typecast';
 import { ResponseWorkflowInstance, ResponseAllWorkflowInstances, ResponseStartWorkflow, ResponseWorkflow, ResponseAllWorkflows, ResponseStopWorkflowInstance, ResponseGetInstanceToken, ResponseUser, ResponseRegisterToken, ResponseUpdateUser, ResponseStatus, ResponseRegions } from './graphql-types';
 export interface GraphQLConfiguration {
     url: string;
+    base_url: string;
     apikey?: string;
     apisecret?: string;
     agent_version: string;

@@ -8,7 +8,7 @@ import PageFragment from './fragments/PageFragment';
 import WorkflowFragment from './fragments/WorkflowFragment';
 import WorkflowInstanceFragment from './fragments/WorkflowInstanceFragment';
 import { createClient } from './gql-client';
-import utils from './utils';
+import { Network } from './network';
 import { NoopLogMethod } from './Logger';
 import fetch, { Headers } from 'cross-fetch';
 
@@ -36,6 +36,7 @@ import { writeCommonHeaders } from './network';
 
 export interface GraphQLConfiguration {
   url: string;
+  base_url: string;
   apikey?: string;
   apisecret?: string;
   agent_version: string;
@@ -80,10 +81,14 @@ export class GraphQL {
 
     const { apikey, apisecret, jwt, log, local, signing } = opts;
 
-    // WARN most of these options aren't used in this file.
+    // IS: WARN most of these options aren't used in this file.
     // They are _maybe_ being used `utils.get` but we need to resolve this.
+    // CR: Utils is now no longer used.
+    // I believe local isn't required, the rest will be used for signing on
+    // GraphQLFS
     this.options = {
       url,
+      base_url: url, // New networking wants base_url
       agent_version: opts.agent_version,
       local,
       user_agent: opts.user_agent,
@@ -390,11 +395,16 @@ export class GraphQL {
     if (requestData.token_type !== 'jwt' && !requestData.description) {
       throw new Error('Description required for signature requests');
     }
-    return utils.post('convert-ont', requestData, {
+    return Network.post('convert-ont', requestData, {
       ...this.options,
-      log: { debug: NoopLogMethod },
+      log: NoopLogMethod,
       headers: { 'X-ONT-JWT': JWT },
-    });
+    }) as Promise<{
+      apikey?: string;
+      apisecret?: string;
+      description?: string;
+      access?: string;
+    }>;
   }
 
   // status
@@ -411,7 +421,10 @@ export class GraphQL {
   `);
 
   async healthCheck(): Promise<{ status: boolean }> {
-    const result = await utils.get('/status', { ...this.options, log: { debug: NoopLogMethod } });
+    console.log(this.options);
+    const result = (await Network.get('/status', { ...this.options, log: NoopLogMethod })) as {
+      status: boolean;
+    };
 
     return {
       status: asBoolean(result.status),
