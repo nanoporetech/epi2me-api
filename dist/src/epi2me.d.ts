@@ -1,5 +1,5 @@
 import { BehaviorSubject } from 'rxjs';
-import { GraphQLFS } from './graphql-fs';
+import { GraphQL } from './graphql';
 import Profile, { AllProfileData } from './profile';
 import REST from './rest';
 import Socket from './socket';
@@ -51,7 +51,7 @@ export default class EPI2ME {
     downloadWorkerPool?: ObjectDict;
     config: Configuration;
     REST: REST | REST_FS;
-    graphQL: GraphQLFS;
+    graphQL: GraphQL;
     mySocket?: Socket;
     constructor(optstring?: Partial<EPI2ME_OPTIONS> | string);
     get id(): Index;

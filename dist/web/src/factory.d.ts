@@ -15,7 +15,7 @@ export default class Factory {
     private primary;
     readonly runningInstances$: BehaviorSubject<ImmutableMap<Index, EPI2ME_FS>>;
     private readonly addRunningInstance$;
-    private readonly removeRunningInstancebyId$;
+    private readonly removeRunningInstanceById$;
     constructor(api: typeof EPI2ME_FS, opts?: Partial<EPI2ME_OPTIONS>);
     get utils(): UtilityFS;
     get version(): string;

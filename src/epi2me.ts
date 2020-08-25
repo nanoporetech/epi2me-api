@@ -8,7 +8,7 @@
 
 import { BehaviorSubject, combineLatest } from 'rxjs';
 import DEFAULTS from './default_options.json';
-import { GraphQLFS } from './graphql-fs';
+import { GraphQL } from './graphql';
 import niceSize from './niceSize';
 import Profile, { AllProfileData } from './profile';
 import REST from './rest';
@@ -102,7 +102,7 @@ export default class EPI2ME {
 
   config: Configuration;
   REST: REST | REST_FS;
-  graphQL: GraphQLFS;
+  graphQL: GraphQL;
   mySocket?: Socket;
 
   constructor(optstring: Partial<EPI2ME_OPTIONS> | string = {}) {
@@ -130,7 +130,7 @@ export default class EPI2ME {
 
     this.log = options.log;
     this.REST = new REST(options);
-    this.graphQL = new GraphQLFS(options);
+    this.graphQL = new GraphQL(options);
   }
 
   get id(): Index {

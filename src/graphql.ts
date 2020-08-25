@@ -101,7 +101,6 @@ export class GraphQL {
     return createClient(() => {
       return (uri: RequestInfo, init: RequestInit = {}): Promise<Response> => {
         const headers = writeCommonHeaders({ headers: new Headers(init.headers) });
-        // jwt stuff here please
         headers.set('Authorization', `Bearer ${this.options.jwt}`);
         init.headers = headers;
         return fetch(uri, init);
@@ -380,8 +379,8 @@ export class GraphQL {
   `);
 
   async convertONTJWT(
-    requestData: { token_type: 'jwt' | 'signature' | 'all'; description?: 'string' } = { token_type: 'jwt' },
     JWT: string,
+    requestData: { token_type: 'jwt' | 'signature' | 'all'; description?: 'string' } = { token_type: 'jwt' },
   ): Promise<{
     apikey?: string;
     apisecret?: string;

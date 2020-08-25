@@ -8,14 +8,12 @@ import {
 } from '@apollo/client/core';
 import { resolve } from 'url';
 
-export function createClient(
-  setup: (ctx: Record<string, string>) => typeof fetch,
-): ApolloClient<NormalizedCacheObject> {
+export function createClient(setup: () => typeof fetch): ApolloClient<NormalizedCacheObject> {
   const link = new ApolloLink((operation) => {
-    const ctx = operation.getContext();
-    const fetcher = setup(ctx);
+    const fetcher = setup();
+    const { url } = operation.getContext();
     const httpLink = createHttpLink({
-      uri: resolve(ctx.url, '/graphql'),
+      uri: resolve(url, '/graphql'),
       fetch: fetcher,
     });
     return execute(httpLink, operation);

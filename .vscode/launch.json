@@ -7,10 +7,17 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Launch Program",
+      "name": "Factory Example",
       "skipFiles": ["<node_internals>/**"],
       "program": "${workspaceFolder}/examples/factory.js",
       "args": ["gql-dev"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "GraphQL JWT Example",
+      "skipFiles": ["<node_internals>/**"],
+      "program": "${workspaceFolder}/examples/graphql-jwt.js"
     },
     {
       "type": "node",

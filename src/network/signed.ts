@@ -16,7 +16,7 @@ export function signMessage(
   headers: Headers,
   createMessage: (headers: string[]) => string[],
   { apikey, apisecret }: Credentials,
-  forceUpper = false,
+  forceUppercaseHeaders = false,
 ): void {
   headers.set('X-EPI2ME-ApiKey', apikey);
   headers.set('X-EPI2ME-SignatureDate', new Date().toISOString());
@@ -26,9 +26,9 @@ export function signMessage(
     .filter((o) => o.match(/^x-epi2me/i));
 
   // Case matters. Uppercase for gql. Else for portal.
-  const message = createMessage(keys.map((key) => `${forceUpper ? key.toUpperCase() : key}:${headers.get(key)}`)).join(
-    '\n',
-  );
+  const message = createMessage(
+    keys.map((key) => `${forceUppercaseHeaders ? key.toUpperCase() : key}:${headers.get(key)}`),
+  ).join('\n');
 
   const digest = crypto.createHmac('sha1', apisecret).update(message).digest('hex');
   headers.set('X-EPI2ME-SignatureV0', digest);

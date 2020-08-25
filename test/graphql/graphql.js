@@ -3,7 +3,6 @@ import bunyan from 'bunyan';
 import gql from 'graphql-tag';
 import sinon from 'sinon';
 import DEFAULTS from '../../src/default_options.json';
-import client from '../../src/gql-client';
 import gqlUtils from '../../src/gql-utils';
 import GraphQL from '../../src/graphql';
 import utils from '../../src/utils';
@@ -98,7 +97,7 @@ describe('stubbed tests', () => {
       stubs.push(stub);
       const reqData = { token_type: 'jwt' };
       const JWTString = 'RANDOMJWTLIKESTRINGHERE';
-      const res = await graphqlObj.convertONTJWT(reqData, JWTString);
+      const res = await graphqlObj.convertONTJWT(JWTString, reqData);
       assert.equal(res.access, response.access);
       const calledArgs = stub.getCall(0).args;
       assert.equal(calledArgs[0], 'convert-ont');

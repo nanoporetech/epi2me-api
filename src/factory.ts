@@ -33,7 +33,7 @@ export default class Factory {
   readonly runningInstances$: BehaviorSubject<ImmutableMap<Index, EPI2ME_FS>> = new BehaviorSubject(ImmutableMap());
 
   private readonly addRunningInstance$: Subject<EPI2ME_FS> = new Subject();
-  private readonly removeRunningInstancebyId$: Subject<string> = new Subject();
+  private readonly removeRunningInstanceById$: Subject<string> = new Subject();
 
   constructor(api: typeof EPI2ME_FS, opts: Partial<EPI2ME_OPTIONS> = {}) {
     this.EPI2ME = api;
@@ -47,7 +47,7 @@ export default class Factory {
       }),
     );
 
-    const removedInstances$ = this.removeRunningInstancebyId$.pipe(
+    const removedInstances$ = this.removeRunningInstanceById$.pipe(
       withLatestFrom(this.runningInstances$),
       map(([instanceId, runningInstances]) => {
         return runningInstances.delete(instanceId);

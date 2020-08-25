@@ -1,3 +1,3 @@
-import EPI2ME from './epi2me';
+import GraphQL from './graphql';
 
-export default EPI2ME;
+export { GraphQL };
