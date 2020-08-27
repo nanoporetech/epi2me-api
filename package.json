@@ -9,6 +9,7 @@
   "module": "dist/index.es.js",
   "dependencies": {
     "@apollo/client": "^3.1.3",
+    "@improbable-eng/grpc-web": "^0.13.0",
     "@lifeomic/axios-fetch": "^1.4.2",
     "@types/lifeomic__axios-fetch": "^1.4.0",
     "@types/socket.io-client": "^1.4.32",
@@ -33,6 +34,7 @@
     "@rollup/plugin-commonjs": "^14.0.0",
     "@types/bunyan": "^1.8.6",
     "@types/fs-extra": "^8.1.0",
+    "@types/google-protobuf": "^3.7.3",
     "@types/lodash": "^4.14.149",
     "@types/mocha": "^7.0.2",
     "@types/node": "^14.0.24",
@@ -45,6 +47,9 @@
     "eslint": "^7.6.0",
     "eslint-config-prettier": "^6.11.0",
     "eslint-plugin-prettier": "^3.1.4",
+    "google-protobuf": "^3.13.0",
+    "grpc-tools": "^1.9.1",
+    "grpc_tools_node_protoc_ts": "^4.1.3",
     "husky": "^4.2.1",
     "lint-staged": "^10.0.4",
     "mocha": "^8.1.1",
@@ -102,6 +107,9 @@
     "rollup:watch": "npx rollup -cw",
     "build:light": "npm run clean:dist && npm run rollup:build",
     "build:dist": "npm run build:version && npm run clean:dist && npm ci && npm run rollup:build",
-    "ts:defs": "tsc --outDir dist --declarationDir dist/types --emitDeclarationOnly"
+    "ts:defs": "tsc --outDir dist --declarationDir dist/types --emitDeclarationOnly",
+    "protos:js": "grpc_tools_node_protoc --js_out=import_style=commonjs,binary:./src/grpc/protos --grpc_out=service=grpc-web:./src/grpc/protos -I ./src/grpc/epi2me-protobufs ./src/grpc/epi2me-protobufs/*.proto",
+    "protos:ts": "grpc_tools_node_protoc --plugin=protoc-gen-ts=./node_modules/.bin/protoc-gen-ts --ts_out='service=grpc-web:./src/grpc/protos' -I ./src/grpc/epi2me-protobufs ./src/grpc/epi2me-protobufs/*.proto",
+    "protos": "rm -rf src/grpc/protos/* && npm run protos:js && npm run protos:ts"
   }
 }
