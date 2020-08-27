@@ -1,14 +1,13 @@
-export class gRPC_EPI2ME {
- public workflowApi:
+import { WorkflowApi } from './api/workflow';
 
- constructor(public host: string) {
-  const url = `http://${host}:8080`;
+export class EPI2ME_RPC {
+  public workflowApi: WorkflowApi;
 
-  this.workflowApi = new workflowApi(url);
-}
+  constructor(public url: string) {
+    this.workflowApi = new WorkflowApi(url);
+  }
 
-public close() {
-  this.workflowApi.close();
-}
-
+  public close(): void {
+    this.workflowApi.close();
+  }
 }
