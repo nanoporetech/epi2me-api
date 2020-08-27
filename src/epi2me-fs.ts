@@ -97,8 +97,9 @@ export default class EPI2ME_FS extends EPI2ME {
   constructor(optstring: Partial<EPI2ME_OPTIONS> | string) {
     super(optstring); // sets up this.config & this.log
 
-    // overwrite non-fs REST object
+    // overwrite non-fs REST and GQL object
     this.REST = new REST_FS(this.config.options);
+    this.graphQL = new GraphQLFS(this.config.options);
     this.SampleReader = new SampleReader();
     this.uploadsInProgress = [];
   }

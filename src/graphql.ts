@@ -83,8 +83,7 @@ export class GraphQL {
 
     // IS: WARN most of these options aren't used in this file.
     // They are _maybe_ being used `utils.get` but we need to resolve this.
-    // CR: Utils is now no longer used.
-    // I believe local isn't required, the rest will be used for signing on
+    // CR: I believe local isn't required, the rest will be used for signing on
     // GraphQLFS
     this.options = {
       url,
@@ -113,9 +112,10 @@ export class GraphQL {
     });
   };
 
+  // Can this be removed?
   createContext = (contextIn: ObjectDict): RequestContext => {
     // Merge any passed in context with requiredContext
-    const { apikey, apisecret, url } = this.options;
+    const { url, apikey, apisecret } = this.options;
 
     return {
       apikey,
@@ -421,7 +421,6 @@ export class GraphQL {
   `);
 
   async healthCheck(): Promise<{ status: boolean }> {
-    console.log(this.options);
     const result = (await Network.get('/status', { ...this.options, log: NoopLogMethod })) as {
       status: boolean;
     };

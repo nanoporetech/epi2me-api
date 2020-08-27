@@ -1,10 +1,16 @@
 const { GraphQL } = require('../dist/web');
 
-const GQLConfig = { url: 'http://epi2me-vm.nanoporetech.com' };
+const GQLConfig = { url: 'http://graphql.epi2me.nanoporetech.com' };
 
 const GRAPHQL = new GraphQL(GQLConfig);
 
-GRAPHQL.convertONTJWT(process.env.JWT)
+const ONTJWT = process.env.JWT;
+
+if (!ONTJWT) {
+  throw Error('PLEASE SET JWT AS ENV VAR');
+}
+
+GRAPHQL.convertONTJWT(ONTJWT)
   .then((res) => {
     const graphQL = new GraphQL({ ...GQLConfig, jwt: res.access });
     graphQL
