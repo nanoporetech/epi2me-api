@@ -1,13 +1,18 @@
 import { grpc } from '@improbable-eng/grpc-web';
 import { ProtobufMessage } from '@improbable-eng/grpc-web/dist/typings/message';
 import type { Message } from 'google-protobuf';
-import { Observable, Observer } from 'rxjs';
+import { Observable, Observer, of } from 'rxjs';
 
 const Code = grpc.Code;
 grpc.setDefaultTransport(grpc.FetchReadableStreamTransport({ credentials: 'omit' }));
 
+interface Tokens {
+  jwt: string;
+}
+
 interface RequestConfig {
   grpcUrl: string;
+  tokens: Tokens;
   request: Message;
   service: any;
 }
@@ -17,7 +22,7 @@ function checkError(
   code: grpc.Code,
   message: ProtobufMessage | string,
   requestConfig: RequestConfig,
-) {
+): void {
   const { grpcUrl, request, service } = requestConfig;
 
   if (code !== Code.OK && code !== Code.Aborted) {
@@ -32,11 +37,18 @@ function checkError(
   }
 }
 
-function unaryRequest(observer: Observer<Message>, requestConfig: RequestConfig) {
-  const { grpcUrl, request, service } = requestConfig;
+function getMetadata({ tokens }: { tokens: Tokens }): grpc.Metadata {
+  const metadata = new grpc.Metadata();
+  metadata.set('jwt', tokens.jwt);
+  return metadata;
+}
+
+function unaryRequest(observer: Observer<Message>, requestConfig: RequestConfig): grpc.Request {
+  const { grpcUrl, request, service, tokens } = requestConfig;
 
   return grpc.unary(service, {
     host: grpcUrl,
+    metadata: getMetadata({ tokens }),
     onEnd: ({ status, message }) => {
       if (message) {
         observer.next(message as Message);
@@ -49,11 +61,12 @@ function unaryRequest(observer: Observer<Message>, requestConfig: RequestConfig)
   });
 }
 
-function invokeRequest(observer: Observer<Message>, requestConfig: RequestConfig) {
-  const { grpcUrl, request, service } = requestConfig;
+function invokeRequest(observer: Observer<Message>, requestConfig: RequestConfig): grpc.Request {
+  const { grpcUrl, request, service, tokens } = requestConfig;
 
   return grpc.invoke(service, {
     host: grpcUrl,
+    metadata: getMetadata({ tokens }),
     onEnd: (code, message) => {
       checkError(observer, code, message, requestConfig);
       observer.complete();
@@ -69,11 +82,12 @@ function invokeRequest(observer: Observer<Message>, requestConfig: RequestConfig
 
 export function createGrpcRequest$<TRequest extends Message, TResponse extends Message>(
   grpcUrl: string,
+  tokens: Tokens,
   service: any,
   request: TRequest,
   isStream = false,
 ): Observable<TResponse> {
-  const requestConfig = { grpcUrl, service, request };
+  const requestConfig = { grpcUrl, tokens, service, request };
 
   return Observable.create((observer: Observer<TRequest>) => {
     if (!grpcUrl) {
@@ -81,12 +95,14 @@ export function createGrpcRequest$<TRequest extends Message, TResponse extends M
         message: 'No grpc URL provided',
       });
 
-      return;
+      return of(null);
     }
 
-    const req = isStream ? invokeRequest(observer, requestConfig) : unaryRequest(observer, requestConfig);
+    const req = isStream
+      ? invokeRequest((observer as unknown) as Observer<Message>, requestConfig)
+      : unaryRequest((observer as unknown) as Observer<Message>, requestConfig);
 
-    return () => {
+    return (): void => {
       req.close();
       observer.complete();
     };
