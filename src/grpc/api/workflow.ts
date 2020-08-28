@@ -8,7 +8,7 @@ import { map } from 'rxjs/operators';
 export class WorkflowApi {
   private readonly _destroySubs$ = new Subject();
 
-  constructor(private readonly _url: string) {}
+  constructor(private readonly _url: string, private readonly _jwt: string) {}
 
   public close(): void {
     this._destroySubs$.next();
@@ -17,8 +17,12 @@ export class WorkflowApi {
   public getRunning$(): Observable<RunningInstancesReply.AsObject> {
     const request = new Empty();
 
-    return createGrpcRequest$<Empty, RunningInstancesReply>(this._url, WorkflowService.running, request, true).pipe(
-      map((response) => response.toObject()),
-    );
+    return createGrpcRequest$<Empty, RunningInstancesReply>(
+      this._url,
+      { jwt: this._jwt },
+      WorkflowService.running,
+      request,
+      true,
+    ).pipe(map((response) => response.toObject()));
   }
 }
