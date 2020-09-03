@@ -44,8 +44,9 @@ import {
   Index,
   asIndex,
   asRecordRecursive,
+  asDefined,
 } from './runtime-typecast';
-import { FetchResult } from '@apollo/client/core';
+import { FetchResult, gql } from '@apollo/client/core';
 import { Configuration } from './Configuration';
 import { createInterval, DisposeTimer, createTimeout } from './timers';
 import { isString } from 'util';
@@ -244,7 +245,11 @@ export default class EPI2ME_FS extends EPI2ME {
     return this.autoConfigure(this.config.instance, cb);
   }
 
-  async autoStartGeneric<T>(workflowConfig: unknown, startFn: () => T, cb?: (msg: string) => void): Promise<T> {
+  async autoStartGeneric<T>(
+    workflowConfig: unknown,
+    startFn: () => Promise<T>,
+    cb?: (msg: string) => void,
+  ): Promise<T> {
     this.stopped = false;
     let instance;
     try {
@@ -356,7 +361,7 @@ export default class EPI2ME_FS extends EPI2ME {
       this.REST,
       [AWS, ...children],
       {
-        sessionGrace: this.config.options.sessionGrace + '',
+        sessionGrace: makeString(this.config.options.sessionGrace),
         proxy: this.config.options.proxy,
         region: this.config.instance.region,
         log: this.log,
@@ -402,7 +407,7 @@ export default class EPI2ME_FS extends EPI2ME {
 
     // MC-7108 use common epi2me working folder
     const instancesDir = path.join(rootDir(), 'instances');
-    const thisInstanceDir = path.join(instancesDir, this.config.instance.id_workflow_instance + '');
+    const thisInstanceDir = path.join(instancesDir, makeString(this.config.instance.id_workflow_instance));
     // set up new tracking database
     this.db = new DB(
       thisInstanceDir,
@@ -476,22 +481,24 @@ export default class EPI2ME_FS extends EPI2ME {
       try {
         let instanceObj: ObjectDict;
         if (this.config.options.useGraphQL) {
-          const query = await this.graphQL.query(
-            `query workflowInstance($idWorkflowInstance: ID!) {
-              instanceObj:workflowInstance(idWorkflowInstance: $idWorkflowInstance) {
-                stop_date: stopDate
-                state
+          const query = this.graphQL.query<{ workflowInstance: { stop_date: unknown; state: string } }>(
+            gql`
+              query workflowInstance($idWorkflowInstance: ID!) {
+                workflowInstance(idWorkflowInstance: $idWorkflowInstance) {
+                  stop_date: stopDate
+                  state
+                }
               }
-            }`,
+            `,
           );
           const response = await query({
             variables: {
               idWorkflowInstance: this.config.instance.id_workflow_instance,
             },
           });
-          instanceObj = asRecord(asRecord(response.data).instanceObj);
+          instanceObj = asDefined(response.data).workflowInstance;
         } else {
-          instanceObj = await this.REST.workflowInstance(asNumber(this.config.instance.id_workflow_instance));
+          instanceObj = await this.REST.workflowInstance(asDefined(this.config.instance.id_workflow_instance));
         }
         if (instanceObj.state === 'stopped') {
           this.log.warn(`instance was stopped remotely at ${instanceObj.stop_date}. shutting down the workflow.`);
@@ -719,16 +726,16 @@ export default class EPI2ME_FS extends EPI2ME {
         // started from CLI
 
         if ('epi2me:max_size' in attributes) {
-          settings['max_size'] = makeNumber(attributes['epi2me:max_size']);
+          settings.max_size = makeNumber(attributes['epi2me:max_size']);
         }
         if ('epi2me:max_files' in attributes) {
-          settings['max_files'] = makeNumber(attributes['epi2me:max_files']);
+          settings.max_files = makeNumber(attributes['epi2me:max_files']);
         }
         if ('epi2me:split_size' in attributes) {
-          settings['split_size'] = makeNumber(attributes['epi2me:split_size']);
+          settings.split_size = makeNumber(attributes['epi2me:split_size']);
         }
         if ('epi2me:split_reads' in attributes) {
-          settings['split_reads'] = makeNumber(attributes['epi2me:split_reads']);
+          settings.split_reads = makeNumber(attributes['epi2me:split_reads']);
         }
 
         if ('epi2me:category' in attributes) {
@@ -1260,7 +1267,7 @@ export default class EPI2ME_FS extends EPI2ME {
     /* must signal completion */
   }
 
-  async initiateDownloadStream(
+  initiateDownloadStream(
     s3Item: { bucket: string; path: string },
     message: AWS.SQS.Message,
     outputFile: string,
@@ -1692,6 +1699,9 @@ export default class EPI2ME_FS extends EPI2ME {
           case 'downloadMessageQueue':
             component.inputQueueName = this.downloadMessageQueue;
             break;
+          default:
+            // NOTE should this be a NOOP or an error
+            break;
         }
       }
     }
@@ -1737,7 +1747,7 @@ export default class EPI2ME_FS extends EPI2ME {
     }
 
     const instancesDir = path.join(rootDir(), 'instances');
-    const thisInstanceDir = path.join(instancesDir, this.config.instance.id_workflow_instance + '');
+    const thisInstanceDir = path.join(instancesDir, makeString(this.config.instance.id_workflow_instance));
     const toFetch: Promise<unknown>[] = [];
 
     const summaryTelemetry = asRecord(this.config.instance.summaryTelemetry);
