@@ -15,7 +15,7 @@ describe('signMessage', () => {
     const apisecret = 'vo6QhSWdu9MqKQk9IC1ql9X7jI9zU1ptN9pqrJ0kPJ4fANYcGvKbB4Pp9QMG164J';
     sinon.useFakeTimers();
     const requestHeaders = writeCommonHeaders(options);
-    const createMessage = (headers) => [...headers, requestBody];
+    const createMessage = (headers: string[]): string[] => [...headers, requestBody];
     signMessage(requestHeaders, createMessage, { apikey, apisecret }, true);
     for (const [header, value] of requestHeaders.entries()) {
       assert.equal(
@@ -34,3 +34,9 @@ describe('signMessage', () => {
     sinon.restore();
   });
 });
+
+// TODO
+// - test the sign method
+// - test get/head/put/post sign request
+// - test mutate_request is always overridden by signing
+// - test get/head/put/post get directed to the correct methods
