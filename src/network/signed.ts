@@ -62,7 +62,7 @@ export const SignedNetwork: NetworkInterface = {
     return Network.get(uri, options);
   },
 
-  async head(uri: string, options: RequestOptions = {}): Promise<unknown> {
+  async head(uri: string, options: RequestOptions = {}): Promise<Response> {
     const key = options.credentials;
     if (key) {
       return Network.head(uri, {

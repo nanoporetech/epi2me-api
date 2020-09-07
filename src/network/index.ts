@@ -7,16 +7,26 @@ import type { RequestOptions, ExtendedRequestOptions } from './RequestOptions';
 import type { Body } from './Body';
 import type { NetworkInterface } from './NetworkInterface';
 
-async function tryReadAsJson(response: Response): Promise<unknown | undefined> {
+let fetchMethod = fetch;
+
+export function stubFetch(replacement: (info: RequestInfo, init?: RequestInit) => Promise<Response>): () => void {
+  const previous = fetchMethod;
+  fetchMethod = replacement;
+  return (): void => {
+    fetchMethod = previous;
+  };
+}
+
+async function tryReadAsJson(response: Response): Promise<unknown> {
   try {
     return await response.json();
   } catch {
-    return undefined;
+    return null;
   }
 }
 
-async function checkJsonResponseForError(response: Response): Promise<unknown> {
-  const jsonResponse = await tryReadAsJson(response);
+async function checkJsonResponseForError(response: Response, allowNull = false): Promise<unknown> {
+  const jsonResponse = await (allowNull ? tryReadAsJson(response) : response.json());
   if (isRecord(jsonResponse) && isString(jsonResponse.error)) {
     throw new Error(jsonResponse.error);
   }
@@ -28,8 +38,8 @@ async function assertResponseStatus(response: Response): Promise<void> {
     if (response.status === 504) {
       throw new Error('Please check your network connection and try again');
     }
-    await checkJsonResponseForError(response);
-    throw new Error(`Network error ${response.statusText}`);
+    await checkJsonResponseForError(response, true);
+    throw new Error(`Network error: ${response.statusText}`);
   }
 }
 
@@ -69,7 +79,7 @@ async function makeRequest(uri: string, options: ExtendedRequestOptions): Promis
     options.log(request);
   }
 
-  let response = await fetch(request);
+  let response = await fetchMethod(request);
   await assertResponseStatus(response);
 
   if (options.mutate_response) {
@@ -83,15 +93,18 @@ function encodeBody(rawBody: Body | ObjectDict, encoding: 'json' | 'url'): Body 
   if (isRecord(rawBody)) {
     if (encoding === 'json') {
       return JSON.stringify(rawBody);
+    } else if (encoding === 'url') {
+      const result = new URLSearchParams();
+      for (const key of Object.keys(rawBody)) {
+        result.set(key, String(rawBody[key]));
+      }
+      // WARN this behavior seems suspicious, the backend requirement for this should be inspected
+      result.set('json', JSON.stringify(rawBody));
+      result.sort();
+      return result;
+    } else {
+      throw new Error(`Invalid body encoding method ${encoding}`);
     }
-    const result = new URLSearchParams();
-    for (const key of Object.keys(rawBody)) {
-      result.set(key, String(rawBody[key]));
-    }
-    // WARN this behavior seems suspicious, the backend requirement for this should be inspected
-    result.set('json', JSON.stringify(rawBody));
-    result.sort();
-    return result;
   }
   return rawBody;
 }
