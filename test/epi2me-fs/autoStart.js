@@ -76,7 +76,7 @@ describe('epi2me.autoStart', () => {
       },
     });
 
-    sinon.stub(fs, 'writeJSONSync');
+    const writeJSONSyncStub = sinon.stub(fs, 'writeJSONSync');
 
     client.REST.fetchContent = async (url) => ({
       dummy: url,
@@ -118,6 +118,7 @@ describe('epi2me.autoStart', () => {
     ]);
 
     sub.unsubscribe();
+    writeJSONSyncStub.restore();
     // client.stopSubscription();
   });
 });
