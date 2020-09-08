@@ -3,7 +3,7 @@ import { Empty } from 'google-protobuf/google/protobuf/empty_pb';
 import { Subject, Observable } from 'rxjs';
 import { createGrpcRequest$ } from '../utils';
 import { RunningInstancesReply } from '../protos/workflow_pb';
-import { map } from 'rxjs/operators';
+import { map, takeUntil } from 'rxjs/operators';
 
 export class WorkflowApi {
   private readonly _destroySubs$ = new Subject();
@@ -23,6 +23,9 @@ export class WorkflowApi {
       WorkflowService.running,
       request,
       true,
-    ).pipe(map((response) => response.toObject()));
+    ).pipe(
+      map((response) => response.toObject()),
+      takeUntil(this._destroySubs$),
+    );
   }
 }
