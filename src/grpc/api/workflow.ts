@@ -1,8 +1,8 @@
-import { WorkflowService } from '../protos/workflow_grpc_pb';
+import { WorkflowService } from '../../../protos/workflow_grpc_pb';
 import { Empty } from 'google-protobuf/google/protobuf/empty_pb';
 import { Subject, Observable } from 'rxjs';
 import { createGrpcRequest$ } from '../utils';
-import { RunningInstancesReply } from '../protos/workflow_pb';
+import { RunningInstancesReply } from '../../../protos/workflow_pb';
 import { map, takeUntil } from 'rxjs/operators';
 
 export class WorkflowApi {

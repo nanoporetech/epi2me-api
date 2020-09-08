@@ -1,2 +1,3 @@
 import GraphQL from './graphql';
-export { GraphQL };
+import EPI2ME_RPC from './grpc';
+export { GraphQL, EPI2ME_RPC };

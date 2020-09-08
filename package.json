@@ -108,8 +108,8 @@
     "build:light": "npm run clean:dist && npm run rollup:build",
     "build:dist": "npm run build:version && npm run clean:dist && npm ci && npm run rollup:build",
     "ts:defs": "tsc --outDir dist --declarationDir dist/types --emitDeclarationOnly",
-    "protos:js": "grpc_tools_node_protoc --js_out=import_style=commonjs,binary:./src/grpc/protos --grpc_out=service=grpc-web:./src/grpc/protos -I ./src/grpc/epi2me-protobufs ./src/grpc/epi2me-protobufs/*.proto",
-    "protos:ts": "grpc_tools_node_protoc --plugin=protoc-gen-ts=./node_modules/.bin/protoc-gen-ts --ts_out='service=grpc-web:./src/grpc/protos' -I ./src/grpc/epi2me-protobufs ./src/grpc/epi2me-protobufs/*.proto",
-    "protos": "rm -rf src/grpc/protos/* && npm run protos:js && npm run protos:ts"
+    "protos:js": "grpc_tools_node_protoc --js_out=import_style=commonjs,binary:./protos --grpc_out=service=grpc-web:./protos -I ./epi2me-protobufs ./epi2me-protobufs/*.proto",
+    "protos:ts": "grpc_tools_node_protoc --plugin=protoc-gen-ts=./node_modules/.bin/protoc-gen-ts --ts_out='service=grpc-web:./protos' -I ./epi2me-protobufs ./epi2me-protobufs/*.proto",
+    "protos": "rm -rf ./protos/* && npm run protos:js && npm run protos:ts"
   }
 }

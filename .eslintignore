@@ -15,4 +15,4 @@ build
 dist
 examples
 
-src/grpc/protos/*
+protos/*
