@@ -4,7 +4,4 @@ const jwt = process.env.JWT;
 
 const client = new EPI2ME_RPC('http://localhost:8080', jwt);
 
-client
-  .healthCheck()
-  .then((data) => console.info('DATA:', data))
-  .catch((error) => console.error('REJECT:', error));
+client.workflowApi.getRunning$().subscribe(console.log);
