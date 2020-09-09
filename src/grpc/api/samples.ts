@@ -1,8 +1,7 @@
 import { grpc } from '@improbable-eng/grpc-web';
-import { Empty } from 'google-protobuf/google/protobuf/empty_pb';
 import { Subject, Observable } from 'rxjs';
 import { map, takeUntil } from 'rxjs/operators';
-import { ExperimentMap } from '../../../protos/samples_pb';
+import { ExperimentMap, SamplesRequest } from '../../../protos/samples_pb';
 import { Samples } from '../../../protos/samples_pb_service';
 import { createGrpcRequest$ } from '../utils';
 
@@ -19,10 +18,11 @@ export class SampleReaderApi {
     this._destroySubs$.next();
   }
 
-  public getSamples$(): Observable<any> {
-    const request = new Empty();
+  public getSamples$(path: string): Observable<ExperimentMap.AsObject> {
+    const request = new SamplesRequest();
+    request.setPath(path);
 
-    return createGrpcRequest$<Empty, ExperimentMap>(
+    return createGrpcRequest$<SamplesRequest, ExperimentMap>(
       this._url,
       { jwt: this._jwt },
       Samples.Samples,
