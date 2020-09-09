@@ -15,6 +15,9 @@ interface RequestConfig {
   tokens: Tokens;
   request: Message;
   service: any;
+  // Transport can be optionally passed in to support running on node
+  // Default is the browser compatible FetchReadableStreamTransport
+  transport?: grpc.TransportFactory;
 }
 
 function checkError(
@@ -32,7 +35,8 @@ function checkError(
       host: grpcUrl,
       message,
       request,
-      service: service.name,
+      service: service.service.serviceName,
+      method: service.methodName,
     });
   }
 }
@@ -44,9 +48,10 @@ function getMetadata({ tokens }: { tokens: Tokens }): grpc.Metadata {
 }
 
 function unaryRequest(observer: Observer<Message>, requestConfig: RequestConfig): grpc.Request {
-  const { grpcUrl, request, service, tokens } = requestConfig;
+  const { grpcUrl, request, service, tokens, transport } = requestConfig;
 
   return grpc.unary(service, {
+    transport,
     host: grpcUrl,
     metadata: getMetadata({ tokens }),
     onEnd: ({ status, message }) => {
@@ -62,9 +67,10 @@ function unaryRequest(observer: Observer<Message>, requestConfig: RequestConfig)
 }
 
 function invokeRequest(observer: Observer<Message>, requestConfig: RequestConfig): grpc.Request {
-  const { grpcUrl, request, service, tokens } = requestConfig;
+  const { grpcUrl, request, service, tokens, transport } = requestConfig;
 
   return grpc.invoke(service, {
+    transport,
     host: grpcUrl,
     metadata: getMetadata({ tokens }),
     onEnd: (code, message) => {
@@ -86,8 +92,9 @@ export function createGrpcRequest$<TRequest extends Message, TResponse extends M
   service: any,
   request: TRequest,
   isStream = false,
+  transport?: grpc.TransportFactory,
 ): Observable<TResponse> {
-  const requestConfig = { grpcUrl, tokens, service, request };
+  const requestConfig = { grpcUrl, tokens, service, request, transport };
 
   return Observable.create((observer: Observer<TRequest>) => {
     if (!grpcUrl) {

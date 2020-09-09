@@ -9,6 +9,21 @@ import type SampleReader from './sample-reader';
 import type { UtilityFS } from './utils-fs';
 import type { Index } from './runtime-typecast';
 import type { EPI2ME_OPTIONS } from './epi2me-options';
+export interface InstanceAttribute {
+    id_attribute: Index;
+    value: string;
+}
+export interface GQLWorkflowConfig {
+    idWorkflow: Index;
+    computeAccountId: Index;
+    storageAccountId?: Index;
+    isConsentedHuman?: boolean;
+    idDataset?: Index;
+    storeResults?: boolean;
+    region?: string;
+    userDefined?: ObjectDict<ObjectDict>;
+    instanceAttributes?: InstanceAttribute[];
+}
 export default class Factory {
     private readonly EPI2ME;
     private options;
@@ -39,18 +54,5 @@ export default class Factory {
      * @param {Object<string, any>} options
      * @param {GQLRunVariables} variables { userDefined: { [componentID]: { [paramOverride]: any } } }
      */
-    startGQLRun(options: ObjectDict, variables: {
-        idWorkflow: Index;
-        computeAccountId: Index;
-        storageAccountId?: Index;
-        isConsentedHuman?: boolean;
-        idDataset?: Index;
-        storeResults?: boolean;
-        region?: string;
-        userDefined?: ObjectDict<ObjectDict>;
-        instanceAttributes?: {
-            id_attribute: Index;
-            value: string;
-        }[];
-    }): Promise<EPI2ME_FS>;
+    startGQLRun(options: ObjectDict, variables: GQLWorkflowConfig): Promise<EPI2ME_FS>;
 }

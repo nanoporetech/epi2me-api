@@ -10,6 +10,7 @@
   "dependencies": {
     "@apollo/client": "^3.1.3",
     "@improbable-eng/grpc-web": "^0.13.0",
+    "@improbable-eng/grpc-web-node-http-transport": "^0.13.0",
     "@lifeomic/axios-fetch": "^1.4.2",
     "@types/lifeomic__axios-fetch": "^1.4.0",
     "@types/socket.io-client": "^1.4.32",
@@ -17,6 +18,7 @@
     "axios": "^0.19.2",
     "core-js": "^3.6.4",
     "cross-fetch": "^3.0.5",
+    "epi2mejs": "file:../epi2mejs/epi2mejs-1.0.0.tgz",
     "fdir": "^3.4.3",
     "fs-extra": "^8.1.0",
     "graphql": "^14.6.0",
@@ -50,7 +52,6 @@
     "eslint-plugin-prettier": "^3.1.4",
     "google-protobuf": "^3.13.0",
     "grpc-tools": "^1.9.1",
-    "grpc_tools_node_protoc_ts": "^4.1.3",
     "husky": "^4.2.1",
     "lint-staged": "^10.0.4",
     "mocha": "^8.1.1",
@@ -69,6 +70,7 @@
     "sinon": "^8.1.1",
     "tmp": "^0.1.0",
     "ts-node": "^8.6.2",
+    "ts-protoc-gen": "^0.12.0",
     "tslib": "^2.0.0",
     "typescript": "^3.9.7",
     "xunit-file": "*"
@@ -109,8 +111,6 @@
     "build:light": "npm run clean:dist && npm run rollup:build",
     "build:dist": "npm run build:version && npm run clean:dist && npm ci && npm run rollup:build",
     "ts:defs": "tsc --outDir dist --declarationDir dist/types --emitDeclarationOnly",
-    "protos:js": "grpc_tools_node_protoc --js_out=import_style=commonjs,binary:./protos --grpc_out=service=grpc-web:./protos -I ./epi2me-protobufs ./epi2me-protobufs/*.proto",
-    "protos:ts": "grpc_tools_node_protoc --plugin=protoc-gen-ts=./node_modules/.bin/protoc-gen-ts --ts_out='service=grpc-web:./protos' -I ./epi2me-protobufs ./epi2me-protobufs/*.proto",
-    "protos": "rm -rf ./protos/* && npm run protos:js && npm run protos:ts"
+    "build:protos": "rm -rf ./protos/* && ./build_protos.sh"
   }
 }
