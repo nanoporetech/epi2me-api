@@ -1,14 +1,20 @@
 import { grpc } from '@improbable-eng/grpc-web';
-import { Workflow } from '../../../protos/workflow_pb_service';
 import { Empty } from 'google-protobuf/google/protobuf/empty_pb';
 import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
-import { Subject, Observable } from 'rxjs';
-import { createGrpcRequest$ } from '../utils';
-import { RunningInstancesReply, StartRequest } from '../../../protos/workflow_pb';
+import { Observable, Subject } from 'rxjs';
 import { map, takeUntil } from 'rxjs/operators';
+import {
+  RunningInstancesReply,
+  RunningInstanceStateReply,
+  StartRequest,
+  StopReply,
+  WorkflowInstanceByIdRequest,
+} from '../../../protos/workflow_pb';
+import { Workflow } from '../../../protos/workflow_pb_service';
 import { EPI2ME_OPTIONS } from '../../epi2me-options';
-import { asNumber, asString } from '../../runtime-typecast';
 import { GQLWorkflowConfig } from '../../factory';
+import { asNumber, asString } from '../../runtime-typecast';
+import { createGrpcRequest$ } from '../utils';
 
 export class WorkflowApi {
   private readonly _destroySubs$ = new Subject();
@@ -45,15 +51,17 @@ export class WorkflowApi {
   ): Observable<RunningInstancesReply.AsObject> {
     const request = new StartRequest();
 
-    options.apikey && request.setApikey(options.apikey);
-    options.apisecret && request.setApisecret(options.apisecret);
-    options.url && request.setUrl(options.url);
-    options.inputFolders && request.setInputfoldersList(options.inputFolders);
-    options.outputFolder && request.setOutputfolder(options.outputFolder);
+    const { apikey, apisecret, url, inputFolders, outputFolder } = options;
+
+    apikey && request.setApikey(apikey);
+    apisecret && request.setApisecret(apisecret);
+    url && request.setUrl(url);
+    inputFolders && request.setInputfoldersList(inputFolders);
+    outputFolder && request.setOutputfolder(outputFolder);
+
     request.setIdworkflow(asString(workflowConfig.idWorkflow));
 
     workflowConfig.computeAccountId && request.setComputeaccountid(asString(workflowConfig.computeAccountId));
-
     workflowConfig.storageAccountId && request.setStorageaccountid(asString(workflowConfig.storageAccountId));
     workflowConfig.isConsentedHuman && request.setIsconsentedhuman(workflowConfig.isConsentedHuman);
     workflowConfig.idDataset && request.setIddataset(asString(workflowConfig.idDataset));
@@ -77,6 +85,48 @@ export class WorkflowApi {
       this._url,
       { jwt: this._jwt },
       Workflow.running,
+      request,
+      false,
+      this._transport,
+    ).pipe(
+      map((response) => response.toObject()),
+      takeUntil(this._destroySubs$),
+    );
+  }
+
+  private stop(id: string, service: any): Observable<StopReply.AsObject> {
+    const request = new WorkflowInstanceByIdRequest();
+    request.setIdworkflowinstance(id);
+
+    return createGrpcRequest$<WorkflowInstanceByIdRequest, StopReply>(
+      this._url,
+      { jwt: this._jwt },
+      service,
+      request,
+      false,
+      this._transport,
+    ).pipe(
+      map((response) => response.toObject()),
+      takeUntil(this._destroySubs$),
+    );
+  }
+
+  public stopUpload(id: string): Observable<StopReply.AsObject> {
+    return this.stop(id, Workflow.stopUpload);
+  }
+
+  public stopAnalysis(id: string): Observable<StopReply.AsObject> {
+    return this.stop(id, Workflow.stopUpload);
+  }
+
+  public state(id: string): Observable<RunningInstanceStateReply.AsObject> {
+    const request = new WorkflowInstanceByIdRequest();
+    request.setIdworkflowinstance(id);
+
+    return createGrpcRequest$<WorkflowInstanceByIdRequest, RunningInstanceStateReply>(
+      this._url,
+      { jwt: this._jwt },
+      Workflow.instanceRunningState,
       request,
       true,
       this._transport,
