@@ -46,35 +46,46 @@ export class WorkflowApi {
   }
 
   public start$(
-    options: Partial<EPI2ME_OPTIONS>,
-    workflowConfig: GQLWorkflowConfig,
+    options: Partial<EPI2ME_OPTIONS> & { apikey: string; apisecret: string; inputFolders: string[] },
+    workflowConfig: GQLWorkflowConfig & { computeAccountId: string },
   ): Observable<RunningInstancesReply.AsObject> {
     const request = new StartRequest();
 
     const { apikey, apisecret, url, inputFolders, outputFolder } = options;
 
-    apikey && request.setApikey(apikey);
-    apisecret && request.setApisecret(apisecret);
+    request.setApikey(apikey);
+    request.setApisecret(apisecret);
+    request.setInputfoldersList(inputFolders);
     url && request.setUrl(url);
-    inputFolders && request.setInputfoldersList(inputFolders);
     outputFolder && request.setOutputfolder(outputFolder);
 
-    request.setIdworkflow(asString(workflowConfig.idWorkflow));
+    const {
+      idWorkflow,
+      computeAccountId,
+      storageAccountId,
+      isConsentedHuman,
+      idDataset,
+      storeResults,
+      region,
+      userDefined = {},
+      instanceAttributes = [],
+    } = workflowConfig;
+    request.setIdworkflow(asString(idWorkflow));
 
-    workflowConfig.computeAccountId && request.setComputeaccountid(asString(workflowConfig.computeAccountId));
-    workflowConfig.storageAccountId && request.setStorageaccountid(asString(workflowConfig.storageAccountId));
-    workflowConfig.isConsentedHuman && request.setIsconsentedhuman(workflowConfig.isConsentedHuman);
-    workflowConfig.idDataset && request.setIddataset(asString(workflowConfig.idDataset));
-    workflowConfig.storeResults && request.setStoreresults(workflowConfig.storeResults);
-    workflowConfig.region && request.setRegion(workflowConfig.region);
+    request.setComputeaccountid(asString(computeAccountId));
+    storageAccountId && request.setStorageaccountid(asString(storageAccountId));
+    isConsentedHuman && request.setIsconsentedhuman(isConsentedHuman);
+    idDataset && request.setIddataset(asString(idDataset));
+    storeResults && request.setStoreresults(storeResults);
+    region && request.setRegion(region);
 
     request.setUserdefined(
       Struct.fromJavaScript(
         // TODO: Improve typing
-        workflowConfig.userDefined as Record<string, null | number | string | boolean | Array<unknown> | {}>,
+        userDefined as Record<string, null | number | string | boolean | Array<unknown> | {}>,
       ),
     );
-    for (const attr of workflowConfig.instanceAttributes ?? []) {
+    for (const attr of instanceAttributes) {
       const newInstanceAttr = new StartRequest.InstanceAttribute();
       newInstanceAttr.setIdAttribute(asNumber(attr.id_attribute));
       newInstanceAttr.setValue(attr.value);
