@@ -2,29 +2,20 @@
 // file: status.proto
 
 import * as status_pb from "./status_pb";
+import * as google_protobuf_empty_pb from "google-protobuf/google/protobuf/empty_pb";
 import {grpc} from "@improbable-eng/grpc-web";
-
-type StatusAlive = {
-  readonly methodName: string;
-  readonly service: typeof Status;
-  readonly requestStream: false;
-  readonly responseStream: false;
-  readonly requestType: typeof status_pb.AliveRequest;
-  readonly responseType: typeof status_pb.AliveReply;
-};
 
 type StatusAliveStream = {
   readonly methodName: string;
   readonly service: typeof Status;
   readonly requestStream: false;
   readonly responseStream: true;
-  readonly requestType: typeof status_pb.AliveStreamRequest;
+  readonly requestType: typeof google_protobuf_empty_pb.Empty;
   readonly responseType: typeof status_pb.AliveReply;
 };
 
 export class Status {
   static readonly serviceName: string;
-  static readonly Alive: StatusAlive;
   static readonly AliveStream: StatusAliveStream;
 }
 
@@ -60,15 +51,6 @@ export class StatusClient {
   readonly serviceHost: string;
 
   constructor(serviceHost: string, options?: grpc.RpcOptions);
-  alive(
-    requestMessage: status_pb.AliveRequest,
-    metadata: grpc.Metadata,
-    callback: (error: ServiceError|null, responseMessage: status_pb.AliveReply|null) => void
-  ): UnaryResponse;
-  alive(
-    requestMessage: status_pb.AliveRequest,
-    callback: (error: ServiceError|null, responseMessage: status_pb.AliveReply|null) => void
-  ): UnaryResponse;
-  aliveStream(requestMessage: status_pb.AliveStreamRequest, metadata?: grpc.Metadata): ResponseStream<status_pb.AliveReply>;
+  aliveStream(requestMessage: google_protobuf_empty_pb.Empty, metadata?: grpc.Metadata): ResponseStream<status_pb.AliveReply>;
 }
 

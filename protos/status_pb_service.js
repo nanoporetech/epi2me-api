@@ -2,6 +2,7 @@
 // file: status.proto
 
 var status_pb = require("./status_pb");
+var google_protobuf_empty_pb = require("google-protobuf/google/protobuf/empty_pb");
 var grpc = require("@improbable-eng/grpc-web").grpc;
 
 var Status = (function () {
@@ -10,21 +11,12 @@ var Status = (function () {
   return Status;
 }());
 
-Status.Alive = {
-  methodName: "Alive",
-  service: Status,
-  requestStream: false,
-  responseStream: false,
-  requestType: status_pb.AliveRequest,
-  responseType: status_pb.AliveReply
-};
-
 Status.AliveStream = {
   methodName: "AliveStream",
   service: Status,
   requestStream: false,
   responseStream: true,
-  requestType: status_pb.AliveStreamRequest,
+  requestType: google_protobuf_empty_pb.Empty,
   responseType: status_pb.AliveReply
 };
 
@@ -34,37 +26,6 @@ function StatusClient(serviceHost, options) {
   this.serviceHost = serviceHost;
   this.options = options || {};
 }
-
-StatusClient.prototype.alive = function alive(requestMessage, metadata, callback) {
-  if (arguments.length === 2) {
-    callback = arguments[1];
-  }
-  var client = grpc.unary(Status.Alive, {
-    request: requestMessage,
-    host: this.serviceHost,
-    metadata: metadata,
-    transport: this.options.transport,
-    debug: this.options.debug,
-    onEnd: function (response) {
-      if (callback) {
-        if (response.status !== grpc.Code.OK) {
-          var err = new Error(response.statusMessage);
-          err.code = response.status;
-          err.metadata = response.trailers;
-          callback(err, null);
-        } else {
-          callback(null, response.message);
-        }
-      }
-    }
-  });
-  return {
-    cancel: function () {
-      callback = null;
-      client.close();
-    }
-  };
-};
 
 StatusClient.prototype.aliveStream = function aliveStream(requestMessage, metadata) {
   var listeners = {
