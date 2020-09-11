@@ -12,6 +12,23 @@ import type { UtilityFS } from './utils-fs';
 import type { Index } from './runtime-typecast';
 import type { EPI2ME_OPTIONS } from './epi2me-options';
 
+export interface InstanceAttribute {
+  id_attribute: Index;
+  value: string;
+}
+
+export interface GQLWorkflowConfig {
+  idWorkflow: Index;
+  computeAccountId: Index;
+  storageAccountId?: Index;
+  isConsentedHuman?: boolean;
+  idDataset?: Index;
+  storeResults?: boolean;
+  region?: string;
+  userDefined?: ObjectDict<ObjectDict>;
+  instanceAttributes?: InstanceAttribute[];
+}
+
 function printError(log: Logger, msg: string, err: unknown): void {
   if (err instanceof Error) {
     log.error(msg, err.stack);
@@ -132,20 +149,7 @@ export default class Factory {
    * @param {Object<string, any>} options
    * @param {GQLRunVariables} variables { userDefined: { [componentID]: { [paramOverride]: any } } }
    */
-  async startGQLRun(
-    options: ObjectDict,
-    variables: {
-      idWorkflow: Index;
-      computeAccountId: Index;
-      storageAccountId?: Index;
-      isConsentedHuman?: boolean;
-      idDataset?: Index;
-      storeResults?: boolean;
-      region?: string;
-      userDefined?: ObjectDict<ObjectDict>;
-      instanceAttributes?: { id_attribute: Index; value: string }[];
-    },
-  ): Promise<EPI2ME_FS> {
+  async startGQLRun(options: ObjectDict, variables: GQLWorkflowConfig): Promise<EPI2ME_FS> {
     const inst = this.instantiate({ ...options, useGraphQL: true });
     try {
       await inst.autoStartGQL(variables);

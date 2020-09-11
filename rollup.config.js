@@ -145,6 +145,8 @@ const epi2meWeb = {
         name: pkg.name,
         private: true,
         version: pkg.verbose,
+        main: 'index.js',
+        types: './src/index-web.d.ts',
       },
     }),
   ],

@@ -8,6 +8,8 @@
   "main": "./dist/index.js",
   "dependencies": {
     "@apollo/client": "^3.1.3",
+    "@improbable-eng/grpc-web": "^0.13.0",
+    "@improbable-eng/grpc-web-node-http-transport": "^0.13.0",
     "@lifeomic/axios-fetch": "^1.4.2",
     "@types/lifeomic__axios-fetch": "^1.4.0",
     "@types/socket.io-client": "^1.4.32",
@@ -17,8 +19,10 @@
     "cross-fetch": "^3.0.5",
     "fdir": "^3.4.3",
     "fs-extra": "^8.1.0",
+    "google-protobuf": "^3.13.0",
     "graphql": "^14.6.0",
     "graphql-tag": "^2.11.0",
+    "grpc": "^1.24.3",
     "immutable": "^4.0.0-rc.12",
     "lodash": "^4.17.19",
     "proxy-agent": "^3.1.1",
@@ -32,6 +36,7 @@
     "@rollup/plugin-commonjs": "^14.0.0",
     "@types/bunyan": "^1.8.6",
     "@types/fs-extra": "^8.1.0",
+    "@types/google-protobuf": "^3.7.3",
     "@types/lodash": "^4.14.149",
     "@types/mocha": "^7.0.2",
     "@types/node": "^14.0.24",
@@ -44,6 +49,7 @@
     "eslint": "^7.6.0",
     "eslint-config-prettier": "^6.11.0",
     "eslint-plugin-prettier": "^3.1.4",
+    "grpc-tools": "^1.9.1",
     "husky": "^4.2.1",
     "lint-staged": "^10.0.4",
     "mocha": "^8.1.1",
@@ -62,6 +68,7 @@
     "sinon": "^8.1.1",
     "tmp": "^0.1.0",
     "ts-node": "^8.6.2",
+    "ts-protoc-gen": "^0.12.0",
     "tslib": "^2.0.0",
     "typescript": "^3.9.7",
     "xunit-file": "*"
@@ -101,6 +108,7 @@
     "rollup:watch": "npx rollup -cw",
     "build:light": "npm run clean:dist && npm run rollup:build",
     "build:dist": "npm run build:version && npm run clean:dist && npm ci && npm run rollup:build",
-    "ts:defs": "tsc --outDir dist --declarationDir dist/types --emitDeclarationOnly"
+    "ts:defs": "tsc --outDir dist --declarationDir dist/types --emitDeclarationOnly",
+    "build:protos": "rm -rf ./protos/* && ./build_protos.sh"
   }
 }
