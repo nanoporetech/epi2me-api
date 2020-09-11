@@ -7,49 +7,48 @@
  */
 
 import { BehaviorSubject, combineLatest } from 'rxjs';
+import { Configuration } from './Configuration';
 import DEFAULTS from './default_options.json';
-import { GraphQL } from './graphql';
-import niceSize from './niceSize';
-import Profile, { AllProfileData } from './profile';
-import REST from './rest';
-import Socket from './socket';
-import utils from './utils';
-import { ObjectDict } from './ObjectDict';
-import { Logger, LogMethod, FallbackLogger } from './Logger';
 import { EPI2ME_OPTIONS } from './epi2me-options';
 import {
-  asRecord,
-  isRecord,
-  asOptString,
-  asOptBoolean,
-  asFunction,
-  asString,
-  asNumber,
+  createDownloadState,
+  createUploadState,
+  DownloadState,
+  ProgressState,
+  States,
+  SuccessState,
+  UploadState,
+  WarningState,
+} from './epi2me-state';
+import { GraphQL } from './graphql';
+import { FallbackLogger, Logger, LogMethod } from './Logger';
+import niceSize from './niceSize';
+import { ObjectDict } from './ObjectDict';
+import Profile, { AllProfileData } from './profile';
+import type ProfileFS from './profile-fs';
+import REST from './rest';
+import type REST_FS from './rest-fs';
+import {
   asArrayRecursive,
   asBoolean,
-  asOptNumber,
-  asIndexable,
+  asFunction,
   asIndex,
+  asIndexable,
+  asNumber,
+  asOptBoolean,
   asOptFunction,
-  asOptRecord,
   asOptIndex,
+  asOptNumber,
+  asOptRecord,
+  asOptString,
+  asRecord,
+  asString,
   Index,
+  isRecord,
 } from './runtime-typecast';
-import {
-  createUploadState,
-  createDownloadState,
-  States,
-  UploadState,
-  DownloadState,
-  WarningState,
-  SuccessState,
-  ProgressState,
-} from './epi2me-state';
-import { Configuration } from './Configuration';
-import { DisposeTimer, createInterval } from './timers';
-
-import type REST_FS from './rest-fs';
-import type ProfileFS from './profile-fs';
+import Socket from './socket';
+import { createInterval, DisposeTimer } from './timers';
+import utils from './utils';
 
 export default class EPI2ME {
   static version = utils.version;

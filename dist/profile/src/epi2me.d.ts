@@ -1,17 +1,17 @@
 import { BehaviorSubject } from 'rxjs';
-import { GraphQL } from './graphql';
-import Profile, { AllProfileData } from './profile';
-import REST from './rest';
-import Socket from './socket';
-import { ObjectDict } from './ObjectDict';
-import { Logger } from './Logger';
-import { EPI2ME_OPTIONS } from './epi2me-options';
-import { Index } from './runtime-typecast';
-import { States, UploadState, DownloadState, WarningState, SuccessState, ProgressState } from './epi2me-state';
 import { Configuration } from './Configuration';
-import { DisposeTimer } from './timers';
-import type REST_FS from './rest-fs';
+import { EPI2ME_OPTIONS } from './epi2me-options';
+import { DownloadState, ProgressState, States, SuccessState, UploadState, WarningState } from './epi2me-state';
+import { GraphQL } from './graphql';
+import { Logger } from './Logger';
+import { ObjectDict } from './ObjectDict';
+import Profile, { AllProfileData } from './profile';
 import type ProfileFS from './profile-fs';
+import REST from './rest';
+import type REST_FS from './rest-fs';
+import { Index } from './runtime-typecast';
+import Socket from './socket';
+import { DisposeTimer } from './timers';
 export default class EPI2ME {
     static version: string;
     static Profile: {
