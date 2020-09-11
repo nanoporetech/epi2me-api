@@ -3,7 +3,7 @@ import { ObjectDict } from './ObjectDict';
 export type UnknownFunction = (...args: unknown[]) => unknown;
 
 export function isRecord(obj: unknown): obj is ObjectDict {
-  return typeof obj === 'object' && Array.isArray(obj) === false;
+  return obj !== null && typeof obj === 'object' && Array.isArray(obj) === false;
 }
 
 export function isFunction(obj: unknown): obj is UnknownFunction {

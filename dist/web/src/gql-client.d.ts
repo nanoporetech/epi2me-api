@@ -1,3 +1,2 @@
-import { ApolloClient } from '@apollo/client/core';
-declare const client: ApolloClient<import("@apollo/client/core").NormalizedCacheObject>;
-export default client;
+import { ApolloClient, NormalizedCacheObject } from '@apollo/client/core';
+export declare function createClient(setup: () => typeof fetch): ApolloClient<NormalizedCacheObject>;

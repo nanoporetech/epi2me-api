@@ -1,3 +1,5 @@
-import EPI2ME from './epi2me';
+import GraphQL from './graphql';
+import EPI2ME_RPC from './grpc';
 
-export default EPI2ME;
+export * as Helpers from './helpers';
+export { GraphQL, EPI2ME_RPC };

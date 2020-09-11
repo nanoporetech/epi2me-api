@@ -28,6 +28,7 @@ export interface EPI2ME_OPTIONS {
     id_workflow_instance?: Index;
     debounceWindow?: number;
     proxy?: string;
+    jwt?: string;
     inputFolder?: string;
     inputFolders: string[];
     outputFolder?: string;

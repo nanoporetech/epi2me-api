@@ -53,7 +53,7 @@ import { isString } from 'util';
 import { Readable, Writable } from 'stream';
 import { PromiseResult } from 'aws-sdk/lib/request';
 import { EPI2ME_OPTIONS } from './epi2me-options';
-import GraphQL from './graphql';
+import { GraphQLFS } from './graphql-fs';
 import { ResponseStartWorkflow } from './graphql-types';
 
 const networkStreamErrors: WeakSet<Writable> = new WeakSet();
@@ -81,7 +81,7 @@ export default class EPI2ME_FS extends EPI2ME {
   static EPI2ME_HOME = rootDir();
   static Profile = Profile;
   static Factory = Factory;
-  static GraphQL = GraphQL;
+  static GraphQL = GraphQLFS;
 
   SampleReader: SampleReader;
   uploadsInProgress: { abort(): void }[];
@@ -98,8 +98,9 @@ export default class EPI2ME_FS extends EPI2ME {
   constructor(optstring: Partial<EPI2ME_OPTIONS> | string) {
     super(optstring); // sets up this.config & this.log
 
-    // overwrite non-fs REST object
+    // overwrite non-fs REST and GQL object
     this.REST = new REST_FS(this.config.options);
+    this.graphQL = new GraphQLFS(this.config.options);
     this.SampleReader = new SampleReader();
     this.uploadsInProgress = [];
   }

@@ -1,15 +1,17 @@
 import type { Logger } from './Logger';
 import type { DocumentNode } from 'graphql';
 import type { ObjectDict } from './ObjectDict';
-import type { ApolloQueryResult, FetchResult } from '@apollo/client/core';
+import type { ApolloQueryResult, FetchResult, NormalizedCacheObject, ApolloClient } from '@apollo/client/core';
 import type { EPI2ME_OPTIONS } from './epi2me-options';
 import { Index } from './runtime-typecast';
 import { ResponseWorkflowInstance, ResponseAllWorkflowInstances, ResponseStartWorkflow, ResponseWorkflow, ResponseAllWorkflows, ResponseStopWorkflowInstance, ResponseGetInstanceToken, ResponseUser, ResponseRegisterToken, ResponseUpdateUser, ResponseStatus, ResponseRegions } from './graphql-types';
 export interface GraphQLConfiguration {
     url: string;
+    base_url: string;
     apikey?: string;
     apisecret?: string;
     agent_version: string;
+    jwt?: string;
     local: boolean;
     user_agent: string;
     signing: boolean;
@@ -28,14 +30,15 @@ export interface QueryOptions<Var = ObjectDict, Ctx = ObjectDict, Opt = ObjectDi
 export declare type AsyncAQR<T = unknown> = Promise<ApolloQueryResult<T>>;
 export declare class GraphQL {
     readonly log: Logger;
-    readonly client: import("@apollo/client/core").ApolloClient<import("@apollo/client/core").NormalizedCacheObject>;
     readonly options: GraphQLConfiguration;
+    client: ApolloClient<NormalizedCacheObject>;
     static NETWORK_ONLY: string;
     static CACHE_FIRST: string;
     static CACHE_AND_NETWORK: string;
     static CACHE_ONLY: string;
     static NO_CACHE: string;
     constructor(opts: EPI2ME_OPTIONS);
+    initClient: () => ApolloClient<NormalizedCacheObject>;
     createContext: (contextIn: ObjectDict) => RequestContext;
     query<T = unknown, Var extends {} = {}>(queryString: ((str: string) => DocumentNode) | string | DocumentNode): (opt?: QueryOptions<Var>) => AsyncAQR<T>;
     mutate<T = unknown, Var extends {} = {}>(queryString: string | DocumentNode): (opt?: QueryOptions<Var>) => Promise<FetchResult<T>>;
@@ -95,10 +98,10 @@ export declare class GraphQL {
         code: string;
         description?: string | undefined;
     }, Record<string, unknown>, Record<string, unknown>> | undefined) => Promise<FetchResult<ResponseRegisterToken, Record<string, any>, Record<string, any>>>;
-    convertONTJWT(requestData: {
+    convertONTJWT(JWT: string, requestData?: {
         token_type: 'jwt' | 'signature' | 'all';
-        description?: "string" | undefined;
-    } | undefined, JWT: string): Promise<{
+        description?: 'string';
+    }): Promise<{
         apikey?: string;
         apisecret?: string;
         description?: string;

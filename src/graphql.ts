@@ -7,14 +7,15 @@ import gql from 'graphql-tag';
 import PageFragment from './fragments/PageFragment';
 import WorkflowFragment from './fragments/WorkflowFragment';
 import WorkflowInstanceFragment from './fragments/WorkflowInstanceFragment';
-import client from './gql-client';
-import utils from './utils';
+import { createClient } from './gql-client';
+import { Network } from './network';
 import { NoopLogMethod } from './Logger';
+import fetch, { Headers } from 'cross-fetch';
 
 import type { Logger } from './Logger';
 import type { DocumentNode } from 'graphql';
 import type { ObjectDict } from './ObjectDict';
-import type { ApolloQueryResult, FetchResult } from '@apollo/client/core';
+import type { ApolloQueryResult, FetchResult, NormalizedCacheObject, ApolloClient } from '@apollo/client/core';
 import type { EPI2ME_OPTIONS } from './epi2me-options';
 import { asBoolean, Index } from './runtime-typecast';
 import {
@@ -31,12 +32,15 @@ import {
   ResponseStatus,
   ResponseRegions,
 } from './graphql-types';
+import { writeCommonHeaders } from './network';
 
 export interface GraphQLConfiguration {
   url: string;
+  base_url: string;
   apikey?: string;
   apisecret?: string;
   agent_version: string;
+  jwt?: string;
   local: boolean;
   user_agent: string;
   signing: boolean;
@@ -58,8 +62,8 @@ export interface QueryOptions<Var = ObjectDict, Ctx = ObjectDict, Opt = ObjectDi
 export type AsyncAQR<T = unknown> = Promise<ApolloQueryResult<T>>;
 export class GraphQL {
   readonly log: Logger;
-  readonly client = client;
   readonly options: GraphQLConfiguration;
+  client: ApolloClient<NormalizedCacheObject>;
 
   // See: https://www.apollographql.com/docs/react/api/react-apollo/#optionsfetchpolicy
   static NETWORK_ONLY = 'network-only';
@@ -75,25 +79,43 @@ export class GraphQL {
     // https://epi2me-dev.graphql.bla/ => https://graphql.epi2me-dev.bla
     url = url.replace(/\/$/, '');
 
-    const { apikey, apisecret, log, local, signing } = opts;
+    const { apikey, apisecret, jwt, log, local, signing } = opts;
 
-    // WARN most of these options aren't used in this file.
+    // IS: WARN most of these options aren't used in this file.
     // They are _maybe_ being used `utils.get` but we need to resolve this.
+    // CR: I believe local isn't required, the rest will be used for signing on
+    // GraphQLFS
     this.options = {
       url,
+      base_url: url, // New networking wants base_url
       agent_version: opts.agent_version,
       local,
       user_agent: opts.user_agent,
       signing,
       apikey,
       apisecret,
+      jwt,
     };
     this.log = log;
+
+    this.client = this.initClient();
   }
 
+  initClient = (): ApolloClient<NormalizedCacheObject> => {
+    return createClient(() => {
+      return (uri: RequestInfo, init: RequestInit = {}): Promise<Response> => {
+        const headers = writeCommonHeaders({ headers: new Headers(init.headers) });
+        headers.set('Authorization', `Bearer ${this.options.jwt}`);
+        init.headers = headers;
+        return fetch(uri, init);
+      };
+    });
+  };
+
+  // Can this be removed?
   createContext = (contextIn: ObjectDict): RequestContext => {
     // Merge any passed in context with requiredContext
-    const { apikey, apisecret, url } = this.options;
+    const { url, apikey, apisecret } = this.options;
 
     return {
       apikey,
@@ -362,8 +384,8 @@ export class GraphQL {
   `);
 
   async convertONTJWT(
-    requestData: { token_type: 'jwt' | 'signature' | 'all'; description?: 'string' } = { token_type: 'jwt' },
     JWT: string,
+    requestData: { token_type: 'jwt' | 'signature' | 'all'; description?: 'string' } = { token_type: 'jwt' },
   ): Promise<{
     apikey?: string;
     apisecret?: string;
@@ -373,11 +395,16 @@ export class GraphQL {
     if (requestData.token_type !== 'jwt' && !requestData.description) {
       throw new Error('Description required for signature requests');
     }
-    return utils.post('convert-ont', requestData, {
+    return Network.post('convert-ont', requestData, {
       ...this.options,
-      log: { debug: NoopLogMethod },
+      log: NoopLogMethod,
       headers: { 'X-ONT-JWT': JWT },
-    });
+    }) as Promise<{
+      apikey?: string;
+      apisecret?: string;
+      description?: string;
+      access?: string;
+    }>;
   }
 
   // status
@@ -394,7 +421,9 @@ export class GraphQL {
   `);
 
   async healthCheck(): Promise<{ status: boolean }> {
-    const result = await utils.get('/status', { ...this.options, log: { debug: NoopLogMethod } });
+    const result = (await Network.get('/status', { ...this.options, log: NoopLogMethod })) as {
+      status: boolean;
+    };
 
     return {
       status: asBoolean(result.status),
