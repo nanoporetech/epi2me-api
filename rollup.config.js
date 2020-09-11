@@ -61,46 +61,8 @@ const plugins = [
   }),
 ];
 
-const epi2meFullESM = {
+const epi2meFull = {
   input: 'src/index.ts',
-  output: [
-    {
-      file: path.join(path.dirname(pkg.module), 'index.es.js'),
-      format: 'es',
-    },
-  ],
-  external,
-  plugins: [
-    ...plugins,
-    copy([
-      {
-        files: ['./README.md', './LICENCE'],
-        dest: 'dist',
-        options: {
-          verbose: true,
-        },
-      },
-      {
-        files: ['./src/migrations/*'],
-        dest: 'dist/migrations',
-        options: {
-          verbose: true,
-        },
-      },
-    ]),
-    generatePackageJson({
-      outputFolder: 'dist',
-      baseContents: {
-        name: pkg.name,
-        private: true,
-        version: pkg.verbose,
-      },
-    }),
-  ],
-};
-
-const epi2meFullCJS = {
-  input: 'src/epi2me-fs.ts',
   output: [
     {
       file: path.join(path.dirname(pkg.main), 'index.js'),
@@ -173,10 +135,6 @@ const epi2meWeb = {
       file: path.join(path.dirname(pkg.main), 'web/index.js'),
       format: 'cjs',
     },
-    {
-      file: path.join(path.dirname(pkg.module), 'web/index.es.js'),
-      format: 'es',
-    },
   ],
   external,
   plugins: [
@@ -194,4 +152,4 @@ const epi2meWeb = {
   ],
 };
 
-export default [epi2meFullESM, epi2meFullCJS, epi2meProfile, epi2meWeb];
+export default [epi2meFull, epi2meProfile, epi2meWeb];
