@@ -66,7 +66,7 @@ export default class EPI2ME_FS extends EPI2ME {
             value: string;
         }[];
     }, cb?: (msg: string) => void): Promise<Configuration['instance']>;
-    autoStartGeneric<T>(workflowConfig: unknown, startFn: () => T, cb?: (msg: string) => void): Promise<T>;
+    autoStartGeneric<T>(workflowConfig: unknown, startFn: () => Promise<T>, cb?: (msg: string) => void): Promise<T>;
     autoJoin(id: Index, cb?: (msg: string) => void): Promise<unknown>;
     setClassConfigGQL(result: FetchResult<ResponseStartWorkflow>): void;
     setClassConfigREST(instance: ObjectDict): void;
