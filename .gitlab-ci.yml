@@ -49,8 +49,12 @@ publish_experimental:
   <<: *npm_publish_external
   except:
     - dev
+  except:
     - master
+  except:
     - tags
+  except:
+    - /^release-\d+\.\d+(?:.\d+)?(?:-\S+)?$/ # use regexp
   variables:
     TAG: 'experimental'
 
