@@ -91,7 +91,6 @@
   },
   "scripts": {
     "build:version": "jq \".version=\\\"$(jq -r .version package.json | cut -d . -f 1-2).${PATCH:-$(date +%-H%M)}\\\"\" < package.json > package.json.tmp && mv package.json.tmp package.json",
-    "package:version": "for file in $(find . -type f -name package.json -not -path \"./node_modules/*\" -not -path \"./dist/*\" -not -path \"./loader/*\"); do jq \".version=(.version | split(\\\"-\\\") | .[0] | split(\\\".\\\") | [.[0], .[1], .[2]+\\\"-${PATCH:-`date +\"%-H%M\"`}\\\"] | join(\\\".\\\"))\" < $file > $file.tmp && mv $file.tmp $file; done",
     "lint:source": "eslint '*/**/*.{js,ts,tsx}' --ignore-path .eslintignore --ignore-pattern \"!**/.*\"",
     "lint:quiet": "npm run lint:source -- --quiet",
     "lint:warn": "npm run lint:source",
