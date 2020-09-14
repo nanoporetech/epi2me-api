@@ -5,13 +5,13 @@ stages:
   - triggers
   - publish
 
-  versiontrack:
-    stage: versiontrack
-    script:
-      - echo "export PATCH=$CI_BUILD_ID" > PATCH_VERSION
-    artifacts:
-      paths:
-        - ./PATCH_VERSION
+versiontrack:
+  stage: versiontrack
+  script:
+    - echo "export PATCH=$CI_BUILD_ID" > PATCH_VERSION
+  artifacts:
+    paths:
+      - ./PATCH_VERSION
 
 .common: &common |
     sed -i 's|deb http://deb-repo.oxfordnanolabs.local/apt|#deb http://deb-repo.oxfordnanolabs.local/apt|g' /etc/apt/sources.list /etc/apt/sources.list.d/*.list || true
