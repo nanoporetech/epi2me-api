@@ -41,8 +41,8 @@ test:
     - npm i
     - source ./PATCH_VERSION
     - echo "Patching report versions to $PATCH"
-    - npm run package:version
-    - npm run build:docs
+    - npm run build:version
+    # - npm run package:version
     - echo $NPM_TOKEN
     - echo "//registry.npmjs.org/:_authToken=\${NPM_TOKEN}" >> ./.npmrc
     - npm publish --verbose --access public --tag ${TAG}
