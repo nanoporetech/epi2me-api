@@ -33,6 +33,7 @@ import {
   ResponseRegions,
 } from './graphql-types';
 import { writeCommonHeaders } from './network';
+import { parseCoreOpts } from './parseCoreOpts';
 
 export interface GraphQLConfiguration {
   url: string;
@@ -72,25 +73,24 @@ export class GraphQL {
   static CACHE_ONLY = 'cache-only';
   static NO_CACHE = 'no-cache';
 
-  constructor(opts: EPI2ME_OPTIONS) {
-    let url = opts.url;
-    // https://epi2me-dev.bla => https://graphql.epi2me-dev.bla
-    url = url.replace(/:\/\//, '://graphql.');
-    // https://epi2me-dev.graphql.bla/ => https://graphql.epi2me-dev.bla
-    url = url.replace(/\/$/, '');
-
-    const { apikey, apisecret, jwt, log, local, signing } = opts;
-
+  constructor(opts: Partial<EPI2ME_OPTIONS>) {
     // IS: WARN most of these options aren't used in this file.
     // They are _maybe_ being used `utils.get` but we need to resolve this.
     // CR: I believe local isn't required, the rest will be used for signing on
     // GraphQLFS
+    const { apikey, apisecret, jwt, log, local, signing, url: originalUrl, ...parsedOpts } = parseCoreOpts(opts);
+
+    // https://epi2me-dev.bla => https://graphql.epi2me-dev.bla
+    let url = originalUrl.replace(/:\/\//, '://graphql.');
+    // https://epi2me-dev.graphql.bla/ => https://graphql.epi2me-dev.bla
+    url = url.replace(/\/$/, '');
+
     this.options = {
       url,
       base_url: url, // New networking wants base_url
-      agent_version: opts.agent_version,
+      agent_version: parsedOpts.agent_version,
       local,
-      user_agent: opts.user_agent,
+      user_agent: parsedOpts.user_agent,
       signing,
       apikey,
       apisecret,

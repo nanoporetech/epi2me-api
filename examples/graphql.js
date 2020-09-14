@@ -1,4 +1,4 @@
-const EPI2ME = require('..');
+const { EPI2ME } = require('../dist');
 
 const profileName = process.argv[2] || 'production_signed';
 const workflowId = process.argv[3] || '193480';
