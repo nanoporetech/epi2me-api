@@ -37,7 +37,7 @@ export declare class GraphQL {
     static CACHE_AND_NETWORK: string;
     static CACHE_ONLY: string;
     static NO_CACHE: string;
-    constructor(opts: EPI2ME_OPTIONS);
+    constructor(opts: Partial<EPI2ME_OPTIONS>);
     initClient: () => ApolloClient<NormalizedCacheObject>;
     createContext: (contextIn: ObjectDict) => RequestContext;
     query<T = unknown, Var extends {} = {}>(queryString: ((str: string) => DocumentNode) | string | DocumentNode): (opt?: QueryOptions<Var>) => AsyncAQR<T>;

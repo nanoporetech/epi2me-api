@@ -15,14 +15,12 @@ import REST from './rest';
 import Socket from './socket';
 import utils from './utils';
 import { ObjectDict } from './ObjectDict';
-import { Logger, LogMethod, FallbackLogger } from './Logger';
+import { Logger } from './Logger';
 import { EPI2ME_OPTIONS } from './epi2me-options';
 import {
   asRecord,
-  isRecord,
   asOptString,
   asOptBoolean,
-  asFunction,
   asString,
   asNumber,
   asArrayRecursive,
@@ -50,6 +48,7 @@ import { DisposeTimer, createInterval } from './timers';
 
 import type REST_FS from './rest-fs';
 import type ProfileFS from './profile-fs';
+import { parseCoreOpts } from './parseCoreOpts';
 
 export default class EPI2ME {
   static version = utils.version;
@@ -137,16 +136,15 @@ export default class EPI2ME {
     return asIndex(this.config.instance.id_workflow_instance);
   }
 
+  // apikey?: string;
+  // apisecret?: string;
+
+  // jwt?: string;
+
   static parseOptObject(opt: ObjectDict | Partial<EPI2ME_OPTIONS>): EPI2ME_OPTIONS {
-    // URL preference is opt.endpoint > opt.url > DEFAULT.url
-    const legacyURL = asString(opt.url, DEFAULTS.url);
     const options = {
-      agent_version: asString(opt.agent_version, utils.version),
-      log: this.resolveLogger(opt.log),
-      local: asBoolean(opt.local, DEFAULTS.local),
-      url: asString(opt.endpoint, legacyURL),
+      ...parseCoreOpts(opt),
       region: asString(opt.region, DEFAULTS.region),
-      user_agent: asString(opt.user_agent, DEFAULTS.user_agent),
       sessionGrace: asNumber(opt.sessionGrace, DEFAULTS.sessionGrace),
       uploadTimeout: asNumber(opt.uploadTimeout, DEFAULTS.uploadTimeout),
       downloadTimeout: asNumber(opt.downloadTimeout, DEFAULTS.downloadTimeout),
@@ -159,16 +157,12 @@ export default class EPI2ME {
       transferPoolSize: asNumber(opt.transferPoolSize, DEFAULTS.transferPoolSize),
       downloadMode: asString(opt.downloadMode, DEFAULTS.downloadMode),
       filetype: asArrayRecursive(opt.filetype, asString, DEFAULTS.filetype),
-      signing: asBoolean(opt.signing, DEFAULTS.signing),
       sampleDirectory: asString(opt.sampleDirectory, DEFAULTS.sampleDirectory),
       // optional values
       useGraphQL: asOptBoolean(opt.useGraphQL),
-      apikey: asOptString(opt.apikey),
-      apisecret: asOptString(opt.apisecret),
       id_workflow_instance: asOptIndex(opt.id_workflow_instance),
       debounceWindow: asOptNumber(opt.debounceWindow),
       proxy: asOptString(opt.proxy),
-      jwt: asOptString(opt.jwt),
       // EPI2ME-FS options
       inputFolders: asArrayRecursive(opt.inputFolders, asString, []),
       outputFolder: asOptString(opt.outputFolder),
@@ -184,23 +178,6 @@ export default class EPI2ME {
     }
 
     return options;
-  }
-
-  static resolveLogger(log: unknown): Logger {
-    if (isRecord(log)) {
-      try {
-        return {
-          info: asFunction(log.info) as LogMethod,
-          debug: asFunction(log.debug) as LogMethod,
-          warn: asFunction(log.warn) as LogMethod,
-          error: asFunction(log.error) as LogMethod,
-        };
-      } catch (e) {
-        throw new Error('expected log object to have error, debug, info and warn methods');
-      }
-    } else {
-      return FallbackLogger;
-    }
   }
 
   async socket(): Promise<Socket> {
