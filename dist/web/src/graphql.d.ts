@@ -100,7 +100,7 @@ export declare class GraphQL {
     }, Record<string, unknown>, Record<string, unknown>> | undefined) => Promise<FetchResult<ResponseRegisterToken, Record<string, any>, Record<string, any>>>;
     convertONTJWT(JWT: string, requestData?: {
         token_type: 'jwt' | 'signature' | 'all';
-        description?: 'string';
+        description?: string;
     }): Promise<{
         apikey?: string;
         apisecret?: string;

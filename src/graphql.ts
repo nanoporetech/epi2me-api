@@ -385,7 +385,7 @@ export class GraphQL {
 
   async convertONTJWT(
     JWT: string,
-    requestData: { token_type: 'jwt' | 'signature' | 'all'; description?: 'string' } = { token_type: 'jwt' },
+    requestData: { token_type: 'jwt' | 'signature' | 'all'; description?: string } = { token_type: 'jwt' },
   ): Promise<{
     apikey?: string;
     apisecret?: string;
