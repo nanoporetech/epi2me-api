@@ -5,6 +5,3 @@ protoc -I ./epi2me-protobufs/ \
     --js_out=import_style=commonjs,binary:./protos/ \
     --ts_out="service=grpc-web:./protos"/ \
     ./epi2me-protobufs/*.proto
-
-# mkdir -p ./dist/protos
-# cp -r ./protos ./dist/
