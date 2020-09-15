@@ -106,8 +106,8 @@
     "build": "npm ci && npm run build:dist",
     "rollup:build": "npx rollup -c",
     "rollup:watch": "npx rollup -cw",
-    "build:light": "npm run clean:dist && npm run rollup:build",
-    "build:dist": "npm run build:version && npm run clean:dist && npm ci && npm run rollup:build",
+    "build:light": "npm run clean:dist && npm run build:protos && npm run rollup:build",
+    "build:dist": "npm run build:version && npm run build:light",
     "ts:defs": "tsc --outDir dist --declarationDir dist/types --emitDeclarationOnly",
     "build:protos": "rm -rf ./protos/* && ./build_protos.sh"
   }
