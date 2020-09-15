@@ -15,6 +15,8 @@ export default class EPI2ME_RPC {
   }
 
   public close(): void {
+    this.workflowApi.close();
     this.samplesApi.close();
+    this.statusApi.close();
   }
 }
