@@ -26,7 +26,7 @@
     "immutable": "^4.0.0-rc.12",
     "lodash": "^4.17.19",
     "proxy-agent": "^3.1.1",
-    "rxjs": "^6.6.2",
+    "rxjs": "^6.3.1",
     "save": "^2.4.0",
     "socket.io-client": "^2.3.0",
     "sqlite": "^3.0.3",
@@ -106,8 +106,8 @@
     "build": "npm ci && npm run build:dist",
     "rollup:build": "npx rollup -c",
     "rollup:watch": "npx rollup -cw",
-    "build:light": "npm run clean:dist && npm run rollup:build",
-    "build:dist": "npm run build:version && npm run clean:dist && npm ci && npm run rollup:build",
+    "build:light": "npm run clean:dist && npm run build:protos && npm run rollup:build",
+    "build:dist": "npm run build:version && npm run build:light",
     "ts:defs": "tsc --outDir dist --declarationDir dist/types --emitDeclarationOnly",
     "build:protos": "rm -rf ./protos/* && ./build_protos.sh"
   }

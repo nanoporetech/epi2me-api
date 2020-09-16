@@ -139,6 +139,15 @@ const epi2meWeb = {
   external,
   plugins: [
     ...plugins,
+    copy([
+      {
+        files: ['protos'],
+        dest: 'dist/web/protos',
+        options: {
+          verbose: true,
+        },
+      },
+    ]),
     generatePackageJson({
       outputFolder: 'dist/web',
       baseContents: {
