@@ -5,7 +5,7 @@ import tmp from 'tmp';
 import fs from 'fs-extra';
 import { merge } from 'lodash';
 import AWS from 'aws-sdk';
-import EPI2ME from '../../src/epi2me-fs';
+import { EPI2ME_FS as EPI2ME } from '../../src/epi2me-fs';
 
 // MC-1304 - test download streams
 describe('epi2me.initiateDownloadStream', () => {
@@ -14,7 +14,7 @@ describe('epi2me.initiateDownloadStream', () => {
   let stubs;
   let clock;
 
-  const clientFactory = opts => {
+  const clientFactory = (opts) => {
     const client = new EPI2ME(
       merge(
         {
@@ -50,7 +50,7 @@ describe('epi2me.initiateDownloadStream', () => {
 
   afterEach(() => {
     clock.restore();
-    stubs.forEach(s => {
+    stubs.forEach((s) => {
       s.restore();
     });
   });
@@ -126,11 +126,11 @@ describe('epi2me.initiateDownloadStream', () => {
     assert(client.deleteMessage.notCalled, 'should not delete sqs message on error');
     assert.deepEqual(
       client.states.download.success,
-      { files: 0, bytes: 0, reads: 0 },
+      { files: 0, bytes: 0, reads: 0, niceReads: 0, niceSize: 0 },
       'should not count as download success on error',
     );
 
-    assert.deepEqual(client.states.download.success, { files: 0, bytes: 0, reads: 0 });
+    assert.deepEqual(client.states.download.success, { files: 0, bytes: 0, reads: 0, niceReads: 0, niceSize: 0 });
   });
 
   it('should handle write stream errors', async () => {
@@ -167,7 +167,7 @@ describe('epi2me.initiateDownloadStream', () => {
     assert(client.deleteMessage.notCalled, 'should not delete sqs message on error');
     assert.deepEqual(
       client.states.download.success,
-      { files: 0, reads: 0, bytes: 0 },
+      { files: 0, reads: 0, bytes: 0, niceReads: 0, niceSize: 0 },
       'should not count as download success on error',
     );
   });

@@ -1,7 +1,7 @@
 import assert from 'assert';
 import sinon from 'sinon';
 import { merge } from 'lodash';
-import EPI2ME from '../../src/epi2me-fs';
+import { EPI2ME_FS as EPI2ME } from '../../src/epi2me-fs';
 
 describe('epi2me.downloadAvailable', () => {
   let debug;
@@ -10,7 +10,7 @@ describe('epi2me.downloadAvailable', () => {
   let error;
   let json;
 
-  const clientFactory = opts =>
+  const clientFactory = (opts) =>
     new EPI2ME(
       merge(
         {

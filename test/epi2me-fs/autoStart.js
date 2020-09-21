@@ -1,7 +1,7 @@
 import assert from 'assert';
 import sinon from 'sinon';
 import fs from 'fs-extra';
-import EPI2ME from '../../src/epi2me-fs';
+import { EPI2ME_FS as EPI2ME } from '../../src/epi2me-fs';
 
 describe('epi2me.autoStart', () => {
   function newApi(error, instance) {
@@ -76,28 +76,28 @@ describe('epi2me.autoStart', () => {
       },
     });
 
-    sinon.stub(fs, 'writeJSONSync');
+    const writeJSONSyncStub = sinon.stub(fs, 'writeJSONSync');
 
-    client.REST.fetchContent = async url => ({
+    client.REST.fetchContent = async (url) => ({
       dummy: url,
     });
 
     let theTelemetry;
     client.config.instance.id_workflow_instance = '666';
     client.config.instance.summaryTelemetry = {
-      '1915': {
+      1915: {
         '16S Microbial [rev 2020.1.6-1141]':
           'https://epi2me-dev.nanoporetech.com/workflow_instance/666/classification_16s_barcode-v1.json',
       },
-      '1936': {
+      1936: {
         'metrichor-bio/ont-metrichor-homogeniser:3223479 [rev 2020.1.18-1510]':
           'https://epi2me-dev.nanoporetech.com/workflow_instance/666/basecalling_1d_barcode-v1.json',
       },
     };
-    const sub = client.instanceTelemetry$.subscribe(telemetry => {
+    const sub = client.instanceTelemetry$.subscribe((telemetry) => {
       theTelemetry = telemetry;
     });
-    assert.deepEqual(theTelemetry, null);
+    assert.deepEqual(theTelemetry, []);
     client.instanceTelemetry$.next({ foo: 'bar' });
     assert.deepEqual(theTelemetry, { foo: 'bar' });
 
@@ -118,6 +118,7 @@ describe('epi2me.autoStart', () => {
     ]);
 
     sub.unsubscribe();
+    writeJSONSyncStub.restore();
     // client.stopSubscription();
   });
 });

@@ -1,7 +1,7 @@
 import assert from 'assert';
 import sinon from 'sinon';
 import axios from 'axios';
-import utils from '../../src/utils';
+import { utils } from '../../src/utils';
 
 describe('utils.get', () => {
   let stubs = [];
@@ -27,7 +27,7 @@ describe('utils.get', () => {
   });
 
   afterEach(() => {
-    stubs.forEach(s => {
+    stubs.forEach((s) => {
       s.restore();
     });
   });
@@ -46,7 +46,6 @@ describe('utils.get', () => {
       'http://epi2me.test/entity/123',
       {
         url: 'http://epi2me.test/entity/123',
-        gzip: true,
         headers: {
           Accept: 'application/json',
           'Content-Type': 'application/json',
@@ -73,7 +72,6 @@ describe('utils.get', () => {
       'https://epi2me.internal/entity/123',
       {
         url: 'https://epi2me.internal/entity/123',
-        gzip: true,
         headers: {
           Accept: 'application/json',
           'Content-Type': 'application/json',
@@ -101,7 +99,6 @@ describe('utils.get', () => {
       'http://epi2me.test/entity/123',
       {
         url: 'http://epi2me.test/entity/123',
-        gzip: true,
         proxy: false, // disabled when using custom agent
         headers: {
           Accept: 'application/json',

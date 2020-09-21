@@ -4,8 +4,8 @@ import bunyan from 'bunyan';
 import tmp from 'tmp';
 import fs from 'fs-extra';
 import path from 'path';
-import RESTSuper from '../../src/rest';
-import REST from '../../src/rest-fs';
+import { REST as RESTSuper } from '../../src/rest';
+import { REST_FS as REST } from '../../src/rest-fs';
 
 describe('rest-fs.datasets', () => {
   let rest;
@@ -24,15 +24,11 @@ describe('rest-fs.datasets', () => {
 
   it('must pass through to super if not local', () => {
     rest = new REST({ log });
-    const stub = sinon.stub(RESTSuper.prototype, 'datasets').callsFake(cb => {
-      cb();
-    });
-    const fake = sinon.fake();
+    const stub = sinon.stub(RESTSuper.prototype, 'datasets');
     assert.doesNotThrow(() => {
-      rest.datasets(fake);
+      rest.datasets({});
     });
     assert.ok(stub.calledOnce, 'super invoked');
-    assert.ok(fake.calledOnce, 'callback invoked');
     stub.restore();
   });
 

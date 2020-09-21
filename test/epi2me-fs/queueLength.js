@@ -1,7 +1,7 @@
 import assert from 'assert';
 import sinon from 'sinon';
 import AWS from 'aws-sdk';
-import EPI2ME from '../../src/epi2me-fs';
+import { EPI2ME_FS as EPI2ME } from '../../src/epi2me-fs';
 
 describe('epi2me.queueLength', () => {
   let client;
@@ -23,7 +23,7 @@ describe('epi2me.queueLength', () => {
   it('should return sqs queue', async () => {
     const sqs = new AWS.SQS();
     sinon.stub(client, 'sessionedSQS').resolves(sqs);
-    sinon.stub(sqs, 'getQueueAttributes').callsFake(opts => {
+    sinon.stub(sqs, 'getQueueAttributes').callsFake((opts) => {
       assert.equal(opts.QueueUrl, queueUrl);
       return {
         promise: () =>
@@ -46,7 +46,7 @@ describe('epi2me.queueLength', () => {
   it('should handle poor response', async () => {
     const sqs = new AWS.SQS();
     sinon.stub(client, 'sessionedSQS').resolves(sqs);
-    sinon.stub(sqs, 'getQueueAttributes').callsFake(opts => {
+    sinon.stub(sqs, 'getQueueAttributes').callsFake((opts) => {
       assert.equal(opts.QueueUrl, queueUrl);
       return {
         promise: () => Promise.resolve(),
@@ -63,7 +63,7 @@ describe('epi2me.queueLength', () => {
   it('should handle sessionedSQS errors', async () => {
     const sqs = new AWS.SQS();
     sinon.stub(client, 'sessionedSQS').resolves(sqs);
-    sinon.stub(sqs, 'getQueueAttributes').callsFake(opts => {
+    sinon.stub(sqs, 'getQueueAttributes').callsFake((opts) => {
       assert.equal(opts.QueueUrl, queueUrl);
       return {
         promise: () => Promise.reject(new Error('getQueueAttributes failure')),

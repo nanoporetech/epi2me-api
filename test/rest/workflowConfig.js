@@ -1,38 +1,17 @@
 import sinon from 'sinon';
 import assert from 'assert';
-import bunyan from 'bunyan';
-import REST from '../../src/rest';
-import utils from '../../src/utils';
+import { REST } from '../../src/rest';
+import { utils } from '../../src/utils';
+import { EPI2ME } from '../../src/epi2me';
 
 describe('rest.workflowConfig', () => {
   it('must invoke get with options', async () => {
-    const ringbuf = new bunyan.RingBuffer({
-      limit: 100,
-    });
-    const log = bunyan.createLogger({
-      name: 'log',
-      stream: ringbuf,
-    });
-    const stub = sinon.stub(utils, 'get').callsFake((uri, options) => {
-      assert.deepEqual(
-        options,
-        {
-          log,
-          agent_version: '3.0.0',
-          local: false,
-          signing: true,
-          url: 'https://epi2me.nanoporetech.com',
-          user_agent: 'EPI2ME API',
-        },
-        'options passed',
-      );
-      assert.equal(uri, 'workflow/config/1234', 'url passed');
-    });
-
-    const rest = new REST({
-      log,
+    const options = EPI2ME.parseOptObject({
       agent_version: '3.0.0',
     });
+    const rest = new REST(options);
+    const stub = sinon.stub(utils, 'get');
+
     try {
       await rest.workflowConfig('1234');
     } catch (e) {
@@ -40,5 +19,7 @@ describe('rest.workflowConfig', () => {
     } finally {
       stub.restore();
     }
+
+    assert.deepEqual(stub.args[0], ['workflow/config/1234', options], 'get args');
   });
 });

@@ -1,38 +1,15 @@
 import assert from 'assert';
-import bunyan from 'bunyan';
 import sinon from 'sinon';
-import REST from '../../src/rest';
-import utils from '../../src/utils';
+import { REST } from '../../src/rest';
+import { utils } from '../../src/utils';
+import { EPI2ME } from '../../src/epi2me';
 
 describe('rest.user', () => {
   it('must invoke get with options', async () => {
-    const ringbuf = new bunyan.RingBuffer({
-      limit: 100,
-    });
-    const log = bunyan.createLogger({
-      name: 'log',
-      stream: ringbuf,
-    });
-    const stub = sinon.stub(utils, 'get').callsFake((uri, optionsIn) => {
-      const options = optionsIn;
-      delete options.agent_version;
-      assert.deepEqual(
-        options,
-        {
-          local: false,
-          url: 'https://epi2me.nanoporetech.com',
-          user_agent: 'EPI2ME API',
-          signing: true,
-          log,
-        },
-        'options passed',
-      );
-      assert.equal(uri, 'user', 'url passed');
-    });
+    const options = EPI2ME.parseOptObject({});
+    const rest = new REST(options);
+    const stub = sinon.stub(utils, 'get');
 
-    const rest = new REST({
-      log,
-    });
     try {
       await rest.user();
     } catch (e) {
@@ -40,33 +17,27 @@ describe('rest.user', () => {
     } finally {
       stub.restore();
     }
+
+    assert.deepEqual(stub.args[0], ['user', options], 'get args');
   });
 
   it('must yield fake local user', async () => {
-    const ringbuf = new bunyan.RingBuffer({
-      limit: 100,
-    });
-    const logger = bunyan.createLogger({
-      name: 'log',
-      stream: ringbuf,
-    });
-    const stub = sinon.stub(utils, 'get').callsFake((uri, options) => {
-      const { log } = options;
-      assert.equal(logger, log, 'options passed');
-      assert.equal(uri, 'user', 'url passed');
-    });
-
-    const rest = new REST({
-      log: logger,
+    const options = EPI2ME.parseOptObject({
       local: true,
     });
+    const rest = new REST(options);
+    const stub = sinon.stub(utils, 'get');
 
     let user;
     try {
       user = await rest.user();
     } catch (e) {
       assert.fail(`unexpected error ${String(e)}`);
+    } finally {
+      stub.restore();
     }
+
+    assert(stub.notCalled);
 
     assert.deepEqual(user, {
       accounts: [
@@ -77,6 +48,5 @@ describe('rest.user', () => {
         },
       ],
     });
-    stub.restore();
   });
 });

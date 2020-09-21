@@ -4,7 +4,7 @@ import { merge } from 'lodash';
 import path from 'path';
 import sinon from 'sinon';
 import tmp from 'tmp';
-import EPI2ME from '../../src/epi2me-fs';
+import { EPI2ME_FS as EPI2ME } from '../../src/epi2me-fs';
 
 describe('epi2me.autoConfigure', () => {
   let clock;
@@ -16,7 +16,7 @@ describe('epi2me.autoConfigure', () => {
     clock.restore();
   });
 
-  const clientFactory = opts =>
+  const clientFactory = (opts) =>
     new EPI2ME(
       merge(
         {
@@ -85,7 +85,7 @@ describe('epi2me.autoConfigure', () => {
   it('should require inputqueue', async () => {
     const tmpDir = tmp.dirSync();
     const client = clientFactory({
-      inputFolders: path.join(tmpDir.name, 'input'),
+      inputFolders: [path.join(tmpDir.name, 'input')],
       outputFolder: path.join(tmpDir.name, 'output'),
     });
     await client.setClassConfigREST({});

@@ -1,18 +1,29 @@
 import { merge } from 'lodash';
 import DEFAULTS from './default_options.json';
-import { Epi2meProfileNS } from './types';
 
-interface InternalAllProfileData {
-  profiles?: Epi2meProfileNS.AllProfileData;
+export interface ProfileCredentials {
+  apikey?: string;
+  apisecret?: string;
+  endpoint?: string;
+  billing_account?: string;
+  compute_account?: string;
+}
+
+export interface AllProfileData {
+  [profileName: string]: ProfileCredentials;
+}
+
+export interface InternalAllProfileData {
+  profiles?: AllProfileData;
   endpoint?: string;
 }
 
-export default class Profile {
-  allProfileData: InternalAllProfileData;
+export class Profile {
   defaultEndpoint: string;
+  allProfileData: InternalAllProfileData = {};
 
-  public constructor(allProfileData: Epi2meProfileNS.AllProfileData) {
-    this.allProfileData = {};
+  public constructor(allProfileData: AllProfileData) {
+    // this.allProfileData = {};
     this.defaultEndpoint = process.env.METRICHOR || DEFAULTS.url;
 
     if (allProfileData) {
@@ -24,7 +35,7 @@ export default class Profile {
     }
   }
 
-  public profile(id: Epi2meProfileNS.IProfileName): Epi2meProfileNS.IProfileCredentials {
+  public profile(id: string): ProfileCredentials {
     if (id) {
       return merge(
         {
@@ -37,7 +48,7 @@ export default class Profile {
     return {};
   }
 
-  public profiles(): Epi2meProfileNS.IProfileName[] {
+  public profiles(): string[] {
     return Object.keys(this.allProfileData.profiles || {});
   }
 }

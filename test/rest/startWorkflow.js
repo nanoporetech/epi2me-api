@@ -1,7 +1,7 @@
 import assert from 'assert';
 import sinon from 'sinon';
-import utils from '../../src/utils';
-import REST from '../../src/rest';
+import { utils } from '../../src/utils';
+import { REST } from '../../src/rest';
 
 describe('rest.startWorkflow', () => {
   let client;
@@ -31,6 +31,8 @@ describe('rest.startWorkflow', () => {
       });
     } catch (e) {
       assert.fail(`unexpected error ${String(e)}`);
+    } finally {
+      stub.restore();
     }
 
     assert.deepEqual(
@@ -41,6 +43,5 @@ describe('rest.startWorkflow', () => {
       },
       'workflow_instance start response',
     );
-    stub.restore();
   });
 });

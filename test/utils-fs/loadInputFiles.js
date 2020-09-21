@@ -3,7 +3,7 @@ import fs from 'fs-extra';
 import mock from 'mock-fs';
 import path from 'path';
 import tmp from 'tmp';
-import utils from '../../src/utils-fs';
+import { utilsFS as utils } from '../../src/utils-fs';
 
 describe('utils-fs.loadInputFiles', () => {
   let tmpInputDir;
@@ -56,13 +56,13 @@ describe('utils-fs.loadInputFiles', () => {
 
     // stepping through the file system as this is intented to work:
     // first load one batch, then the next, then once all files are gone, return null
-    await utils.loadInputFiles(opts).then(async files => {
+    await utils.loadInputFiles(opts).then(async (files) => {
       assert.equal(files.length, 3, 'files1 should find the one valid file');
       assert.equal(files[0].name, '1.fastq', 'should load the folders in alphabetical order');
       fs.unlinkSync(files[0].path);
     });
 
-    await utils.loadInputFiles(opts).then(async files2 => {
+    await utils.loadInputFiles(opts).then(async (files2) => {
       assert.equal(files2.length, 2, 'files2 should find the one valid file');
       assert.equal(files2[0].name, '2.fastq', 'should load the folders in alphabetical order');
       fs.unlinkSync(files2[0].path);
@@ -70,7 +70,7 @@ describe('utils-fs.loadInputFiles', () => {
 
     fs.unlinkSync(path.join(uploadedFolder, 'uploaded.fastq')); // remove uploaded file
 
-    await utils.loadInputFiles(opts).then(files3 => {
+    await utils.loadInputFiles(opts).then((files3) => {
       assert.deepEqual(files3, [], 'should find no files');
     });
   });
@@ -103,7 +103,7 @@ describe('utils-fs.loadInputFiles', () => {
       filetype: '.fastq',
     };
 
-    await utils.loadInputFiles(opts).then(async files => {
+    await utils.loadInputFiles(opts).then(async (files) => {
       assert.deepEqual(files, [
         {
           name: '1.fastq',
@@ -153,7 +153,7 @@ describe('utils-fs.loadInputFiles', () => {
       filetype: '.fastq',
     };
 
-    await utils.loadInputFiles(opts).then(async files => {
+    await utils.loadInputFiles(opts).then(async (files) => {
       assert.deepEqual(files, [
         {
           name: '1.fastq',
@@ -205,7 +205,7 @@ describe('utils-fs.loadInputFiles', () => {
       filetype: ['.fastq', '.fastq.gz', 'fq', 'fq.gz'],
     };
 
-    await utils.loadInputFiles(opts).then(async files => {
+    await utils.loadInputFiles(opts).then(async (files) => {
       assert.deepEqual(files, [
         {
           name: '1.fastq',
@@ -253,7 +253,7 @@ describe('utils-fs.loadInputFiles', () => {
       filetype: ['.fasta', '.fasta.gz', 'fa', 'fa.gz'],
     };
 
-    await utils.loadInputFiles(opts).then(async files => {
+    await utils.loadInputFiles(opts).then(async (files) => {
       assert.deepEqual(files, [
         {
           name: 'SeqLenti fasta reformat.fasta',
@@ -298,7 +298,7 @@ describe('utils-fs.loadInputFiles', () => {
         outputFolder,
         filetype: '.fastq',
       };
-      await utils.loadInputFiles(opts).then(async files => {
+      await utils.loadInputFiles(opts).then(async (files) => {
         assert.deepEqual(files, [
           {
             name: '1.fastq',
@@ -323,7 +323,7 @@ describe('utils-fs.loadInputFiles', () => {
         outputFolder,
         filetype: '.fastq',
       };
-      await utils.loadInputFiles(opts).then(async files => {
+      await utils.loadInputFiles(opts).then(async (files) => {
         assert.deepEqual(files, [
           {
             name: '1.fastq',
@@ -361,7 +361,7 @@ describe('utils-fs.loadInputFiles', () => {
         outputFolder,
         filetype: ['fasta'],
       };
-      await utils.loadInputFiles(opts).then(async files => {
+      await utils.loadInputFiles(opts).then(async (files) => {
         assert.deepEqual(files, [
           {
             name: '1.fasta',

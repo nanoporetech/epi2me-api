@@ -2,10 +2,10 @@ import sinon from 'sinon';
 import assert from 'assert';
 import bunyan from 'bunyan';
 import { merge } from 'lodash';
-import REST from '../../src/rest';
+import { REST } from '../../src/rest';
 
 describe('rest.workflow', () => {
-  const restFactory = opts => {
+  const restFactory = (opts) => {
     const ringbuf = new bunyan.RingBuffer({
       limit: 100,
     });
@@ -32,6 +32,8 @@ describe('rest.workflow', () => {
       data = await rest.workflows();
     } catch (e) {
       assert.fail(e);
+    } finally {
+      stub.restore();
     }
 
     assert.deepEqual(stub.lastCall.args[0], 'workflow', 'list-request args');

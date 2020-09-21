@@ -1,8 +1,8 @@
 import sinon from 'sinon';
 import assert from 'assert';
 import bunyan from 'bunyan';
-import REST from '../../src/rest';
-import utils from '../../src/utils';
+import { REST } from '../../src/rest';
+import { utils } from '../../src/utils';
 
 describe('rest.workflowInstances', () => {
   let ringbuf;
@@ -23,7 +23,7 @@ describe('rest.workflowInstances', () => {
   });
 
   it('must invoke list with promise', async () => {
-    sinon.stub(rest, 'list').resolves([
+    const stub = sinon.stub(rest, 'list').resolves([
       {
         id_workflow_instance: '12345',
       },
@@ -39,6 +39,8 @@ describe('rest.workflowInstances', () => {
     } catch (err) {
       assert.fail(err);
     }
+
+    stub.restore();
   });
 
   it('must invoke get with query', async () => {

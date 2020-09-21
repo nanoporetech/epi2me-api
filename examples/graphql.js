@@ -1,14 +1,11 @@
-const EPI2ME = require('..');
+const { EPI2ME } = require('../dist');
 
 const profileName = process.argv[2] || 'production_signed';
 const workflowId = process.argv[3] || '193480';
 const profile = new EPI2ME.Profile().profile(profileName);
 const api = new EPI2ME(profile);
 
-api.graphQL
-  .workflows()
-  .then(console.info)
-  .catch(console.error);
+api.graphQL.workflows().then(console.info).catch(console.error);
 
 api.graphQL
   .workflowInstance({ variables: { idWorkflowInstance: workflowId } })
@@ -30,7 +27,7 @@ api.graphQL
 
 api.graphQL
   .query(
-    pageFragment =>
+    (pageFragment) =>
       `query aWorkflow {
         allWorkflows {
           ${pageFragment}
@@ -47,7 +44,7 @@ api.graphQL
 
 api.graphQL
   .workflowPages(1)
-  .then(allWorkflows => {
+  .then((allWorkflows) => {
     console.info(allWorkflows.data);
     allWorkflows.next().then(console.info);
   })
@@ -57,3 +54,5 @@ api.graphQL
   .workflowInstances({ variables: { pageSize: 1 }, options: { fetchPolicy: 'network-only' } })
   .then(console.info)
   .catch(console.error);
+
+// api.graphQL.convertONTJWT({ token_type: 'jwt' }, process.env.JWT).then(console.info).catch(console.error);

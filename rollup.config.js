@@ -1,159 +1,141 @@
-import sucrase from '@rollup/plugin-sucrase';
-import path from 'path';
-import analyze from 'rollup-plugin-analyzer';
-import copy from 'rollup-plugin-cpy';
-import { eslint } from 'rollup-plugin-eslint';
+import sourceMaps from 'rollup-plugin-sourcemaps';
+import typescript from '@rollup/plugin-typescript';
+import commonjs from '@rollup/plugin-commonjs';
+import resolve from '@rollup/plugin-node-resolve';
 import generatePackageJson from 'rollup-plugin-generate-package-json';
-import json from 'rollup-plugin-json';
+import json from '@rollup/plugin-json';
 import license from 'rollup-plugin-license';
 import { terser } from 'rollup-plugin-terser';
+import copy from 'rollup-plugin-copy';
 import pkg from './package.json';
 
 const external = [...Object.keys(pkg.dependencies || {}), ...Object.keys(pkg.peerDependencies || {})];
-const plugins = [
+
+const pluginsCommon = [
+  // Allow json resolution
   json(),
-  analyze(),
-  eslint({
-    throwOnError: true, //  Will eventually be set to true
-    throwOnWarning: false, //  Will eventually be set to true
-    exclude: ['node_modules/**', './**/*.json'],
-  }),
-  sucrase({
-    exclude: ['node_modules/**', 'test/**'],
-    transforms: ['typescript'],
-  }),
-  terser({
-    parse: {
-      // we want terser to parse ecma 8 code. However, we don't want it
-      // to apply any minification steps that turns valid ecma 5 code
-      // into invalid ecma 5 code. This is why the 'compress' and 'output'
-      // sections only apply transformations that are ecma 5 safe
-      // https://github.com/facebook/create-react-app/pull/4234
-      ecma: 8,
-    },
-    compress: {
-      ecma: 5,
-      warnings: false,
-      // Disabled because of an issue with Uglify breaking seemingly valid code:
-      // Pending further investigation:
-      // https://github.com/mishoo/UglifyJS2/issues/2011
-      comparisons: false,
-      // Disabled because of an issue with Terser breaking valid code:
-      // Pending futher investigation:
-      // https://github.com/terser-js/terser/issues/120
-      inline: 2,
-    },
-    mangle: {
-      safari10: true,
-    },
-    output: {
-      ecma: 5,
-      comments: false,
-      // Turned on because emoji and regex is not minified properly using default
-      // https://github.com/facebook/create-react-app/issues/2488
-      ascii_only: true,
-    },
-  }),
+  // Compile TypeScript files
+  typescript(),
+  // Allow bundling cjs modules (unlike webpack, rollup doesn't understand cjs)
+  commonjs({ extensions: ['.js', '.ts'] }),
+  // Allow node_modules resolution, so you can use 'external' to control
+  // which external modules to include in the bundle
+  // https://github.com/rollup/rollup-plugin-node-resolve#usage
+  resolve(),
+
+  // Resolve source maps to the original source
+  sourceMaps(),
   license({
     banner: `Copyright Metrichor Ltd. (An Oxford Nanopore Technologies Company) <%= moment().format('YYYY') %>`,
   }),
 ];
 
-const epi2meFull = {
-  input: 'src/epi2me-fs.js',
-  output: [
-    {
-      file: path.join(path.dirname(pkg.main), 'index.js'),
-      format: 'cjs',
-    },
-    {
-      file: path.join(path.dirname(pkg.module), 'index.es.js'),
-      format: 'es',
-    },
-  ],
-  external,
-  plugins: [
-    ...plugins,
-    copy([
-      {
-        files: ['./README.md', './LICENCE'],
-        dest: 'dist',
-        options: {
-          verbose: true,
-        },
-      },
-      {
-        files: ['./src/migrations/*'],
-        dest: 'dist/migrations',
-        options: {
-          verbose: true,
-        },
-      },
-    ]),
-    generatePackageJson({
-      outputFolder: 'dist',
-      baseContents: {
-        name: pkg.name,
-        private: true,
-        version: pkg.verbose,
-      },
-    }),
-  ],
+const packageCommon = {
+  name: pkg.name,
+  license: pkg.license,
+  author: pkg.author,
+  repository: pkg.repository,
+  description: `${pkg.description}`,
+  private: false,
+  version: pkg.version,
 };
 
-const epi2meProfile = {
-  input: 'src/profile-fs.ts',
+const epi2meFull = {
+  input: `src/index.ts`,
   output: [
+    { file: pkg.components.core.module, format: 'esm', exports: 'named', sourcemap: true },
     {
-      file: path.join(path.dirname(pkg.main), 'profile/index.js'),
-      format: 'cjs',
+      file: pkg.components.core.module.replace('esm.js', 'esm.min.js'),
+      format: 'esm',
+      exports: 'named',
+      sourcemap: true,
+      plugins: [terser()],
     },
   ],
   external,
+  watch: {
+    include: ['src/**'],
+  },
   plugins: [
-    ...plugins,
+    ...pluginsCommon,
     copy({
-      files: ['./README.md', './LICENCE'],
-      dest: 'dist/profile',
-      options: {
-        verbose: true,
-      },
+      targets: [
+        { src: './src/migrations/*', dest: 'dist/core/migrations' },
+        { src: './build/types/src/*', dest: 'dist/core/types' },
+        { src: './build/esm/src/*', dest: 'dist/core/esm' },
+        { src: './build/cjs/src/*', dest: 'dist/core/cjs' },
+        { src: './src/migrations/*', dest: 'dist/core/cjs/migrations' },
+        { src: './src/migrations/*', dest: 'dist/core/esm/migrations' },
+        { src: './protos', dest: 'dist/core' },
+        { src: './LICENCE', dest: 'dist/core' },
+        { src: './README.md', dest: 'dist/core' },
+      ],
+      verbose: false,
     }),
     generatePackageJson({
-      outputFolder: 'dist/profile',
+      outputFolder: 'dist/core',
       baseContents: {
-        name: 'profile',
-        private: true,
-        version: pkg.verbose,
+        ...packageCommon,
+        main: 'cjs/index.js',
+        module: 'esm/index.js',
+        types: 'types/index.d.ts',
+        typings: 'types/index.d.ts',
+      },
+      additionalDependencies: {
+        graphql: pkg.dependencies.graphql,
+        '@apollo/client': pkg.dependencies['@apollo/client'],
       },
     }),
   ],
 };
 
 const epi2meWeb = {
-  input: 'src/epi2me.js',
+  input: `src/index-web.ts`,
   output: [
+    { file: pkg.components.web.module, format: 'esm', exports: 'named', sourcemap: true },
     {
-      file: path.join(path.dirname(pkg.main), 'web/index.js'),
-      format: 'cjs',
-    },
-    {
-      file: path.join(path.dirname(pkg.module), 'web/index.es.js'),
-      format: 'es',
+      file: pkg.components.web.module.replace('esm.js', 'esm.min.js'),
+      format: 'esm',
+      exports: 'named',
+      sourcemap: true,
+      plugins: [terser()],
     },
   ],
+  // Indicate here external modules you don't wanna include in your bundle (i.e.: 'lodash')
   external,
+  watch: {
+    include: ['src/**'],
+  },
   plugins: [
-    ...plugins,
+    ...pluginsCommon,
+    copy({
+      targets: [
+        { src: './build/types/src/*', dest: 'dist/web/types' },
+        { src: './build/esm/src/*', dest: 'dist/web/esm' },
+        { src: './build/cjs/src/*', dest: 'dist/web/cjs' },
+        { src: './protos', dest: 'dist/web' },
+        { src: './LICENCE', dest: 'dist/web' },
+        { src: './README.md', dest: 'dist/web' },
+      ],
+      verbose: false,
+    }),
     generatePackageJson({
       outputFolder: 'dist/web',
       baseContents: {
-        name: pkg.name,
-        private: true,
-        version: pkg.verbose,
+        ...packageCommon,
+        main: 'cjs/index-web.js',
+        module: 'esm/index-web.js',
+        name: pkg.name.replace('-api', '-web'),
+        description: `Web-only ${pkg.description}`,
+        types: 'types/index-web.d.ts',
+        typings: 'types/index-web.d.ts',
+      },
+      additionalDependencies: {
+        graphql: pkg.dependencies.graphql,
+        '@apollo/client': pkg.dependencies['@apollo/client'],
       },
     }),
   ],
 };
 
-export default [epi2meFull, epi2meProfile, epi2meWeb];
+export default [epi2meFull, epi2meWeb];

@@ -1,12 +1,12 @@
 import assert from 'assert';
 import sinon from 'sinon';
 import { merge } from 'lodash';
-import EPI2ME from '../../src/epi2me-fs';
-import utils from '../../src/utils-fs';
+import { EPI2ME_FS as EPI2ME } from '../../src/epi2me-fs';
+import { utilsFS as utils } from '../../src/utils-fs';
 
 describe('epi2me.loadUploadFiles', () => {
   let stubs = [];
-  const clientFactory = opts => {
+  const clientFactory = (opts) => {
     const client = new EPI2ME(
       merge(
         {
@@ -32,15 +32,15 @@ describe('epi2me.loadUploadFiles', () => {
   });
 
   afterEach(() => {
-    stubs.forEach(s => {
+    stubs.forEach((s) => {
       s.restore();
     });
   });
 
   it('should resolve with no work done if dirScanInProgress', async () => {
     const client = clientFactory();
-    sinon.stub(client, 'enqueueUploadFiles').resolves();
-    sinon.stub(utils, 'loadInputFiles').resolves();
+    stubs.push(sinon.stub(client, 'enqueueUploadFiles').resolves());
+    stubs.push(sinon.stub(utils, 'loadInputFiles').resolves());
 
     client.dirScanInProgress = true;
 
@@ -56,8 +56,8 @@ describe('epi2me.loadUploadFiles', () => {
 
   it('should do work and resolve if work to do', async () => {
     const client = clientFactory();
-    sinon.stub(client, 'enqueueUploadFiles').resolves();
-    sinon.stub(utils, 'loadInputFiles').resolves(['file-a.fastq', 'file-b.fastq']);
+    stubs.push(sinon.stub(client, 'enqueueUploadFiles').resolves());
+    stubs.push(sinon.stub(utils, 'loadInputFiles').resolves(['file-a.fastq', 'file-b.fastq']));
 
     client.inputBatchQueue = [];
     client.inputBatchQueue.remaining = 0;
@@ -80,8 +80,8 @@ describe('epi2me.loadUploadFiles', () => {
 
   it('should handle errors during loadInputFiles', async () => {
     const client = clientFactory();
-    sinon.stub(client, 'enqueueUploadFiles').resolves();
-    sinon.stub(utils, 'loadInputFiles').rejects(new Error('no such directory'));
+    stubs.push(sinon.stub(client, 'enqueueUploadFiles').resolves());
+    stubs.push(sinon.stub(utils, 'loadInputFiles').rejects(new Error('no such directory')));
 
     client.inputBatchQueue = [];
     client.inputBatchQueue.remaining = 0;

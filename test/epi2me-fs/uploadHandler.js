@@ -1,18 +1,18 @@
 import assert from 'assert';
-import sinon from 'sinon';
-import path from 'path';
-import tmp from 'tmp';
 import fs from 'fs-extra';
 import { merge } from 'lodash';
-import EPI2ME from '../../src/epi2me-fs';
+import path from 'path';
+import sinon from 'sinon';
+import tmp from 'tmp';
+import { EPI2ME_FS as EPI2ME } from '../../src/epi2me-fs';
 
 describe('epi2me.uploadHandler', () => {
   const tmpfile = 'tmpfile.txt';
   let stubs;
   let tmpdir;
-  const clientFactory = opts => {
+  const clientFactory = (opts) => {
     tmpdir = tmp.dirSync().name;
-    fs.writeFile(path.join(tmpdir, tmpfile));
+    fs.writeFile(path.join(tmpdir, tmpfile), '');
     const client = new EPI2ME(
       merge(
         {
@@ -45,7 +45,7 @@ describe('epi2me.uploadHandler', () => {
   });
 
   afterEach(() => {
-    stubs.forEach(s => {
+    stubs.forEach((s) => {
       s.restore();
     });
   });
@@ -65,6 +65,7 @@ describe('epi2me.uploadHandler', () => {
     );
 
     sinon.stub(client, 'uploadComplete').resolves();
+    client.config.instance.bucket = 'fake bucket id';
 
     try {
       await client.uploadHandler({
@@ -91,7 +92,7 @@ describe('epi2me.uploadHandler', () => {
     );
 
     sinon.stub(client, 'sessionedS3').resolves({
-      upload: params => {
+      upload: (params) => {
         assert(params); // not a very useful test
         return {
           on: () => {
@@ -141,7 +142,7 @@ describe('epi2me.uploadHandler', () => {
     );
 
     sinon.stub(client, 'sessionedS3').resolves({
-      upload: params => {
+      upload: (params) => {
         assert(params); // not a very useful test
         return {
           on: () => {
@@ -153,6 +154,7 @@ describe('epi2me.uploadHandler', () => {
     });
 
     sinon.stub(client, 'uploadComplete').resolves();
+    client.config.instance.bucket = 'fake bucket id';
 
     try {
       await client.uploadHandler({

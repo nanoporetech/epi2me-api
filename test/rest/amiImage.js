@@ -1,7 +1,7 @@
 import sinon from 'sinon';
 import assert from 'assert';
-import utils from '../../src/utils';
-import REST from '../../src/rest';
+import { utils } from '../../src/utils';
+import { REST } from '../../src/rest';
 
 describe('rest.amiImage', () => {
   let client;
@@ -47,12 +47,12 @@ describe('rest.amiImage', () => {
       obj = await client.amiImage('ami-12345', data);
     } catch (err) {
       assert.fail(err);
+    } finally {
+      stub.restore();
     }
     assert.deepEqual(obj, {
       status: 'success',
     });
-
-    stub.restore();
   });
 
   it('should create an amiImage', async () => {
@@ -74,9 +74,9 @@ describe('rest.amiImage', () => {
       });
     } catch (e) {
       assert.fail(e);
+    } finally {
+      stub.restore();
     }
-
-    stub.restore();
   });
 
   it('should read an amiImage', async () => {
@@ -94,28 +94,8 @@ describe('rest.amiImage', () => {
       assert.deepEqual(obj, data);
     } catch (e) {
       assert.fail(e);
+    } finally {
+      stub.restore();
     }
-
-    stub.restore();
-  });
-
-  it('should bail without an id', async () => {
-    const data = {
-      aws_id: 'ami-12345',
-      name: 'mon ami',
-      description: 'foo bar baz',
-      id_region: 1,
-      is_active: 1,
-    };
-    const stub = sinon.stub(client, 'read').resolves(data);
-
-    try {
-      await client.amiImage(null);
-      assert.fail(`unexpected success`);
-    } catch (e) {
-      assert(String(e).match(/no id_ami_image specified/));
-    }
-
-    stub.restore();
   });
 });

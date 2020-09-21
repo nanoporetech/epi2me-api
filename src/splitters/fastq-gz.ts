@@ -2,7 +2,7 @@ import fs from 'fs-extra';
 import zlib from 'zlib';
 import fastqCommon from './fastq-common';
 
-export default async function(filePath: string, opts: any, handler: any, log: any): Promise<any> {
+export default async function (filePath: string, opts: any, handler: any, log: any): Promise<any> {
   return fastqCommon(
     filePath,
     opts,

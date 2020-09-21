@@ -20,7 +20,7 @@ describe('promise-pipeline', () => {
 
     it('should indicate resolution', async () => {
       let resolve;
-      const p = new Promise(succeed => {
+      const p = new Promise((succeed) => {
         resolve = succeed;
       });
       const p2 = PromisePipeline.MakeQueryablePromise(p);

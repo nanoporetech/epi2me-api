@@ -1,6 +1,6 @@
 import assert from 'assert';
 import sinon from 'sinon';
-import EPI2ME from '../../src/epi2me-fs';
+import { EPI2ME_FS as EPI2ME } from '../../src/epi2me-fs';
 
 describe('epi2me.receiveMessages', () => {
   let client;
@@ -35,7 +35,7 @@ describe('epi2me.receiveMessages', () => {
 
   it('should queue and process download messages using downloadWorkerPool', async () => {
     sinon.stub(client, 'processMessage').callsFake(() => {
-      const p = new Promise(resolve => {
+      const p = new Promise((resolve) => {
         setTimeout(() => {
           resolve();
         }, 1);

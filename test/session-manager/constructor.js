@@ -1,17 +1,8 @@
 import assert from 'assert';
-import EPI2ME from '../../src/epi2me-fs';
+import { EPI2ME_FS as EPI2ME } from '../../src/epi2me-fs';
 
 describe('session-manager', () => {
   describe('constructor', () => {
-    it('should require instance id', () => {
-      try {
-        new EPI2ME.SessionManager(); // eslint-disable-line
-        assert.fail(`unexpected success`);
-      } catch (e) {
-        assert.ok(String(e).match(/must specify id_workflow_instance/), String(e));
-      }
-    });
-
     it('should require children to update', () => {
       try {
         new EPI2ME.SessionManager(1); // eslint-disable-line

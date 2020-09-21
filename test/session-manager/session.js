@@ -1,6 +1,6 @@
 import assert from 'assert';
 import sinon from 'sinon';
-import EPI2ME from '../../src/epi2me-fs';
+import { EPI2ME_FS as EPI2ME } from '../../src/epi2me-fs';
 
 describe('session-manager', () => {
   describe('session', () => {
@@ -15,7 +15,7 @@ describe('session-manager', () => {
 
     afterEach(() => {
       clock.restore();
-      stubs.forEach(s => {
+      stubs.forEach((s) => {
         s.restore();
       });
     });

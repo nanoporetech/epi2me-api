@@ -2,14 +2,9 @@ import fs from 'fs-extra';
 import { merge } from 'lodash';
 import { homedir } from 'os';
 import path from 'path';
-import Profile from './profile';
-import { Epi2meProfileNS } from './types';
+import { InternalAllProfileData, ProfileCredentials, Profile } from './profile';
 
-interface InternalAllProfileData {
-  profiles?: Epi2meProfileNS.AllProfileData;
-  endpoint?: string;
-}
-export default class ProfileFS extends Profile {
+export class ProfileFS extends Profile {
   prefsFile: string;
   allProfileData: InternalAllProfileData;
   raiseExceptions: boolean;
@@ -38,10 +33,7 @@ export default class ProfileFS extends Profile {
     return path.join(homedir(), '.epi2me.json');
   }
 
-  profile(
-    id: Epi2meProfileNS.IProfileName,
-    obj?: Epi2meProfileNS.IProfileCredentials,
-  ): Epi2meProfileNS.IProfileCredentials {
+  profile(id: string, obj?: ProfileCredentials): ProfileCredentials {
     if (id && obj) {
       merge(this.allProfileData, {
         profiles: {

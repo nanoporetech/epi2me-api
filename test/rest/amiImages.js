@@ -1,7 +1,7 @@
 import sinon from 'sinon';
 import assert from 'assert';
 import bunyan from 'bunyan';
-import REST from '../../src/rest';
+import { REST } from '../../src/rest';
 
 describe('rest.amiImages', () => {
   let ringbuf;
@@ -20,7 +20,7 @@ describe('rest.amiImages', () => {
   });
 
   afterEach(() => {
-    stubs.forEach(s => {
+    stubs.forEach((s) => {
       s.restore();
     });
   });
@@ -29,7 +29,7 @@ describe('rest.amiImages', () => {
     const rest = new REST({
       log,
     });
-    const stub = sinon.stub(rest, 'list').callsFake(uri => {
+    const stub = sinon.stub(rest, 'list').callsFake((uri) => {
       assert.equal(uri, 'ami_image', 'default uri');
     });
     stubs.push(stub);
@@ -45,7 +45,7 @@ describe('rest.amiImages', () => {
       log,
       local: true,
     });
-    const stub = sinon.stub(rest, 'list').callsFake(uri => {
+    const stub = sinon.stub(rest, 'list').callsFake((uri) => {
       assert.equal(uri, 'ami_image', 'default uri');
     });
     stubs.push(stub);

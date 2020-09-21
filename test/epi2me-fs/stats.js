@@ -1,7 +1,7 @@
 import assert from 'assert';
 // import { BehaviorSubject } from 'rxjs';
 // import { map, withLatestFrom } from 'rxjs/operators';
-import EPI2ME from '../../src/epi2me-fs';
+import { EPI2ME_FS as EPI2ME } from '../../src/epi2me-fs';
 
 describe('epi2me.stats', () => {
   it('should stat', () => {
@@ -55,7 +55,7 @@ describe('epi2me.stats', () => {
   it('live states', () => {
     const client = new EPI2ME({});
     let theState;
-    const sub = client.liveStates$.subscribe(state => {
+    const sub = client.liveStates$.subscribe((state) => {
       theState = state;
     });
     client.uploadState('progress', 'incr', {
@@ -75,7 +75,7 @@ describe('epi2me.stats', () => {
     client.uploadState$.next(true);
     client.analyseState$.next(true);
     // Subscribe here because this is what actually happens
-    const sub = client.runningStates$.subscribe(state => {
+    const sub = client.runningStates$.subscribe((state) => {
       theState = state;
     });
     assert.deepEqual(theState, [true, true, false]);

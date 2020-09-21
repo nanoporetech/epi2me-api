@@ -1,8 +1,8 @@
 import assert from 'assert';
 import bunyan from 'bunyan';
 import sinon from 'sinon';
-import REST from '../../src/rest';
-import utils from '../../src/utils';
+import { REST } from '../../src/rest';
+import { utils } from '../../src/utils';
 
 describe('rest.fetchContent', () => {
   it('must invoke get with options', () => {
@@ -32,7 +32,8 @@ describe('rest.fetchContent', () => {
       rest.fetchContent('/a/uri');
     } catch (e) {
       assert.fail(e);
+    } finally {
+      stub.restore();
     }
-    stub.restore();
   });
 });
