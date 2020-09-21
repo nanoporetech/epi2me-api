@@ -1,8 +1,8 @@
 import assert from 'assert';
 import bunyan from 'bunyan';
 import sinon from 'sinon';
-import REST from '../../src/rest';
-import utils from '../../src/utils';
+import { REST } from '../../src/rest';
+import { utils } from '../../src/utils';
 
 describe('rest.fetchContent', () => {
   it('must invoke get with options', () => {

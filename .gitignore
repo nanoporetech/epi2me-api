@@ -13,3 +13,7 @@ test/tmp
 /test/tmp.js
 build
 .npmrc
+dist
+
+protos/*
+!protos/.gitkeep

@@ -4,8 +4,8 @@ import bunyan from 'bunyan';
 import tmp from 'tmp';
 import fs from 'fs-extra';
 import path from 'path';
-import RESTSuper from '../../src/rest';
-import REST from '../../src/rest-fs';
+import { REST as RESTSuper } from '../../src/rest';
+import { REST_FS as REST } from '../../src/rest-fs';
 
 describe('rest-fs.workflows', () => {
   let rest;

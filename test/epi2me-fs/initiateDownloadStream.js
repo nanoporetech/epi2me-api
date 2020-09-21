@@ -5,7 +5,7 @@ import tmp from 'tmp';
 import fs from 'fs-extra';
 import { merge } from 'lodash';
 import AWS from 'aws-sdk';
-import EPI2ME from '../../src/epi2me-fs';
+import { EPI2ME_FS as EPI2ME } from '../../src/epi2me-fs';
 
 // MC-1304 - test download streams
 describe('epi2me.initiateDownloadStream', () => {

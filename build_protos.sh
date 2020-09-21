@@ -1,4 +1,4 @@
-mkdir protos
+mkdir -p protos
 
 protoc -I ./epi2me-protobufs/ \
     --plugin=protoc-gen-ts=./node_modules/.bin/protoc-gen-ts \

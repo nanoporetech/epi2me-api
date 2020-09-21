@@ -7,7 +7,8 @@
 import axios, { AxiosRequestConfig } from 'axios';
 import fs from 'fs-extra';
 import path from 'path';
-import utils, { UtilityOptions, Utility } from './utils';
+import type { UtilityOptions, Utility } from './utils';
+import { utils } from './utils';
 import { NoopLogger } from './Logger';
 import * as tunnel from 'tunnel';
 
@@ -41,7 +42,7 @@ export interface UtilityFS extends Utility {
   stripFile(filename: string): [string, string];
 }
 
-const utilsFS: UtilityFS = {
+export const utilsFS: UtilityFS = {
   ...utils,
 
   async pipe(
@@ -261,5 +262,3 @@ const utilsFS: UtilityFS = {
     return [path.dirname(filename), path.basename(filename)];
   },
 };
-
-export default utilsFS;

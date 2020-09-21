@@ -1,7 +1,7 @@
 import { grpc } from '@improbable-eng/grpc-web';
 import { ProtobufMessage } from '@improbable-eng/grpc-web/dist/typings/message';
 import type { Message } from 'google-protobuf';
-import { Observable, Observer, of } from 'rxjs';
+import { Observable, Observer } from 'rxjs';
 
 const Code = grpc.Code;
 grpc.setDefaultTransport(grpc.FetchReadableStreamTransport({ credentials: 'omit' }));
@@ -96,13 +96,12 @@ export function createGrpcRequest$<TRequest extends Message, TResponse extends M
 ): Observable<TResponse> {
   const requestConfig = { grpcUrl, tokens, service, request, transport };
 
-  return Observable.create((observer: Observer<TRequest>) => {
+  return new Observable((observer: Observer<TResponse>) => {
     if (!grpcUrl) {
       observer.error({
         message: 'No grpc URL provided',
       });
-
-      return of(null);
+      return;
     }
 
     const req = isStream

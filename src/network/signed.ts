@@ -11,6 +11,7 @@ import type { RequestOptions } from './RequestOptions';
 import type { Body } from './Body';
 import type { Credentials } from './Credentials';
 import type { NetworkInterface } from './NetworkInterface';
+import { asString } from '../runtime-typecast';
 
 export function signMessage(
   headers: Headers,
@@ -21,9 +22,9 @@ export function signMessage(
   headers.set('X-EPI2ME-ApiKey', apikey);
   headers.set('X-EPI2ME-SignatureDate', new Date().toISOString());
 
-  const keys = Array.from(headers.keys())
+  const keys = Array.from<string>((headers as any).keys())
     .sort()
-    .filter((o) => o.match(/^x-epi2me/i));
+    .filter((o) => asString(o).match(/^x-epi2me/i));
 
   // Case matters. Uppercase for gql. Else for portal.
   const message = createMessage(

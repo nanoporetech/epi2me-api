@@ -1,3 +1,4 @@
 [submodule "epi2me-protobufs"]
 	path = epi2me-protobufs
-	url = git@git.oxfordnanolabs.local:metrichor/epi2me-protobufs.git
+	url = ../epi2me-protobufs.git
+

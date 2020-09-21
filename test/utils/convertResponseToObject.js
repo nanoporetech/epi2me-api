@@ -1,5 +1,5 @@
 import assert from 'assert';
-import utils from '../../src/utils';
+import { utils } from '../../src/utils';
 
 describe('utils.convertResponseToObject', () => {
   it('obj returned as obj', () => {

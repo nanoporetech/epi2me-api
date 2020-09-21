@@ -4,12 +4,12 @@
  */
 import fs from 'fs-extra';
 import path from 'path';
-import REST, { AsyncCallback } from './rest';
-import utils from './utils-fs';
+import { AsyncCallback, REST } from './rest';
+import { utilsFS as utils } from './utils-fs';
 import { isFunction, asFunction, asRecord, asOptFunction, asOptRecord } from './runtime-typecast';
 import { ObjectDict } from './ObjectDict';
 
-export default class REST_FS extends REST {
+export class REST_FS extends REST {
   async workflows(cb?: AsyncCallback): Promise<unknown> {
     if (!this.options.local) {
       return super.workflows(cb);

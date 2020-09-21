@@ -3,7 +3,7 @@ import sinon from 'sinon';
 import fs from 'fs-extra';
 import tmp from 'tmp';
 import path from 'path';
-import Profile from '../../src/profile-fs';
+import { ProfileFS as Profile } from '../../src/profile-fs';
 
 describe('epi2me.profile-fs', () => {
   let tmpProfile;

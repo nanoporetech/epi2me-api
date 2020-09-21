@@ -1,6 +1,6 @@
 import assert from 'assert';
 import sinon from 'sinon';
-import REST from '../../src/rest';
+import { REST } from '../../src/rest';
 
 describe('rest.workflowInstance', () => {
   let rest;

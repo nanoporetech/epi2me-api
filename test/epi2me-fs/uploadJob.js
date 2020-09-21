@@ -3,7 +3,7 @@ import { merge } from 'lodash';
 import sinon from 'sinon';
 import tmp from 'tmp';
 import DB from '../../src/db';
-import EPI2ME from '../../src/epi2me-fs';
+import { EPI2ME_FS as EPI2ME } from '../../src/epi2me-fs';
 
 describe('epi2me.uploadJob', () => {
   const clientFactory = (opts) => {

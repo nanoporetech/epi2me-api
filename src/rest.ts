@@ -5,7 +5,7 @@
 
 import { assign, merge } from 'lodash';
 import os from 'os';
-import utils from './utils';
+import { utils } from './utils';
 import { Logger } from './Logger';
 import { EPI2ME_OPTIONS } from './epi2me-options';
 import { AxiosResponse } from 'axios';
@@ -30,7 +30,7 @@ import { ObjectDict } from './ObjectDict';
 
 export type AsyncCallback = (err: unknown, data: unknown) => void;
 
-export default class REST {
+export class REST {
   options: EPI2ME_OPTIONS;
   log: Logger;
   cachedResponses: Map<

@@ -1,6 +1,6 @@
 import assert from 'assert';
 import sinon from 'sinon';
-import utils from '../../../src/utils';
+import { utils } from '../../../src/utils';
 import { AxiosRequestConfig } from 'axios';
 
 describe('utils.internal.sign', () => {

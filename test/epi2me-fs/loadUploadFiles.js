@@ -1,8 +1,8 @@
 import assert from 'assert';
 import sinon from 'sinon';
 import { merge } from 'lodash';
-import EPI2ME from '../../src/epi2me-fs';
-import utils from '../../src/utils-fs';
+import { EPI2ME_FS as EPI2ME } from '../../src/epi2me-fs';
+import { utilsFS as utils } from '../../src/utils-fs';
 
 describe('epi2me.loadUploadFiles', () => {
   let stubs = [];

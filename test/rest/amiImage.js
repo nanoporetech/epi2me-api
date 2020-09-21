@@ -1,7 +1,7 @@
 import sinon from 'sinon';
 import assert from 'assert';
-import utils from '../../src/utils';
-import REST from '../../src/rest';
+import { utils } from '../../src/utils';
+import { REST } from '../../src/rest';
 
 describe('rest.amiImage', () => {
   let client;

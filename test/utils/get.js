@@ -1,7 +1,7 @@
 import assert from 'assert';
 import sinon from 'sinon';
 import axios from 'axios';
-import utils from '../../src/utils';
+import { utils } from '../../src/utils';
 
 describe('utils.get', () => {
   let stubs = [];

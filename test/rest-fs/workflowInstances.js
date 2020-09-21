@@ -4,8 +4,8 @@ import tmp from 'tmp';
 import bunyan from 'bunyan';
 import fs from 'fs-extra';
 import path from 'path';
-import REST from '../../src/rest-fs';
-import utils from '../../src/utils';
+import { REST_FS as REST } from '../../src/rest-fs';
+import { utils } from '../../src/utils';
 
 describe('rest-fs.workflowInstances', () => {
   let ringbuf;

@@ -10,10 +10,10 @@ import { BehaviorSubject, combineLatest } from 'rxjs';
 import DEFAULTS from './default_options.json';
 import { GraphQL } from './graphql';
 import niceSize from './niceSize';
-import Profile, { AllProfileData } from './profile';
-import REST from './rest';
+import { Profile, AllProfileData } from './profile';
+import { REST } from './rest';
 import Socket from './socket';
-import utils from './utils';
+import { utils } from './utils';
 import { ObjectDict } from './ObjectDict';
 import { Logger } from './Logger';
 import { EPI2ME_OPTIONS } from './epi2me-options';
@@ -46,11 +46,11 @@ import {
 import { Configuration } from './Configuration';
 import { DisposeTimer, createInterval } from './timers';
 
-import type REST_FS from './rest-fs';
-import type ProfileFS from './profile-fs';
+import type { REST_FS } from './rest-fs';
+import type { ProfileFS } from './profile-fs';
 import { parseCoreOpts } from './parseCoreOpts';
 
-export default class EPI2ME {
+export class EPI2ME {
   static version = utils.version;
   static Profile: { new (o: AllProfileData): Profile } | { new (s?: string, r?: boolean): ProfileFS } = Profile;
   static REST: { new (o: EPI2ME_OPTIONS): REST | REST_FS } = REST; // to allow import { REST } from '@metrichor/epi2me-api'

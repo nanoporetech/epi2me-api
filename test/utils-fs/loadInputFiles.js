@@ -3,7 +3,7 @@ import fs from 'fs-extra';
 import mock from 'mock-fs';
 import path from 'path';
 import tmp from 'tmp';
-import utils from '../../src/utils-fs';
+import { utilsFS as utils } from '../../src/utils-fs';
 
 describe('utils-fs.loadInputFiles', () => {
   let tmpInputDir;

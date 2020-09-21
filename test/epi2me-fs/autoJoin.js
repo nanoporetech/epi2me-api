@@ -1,6 +1,6 @@
 import sinon from 'sinon';
 import assert from 'assert';
-import EPI2ME from '../../src/epi2me-fs';
+import { EPI2ME_FS as EPI2ME } from '../../src/epi2me-fs';
 
 describe('epi2me.autoJoin', () => {
   const stubs = [];
