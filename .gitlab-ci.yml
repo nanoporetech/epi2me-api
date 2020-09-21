@@ -74,7 +74,7 @@ publish_experimental:
 publish_dev:
   <<: *npm_publish_external
   rules:
-    - if: '$CI_COMMIT_BRANCH  == "dev"'
+    - if: '$CI_COMMIT_BRANCH == "dev"'
       when: always
       allow_failure: false
   variables:
@@ -83,7 +83,7 @@ publish_dev:
 publish_master:
   <<: *npm_publish_external
   rules:
-    - if: '$CI_COMMIT_BRANCH  == "master" && $CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == "master"'
       when: always
       allow_failure: false
   variables:
