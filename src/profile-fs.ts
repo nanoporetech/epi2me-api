@@ -2,9 +2,9 @@ import fs from 'fs-extra';
 import { merge } from 'lodash';
 import { homedir } from 'os';
 import path from 'path';
-import Profile, { InternalAllProfileData, ProfileCredentials } from './profile';
+import { InternalAllProfileData, ProfileCredentials, Profile } from './profile';
 
-export default class ProfileFS extends Profile {
+export class ProfileFS extends Profile {
   prefsFile: string;
   allProfileData: InternalAllProfileData;
   raiseExceptions: boolean;

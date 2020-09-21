@@ -1,7 +1,7 @@
 import sinon from 'sinon';
 import assert from 'assert';
 import bunyan from 'bunyan';
-import REST from '../../src/rest';
+import { REST } from '../../src/rest';
 
 describe('rest.datasets', () => {
   let rest;

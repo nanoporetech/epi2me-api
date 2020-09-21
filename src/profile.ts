@@ -18,7 +18,7 @@ export interface InternalAllProfileData {
   endpoint?: string;
 }
 
-export default class Profile {
+export class Profile {
   defaultEndpoint: string;
   allProfileData: InternalAllProfileData = {};
 

@@ -2,7 +2,7 @@ import io from 'socket.io-client';
 import { merge } from 'lodash';
 
 import type { Logger } from './Logger';
-import REST from './rest';
+import { REST } from './rest';
 
 interface SocketOptions {
   log: Logger;

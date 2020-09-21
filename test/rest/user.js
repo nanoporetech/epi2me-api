@@ -1,8 +1,8 @@
 import assert from 'assert';
 import sinon from 'sinon';
-import REST from '../../src/rest';
-import utils from '../../src/utils';
-import EPI2ME from '../../src/epi2me';
+import { REST } from '../../src/rest';
+import { utils } from '../../src/utils';
+import { EPI2ME } from '../../src/epi2me';
 
 describe('rest.user', () => {
   it('must invoke get with options', async () => {

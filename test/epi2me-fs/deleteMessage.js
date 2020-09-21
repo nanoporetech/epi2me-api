@@ -2,7 +2,7 @@ import assert from 'assert';
 import sinon from 'sinon';
 import { merge } from 'lodash';
 import AWS from 'aws-sdk';
-import EPI2ME from '../../src/epi2me-fs';
+import { EPI2ME_FS as EPI2ME } from '../../src/epi2me-fs';
 
 describe('epi2me.deleteMessage', () => {
   const clientFactory = (opts) =>

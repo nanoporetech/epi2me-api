@@ -1,9 +1,9 @@
 import sinon from 'sinon';
 import assert from 'assert';
 import os from 'os';
-import REST from '../../src/rest';
-import utils from '../../src/utils';
-import EPI2ME from '../../src/epi2me';
+import { REST } from '../../src/rest';
+import { utils } from '../../src/utils';
+import { EPI2ME } from '../../src/epi2me';
 
 describe('rest.register', () => {
   let stubs;

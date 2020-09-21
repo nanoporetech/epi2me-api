@@ -4,7 +4,7 @@ import { merge } from 'lodash';
 import sinon from 'sinon';
 import tmp from 'tmp';
 import DB from '../../src/db';
-import EPI2ME from '../../src/epi2me-fs';
+import { EPI2ME_FS as EPI2ME } from '../../src/epi2me-fs';
 
 describe('epi2me.uploadComplete', () => {
   const clientFactory = (opts) => {
@@ -259,11 +259,11 @@ describe('epi2me.uploadComplete', () => {
       assert.deepEqual(
         JSON.parse(obj.MessageBody).components,
         {
-          '0': {
+          0: {
             id: 1,
             inputQueueName: 'upload-q',
           },
-          '1': {
+          1: {
             id: 2,
             inputQueueName: 'download-q',
           },
@@ -279,11 +279,11 @@ describe('epi2me.uploadComplete', () => {
     client.downloadMessageQueue = 'download-q';
     client.config.instance.chain = {
       components: {
-        '0': {
+        0: {
           id: 1,
           inputQueueName: 'uploadMessageQueue',
         },
-        '1': {
+        1: {
           id: 2,
           inputQueueName: 'downloadMessageQueue',
         },

@@ -3,7 +3,7 @@ import { merge, remove } from 'lodash';
 import path from 'path';
 import sqlite from 'sqlite';
 import pkg from '../package.json';
-import utils from './utils-fs';
+import { utilsFS as utils } from './utils-fs';
 
 export default class db {
   options: any; // [key: string]: string;

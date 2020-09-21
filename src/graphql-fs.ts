@@ -1,4 +1,4 @@
-import GraphQL from './graphql';
+import { GraphQL } from './graphql';
 import { ApolloClient, NormalizedCacheObject } from '@apollo/client/core';
 import { writeCommonHeaders } from './network';
 import { signMessage } from './network/signed';

@@ -1,7 +1,7 @@
 import assert from 'assert';
 import { merge } from 'lodash';
 import sinon from 'sinon';
-import EPI2ME from '../../src/epi2me-fs';
+import { EPI2ME_FS as EPI2ME } from '../../src/epi2me-fs';
 
 describe('epi2me.setClassConfigREST', () => {
   const clientFactory = (opts) =>
@@ -33,13 +33,13 @@ describe('epi2me.setClassConfigREST', () => {
     outputQueueName: 'fe7aed1e-97b5-45bb-a011-64918306acc0',
     region: 'eu-west-1',
     bucketFolder: 'fe7aed1e-97b5-45bb-a011-64918306acc0/5089/134235',
-    summaryTelemetry: { '1964': { 'CTC Basecalling': '/workflow_instance/134235/classficiation_basecalling' } },
+    summaryTelemetry: { 1964: { 'CTC Basecalling': '/workflow_instance/134235/classficiation_basecalling' } },
     chain: {
       components: {
-        '0': {
+        0: {
           inputQueueName: 'e07592d4-fae8-4212-94d7-74ffbc7fae58',
         },
-        '1': {
+        1: {
           wid: '540',
           next: {
             PASS: 0,
@@ -72,13 +72,13 @@ describe('epi2me.setClassConfigREST', () => {
       inputqueue: '6551d65b-0441-c9ab-81aa-ba33ed62c39e',
       outputqueue: 'fe7aed1e-97b5-45bb-a011-64918306acc0',
       region: 'eu-west-1',
-      telemetry: { '1964': { 'CTC Basecalling': '/workflow_instance/134235/classficiation_basecalling' } },
+      telemetry: { 1964: { 'CTC Basecalling': '/workflow_instance/134235/classficiation_basecalling' } },
       chain: {
         components: {
-          '0': {
+          0: {
             inputQueueName: 'e07592d4-fae8-4212-94d7-74ffbc7fae58',
           },
-          '1': {
+          1: {
             wid: '540',
             next: {
               PASS: 0,
@@ -114,10 +114,10 @@ describe('epi2me.setClassConfigREST', () => {
             idWorkflowInstance: '134235',
             chain: {
               components: {
-                '0': {
+                0: {
                   inputQueueName: 'e07592d4-fae8-4212-94d7-74ffbc7fae58',
                 },
-                '1': {
+                1: {
                   wid: '540',
                   next: {
                     PASS: 0,
@@ -138,7 +138,7 @@ describe('epi2me.setClassConfigREST', () => {
             },
             keyId: '82eae478-cf86-4d48-907c-ceda2342037e',
             outputqueue: 'fe7aed1e-97b5-45bb-a011-64918306acc0',
-            mappedTelemetry: { '1964': { 'CTC Basecalling': '/workflow_instance/134235/classficiation_basecalling' } },
+            mappedTelemetry: { 1964: { 'CTC Basecalling': '/workflow_instance/134235/classficiation_basecalling' } },
             startDate: '2020-04-30T15:20:30+00:00',
             workflowImage: {
               inputqueue: '6551d65b-0441-c9ab-81aa-ba33ed62c39e',

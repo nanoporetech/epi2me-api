@@ -5,7 +5,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import { merge } from 'lodash';
 import AWS from 'aws-sdk';
-import EPI2ME from '../../src/epi2me-fs';
+import { EPI2ME_FS as EPI2ME } from '../../src/epi2me-fs';
 
 describe('epi2me-api.processMessage', () => {
   const clientFactory = (opts) => {
@@ -236,10 +236,10 @@ describe('epi2me-api.processMessage', () => {
             key_id: 'a14b0525-cb44-4f5c-8f12-96f858c6f09f',
             bucket: 'eu-west-1-metrichor-live',
             components: {
-              '0': {
+              0: {
                 inputQueueName: '0F95872C-D6D2-11E8-9DBC-0371A22B323C',
               },
-              '1': {
+              1: {
                 command:
                   'python /usr/local/bin/fq_homogenizer.py --input_folder %inputfolder --min_qscore %min_qscore --regex *.fastq --detect_barcode %detect_barcode',
                 params: {
@@ -268,7 +268,7 @@ describe('epi2me-api.processMessage', () => {
                 inputQueueName: 'iq_homogenizer-3100',
                 dockerRegistry: '622693934964.dkr.ecr.eu-west-1.amazonaws.com',
               },
-              '2': {
+              2: {
                 params: {
                   output_format: 'fastq.bam',
                   reference: 's3://metrichor-prod-biodata-eu-west-1/reference-genomes/10710/ONT/lambda.fasta',

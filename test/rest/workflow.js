@@ -2,8 +2,8 @@ import sinon from 'sinon';
 import assert from 'assert';
 import bunyan from 'bunyan';
 import { merge } from 'lodash';
-import REST from '../../src/rest';
-import utils from '../../src/utils';
+import { REST } from '../../src/rest';
+import { utils } from '../../src/utils';
 
 describe('rest.workflow', () => {
   let stubs;

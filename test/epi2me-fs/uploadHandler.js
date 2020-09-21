@@ -4,7 +4,7 @@ import { merge } from 'lodash';
 import path from 'path';
 import sinon from 'sinon';
 import tmp from 'tmp';
-import EPI2ME from '../../src/epi2me-fs';
+import { EPI2ME_FS as EPI2ME } from '../../src/epi2me-fs';
 
 describe('epi2me.uploadHandler', () => {
   const tmpfile = 'tmpfile.txt';

@@ -2,7 +2,7 @@ import assert from 'assert';
 import bunyan from 'bunyan';
 import gql from 'graphql-tag';
 import sinon from 'sinon';
-import GraphQL from '../../src/graphql';
+import { GraphQL } from '../../src/graphql';
 import { Network } from '../../src/network';
 
 const makeGQL = (profile) => {

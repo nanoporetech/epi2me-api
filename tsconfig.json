@@ -1,12 +1,13 @@
 {
   "compilerOptions": {
-    "moduleResolution": "node",
-    "outDir": "./dist",
     "allowJs": true,
-    "checkJs": true,
-    "target": "ES2017",
-    "declaration": true,
-    "declarationDir": "./dist",
+    "allowSyntheticDefaultImports": true,
+    "lib": [
+      "dom",
+      "es2017"
+    ],
+    "moduleResolution": "node",
+    "skipLibCheck": true,
     "sourceMap": true,
     "esModuleInterop": true,
     "resolveJsonModule": true,
@@ -17,11 +18,14 @@
     "noImplicitThis": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "typeRoots": ["./node_modules/@types"]
+    "target": "es2017"
   },
-  "include": ["src/**/*"],
+  "include": ["src"],
   "exclude": ["dist", "node_modules"],
   "ts-node": {
-    "transpileOnly": true
+    "transpileOnly": true,
+    "compilerOptions": {
+      "module": "commonJS"
+    }
   }
 }

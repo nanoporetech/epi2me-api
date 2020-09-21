@@ -1,13 +1,13 @@
-import EPI2ME_FS from './epi2me-fs';
+import { EPI2ME_FS } from './epi2me-fs';
 import { BehaviorSubject, Subject, merge } from 'rxjs';
 import { withLatestFrom, map } from 'rxjs/operators';
 import { Map as ImmutableMap } from 'immutable';
 
-import type REST_FS from './rest-fs';
-import type GraphQL from './graphql';
+import type { REST_FS } from './rest-fs';
+import type { GraphQL } from './graphql';
 import type { Logger } from './Logger';
 import type { ObjectDict } from './ObjectDict';
-import type SampleReader from './sample-reader';
+import type { SampleReader } from './sample-reader';
 import type { UtilityFS } from './utils-fs';
 import type { Index } from './runtime-typecast';
 import type { EPI2ME_OPTIONS } from './epi2me-options';
@@ -42,7 +42,7 @@ Factory seems to be designed with the intention that a version of the EPI2ME
 API can be passed in, then used as the base. However, at the moment it only
 supports using the EPI2ME_FS
 */
-export default class Factory {
+export class Factory {
   private readonly EPI2ME: typeof EPI2ME_FS;
   private options: Partial<EPI2ME_OPTIONS>;
   private primary: EPI2ME_FS;

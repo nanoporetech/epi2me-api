@@ -5,7 +5,7 @@ import path from 'path';
 import fs from 'fs-extra';
 import bunyan from 'bunyan';
 import { merge } from 'lodash';
-import REST from '../../src/rest-fs';
+import { REST_FS as REST } from '../../src/rest-fs';
 
 describe('rest.workflow', () => {
   const restFactory = (opts) => {

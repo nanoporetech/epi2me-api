@@ -1,4 +1,8 @@
 image: ubuntu:18.04
+
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+
 stages:
   - versiontrack
   - test
@@ -17,7 +21,7 @@ versiontrack:
     sed -i 's|deb http://deb-repo.oxfordnanolabs.local/apt|#deb http://deb-repo.oxfordnanolabs.local/apt|g' /etc/apt/sources.list /etc/apt/sources.list.d/*.list || true
     apt-get clean
     apt-get update
-    apt-get install -y curl git wget lsb-release gnupg build-essential openssl
+    apt-get install -y curl git wget lsb-release gnupg build-essential openssl unzip jq
     wget -O- http://deb-repo.oxfordnanolabs.local/apt/roger.pettett@nanoporetech.com.key | apt-key add -
     echo "deb http://deb-repo.oxfordnanolabs.local/apt $(lsb_release -cs) non-free" > /etc/apt/sources.list.d/deb-repo.list
     curl -sL https://deb.nodesource.com/setup_12.x > nodejs-repo
@@ -34,49 +38,63 @@ test:
   variables:
     PATCH: $CI_BUILD_ID
 
+.install-protobuf-compiler: &install_protobuf_compiler |
+    export PROTOC_ZIP=protoc-$PROTOC_VERSION-linux-x86_64.zip
+    echo "Fetching https://github.com/protocolbuffers/protobuf/releases/download/v$PROTOC_VERSION/$PROTOC_ZIP"
+    curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v$PROTOC_VERSION/$PROTOC_ZIP
+    unzip -o $PROTOC_ZIP -d /usr/local bin/protoc
+    unzip -o $PROTOC_ZIP -d /usr/local 'include/*'
+    rm -f $PROTOC_ZIP
+
 .npm-publish-external: &npm_publish_external
   stage: publish
   script:
     - *common
+    - *install_protobuf_compiler
     - npm ci
     - source ./PATCH_VERSION
-    - echo "Patching report versions to $PATCH"
-    - npm run build:version
+    - make dist
     - echo "//registry.npmjs.org/:_authToken=\${NPM_TOKEN}" >> ./.npmrc
-    - npm publish --verbose --access public --tag ${TAG}
+    - npm publish --verbose --access public --tag ${TAG} dist/core
+    - npm publish --verbose --access public --tag ${TAG} dist/web
 
 publish_experimental:
   <<: *npm_publish_external
-  except:
-    - dev
-  except:
-    - master
-  except:
-    - tags
-  except:
-    - /^release-\d+\.\d+(?:.\d+)?(?:-\S+)?$/ # use regexp
+  rules:
+    - if: '$CI_COMMIT_TAG && $CI_COMMIT_TAG =~ /^release-\d+\.\d+(?:.\d+)?(?:-\S+)?$/'
+      when: never
+    - if: '$CI_COMMIT_BRANCH =~ /^(?:dev|master|release-\d+\.\d+(?:.\d+)?(?:-\S+)?)$/'
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+      when: manual
+      allow_failure: false
   variables:
     TAG: 'experimental'
 
 publish_dev:
   <<: *npm_publish_external
-  only:
-    - dev
+  rules:
+    - if: '$CI_COMMIT_BRANCH  == "dev"'
+      when: always
+      allow_failure: false
   variables:
     TAG: 'develop'
 
 publish_master:
   <<: *npm_publish_external
-  only:
-    - master
+  rules:
+    - if: '$CI_COMMIT_BRANCH  == "master" && $CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: always
+      allow_failure: false
   variables:
     TAG: 'next'
 
 publish_release:
   <<: *npm_publish_external
-  only:
-    - /^release-\d+\.\d+(?:.\d+)?(?:-\S+)?$/ # use regexp
-    - tags
+  rules:
+    - if: '$CI_COMMIT_TAG && $CI_COMMIT_TAG =~ /^release-\d+\.\d+(?:.\d+)?(?:-\S+)?$/'
+      when: always
+      allow_failure: false
   variables:
     TAG: 'latest'
 

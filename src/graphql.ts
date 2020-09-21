@@ -442,5 +442,3 @@ export class GraphQL {
     }
   `);
 }
-
-export default GraphQL;

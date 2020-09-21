@@ -1,7 +1,7 @@
 import assert from 'assert';
 import sinon from 'sinon';
-import utils from '../../src/utils';
-import REST from '../../src/rest';
+import { utils } from '../../src/utils';
+import { REST } from '../../src/rest';
 
 describe('rest.startWorkflow', () => {
   let client;

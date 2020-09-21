@@ -2,8 +2,8 @@ import sinon from 'sinon';
 import assert from 'assert';
 import bunyan from 'bunyan';
 import tmp from 'tmp';
-import utils from '../../src/utils-fs';
-import REST from '../../src/rest-fs';
+import { utilsFS as utils } from '../../src/utils-fs';
+import { REST_FS as REST } from '../../src/rest-fs';
 
 describe('rest-fs.bundleWorkflow', () => {
   let rest;

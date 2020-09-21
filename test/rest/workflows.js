@@ -2,7 +2,7 @@ import sinon from 'sinon';
 import assert from 'assert';
 import bunyan from 'bunyan';
 import { merge } from 'lodash';
-import REST from '../../src/rest';
+import { REST } from '../../src/rest';
 
 describe('rest.workflow', () => {
   const restFactory = (opts) => {

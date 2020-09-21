@@ -1,8 +1,8 @@
 import { merge } from 'lodash';
 import proxy from 'proxy-agent'; // odd one out
 import { Logger } from './Logger';
-import REST from './rest';
-import GraphQL from './graphql';
+import { REST } from './rest';
+import { GraphQL } from './graphql';
 import { Index, isIndex, asRecord } from './runtime-typecast';
 
 interface SessionManagerOptions {

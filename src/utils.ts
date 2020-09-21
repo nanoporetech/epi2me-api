@@ -46,7 +46,7 @@ export interface UtilityOptions {
   legacy_form?: boolean;
 }
 
-const utils: Utility = (function magic(): Utility {
+export const utils: Utility = (function magic(): Utility {
   const internal = {
     sign: (req: AxiosRequestConfig, options?: UtilityOptions): void => {
       // unable to sign if options is undefined
@@ -347,5 +347,3 @@ const utils: Utility = (function magic(): Utility {
     },
   };
 })();
-
-export default utils;

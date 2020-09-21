@@ -13,18 +13,19 @@ import { EOL, homedir } from 'os';
 import path from 'path';
 import { resolve } from 'url';
 import DB from './db';
-import EPI2ME from './epi2me';
-import Factory from './factory';
+import { EPI2ME } from './epi2me';
+import { Factory } from './factory';
 import filestats, { MappedFileStats } from './filestats';
 import niceSize from './niceSize';
-import Profile from './profile-fs';
+import { ProfileFS as Profile } from './profile-fs';
 import PromisePipeline from './promise-pipeline';
-import REST_FS from './rest-fs';
-import SampleReader from './sample-reader';
+import { REST_FS } from './rest-fs';
+import { SampleReader } from './sample-reader';
 import SessionManager from './session-manager';
 import fastqSplitter from './splitters/fastq';
 import fastqGzipSplitter from './splitters/fastq-gz';
-import utils, { FileStat } from './utils-fs';
+import type { FileStat } from './utils-fs';
+import { utilsFS as utils } from './utils-fs';
 import { ObjectDict } from './ObjectDict';
 import {
   asOptString,
@@ -73,7 +74,7 @@ const rootDir = (): string => {
   return process.env.EPI2ME_HOME ?? path.join(appData, process.platform === 'linux' ? '.epi2me' : 'EPI2ME');
 };
 
-export default class EPI2ME_FS extends EPI2ME {
+export class EPI2ME_FS extends EPI2ME {
   static version = utils.version;
   static REST = REST_FS;
   static utils = utils;
