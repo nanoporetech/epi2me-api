@@ -10,7 +10,7 @@ import WorkflowInstanceFragment from './fragments/WorkflowInstanceFragment';
 import { createClient } from './gql-client';
 import { Network } from './network';
 import { NoopLogMethod } from './Logger';
-import fetch, { Headers } from 'cross-fetch';
+import { fetch, Headers } from './network/fetch';
 
 import type { Logger } from './Logger';
 import type { DocumentNode } from 'graphql';
