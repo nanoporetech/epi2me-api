@@ -3,7 +3,7 @@ import { ApolloClient, NormalizedCacheObject } from '@apollo/client/core';
 import { writeCommonHeaders } from './network';
 import { signMessage } from './network/signed';
 import { createClient } from './gql-client';
-import fetch, { Headers } from 'cross-fetch';
+import { fetch, Headers } from './network/fetch';
 import { EPI2ME_OPTIONS } from './epi2me-options';
 
 export class GraphQLFS extends GraphQL {
