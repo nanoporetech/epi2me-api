@@ -1,5 +1,5 @@
 import { Network, stubFetch } from '../../src/network';
-import { Request, Response } from 'cross-fetch';
+import { Request, Response } from '../../src/network/fetch';
 import assert from 'assert';
 import { asRecord } from '../../src/runtime-typecast';
 

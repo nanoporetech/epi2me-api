@@ -1,4 +1,4 @@
-import fetch, { Request, Headers } from 'cross-fetch';
+import { fetch, Request, Headers } from './fetch';
 import { version as API_VERSION } from '../../package.json';
 import { isRecord, isString } from '../runtime-typecast';
 
