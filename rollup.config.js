@@ -110,7 +110,7 @@ const epi2meWeb = {
     ...pluginsCommon,
     copy({
       targets: [
-        { src: './build/types/src/*', dest: 'dist/web/types' },
+        { src: './build/web/types/src/*', dest: 'dist/web/types' },
         { src: './build/esm/src/*', dest: 'dist/web/esm' },
         { src: './build/cjs/src/*', dest: 'dist/web/cjs' },
         { src: './protos', dest: 'dist/web' },
