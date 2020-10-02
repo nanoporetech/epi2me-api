@@ -1,4 +1,3 @@
-import { graphQLSchema } from '.';
 import { ObjectDict } from './ObjectDict';
 import { Index } from './runtime-typecast';
 /*
