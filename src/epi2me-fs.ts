@@ -56,6 +56,7 @@ import { PromiseResult } from 'aws-sdk/lib/request';
 import { EPI2ME_OPTIONS } from './epi2me-options';
 import { GraphQLFS } from './graphql-fs';
 import { ResponseStartWorkflow } from './graphql-types';
+import { InstanceAttribute } from './factory.type';
 
 const networkStreamErrors: WeakSet<Writable> = new WeakSet();
 
@@ -219,7 +220,7 @@ export class EPI2ME_FS extends EPI2ME {
       storeResults?: boolean;
       region?: string;
       userDefined?: ObjectDict<ObjectDict>;
-      instanceAttributes?: { id_attribute: Index; value: string }[];
+      instanceAttributes?: InstanceAttribute[];
     },
     cb?: (msg: string) => void,
   ): Promise<Configuration['instance']> {

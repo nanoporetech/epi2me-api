@@ -34,6 +34,7 @@ import {
 } from './graphql-types';
 import { writeCommonHeaders } from './network';
 import { parseCoreOpts } from './parseCoreOpts';
+import { InstanceAttribute } from './factory.type';
 
 export interface GraphQLConfiguration {
   url: string;
@@ -275,7 +276,7 @@ export class GraphQL {
       storeResults?: boolean;
       region?: string;
       userDefined?: ObjectDict<ObjectDict>;
-      instanceAttributes?: { id_attribute: Index; value: string }[];
+      instanceAttributes?: InstanceAttribute[];
     }
   >(gql`
     mutation startWorkflow(
