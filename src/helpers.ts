@@ -1,4 +1,5 @@
 import { ObjectDict } from './ObjectDict';
+import { Index } from './runtime-typecast';
 /*
 Helper methods that are likely to be used by any applicaton using API.
 */
@@ -20,4 +21,20 @@ export function buildNestedUserDefined(flatUserDefined: ObjectDict): ObjectDict<
       },
     };
   }, {} as ObjectDict<ObjectDict>);
+}
+
+export function validateAndAddAttribute(
+  attributeValue: string,
+  instanceAttributes: { id_attribute: Index; value: string }[],
+  attributeDef: { idAttribute: Index; format: string },
+): void {
+  // eslint-disable-next-line @typescript-eslint/camelcase
+  const { format, idAttribute: id_attribute } = attributeDef;
+  const valueRE = new RegExp(format, 'g');
+  attributeValue &&
+    valueRE.test(attributeValue) &&
+    instanceAttributes.push({
+      id_attribute,
+      value: attributeValue,
+    });
 }
