@@ -11,23 +11,7 @@ import type { SampleReader } from './sample-reader';
 import type { UtilityFS } from './utils-fs';
 import type { Index } from './runtime-typecast';
 import type { EPI2ME_OPTIONS } from './epi2me-options';
-
-export interface InstanceAttribute {
-  id_attribute: Index;
-  value: string;
-}
-
-export interface GQLWorkflowConfig {
-  idWorkflow: Index;
-  computeAccountId: Index;
-  storageAccountId?: Index;
-  isConsentedHuman?: boolean;
-  idDataset?: Index;
-  storeResults?: boolean;
-  region?: string;
-  userDefined?: ObjectDict<ObjectDict>;
-  instanceAttributes?: InstanceAttribute[];
-}
+import { GQLWorkflowConfig } from './factory.type';
 
 function printError(log: Logger, msg: string, err: unknown): void {
   if (err instanceof Error) {

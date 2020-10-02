@@ -12,7 +12,7 @@ import {
 } from '../../../protos/workflow_pb';
 import { Workflow } from '../../../protos/workflow_pb_service';
 import { EPI2ME_OPTIONS } from '../../epi2me-options';
-import { GQLWorkflowConfig } from '../../factory';
+import { GQLWorkflowConfig } from '../../factory.type';
 import { asNumber, asString } from '../../runtime-typecast';
 import { createGrpcRequest$ } from '../utils';
 
