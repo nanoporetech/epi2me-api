@@ -1,6 +1,6 @@
 {
   "name": "@metrichor/epi2me-api",
-  "version": "4.0.920",
+  "version": "4.0.1728",
   "license": "MPL-2.0",
   "repository": "git@github.com:nanoporetech/epi2me-api.git",
   "description": "API for communicating with the EPI2ME website(s)",
@@ -127,7 +127,8 @@
     "ts:defs": "tsc --outDir dist --declarationDir dist/types --emitDeclarationOnly",
     "build:protos": "rm -rf ./protos/* && ./build_protos.sh",
     "compile:esm": "tsc --outDir build/esm -d --module esnext --declarationDir build/types --sourceMap false",
+    "compile:esm:web": "tsc --p ./tsconfig-web.json --outDir build/temp -d --module esnext --declarationDir build/web/types --sourceMap false",
     "compile:cjs": "tsc --outDir build/cjs --module commonjs --sourceMap false",
-    "package:compile": "npm run compile:esm && npm run compile:cjs"
+    "package:compile": "npm run compile:esm && npm run compile:cjs && npm run compile:esm:web"
   }
 }

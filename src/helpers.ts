@@ -1,5 +1,7 @@
 import { ObjectDict } from './ObjectDict';
 import { Index } from './runtime-typecast';
+
+import type { InstanceAttribute } from './factory.type';
 /*
 Helper methods that are likely to be used by any applicaton using API.
 */
@@ -25,7 +27,7 @@ export function buildNestedUserDefined(flatUserDefined: ObjectDict): ObjectDict<
 
 export function validateAndAddAttribute(
   attributeValue: string,
-  instanceAttributes: { id_attribute: Index; value: string }[],
+  instanceAttributes: InstanceAttribute[],
   attributeDef: { idAttribute: Index; format: string },
 ): void {
   // eslint-disable-next-line @typescript-eslint/camelcase

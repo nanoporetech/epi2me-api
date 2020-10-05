@@ -12,13 +12,17 @@ import { Network } from './network';
 import { NoopLogMethod } from './Logger';
 import { fetch, Headers } from './network/fetch';
 
+import { asBoolean, Index } from './runtime-typecast';
+import { writeCommonHeaders } from './network';
+import { parseCoreOpts } from './parseCoreOpts';
+
 import type { Logger } from './Logger';
 import type { DocumentNode } from 'graphql';
 import type { ObjectDict } from './ObjectDict';
 import type { ApolloQueryResult, FetchResult, NormalizedCacheObject, ApolloClient } from '@apollo/client/core';
 import type { EPI2ME_OPTIONS } from './epi2me-options';
-import { asBoolean, Index } from './runtime-typecast';
-import {
+import type { InstanceAttribute } from './factory.type';
+import type {
   ResponseWorkflowInstance,
   ResponseAllWorkflowInstances,
   ResponseStartWorkflow,
@@ -32,8 +36,6 @@ import {
   ResponseStatus,
   ResponseRegions,
 } from './graphql-types';
-import { writeCommonHeaders } from './network';
-import { parseCoreOpts } from './parseCoreOpts';
 
 export interface GraphQLConfiguration {
   url: string;
@@ -275,7 +277,7 @@ export class GraphQL {
       storeResults?: boolean;
       region?: string;
       userDefined?: ObjectDict<ObjectDict>;
-      instanceAttributes?: { id_attribute: Index; value: string }[];
+      instanceAttributes?: InstanceAttribute[];
     }
   >(gql`
     mutation startWorkflow(

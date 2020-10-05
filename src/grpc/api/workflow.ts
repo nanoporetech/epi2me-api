@@ -12,9 +12,10 @@ import {
 } from '../../../protos/workflow_pb';
 import { Workflow } from '../../../protos/workflow_pb_service';
 import { EPI2ME_OPTIONS } from '../../epi2me-options';
-import { GQLWorkflowConfig } from '../../factory';
 import { asNumber, asString } from '../../runtime-typecast';
 import { createGrpcRequest$ } from '../utils';
+
+import type { GQLWorkflowConfig } from '../../factory.type';
 
 export class WorkflowApi {
   private readonly _destroySubs$ = new Subject();

@@ -24,12 +24,12 @@ import { SampleReader } from './sample-reader';
 import SessionManager from './session-manager';
 import fastqSplitter from './splitters/fastq';
 import fastqGzipSplitter from './splitters/fastq-gz';
-import type { FileStat } from './utils-fs';
 import { utilsFS as utils } from './utils-fs';
 import { ObjectDict } from './ObjectDict';
 import {
   asOptString,
   isArray,
+  isString,
   asString,
   asOptNumber,
   isUndefined,
@@ -50,12 +50,14 @@ import {
 import { FetchResult, gql } from '@apollo/client/core';
 import { Configuration } from './Configuration';
 import { createInterval, DisposeTimer, createTimeout } from './timers';
-import { isString } from 'util';
 import { Readable, Writable } from 'stream';
 import { PromiseResult } from 'aws-sdk/lib/request';
 import { EPI2ME_OPTIONS } from './epi2me-options';
 import { GraphQLFS } from './graphql-fs';
-import { ResponseStartWorkflow } from './graphql-types';
+
+import type { FileStat } from './utils-fs';
+import type { ResponseStartWorkflow } from './graphql-types';
+import type { InstanceAttribute } from './factory.type';
 
 const networkStreamErrors: WeakSet<Writable> = new WeakSet();
 
@@ -219,7 +221,7 @@ export class EPI2ME_FS extends EPI2ME {
       storeResults?: boolean;
       region?: string;
       userDefined?: ObjectDict<ObjectDict>;
-      instanceAttributes?: { id_attribute: Index; value: string }[];
+      instanceAttributes?: InstanceAttribute[];
     },
     cb?: (msg: string) => void,
   ): Promise<Configuration['instance']> {
