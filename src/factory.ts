@@ -11,7 +11,7 @@ import type { SampleReader } from './sample-reader';
 import type { UtilityFS } from './utils-fs';
 import type { Index } from './runtime-typecast';
 import type { EPI2ME_OPTIONS } from './epi2me-options';
-import { GQLWorkflowConfig } from './factory.type';
+import type { GQLWorkflowConfig } from './factory.type';
 
 function printError(log: Logger, msg: string, err: unknown): void {
   if (err instanceof Error) {

@@ -1,6 +1,7 @@
-import { InstanceAttribute } from './factory.type';
 import { ObjectDict } from './ObjectDict';
 import { Index } from './runtime-typecast';
+
+import type { InstanceAttribute } from './factory.type';
 /*
 Helper methods that are likely to be used by any applicaton using API.
 */
