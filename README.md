@@ -168,3 +168,10 @@ If a directory is given, then workflows returns all files in that directory, and
 As this is readonly, if workflow receives and object, it immediately returns the cb with that object;
 
 If any other methods are called, then they populate the error argument to the callback with a message.
+
+
+### Development
+
+#### Updating the GraphQL type definitions
+
+The majority of the the GraphQL types in the project are generated directly from the schema file. To update them replace the `./schema.graphql` file with the revised schema, then run `npm run build:graphql` to update the generated types. 

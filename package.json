@@ -1,6 +1,6 @@
 {
   "name": "@metrichor/epi2me-api",
-  "version": "4.0.1728",
+  "version": "4.0.1622",
   "license": "MPL-2.0",
   "repository": "git@github.com:nanoporetech/epi2me-api.git",
   "description": "API for communicating with the EPI2ME website(s)",
@@ -44,6 +44,8 @@
     "tunnel": "^0.0.6"
   },
   "devDependencies": {
+    "@graphql-codegen/cli": "1.17.10",
+    "@graphql-codegen/typescript": "1.17.10",
     "@rollup/plugin-commonjs": "^14.0.0",
     "@rollup/plugin-json": "^4.1.0",
     "@rollup/plugin-node-resolve": "^8.4.0",
@@ -129,6 +131,7 @@
     "compile:esm": "tsc --outDir build/esm -d --module esnext --declarationDir build/types --sourceMap false",
     "compile:esm:web": "tsc --p ./tsconfig-web.json --outDir build/temp -d --module esnext --declarationDir build/web/types --sourceMap false",
     "compile:cjs": "tsc --outDir build/cjs --module commonjs --sourceMap false",
-    "package:compile": "npm run compile:esm && npm run compile:cjs && npm run compile:esm:web"
+    "package:compile": "npm run compile:esm && npm run compile:cjs && npm run compile:esm:web",
+    "build:graphql": "graphql-codegen --config .gql-codegen.yml && eslint ./src/generated/graphql.type.ts --fix"
   }
 }
