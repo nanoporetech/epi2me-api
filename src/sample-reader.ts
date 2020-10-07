@@ -1,20 +1,7 @@
 import { fdir } from 'fdir';
 import path from 'path';
 import DEFAULTS from './default_options.json';
-import { ObjectDict } from './ObjectDict';
-
-export interface Sample {
-  flowcell: string;
-  sample: string;
-  path: string;
-}
-
-export interface Experiment {
-  samples: Sample[];
-  startDate: string;
-}
-
-export type Experiments = ObjectDict<Experiment>;
+import type { Experiments } from './sample.type';
 
 export class SampleReader {
   /*
