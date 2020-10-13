@@ -16,7 +16,6 @@ import Socket from './socket';
 import { utils } from './utils';
 import { ObjectDict } from './ObjectDict';
 import { Logger } from './Logger';
-import { EPI2ME_OPTIONS } from './epi2me-options';
 import {
   asRecord,
   asOptString,
@@ -43,12 +42,16 @@ import {
   SuccessState,
   ProgressState,
 } from './epi2me-state';
-import { Configuration } from './Configuration';
-import { DisposeTimer, createInterval } from './timers';
 
+import { createInterval } from './timers';
+import { parseCoreOpts } from './parseCoreOpts';
+
+import type { EPI2ME_OPTIONS } from './epi2me-options';
+import type { DisposeTimer } from './timers';
+import type { Configuration } from './Configuration';
 import type { REST_FS } from './rest-fs';
 import type { ProfileFS } from './profile-fs';
-import { parseCoreOpts } from './parseCoreOpts';
+import { filter, mapTo, skipWhile, takeWhile } from 'rxjs/operators';
 
 export class EPI2ME {
   static version = utils.version;
@@ -57,12 +60,21 @@ export class EPI2ME {
   static utils = utils;
 
   readonly log: Logger;
+  // TODO this is only used in FS, it should be moved
   stopped = true;
 
   uploadState$ = new BehaviorSubject(false);
   analyseState$ = new BehaviorSubject(false);
   reportState$ = new BehaviorSubject(false);
   runningStates$ = combineLatest(this.uploadState$, this.analyseState$, this.reportState$);
+
+  // NOTE emits a signal exactly once, after uploadState changes from true, to false
+  uploadStopped$ = this.uploadState$.pipe(
+    skipWhile((state) => !state),
+    takeWhile((state) => state, true),
+    filter((state) => !state),
+    mapTo(true),
+  );
 
   instanceTelemetry$ = new BehaviorSubject<unknown[]>([]);
   experimentalWorkerStatus$ = new BehaviorSubject<
