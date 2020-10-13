@@ -1,6 +1,6 @@
 import { EPI2ME_FS } from './epi2me-fs';
 import { BehaviorSubject, Subject, merge } from 'rxjs';
-import { withLatestFrom, map } from 'rxjs/operators';
+import { withLatestFrom, map, mapTo } from 'rxjs/operators';
 import { Map as ImmutableMap } from 'immutable';
 
 import type { REST_FS } from './rest-fs';
@@ -34,7 +34,7 @@ export class Factory {
   readonly runningInstances$: BehaviorSubject<ImmutableMap<Index, EPI2ME_FS>> = new BehaviorSubject(ImmutableMap());
 
   private readonly addRunningInstance$: Subject<EPI2ME_FS> = new Subject();
-  private readonly removeRunningInstanceById$: Subject<string> = new Subject();
+  private readonly removeRunningInstanceById$: Subject<Index> = new Subject();
 
   constructor(api: typeof EPI2ME_FS, opts: Partial<EPI2ME_OPTIONS> = {}) {
     this.EPI2ME = api;
@@ -118,6 +118,7 @@ export class Factory {
     try {
       await inst.autoStart(workflowConfig);
       this.addRunningInstance$.next(inst);
+      inst.uploadStopped$.pipe(mapTo(inst.id)).subscribe(this.removeRunningInstanceById$);
     } catch (startErr) {
       printError(this.log, 'Experienced error starting', startErr);
       try {
