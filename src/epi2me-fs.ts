@@ -689,8 +689,6 @@ export class EPI2ME_FS extends EPI2ME {
       };
 
       while (files.length) {
-        this.log.debug('CHUNK FUNKING');
-        this.log.debug(files, files.length);
         await chunkFunc(); // eslint-disable-line no-await-in-loop
       }
     } catch (err) {
