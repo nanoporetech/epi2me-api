@@ -528,9 +528,9 @@ export class EPI2ME_FS extends EPI2ME {
     await this.sessionManager.session();
 
     this.reportProgress();
+    this.uploadState$.next(true);
     // MC-5418: ensure that the session has been established before starting the upload
     this.loadUploadFiles(); // Trigger once at workflow instance start
-    this.uploadState$.next(true);
     this.timers.fileCheckInterval = createInterval(
       this.config.options.fileCheckInterval * 1000,
       this.loadUploadFiles.bind(this),
