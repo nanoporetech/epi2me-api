@@ -56,6 +56,7 @@ describe('epi2me.loadUploadFiles', () => {
 
   it('should do work and resolve if work to do', async () => {
     const client = clientFactory();
+    client.uploadState$.next(true);
     stubs.push(sinon.stub(client, 'enqueueUploadFiles').resolves());
     stubs.push(sinon.stub(utils, 'loadInputFiles').resolves(['file-a.fastq', 'file-b.fastq']));
 

@@ -658,7 +658,7 @@ export class EPI2ME_FS extends EPI2ME {
       let running = 0;
       const chunkFunc = (): Promise<void> => {
         return new Promise((resolve) => {
-          if (this.stopped) {
+          if (this.stopped || !this.uploadState$.getValue()) {
             files.length = 0;
             this.log.debug(`upload: skipping, stopped`);
             resolve();
@@ -689,6 +689,8 @@ export class EPI2ME_FS extends EPI2ME {
       };
 
       while (files.length) {
+        this.log.debug('CHUNK FUNKING');
+        this.log.debug(files, files.length);
         await chunkFunc(); // eslint-disable-line no-await-in-loop
       }
     } catch (err) {
