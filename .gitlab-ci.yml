@@ -67,7 +67,6 @@ publish_experimental:
       when: never
     - if: '$CI_PIPELINE_SOURCE == "push"'
       when: manual
-      allow_failure: false
   variables:
     TAG: 'experimental'
 
