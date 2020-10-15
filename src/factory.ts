@@ -102,6 +102,11 @@ export class Factory {
     });
   }
 
+  private manageInstance(inst: EPI2ME_FS): void {
+    this.addRunningInstance$.next(inst);
+    inst.uploadStopped$.pipe(mapTo(inst.id)).subscribe(this.removeRunningInstanceById$);
+  }
+
   async startRun(
     options: Partial<EPI2ME_OPTIONS>,
     workflowConfig: {
@@ -117,8 +122,7 @@ export class Factory {
     const inst = this.instantiate(options);
     try {
       await inst.autoStart(workflowConfig);
-      this.addRunningInstance$.next(inst);
-      inst.uploadStopped$.pipe(mapTo(inst.id)).subscribe(this.removeRunningInstanceById$);
+      this.manageInstance(inst);
     } catch (startErr) {
       printError(this.log, 'Experienced error starting', startErr);
       try {
@@ -138,7 +142,7 @@ export class Factory {
     const inst = this.instantiate({ ...options, useGraphQL: true });
     try {
       await inst.autoStartGQL(variables);
-      this.addRunningInstance$.next(inst);
+      this.manageInstance(inst);
     } catch (startErr) {
       printError(this.log, 'Experienced error starting', startErr);
       try {
