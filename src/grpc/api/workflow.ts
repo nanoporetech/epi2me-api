@@ -6,6 +6,7 @@ import { map, takeUntil } from 'rxjs/operators';
 import {
   RunningInstancesReply,
   RunningInstanceStateReply,
+  StartReply,
   StartRequest,
   StopReply,
   WorkflowInstanceByIdRequest,
@@ -49,7 +50,7 @@ export class WorkflowApi {
   public start$(
     options: Partial<EPI2ME_OPTIONS> & { apikey: string; apisecret: string; inputFolders: string[] },
     workflowConfig: GQLWorkflowConfig & { computeAccountId: string },
-  ): Observable<RunningInstancesReply.AsObject> {
+  ): Observable<StartReply.AsObject> {
     const request = new StartRequest();
 
     const { apikey, apisecret, url, inputFolders, outputFolder } = options;
@@ -93,10 +94,10 @@ export class WorkflowApi {
       request.addInstanceattributes(newInstanceAttr);
     }
 
-    return createGrpcRequest$<Empty, RunningInstancesReply>(
+    return createGrpcRequest$<StartRequest, StartReply>(
       this._url,
       { jwt: this._jwt },
-      Workflow.running,
+      Workflow.start,
       request,
       false,
       this._transport,
