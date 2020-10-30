@@ -107,7 +107,7 @@ export class WorkflowApi {
     );
   }
 
-  private stop(id: string, service: any): Observable<StopReply.AsObject> {
+  private stop$(id: string, service: any): Observable<StopReply.AsObject> {
     const request = new WorkflowInstanceByIdRequest();
     request.setIdworkflowinstance(id);
 
@@ -124,15 +124,15 @@ export class WorkflowApi {
     );
   }
 
-  public stopUpload(id: string): Observable<StopReply.AsObject> {
-    return this.stop(id, Workflow.stopUpload);
+  public stopUpload$(id: string): Observable<StopReply.AsObject> {
+    return this.stop$(id, Workflow.stopUpload);
   }
 
-  public stopAnalysis(id: string): Observable<StopReply.AsObject> {
-    return this.stop(id, Workflow.stopUpload);
+  public stopAnalysis$(id: string): Observable<StopReply.AsObject> {
+    return this.stop$(id, Workflow.stopAnalysis);
   }
 
-  public state(id: string): Observable<RunningInstanceStateReply.AsObject> {
+  public state$(id: string): Observable<RunningInstanceStateReply.AsObject> {
     const request = new WorkflowInstanceByIdRequest();
     request.setIdworkflowinstance(id);
 
