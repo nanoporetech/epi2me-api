@@ -1,3 +1,5 @@
+// Adding project: 'tsconfig.json fails
+// because not all tests are TS
 module.exports = {
   root: true,
   parser: '@typescript-eslint/parser',
