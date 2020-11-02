@@ -9,6 +9,6 @@ module.exports = {
   plugins: ['rxjs'],
   rules: {
     'rxjs/finnish': 'error',
-    'rxjs/no-subject-value': 'off',
+    'rxjs/no-subject-value': 'warn', // demote to warn, as we use it
   },
 };
