@@ -4,10 +4,9 @@
  */
 import fs from 'fs-extra';
 import path from 'path';
+import { Dictionary, asOptRecord, asOptFunction, asFunction, asRecord, isFunction } from 'ts-runtime-typecheck';
 import { AsyncCallback, REST } from './rest';
 import { utilsFS as utils } from './utils-fs';
-import { isFunction, asFunction, asRecord, asOptFunction, asOptRecord } from './runtime-typecast';
-import { ObjectDict } from './ObjectDict';
 
 export class REST_FS extends REST {
   async workflows(cb?: AsyncCallback): Promise<unknown> {
@@ -33,7 +32,7 @@ export class REST_FS extends REST {
     }
   }
 
-  async workflow(id: string | ObjectDict, obj?: ObjectDict | Function, cb?: Function): Promise<unknown> {
+  async workflow(id: string | Dictionary, obj?: Dictionary | Function, cb?: Function): Promise<unknown> {
     if (!this.options.local || !id || typeof id === 'object' || cb) {
       // yuck. probably wrong.
       return super.workflow(id, obj, cb);
@@ -56,7 +55,7 @@ export class REST_FS extends REST {
     return fs.readJSON(filename);
   }
 
-  async workflowInstances(first?: ObjectDict | AsyncCallback, second?: ObjectDict): Promise<unknown> {
+  async workflowInstances(first?: Dictionary | AsyncCallback, second?: Dictionary): Promise<unknown> {
     if (!this.options.local) {
       if (isFunction(first) || second) {
         throw new Error('Local workflows cannot accept a callback');

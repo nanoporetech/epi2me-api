@@ -1,11 +1,11 @@
-import { ObjectDict } from './ObjectDict';
+import type { Dictionary } from 'ts-runtime-typecheck';
 
 export interface UploadState {
   filesCount: number; // internal. do not use
   success: SuccessState;
   //        failure: {}, // failed upload counts by error message
-  types: ObjectDict<number>; // completely uploaded file counts by file type {".fastq": 1, ".vcf": 17}
-  failure?: ObjectDict;
+  types: Dictionary<number>; // completely uploaded file counts by file type {".fastq": 1, ".vcf": 17}
+  failure?: Dictionary;
   niceTypes: string; // "1 .fastq, 17.vcf"
   progress: ProgressState;
 }
@@ -30,9 +30,9 @@ export interface DownloadState {
   progress: ProgressState;
   success: SuccessState;
   fail: number;
-  failure?: ObjectDict;
+  failure?: Dictionary;
   //        failure: {}, // failed download count by error message
-  types: ObjectDict<number>; // completely downloaded file counts by file type {".fastq": 17, ".vcf": 1}
+  types: Dictionary<number>; // completely downloaded file counts by file type {".fastq": 17, ".vcf": 1}
   niceTypes: string; // "17 .fastq, 1.vcf"
 }
 

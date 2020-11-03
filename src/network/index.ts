@@ -1,8 +1,8 @@
 import { fetch, Request, Headers } from './fetch';
 import { version as API_VERSION } from '../../package.json';
-import { isRecord, isString } from '../runtime-typecast';
+import { isRecord, isString } from 'ts-runtime-typecheck';
 
-import type { ObjectDict } from '../ObjectDict';
+import type { Dictionary } from 'ts-runtime-typecheck';
 import type { RequestOptions, ExtendedRequestOptions } from './RequestOptions';
 import type { Body } from './Body';
 import type { NetworkInterface } from './NetworkInterface';
@@ -89,7 +89,7 @@ async function makeRequest(uri: string, options: ExtendedRequestOptions): Promis
   return response;
 }
 
-function encodeBody(rawBody: Body | ObjectDict, encoding: 'json' | 'url'): Body {
+function encodeBody(rawBody: Body | Dictionary, encoding: 'json' | 'url'): Body {
   if (isRecord(rawBody)) {
     if (encoding === 'json') {
       return JSON.stringify(rawBody);
@@ -119,13 +119,13 @@ export const Network: NetworkInterface = {
     return checkJsonResponseForError(response);
   },
 
-  async post(uri: string, rawBody: Body | ObjectDict, options: RequestOptions = {}): Promise<unknown> {
+  async post(uri: string, rawBody: Body | Dictionary, options: RequestOptions = {}): Promise<unknown> {
     const body = encodeBody(rawBody, options.encode_method ?? 'json');
     const response = await makeRequest(uri, { ...options, body, method: 'post' });
     return checkJsonResponseForError(response);
   },
 
-  async put(uri: string, rawBody: Body | ObjectDict, options: RequestOptions = {}): Promise<unknown> {
+  async put(uri: string, rawBody: Body | Dictionary, options: RequestOptions = {}): Promise<unknown> {
     const body = encodeBody(rawBody, options.encode_method ?? 'json');
     const response = await makeRequest(uri, { ...options, body, method: 'put' });
     return checkJsonResponseForError(response);

@@ -6,10 +6,9 @@ import { Map as ImmutableMap } from 'immutable';
 import type { REST_FS } from './rest-fs';
 import type { GraphQL } from './graphql';
 import type { Logger } from './Logger';
-import type { ObjectDict } from './ObjectDict';
 import type { SampleReader } from './sample-reader';
 import type { UtilityFS } from './utils-fs';
-import type { Index } from './runtime-typecast';
+import type { Index, Dictionary } from 'ts-runtime-typecheck';
 import type { EPI2ME_OPTIONS } from './epi2me-options';
 import type { GQLWorkflowConfig } from './factory.type';
 
@@ -139,7 +138,7 @@ export class Factory {
    * @param {Object<string, any>} options
    * @param {GQLRunVariables} variables { userDefined: { [componentID]: { [paramOverride]: any } } }
    */
-  async startGQLRun(options: ObjectDict, variables: GQLWorkflowConfig): Promise<EPI2ME_FS> {
+  async startGQLRun(options: Dictionary, variables: GQLWorkflowConfig): Promise<EPI2ME_FS> {
     const inst = this.instantiate({ ...options, useGraphQL: true });
     try {
       await inst.autoStartGQL(variables);

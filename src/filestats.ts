@@ -3,7 +3,7 @@ import bytes from './filestats/default';
 import fasta from './filestats/fasta';
 import fastq from './filestats/fastq';
 import fastqgz from './filestats/fastqgz';
-import { isUndefined } from './runtime-typecast';
+import { isUndefined } from 'ts-runtime-typecheck';
 
 const mapping = new Map([
   ['fastq', fastq],

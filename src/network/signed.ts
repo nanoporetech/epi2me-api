@@ -11,7 +11,7 @@ import type { RequestOptions } from './RequestOptions';
 import type { Body } from './Body';
 import type { Credentials } from './Credentials';
 import type { NetworkInterface } from './NetworkInterface';
-import { asString } from '../runtime-typecast';
+import { asString } from 'ts-runtime-typecheck';
 
 export function signMessage(
   headers: Headers,

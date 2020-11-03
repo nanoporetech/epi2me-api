@@ -11,22 +11,22 @@ import { EPI2ME_OPTIONS } from './epi2me-options';
 import { AxiosResponse } from 'axios';
 import {
   asArray,
-  asRecord,
-  asString,
   asArrayRecursive,
-  isUndefined,
-  isFunction,
-  isArray,
   asIndex,
   asIndexable,
   asOptArrayRecursive,
-  asOptIndex,
-  Index,
-  asOptString,
   asOptFunction,
-} from './runtime-typecast';
-
-import { ObjectDict } from './ObjectDict';
+  asOptIndex,
+  asOptString,
+  asRecord,
+  asString,
+  Index,
+  isArray,
+  isFunction,
+  isUndefined,
+  Dictionary,
+  isDefined,
+} from 'ts-runtime-typecheck';
 
 export type AsyncCallback = (err: unknown, data: unknown) => void;
 
@@ -37,7 +37,7 @@ export class REST {
     string,
     {
       etag: string;
-      response: ObjectDict;
+      response: Dictionary;
     }
   > = new Map();
 
@@ -55,11 +55,11 @@ export class REST {
     return asArray(json[`${entityName[0]}s`]);
   }
 
-  read(entity: string, id: string): Promise<ObjectDict> {
+  read(entity: string, id: string): Promise<Dictionary> {
     return utils.get(`${entity}/${id}`, this.options);
   }
 
-  async user(): Promise<ObjectDict> {
+  async user(): Promise<Dictionary> {
     if (this.options.local) {
       return {
         accounts: [
@@ -106,7 +106,7 @@ export class REST {
     return asString(result);
   }
 
-  async instanceToken(id: unknown, opts: {}): Promise<ObjectDict> {
+  async instanceToken(id: unknown, opts: {}): Promise<Dictionary> {
     return utils.post(
       'token',
       merge(opts, {
@@ -118,7 +118,7 @@ export class REST {
     );
   }
 
-  async installToken(id: unknown): Promise<ObjectDict> {
+  async installToken(id: unknown): Promise<Dictionary> {
     return utils.post(
       'token/install',
       {
@@ -162,7 +162,7 @@ export class REST {
    * @deprecated
    * Use the more specific updateAmiImage/createAmiImage/readAmiImage calls
    */
-  amiImage(first: string | ObjectDict, second?: ObjectDict): Promise<ObjectDict> {
+  amiImage(first: string | Dictionary, second?: Dictionary): Promise<Dictionary> {
     if (this.options.local) {
       throw new Error('ami_image unsupported in local mode');
     }
@@ -179,19 +179,19 @@ export class REST {
     }
   }
 
-  updateAmiImage(id: string, obj: ObjectDict): Promise<ObjectDict> {
+  updateAmiImage(id: string, obj: Dictionary): Promise<Dictionary> {
     return utils.put('ami_image', id, obj, this.options);
   }
 
-  createAmiImage(obj: ObjectDict): Promise<ObjectDict> {
+  createAmiImage(obj: Dictionary): Promise<Dictionary> {
     return utils.post('ami_image', obj, this.options);
   }
 
-  readAmiImage(id: string): Promise<ObjectDict> {
+  readAmiImage(id: string): Promise<Dictionary> {
     return this.read('ami_image', id);
   }
 
-  async workflow(first: string | ObjectDict, second?: ObjectDict | Function, third?: Function): Promise<unknown> {
+  async workflow(first: string | Dictionary, second?: Dictionary | Function, third?: Function): Promise<unknown> {
     if (first && second && third instanceof Function) {
       return this.updateWorkflow(asString(first), asRecord(second), third);
     } else if (first && second instanceof Object && !(second instanceof Function)) {
@@ -213,7 +213,7 @@ export class REST {
       return cb ? cb(err) : Promise.reject(err);
     }
 
-    const workflow: ObjectDict = {};
+    const workflow: Dictionary = {};
     try {
       const struct = await this.read('workflow', id);
       if (struct.error) {
@@ -255,10 +255,10 @@ export class REST {
 
     const toFetch = Object.values(params)
       .map((value: unknown) => asRecord(value))
-      .filter((obj: ObjectDict) => obj.widget === 'ajax_dropdown');
+      .filter((obj: Dictionary) => obj.widget === 'ajax_dropdown');
 
     const promises = [
-      ...toFetch.map(async (param: ObjectDict) => {
+      ...toFetch.map(async (param: Dictionary) => {
         if (isUndefined(param)) {
           // NOTE should be unreachable
           throw new Error('parameter is undefined');
@@ -270,7 +270,7 @@ export class REST {
           .replace('{{EPI2ME_HOST}}', '')
           .replace(/&?apikey=\{\{EPI2ME_API_KEY\}\}/, '');
 
-        let workflowParam;
+        let workflowParam: Dictionary;
         try {
           workflowParam = await utils.get(uri, this.options);
         } catch (err) {
@@ -286,7 +286,7 @@ export class REST {
 
         const index = asOptIndex(values.data_root);
         // NOTE dataRoot appears to be an array of object/arrays
-        const dataRoot = asOptArrayRecursive(isUndefined(index) ? index : workflowParam[index], asIndexable); // e.g. [{dataset},{dataset}]
+        const dataRoot = isDefined(index) && asOptArrayRecursive(asIndexable)(workflowParam[index]); // e.g. [{dataset},{dataset}]
 
         if (dataRoot) {
           param.values = dataRoot.map((o) => ({
@@ -315,7 +315,7 @@ export class REST {
     return workflow;
   }
 
-  async updateWorkflow(id: string, obj: ObjectDict, cb?: Function): Promise<ObjectDict> {
+  async updateWorkflow(id: string, obj: Dictionary, cb?: Function): Promise<Dictionary> {
     const promise = utils.put('workflow', id, obj, this.options);
     if (cb) {
       try {
@@ -327,7 +327,7 @@ export class REST {
     return promise;
   }
 
-  async createWorkflow(obj: ObjectDict, cb?: Function): Promise<ObjectDict> {
+  async createWorkflow(obj: Dictionary, cb?: Function): Promise<Dictionary> {
     const promise = utils.post('workflow', obj, this.options);
     if (cb) {
       try {
@@ -339,11 +339,11 @@ export class REST {
     return promise;
   }
 
-  async startWorkflow(config: ObjectDict): Promise<ObjectDict> {
+  async startWorkflow(config: Dictionary): Promise<Dictionary> {
     return utils.post('workflow_instance', config, { ...this.options, legacy_form: true });
   }
 
-  async stopWorkflow(idWorkflowInstance: Index): Promise<ObjectDict> {
+  async stopWorkflow(idWorkflowInstance: Index): Promise<Dictionary> {
     return utils.put(
       'workflow_instance/stop',
       idWorkflowInstance.toString(),
@@ -362,8 +362,8 @@ export class REST {
       this.options,
     );
 
-    const data = asArrayRecursive(json.data, asRecord);
-    return data.map((o: ObjectDict) => ({
+    const data = asArrayRecursive(asRecord)(json.data);
+    return data.map((o: Dictionary) => ({
       id_workflow_instance: o.id_ins,
       id_workflow: o.id_flo,
       run_id: o.run_id,
@@ -372,15 +372,15 @@ export class REST {
     }));
   }
 
-  async workflowInstance(id: Index): Promise<ObjectDict> {
+  async workflowInstance(id: Index): Promise<Dictionary> {
     return this.read('workflow_instance', id + '');
   }
 
-  async workflowConfig(id: string): Promise<ObjectDict> {
+  async workflowConfig(id: string): Promise<Dictionary> {
     return utils.get(`workflow/config/${id}`, this.options);
   }
 
-  async register(code: string, description: unknown): Promise<ObjectDict> {
+  async register(code: string, description: unknown): Promise<Dictionary> {
     return utils.put(
       'reg',
       code,
@@ -408,7 +408,7 @@ export class REST {
     }
 
     const sets = await this.list(`dataset?show=${query.show}`);
-    return asArrayRecursive(sets, asRecord);
+    return asArrayRecursive(asRecord)(sets);
   }
 
   async dataset(id: string): Promise<unknown> {
@@ -416,12 +416,12 @@ export class REST {
       return this.read('dataset', id);
     }
 
-    const datasets = asArrayRecursive(await this.datasets(), asRecord);
+    const datasets = asArrayRecursive(asRecord)(await this.datasets());
 
     return datasets.find((o) => o.id_dataset === id);
   }
 
-  async fetchContent(url: string): Promise<ObjectDict> {
+  async fetchContent(url: string): Promise<Dictionary> {
     const options = {
       ...this.options,
       skip_url_mangle: true,

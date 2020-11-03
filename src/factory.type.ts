@@ -1,5 +1,4 @@
-import { ObjectDict } from './ObjectDict';
-import { Index } from './runtime-typecast';
+import type { Index, Dictionary } from 'ts-runtime-typecheck';
 
 export interface InstanceAttribute {
   id_attribute: Index;
@@ -14,6 +13,6 @@ export interface GQLWorkflowConfig {
   idDataset?: Index;
   storeResults?: boolean;
   region?: string;
-  userDefined?: ObjectDict<ObjectDict>;
+  userDefined?: Dictionary<Dictionary>;
   instanceAttributes?: InstanceAttribute[];
 }

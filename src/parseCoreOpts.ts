@@ -1,9 +1,9 @@
-import { ObjectDict } from './ObjectDict';
-import { EPI2ME_OPTIONS } from './epi2me-options';
-import { asString, isRecord, asBoolean, asOptString, asFunction } from './runtime-typecast';
+import type { EPI2ME_OPTIONS } from './epi2me-options';
+import type { Dictionary } from 'ts-runtime-typecheck';
 import { LogMethod, Logger, FallbackLogger } from './Logger';
 import { version as VERSION } from '../package.json';
 import DEFAULTS from './default_options.json';
+import { isRecord, asFunction, asString, asBoolean, asOptString } from 'ts-runtime-typecheck';
 
 function resolveLogger(log: unknown): Logger {
   if (isRecord(log)) {
@@ -23,7 +23,7 @@ function resolveLogger(log: unknown): Logger {
 }
 
 export function parseCoreOpts(
-  opt: ObjectDict | Partial<EPI2ME_OPTIONS>,
+  opt: Dictionary | Partial<EPI2ME_OPTIONS>,
 ): {
   url: string;
   apikey?: string;

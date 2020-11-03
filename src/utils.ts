@@ -6,11 +6,10 @@
 
 import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 import crypto from 'crypto';
+import { Dictionary, isRecord } from 'ts-runtime-typecheck';
 import * as tunnel from 'tunnel';
 import { version as VERSION } from '../package.json';
 import { NoopLogger, LogMethod } from './Logger';
-import { ObjectDict } from './ObjectDict';
-import { isRecord } from './runtime-typecast';
 
 axios.defaults.validateStatus = (status: number): boolean => status <= 504; // Reject only if the status code is greater than or equal to 500
 
@@ -18,16 +17,16 @@ export interface Utility {
   version: string;
   headers(request: AxiosRequestConfig, options: UtilityOptions): void;
   head(uri: string, options: UtilityOptions): Promise<AxiosResponse>;
-  get(uri: string, options: UtilityOptions): Promise<ObjectDict>;
-  post<T = ObjectDict>(
+  get(uri: string, options: UtilityOptions): Promise<Dictionary>;
+  post<T = Dictionary>(
     uriIn: string,
-    obj: ObjectDict,
+    obj: Dictionary,
     options: UtilityOptions & { handler?: (res: AxiosResponse) => Promise<T> },
-  ): Promise<T | ObjectDict>;
-  put(uri: string, id: string, obj: ObjectDict, options: UtilityOptions): Promise<ObjectDict>;
+  ): Promise<T | Dictionary>;
+  put(uri: string, id: string, obj: Dictionary, options: UtilityOptions): Promise<Dictionary>;
   mangleURL(uri: string, options: UtilityOptions): string;
-  processLegacyForm(req: AxiosRequestConfig, data: ObjectDict): void;
-  convertResponseToObject(data: string | ObjectDict): ObjectDict;
+  processLegacyForm(req: AxiosRequestConfig, data: Dictionary): void;
+  convertResponseToObject(data: string | Dictionary): Dictionary;
 }
 
 export interface UtilityOptions {
@@ -35,7 +34,7 @@ export interface UtilityOptions {
   skip_url_mangle?: boolean;
   user_agent?: string;
   agent_version?: string;
-  headers?: ObjectDict;
+  headers?: Dictionary;
   signing?: boolean;
   proxy?: string;
   apisecret?: string;
@@ -97,7 +96,7 @@ export const utils: Utility = (function magic(): Utility {
       req.headers['X-EPI2ME-SignatureV0'] = digest;
     },
 
-    responseHandler(r: AxiosResponse<unknown>): ObjectDict {
+    responseHandler(r: AxiosResponse<unknown>): Dictionary {
       const json = r && isRecord(r.data) ? r.data : null;
 
       if (r && r.status >= 400) {
@@ -208,7 +207,7 @@ export const utils: Utility = (function magic(): Utility {
       return res;
     },
 
-    async get(uriIn: string, options: UtilityOptions): Promise<ObjectDict> {
+    async get(uriIn: string, options: UtilityOptions): Promise<Dictionary> {
       // do something to get/set data in epi2me
       const call = this.mangleURL(uriIn, options);
       const req: AxiosRequestConfig = { url: call };
@@ -229,11 +228,11 @@ export const utils: Utility = (function magic(): Utility {
       return internal.responseHandler(res);
     },
 
-    async post<T = ObjectDict>(
+    async post<T = Dictionary>(
       uriIn: string,
-      obj: ObjectDict,
+      obj: Dictionary,
       options: UtilityOptions & { handler?: (res: AxiosResponse) => Promise<T> },
-    ): Promise<T | ObjectDict> {
+    ): Promise<T | Dictionary> {
       let srv = options.url;
       srv = srv.replace(/\/+$/, ''); // clip trailing slashes
       const uri = uriIn.replace(/\/+/g, '/'); // clip multiple slashes
@@ -270,7 +269,7 @@ export const utils: Utility = (function magic(): Utility {
       return internal.responseHandler(res);
     },
 
-    async put(uriIn: string, id: string, obj: ObjectDict, options: UtilityOptions): Promise<ObjectDict> {
+    async put(uriIn: string, id: string, obj: Dictionary, options: UtilityOptions): Promise<Dictionary> {
       let srv = options.url;
       srv = srv.replace(/\/+$/, ''); // clip trailing slashes
       const uri = uriIn.replace(/\/+/g, '/'); // clip multiple slashes
@@ -316,11 +315,11 @@ export const utils: Utility = (function magic(): Utility {
       }
     },
 
-    processLegacyForm(req: AxiosRequestConfig, data: ObjectDict): void {
+    processLegacyForm(req: AxiosRequestConfig, data: Dictionary): void {
       // include legacy form parameters
       const params: string[] = [];
       // WARN this behavior seems suspicious, the backend for this should be inspected
-      const form: ObjectDict = {
+      const form: Dictionary = {
         json: JSON.stringify(data),
         ...data,
       };
@@ -333,7 +332,7 @@ export const utils: Utility = (function magic(): Utility {
       req.headers['Content-Type'] = 'application/x-www-form-urlencoded';
     },
 
-    convertResponseToObject(data: ObjectDict | string): ObjectDict {
+    convertResponseToObject(data: Dictionary | string): Dictionary {
       if (typeof data === 'object') {
         // already parsed
         return data;
