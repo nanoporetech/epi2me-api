@@ -55,9 +55,7 @@ export class Factory {
       }),
     );
 
-    merge(addedInstances$, removedInstances$).subscribe((latestInstances) => {
-      this.runningInstances$.next(latestInstances);
-    });
+    merge(addedInstances$, removedInstances$).subscribe(this.runningInstances$);
   }
 
   get utils(): UtilityFS {
