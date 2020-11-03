@@ -6,6 +6,7 @@ import { map, takeUntil } from 'rxjs/operators';
 import {
   RunningInstancesReply,
   RunningInstanceStateReply,
+  StartReply,
   StartRequest,
   StopReply,
   WorkflowInstanceByIdRequest,
@@ -49,7 +50,7 @@ export class WorkflowApi {
   public start$(
     options: Partial<EPI2ME_OPTIONS> & { apikey: string; apisecret: string; inputFolders: string[] },
     workflowConfig: GQLWorkflowConfig & { computeAccountId: string },
-  ): Observable<RunningInstancesReply.AsObject> {
+  ): Observable<StartReply.AsObject> {
     const request = new StartRequest();
 
     const { apikey, apisecret, url, inputFolders, outputFolder } = options;
@@ -93,10 +94,10 @@ export class WorkflowApi {
       request.addInstanceattributes(newInstanceAttr);
     }
 
-    return createGrpcRequest$<Empty, RunningInstancesReply>(
+    return createGrpcRequest$<StartRequest, StartReply>(
       this._url,
       { jwt: this._jwt },
-      Workflow.running,
+      Workflow.start,
       request,
       false,
       this._transport,
@@ -106,7 +107,7 @@ export class WorkflowApi {
     );
   }
 
-  private stop(id: string, service: any): Observable<StopReply.AsObject> {
+  private stop$(id: string, service: any): Observable<StopReply.AsObject> {
     const request = new WorkflowInstanceByIdRequest();
     request.setIdworkflowinstance(id);
 
@@ -123,15 +124,15 @@ export class WorkflowApi {
     );
   }
 
-  public stopUpload(id: string): Observable<StopReply.AsObject> {
-    return this.stop(id, Workflow.stopUpload);
+  public stopUpload$(id: string): Observable<StopReply.AsObject> {
+    return this.stop$(id, Workflow.stopUpload);
   }
 
-  public stopAnalysis(id: string): Observable<StopReply.AsObject> {
-    return this.stop(id, Workflow.stopUpload);
+  public stopAnalysis$(id: string): Observable<StopReply.AsObject> {
+    return this.stop$(id, Workflow.stopAnalysis);
   }
 
-  public state(id: string): Observable<RunningInstanceStateReply.AsObject> {
+  public state$(id: string): Observable<RunningInstanceStateReply.AsObject> {
     const request = new WorkflowInstanceByIdRequest();
     request.setIdworkflowinstance(id);
 

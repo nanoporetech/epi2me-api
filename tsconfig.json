@@ -2,10 +2,7 @@
   "compilerOptions": {
     "allowJs": true,
     "allowSyntheticDefaultImports": true,
-    "lib": [
-      "dom",
-      "es2017"
-    ],
+    "lib": ["dom", "es2017"],
     "moduleResolution": "node",
     "skipLibCheck": true,
     "sourceMap": true,
@@ -20,7 +17,7 @@
     "noUnusedParameters": true,
     "target": "es2017"
   },
-  "include": ["src"],
+  "include": ["src", "src/.eslintrc.js"],
   "exclude": ["dist", "node_modules"],
   "ts-node": {
     "transpileOnly": true,

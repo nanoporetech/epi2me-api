@@ -1,3 +1,4 @@
+// src has additional rules at src/.eslintrc.js
 module.exports = {
   root: true,
   parser: '@typescript-eslint/parser',
