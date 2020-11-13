@@ -12,13 +12,13 @@ import { Network } from './network';
 import { NoopLogMethod } from './Logger';
 import { fetch, Headers } from './network/fetch';
 
-import { asBoolean, Index } from './runtime-typecast';
+import { asBoolean, Index } from 'ts-runtime-typecheck';
 import { writeCommonHeaders } from './network';
 import { parseCoreOpts } from './parseCoreOpts';
 
 import type { Logger } from './Logger';
 import type { DocumentNode } from 'graphql';
-import type { ObjectDict } from './ObjectDict';
+import type { Dictionary } from 'ts-runtime-typecheck';
 import type { ApolloQueryResult, FetchResult, NormalizedCacheObject, ApolloClient } from '@apollo/client/core';
 import type { EPI2ME_OPTIONS } from './epi2me-options';
 import type { InstanceAttribute } from './factory.type';
@@ -56,7 +56,7 @@ export interface RequestContext {
   [key: string]: unknown;
 }
 
-export interface QueryOptions<Var = ObjectDict, Ctx = ObjectDict, Opt = ObjectDict> {
+export interface QueryOptions<Var = Dictionary, Ctx = Dictionary, Opt = Dictionary> {
   context?: Ctx;
   variables?: Var;
   options?: Opt;
@@ -115,7 +115,7 @@ export class GraphQL {
   };
 
   // Can this be removed?
-  createContext = (contextIn: ObjectDict): RequestContext => {
+  createContext = (contextIn: Dictionary): RequestContext => {
     // Merge any passed in context with requiredContext
     const { url, apikey, apisecret } = this.options;
 
@@ -276,7 +276,7 @@ export class GraphQL {
       idDataset?: Index;
       storeResults?: boolean;
       region?: string;
-      userDefined?: ObjectDict<ObjectDict>;
+      userDefined?: Dictionary<Dictionary>;
       instanceAttributes?: InstanceAttribute[];
     }
   >(gql`

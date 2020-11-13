@@ -14,7 +14,6 @@ import { Profile, AllProfileData } from './profile';
 import { REST } from './rest';
 import Socket from './socket';
 import { utils } from './utils';
-import { ObjectDict } from './ObjectDict';
 import { Logger } from './Logger';
 import {
   asRecord,
@@ -31,7 +30,9 @@ import {
   asOptRecord,
   asOptIndex,
   Index,
-} from './runtime-typecast';
+  Dictionary,
+  Optional,
+} from 'ts-runtime-typecheck';
 import {
   createUploadState,
   createDownloadState,
@@ -99,8 +100,8 @@ export class EPI2ME {
     downloadCheckInterval?: DisposeTimer;
     stateCheckInterval?: DisposeTimer;
     fileCheckInterval?: DisposeTimer;
-    transferTimeouts: ObjectDict<DisposeTimer>;
-    visibilityIntervals: ObjectDict<DisposeTimer>;
+    transferTimeouts: Dictionary<DisposeTimer>;
+    visibilityIntervals: Dictionary<DisposeTimer>;
     summaryTelemetryInterval?: DisposeTimer;
   } = {
     transferTimeouts: {},
@@ -109,7 +110,7 @@ export class EPI2ME {
 
   stateReportTime?: number;
   liveStates$ = new BehaviorSubject(this.states);
-  downloadWorkerPool?: ObjectDict;
+  downloadWorkerPool?: Dictionary;
 
   config: Configuration;
   REST: REST | REST_FS;
@@ -153,7 +154,7 @@ export class EPI2ME {
 
   // jwt?: string;
 
-  static parseOptObject(opt: ObjectDict | Partial<EPI2ME_OPTIONS>): EPI2ME_OPTIONS {
+  static parseOptObject(opt: Dictionary | Partial<EPI2ME_OPTIONS>): EPI2ME_OPTIONS {
     const options = {
       ...parseCoreOpts(opt),
       region: asString(opt.region, DEFAULTS.region),
@@ -168,7 +169,7 @@ export class EPI2ME {
       waitTokenError: asNumber(opt.waitTokenError, DEFAULTS.waitTokenError),
       transferPoolSize: asNumber(opt.transferPoolSize, DEFAULTS.transferPoolSize),
       downloadMode: asString(opt.downloadMode, DEFAULTS.downloadMode),
-      filetype: asArrayRecursive(opt.filetype, asString, DEFAULTS.filetype),
+      filetype: asArrayRecursive(asString)(opt.filetype, DEFAULTS.filetype),
       sampleDirectory: asString(opt.sampleDirectory, DEFAULTS.sampleDirectory),
       // optional values
       useGraphQL: asOptBoolean(opt.useGraphQL),
@@ -176,7 +177,7 @@ export class EPI2ME {
       debounceWindow: asOptNumber(opt.debounceWindow),
       proxy: asOptString(opt.proxy),
       // EPI2ME-FS options
-      inputFolders: asArrayRecursive(opt.inputFolders, asString, []),
+      inputFolders: asArrayRecursive(asString)(opt.inputFolders, []),
       outputFolder: asOptString(opt.outputFolder),
       awsAcceleration: asOptString(opt.awsAcceleration),
       agent_address: asOptString(opt.agent_address),
@@ -353,7 +354,7 @@ export class EPI2ME {
     });
   }
 
-  uploadState(table: 'success' | 'types' | 'progress', op: string, newData: ObjectDict<number>): void {
+  uploadState(table: 'success' | 'types' | 'progress', op: string, newData: Dictionary<number>): void {
     const direction = 'upload';
     const state: UploadState = this.states.upload ?? createUploadState();
 
@@ -402,7 +403,7 @@ export class EPI2ME {
     this.liveStates$.next({ ...this.states });
   }
 
-  downloadState(table: 'success' | 'types' | 'progress', op: string, newData: ObjectDict<number>): void {
+  downloadState(table: 'success' | 'types' | 'progress', op: string, newData: Dictionary<Optional<number>>): void {
     const direction = 'upload';
     const state: DownloadState = this.states.download ?? createDownloadState();
 
@@ -451,7 +452,7 @@ export class EPI2ME {
     this.liveStates$.next({ ...this.states });
   }
 
-  updateSuccessState(state: SuccessState, op: string, newData: ObjectDict<number>): void {
+  updateSuccessState(state: SuccessState, op: string, newData: Dictionary<Optional<number>>): void {
     const safeKeys = new Set(['files', 'bytes', 'reads']);
     for (const key of Object.keys(newData)) {
       // Increment or decrement
@@ -464,7 +465,7 @@ export class EPI2ME {
     }
   }
 
-  updateTypesState(state: ObjectDict, op: string, newData: ObjectDict<number>): void {
+  updateTypesState(state: Dictionary, op: string, newData: Dictionary<Optional<number>>): void {
     for (const key of Object.keys(newData)) {
       // Increment or decrement
       const sign = op === 'incr' ? 1 : -1;
@@ -473,7 +474,7 @@ export class EPI2ME {
     }
   }
 
-  updateProgressState(state: ProgressState, op: string, newData: ObjectDict<number>): void {
+  updateProgressState(state: ProgressState, op: string, newData: Dictionary<Optional<number>>): void {
     const safeKeys = new Set(['bytes', 'total']);
     for (const key of Object.keys(newData)) {
       // Increment or decrement
@@ -532,7 +533,7 @@ export class EPI2ME {
           this.config.options[key] = asBoolean(value);
           break;
         case 'filetype':
-          this.config.options[key] = asArrayRecursive(value, asString);
+          this.config.options[key] = asArrayRecursive(asString)(value);
           break;
         default:
           throw new Error('Cannot modify the "log" attribute');

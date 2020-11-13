@@ -1,5 +1,5 @@
-import { Logger } from './Logger';
-import { Index } from './runtime-typecast';
+import type { Logger } from './Logger';
+import type { Index } from 'ts-runtime-typecheck';
 export interface EPI2ME_OPTIONS {
   agent_version: string;
   log: Logger;

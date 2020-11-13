@@ -1,6 +1,5 @@
-import { EPI2ME_OPTIONS } from './epi2me-options';
-import { ObjectDict } from './ObjectDict';
-import { Index } from './runtime-typecast';
+import type { Index, Dictionary } from 'ts-runtime-typecheck';
+import type { EPI2ME_OPTIONS } from './epi2me-options';
 
 export interface Configuration {
   options: EPI2ME_OPTIONS;
@@ -10,19 +9,19 @@ export interface Configuration {
     inputQueueName?: string;
     outputQueueName?: string;
     outputQueueURL?: string;
-    discoverQueueCache: ObjectDict;
+    discoverQueueCache: Dictionary;
     bucket?: string;
     start_date?: string;
     id_user?: Index;
     bucketFolder?: string;
     remote_addr?: string;
     region?: string;
-    summaryTelemetry?: ObjectDict;
-    chain?: ObjectDict;
+    summaryTelemetry?: Dictionary;
+    chain?: Dictionary;
     key_id?: string;
     awssettings: {
       region: string;
     };
   };
-  workflow?: ObjectDict;
+  workflow?: Dictionary;
 }

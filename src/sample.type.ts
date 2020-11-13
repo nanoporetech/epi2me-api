@@ -1,4 +1,4 @@
-import type { ObjectDict } from './ObjectDict';
+import type { Dictionary } from 'ts-runtime-typecheck';
 
 export interface Sample {
   flowcell: string;
@@ -11,4 +11,4 @@ export interface Experiment {
   startDate: string;
 }
 
-export type Experiments = ObjectDict<Experiment>;
+export type Experiments = Dictionary<Experiment>;

@@ -1,7 +1,7 @@
 import { Network, stubFetch } from '../../src/network';
 import { Request, Response } from '../../src/network/fetch';
 import assert from 'assert';
-import { asRecord } from '../../src/runtime-typecast';
+import { asRecord } from 'ts-runtime-typecheck';
 
 const BASE_OPTS = { base_url: 'https://test.example.com', agent_version: '3.1.4' };
 

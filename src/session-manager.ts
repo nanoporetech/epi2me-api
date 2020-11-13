@@ -3,7 +3,7 @@ import proxy from 'proxy-agent'; // odd one out
 import { Logger } from './Logger';
 import { REST } from './rest';
 import { GraphQL } from './graphql';
-import { Index, isIndex, asRecord } from './runtime-typecast';
+import { Index, asRecord, isIndex } from 'ts-runtime-typecheck';
 
 interface SessionManagerOptions {
   log: Logger;
