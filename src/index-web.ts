@@ -1,7 +1,6 @@
-import { GraphQL } from './graphql';
-import EPI2ME_RPC from './grpc';
-
+export { GraphQL } from './graphql';
+export * as EPI2ME_RPC from './grpc';
 export * as Helpers from './helpers';
-export { GraphQL, EPI2ME_RPC };
 
-export * as graphQLSchema from './graphql-types';
+import type * as graphQLSchema from './graphql-types';
+export type { graphQLSchema };
