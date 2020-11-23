@@ -53,13 +53,14 @@ export class WorkflowApi {
   ): Observable<StartReply.AsObject> {
     const request = new StartRequest();
 
-    const { apikey, apisecret, url, inputFolders, outputFolder } = options;
+    const { apikey, apisecret, url, inputFolders, outputFolder, filetype } = options;
 
     request.setApikey(apikey);
     request.setApisecret(apisecret);
     request.setInputfoldersList(inputFolders);
     url && request.setUrl(url);
     outputFolder && request.setOutputfolder(outputFolder);
+    filetype && request.setFiletypesList(filetype);
 
     const {
       idWorkflow,

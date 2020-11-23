@@ -27,61 +27,61 @@ describe('db.db', () => {
   it('uploadFile & seenFile', async () => {
     const fileName = '/data/test/1.fastq';
     let seen = await dbh.seenUpload(fileName);
-    assert.equal(seen, 0);
+    assert.strictEqual(seen, 0);
     const uploaded = await dbh.uploadFile(fileName);
-    assert.equal(uploaded.changes, 1);
+    assert.strictEqual(uploaded.changes, 1);
     seen = await dbh.seenUpload(fileName);
-    assert.equal(seen, 1);
+    assert.strictEqual(seen, 1);
   });
   it('uploadFile in subdir & seenFile', async () => {
     const fileName = '/data/test/sub/1.fastq';
     let seen = await dbh.seenUpload(fileName);
-    assert.equal(seen, 0);
+    assert.strictEqual(seen, 0);
     const uploaded = await dbh.uploadFile(fileName);
-    assert.equal(uploaded.changes, 1);
+    assert.strictEqual(uploaded.changes, 1);
     seen = await dbh.seenUpload(fileName);
-    assert.equal(seen, 1);
+    assert.strictEqual(seen, 1);
   });
   it('skipFile && seenFile', async () => {
     const fileName = '/data/test/1.fastq';
     let seen = await dbh.seenUpload(fileName);
-    assert.equal(seen, 0);
+    assert.strictEqual(seen, 0);
     const uploaded = await dbh.skipFile(fileName);
-    assert.equal(uploaded.changes, 1);
+    assert.strictEqual(uploaded.changes, 1);
     seen = await dbh.seenUpload(fileName);
-    assert.equal(seen, 1);
+    assert.strictEqual(seen, 1);
   });
   it('skipFile in subdir && seenFile', async () => {
     const fileName = '/data/test/sub/1.fastq';
     let seen = await dbh.seenUpload(fileName);
-    assert.equal(seen, 0);
+    assert.strictEqual(seen, 0);
     const uploaded = await dbh.skipFile(fileName);
-    assert.equal(uploaded.changes, 1);
+    assert.strictEqual(uploaded.changes, 1);
     seen = await dbh.seenUpload(fileName);
-    assert.equal(seen, 1);
+    assert.strictEqual(seen, 1);
   });
   it('uploadFile differentiates based on path', async () => {
     const fileName = '/data/test/1.fastq';
     const fileName2 = '/data/test2/1.fastq';
     let seen = await dbh.seenUpload(fileName);
-    assert.equal(seen, 0);
+    assert.strictEqual(seen, 0);
     await dbh.uploadFile(fileName);
     seen = await dbh.seenUpload(fileName2);
-    assert.equal(seen, 0);
+    assert.strictEqual(seen, 0);
     await dbh.uploadFile(fileName2);
     seen = await dbh.seenUpload(fileName);
-    assert.equal(seen, 1);
+    assert.strictEqual(seen, 1);
     seen = await dbh.seenUpload(fileName2);
-    assert.equal(seen, 1);
+    assert.strictEqual(seen, 1);
   });
   it('skipFile differentiates based on path', async () => {
     const fileName = '/data/test/1.fastq';
     const fileName2 = '/data/test2/1.fastq';
     let seen = await dbh.seenUpload(fileName);
-    assert.equal(seen, 0);
+    assert.strictEqual(seen, 0);
     await dbh.skipFile(fileName);
     seen = await dbh.seenUpload(fileName2);
-    assert.equal(seen, 0);
+    assert.strictEqual(seen, 0);
   });
   describe('file splitting', () => {
     const child = '/data/test/split.fastq';
@@ -94,26 +94,26 @@ describe('db.db', () => {
     it('splitFile correctly stores data', async () => {
       await dbh.splitFile(child, parent);
       const inserted = (await db.all('SELECT * from splits'))[0];
-      assert.equal(inserted.end, null);
-      assert.equal(inserted.parent, 'parent.fastq');
-      assert.equal(inserted.child_path_id, 1);
-      assert.equal(inserted.filename, 'split.fastq');
+      assert.strictEqual(inserted.end, null);
+      assert.strictEqual(inserted.parent, 'parent.fastq');
+      assert.strictEqual(inserted.child_path_id, 1);
+      assert.strictEqual(inserted.filename, 'split.fastq');
     });
     it('splitDone correctly updates split files', async () => {
       await dbh.splitFile(child, parent);
       await dbh.splitDone(child);
       const inserted = (await db.all('SELECT * from splits'))[0];
       // console.log(inserted);
-      assert.notEqual(inserted.end, null);
-      assert.equal(inserted.child_path_id, 1);
-      assert.equal(inserted.parent, 'parent.fastq');
-      assert.equal(inserted.filename, 'split.fastq');
+      assert.notStrictEqual(inserted.end, null);
+      assert.strictEqual(inserted.child_path_id, 1);
+      assert.strictEqual(inserted.parent, 'parent.fastq');
+      assert.strictEqual(inserted.filename, 'split.fastq');
     });
     it('splitClean', async () => {
       const unlink = sinon.stub(fs, 'unlink').resolves();
       await dbh.splitFile(child, parent);
       await dbh.splitClean();
-      assert.equal(unlink.called, 1);
+      assert.strictEqual(unlink.called, true);
       unlink.restore();
     });
   });
