@@ -1,6 +1,6 @@
-const EPI2ME = require('../dist');
+const { EPI2ME, Factory } = require('../dist/core');
 
-const { Factory } = EPI2ME;
+// const { Factory } = EPI2ME;
 
 const profileName = process.argv[2] || 'production_signed';
 const profile = new EPI2ME.Profile().profile(profileName);
@@ -18,10 +18,24 @@ api.graphQL
 //   { id_workflow: 1964 },
 // );
 
+api.runningInstances$.subscribe(instances => console.log("RUNNING: ", Array.from(instances.keys())))
+
 api.startGQLRun(
   { inputFolders: ['/Library/MinKNOW/data/data2/mock_reads'], outputFolder: '/Library/MinKNOW/data/data2/output' },
   { idWorkflow: 1964, isConsentedHuman: false, computeAccountId: 71616668 },
+).then(
+  thing => {
+    sleep(5000);
+    const i = api.getRunningInstance(thing.id);
+    i.stopUpload();
+  }
 );
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+sleep(10000);
 
 // Reference upload
 // api.startRun(
