@@ -32,6 +32,7 @@ import {
   Index,
   Dictionary,
   Optional,
+  JSONObject,
 } from 'ts-runtime-typecheck';
 import {
   createUploadState,
@@ -77,7 +78,7 @@ export class EPI2ME {
     mapTo(true),
   );
 
-  instanceTelemetry$ = new BehaviorSubject<unknown[]>([]);
+  instanceTelemetry$ = new BehaviorSubject<(JSONObject | null)[]>([]);
   experimentalWorkerStatus$ = new BehaviorSubject<
     {
       running: number;

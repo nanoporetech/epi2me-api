@@ -2,6 +2,7 @@ import { EPI2ME_FS } from './epi2me-fs';
 import { BehaviorSubject, Subject, merge } from 'rxjs';
 import { withLatestFrom, map, mapTo } from 'rxjs/operators';
 import { Map as ImmutableMap } from 'immutable';
+import { Telemetry } from './telemetry';
 
 import type { REST_FS } from './rest-fs';
 import type { GraphQL } from './graphql';
@@ -11,6 +12,7 @@ import type { UtilityFS } from './utils-fs';
 import type { Index, Dictionary } from 'ts-runtime-typecheck';
 import type { EPI2ME_OPTIONS } from './epi2me-options';
 import type { GQLWorkflowConfig } from './factory.type';
+import type { ReportID } from './telemetry.type';
 
 function printError(log: Logger, msg: string, err: unknown): void {
   if (err instanceof Error) {
@@ -81,6 +83,10 @@ export class Factory {
 
   get sampleReader(): SampleReader {
     return this.primary.SampleReader;
+  }
+
+  telemetry(id: string, reportNames: ReportID[]): Telemetry {
+    return Telemetry.connect(id, this.graphQL, reportNames);
   }
 
   reset(options: Partial<EPI2ME_OPTIONS> = {}): void {
