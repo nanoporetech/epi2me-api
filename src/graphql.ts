@@ -311,6 +311,7 @@ export class GraphQL {
           keyId
           outputqueue
           mappedTelemetry
+          telemetryNames
           workflowImage {
             inputqueue
             workflow {
