@@ -1771,7 +1771,7 @@ export class EPI2ME_FS extends EPI2ME {
     return this.db.uploadFile(file.path);
   }
 
-  observeTelemetry() {
+  observeTelemetry(): void {
     if (!this.config.options.useGraphQL) {
       // uses fetchTelemetry instead
       throw new Error('observeTelemetry is only supported with GraphQL enabled');
@@ -1794,10 +1794,13 @@ export class EPI2ME_FS extends EPI2ME {
     const reports$ = this.telemetry.telemetryReports$();
     const subscription = new Subscription();
 
+    // update the public reportState$ subject to indicate reports are ready on our first signal
     subscription.add(reports$.pipe(first(), mapTo(true)).subscribe(this.reportState$));
 
+    // pass all telemetry fils to public instanceTelemetry$ subject
     subscription.add(reports$.pipe(map(Object.values)).subscribe(this.instanceTelemetry$));
 
+    // write any changed telemetry files to disk
     subscription.add(
       reports$.pipe(recordDelta()).subscribe((reports: Dictionary<JSONObject>) => {
         // download and save report
