@@ -1618,7 +1618,6 @@ export class EPI2ME_FS extends EPI2ME {
         const sessionManager = this.initSessionManager(null, [service]);
         sessionManager.sts_expiration = this.sessionManager?.sts_expiration; // No special options here, so use the main session and don't refetch until it's expired
 
-        service.config.update;
         managedUpload.on('httpUploadProgress', async (progress) => {
           // Breaking out here causes this.states.progress.bytes to get out of sync.
           // if (this.stopped) {
