@@ -13,7 +13,7 @@ import {
 } from '../../../protos/workflow_pb';
 import { Workflow } from '../../../protos/workflow_pb_service';
 import { EPI2ME_OPTIONS } from '../../epi2me-options';
-import { asNumber, asString } from 'ts-runtime-typecheck';
+import { asNumber, asString, Dictionary } from 'ts-runtime-typecheck';
 import { createGrpcRequest$ } from '../utils';
 
 import type { GQLWorkflowConfig } from '../../factory.type';
@@ -85,7 +85,7 @@ export class WorkflowApi {
     request.setUserdefined(
       Struct.fromJavaScript(
         // TODO: Improve typing
-        userDefined as Record<string, null | number | string | boolean | Array<unknown> | {}>,
+        userDefined as Record<string, null | number | string | boolean | Array<unknown> | Dictionary>,
       ),
     );
     for (const attr of instanceAttributes) {

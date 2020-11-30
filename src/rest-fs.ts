@@ -4,7 +4,15 @@
  */
 import fs from 'fs-extra';
 import path from 'path';
-import { Dictionary, asOptRecord, asOptFunction, asFunction, asRecord, isFunction } from 'ts-runtime-typecheck';
+import {
+  Dictionary,
+  asOptRecord,
+  asOptFunction,
+  asFunction,
+  asRecord,
+  isFunction,
+  UnknownFunction,
+} from 'ts-runtime-typecheck';
 import { AsyncCallback, REST } from './rest';
 import { utilsFS as utils } from './utils-fs';
 
@@ -32,7 +40,7 @@ export class REST_FS extends REST {
     }
   }
 
-  async workflow(id: string | Dictionary, obj?: Dictionary | Function, cb?: Function): Promise<unknown> {
+  async workflow(id: string | Dictionary, obj?: Dictionary | UnknownFunction, cb?: UnknownFunction): Promise<unknown> {
     if (!this.options.local || !id || typeof id === 'object' || cb) {
       // yuck. probably wrong.
       return super.workflow(id, obj, cb);

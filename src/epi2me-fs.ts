@@ -26,6 +26,7 @@ import {
   isUndefined,
   isArray,
   asOptRecordRecursive,
+  UnknownFunction,
 } from 'ts-runtime-typecheck';
 import AWS from 'aws-sdk';
 import fs from 'fs-extra'; /* MC-565 handle EMFILE & EXDIR gracefully; use Promises */
@@ -371,13 +372,16 @@ export class EPI2ME_FS extends EPI2ME {
     }
   }
 
-  initSessionManager(opts?: Optional<Dictionary>, children: { config: { update: Function } }[] = []): SessionManager {
+  initSessionManager(
+    opts?: Optional<Dictionary>,
+    children: { config: { update: (option: Dictionary) => void } }[] = [],
+  ): SessionManager {
     return new SessionManager(
       asIndex(this.config.instance.id_workflow_instance),
       this.REST,
       [AWS, ...children],
       {
-        sessionGrace: makeString(this.config.options.sessionGrace),
+        sessionGrace: this.config.options.sessionGrace,
         proxy: this.config.options.proxy,
         region: this.config.instance.region,
         log: this.log,
@@ -461,7 +465,7 @@ export class EPI2ME_FS extends EPI2ME {
     }
 
     if (this.config.options.useGraphQL) {
-      this.observeTelemetry()
+      this.observeTelemetry();
     } else {
       // MC-7056 periodically fetch summary telemetry for local reporting purposes
       this.timers.summaryTelemetryInterval = createInterval(this.config.options.downloadCheckInterval * 10000, () => {
@@ -910,7 +914,7 @@ export class EPI2ME_FS extends EPI2ME {
             stats,
             size: stats.bytes,
           };
-          const p = new Promise((chunkResolve: Function): void => {
+          const p = new Promise((chunkResolve: UnknownFunction): void => {
             queue.enqueue(
               async (): Promise<void> => {
                 this.log.info(`chunk upload starting ${chunkStruct.id} ${chunkStruct.path}`);
@@ -1223,7 +1227,7 @@ export class EPI2ME_FS extends EPI2ME {
 
           // we ignore failures to fetch anything with extra suffixes by wrapping
           // initiateDownloadStream with another Promise which permits fetch-with-suffix failures
-          return new Promise((resolve, reject) => {
+          return new Promise<void>((resolve, reject) => {
             this.initiateDownloadStream(
               {
                 bucket: asString(messageBody.bucket),
@@ -1231,16 +1235,17 @@ export class EPI2ME_FS extends EPI2ME {
               },
               message,
               fetchFile,
-            )
-              .then(resolve)
-              .catch((e) => {
+            ).then(
+              () => resolve(),
+              (e) => {
                 this.log.error(`Caught exception waiting for initiateDownloadStream: ${String(e)}`);
                 if (suffix) {
                   reject(e);
                   return;
                 }
                 resolve();
-              });
+              },
+            );
           });
         });
 
@@ -1297,9 +1302,8 @@ export class EPI2ME_FS extends EPI2ME {
     s3Item: { bucket: string; path: string },
     message: AWS.SQS.Message,
     outputFile: string,
-  ): Promise<unknown> {
-    // eslint-disable-next-line
-    return new Promise(async (resolve, reject) => {
+  ): Promise<void> {
+    return new Promise<void>(async (resolve, reject) => {
       let s3;
       try {
         s3 = await this.sessionedS3();
@@ -1614,6 +1618,7 @@ export class EPI2ME_FS extends EPI2ME {
         const sessionManager = this.initSessionManager(null, [service]);
         sessionManager.sts_expiration = this.sessionManager?.sts_expiration; // No special options here, so use the main session and don't refetch until it's expired
 
+        service.config.update;
         managedUpload.on('httpUploadProgress', async (progress) => {
           // Breaking out here causes this.states.progress.bytes to get out of sync.
           // if (this.stopped) {
@@ -1778,10 +1783,10 @@ export class EPI2ME_FS extends EPI2ME {
 
     const instanceDir = path.join(rootDir(), 'instances', makeString(this.config.instance.id_workflow_instance));
     const telemetryNames = this.config?.instance?.telemetryNames;
-    const reportsList = Object.entries(asDefined(telemetryNames)).map(([componentId, componentTelemetryDetails]) => [
-      componentId,
-      Object.values(componentTelemetryDetails)[0],
-    ] as ReportID);
+    const reportsList = Object.entries(asDefined(telemetryNames)).map(
+      ([componentId, componentTelemetryDetails]) =>
+        [componentId, Object.values(componentTelemetryDetails)[0]] as ReportID,
+    );
 
     const idWorkflowInstance = makeString(this.config.instance.id_workflow_instance);
 
@@ -1790,23 +1795,19 @@ export class EPI2ME_FS extends EPI2ME {
     const reports$ = this.telemetry.telemetryReports$();
     const subscription = new Subscription();
 
-    subscription.add(reports$
-      .pipe(first(), mapTo(true))
-      .subscribe(this.reportState$));
+    subscription.add(reports$.pipe(first(), mapTo(true)).subscribe(this.reportState$));
 
-    subscription.add(reports$
-      .pipe(map(Object.values))
-      .subscribe(this.instanceTelemetry$));
+    subscription.add(reports$.pipe(map(Object.values)).subscribe(this.instanceTelemetry$));
 
-    subscription.add(reports$
-      .pipe(recordDelta())
-      .subscribe((reports: Dictionary<JSONObject>) => {
+    subscription.add(
+      reports$.pipe(recordDelta()).subscribe((reports: Dictionary<JSONObject>) => {
         // download and save report
         for (const [componentId, body] of Object.entries(reports)) {
           // This could be made async
           fs.writeJSONSync(path.join(instanceDir, `${componentId}.json`), body);
         }
-      }));
+      }),
+    );
 
     this.telemetrySubscription = subscription;
   }
@@ -1817,7 +1818,7 @@ export class EPI2ME_FS extends EPI2ME {
     if (this.config.options.useGraphQL) {
       // uses observeTelemetry instead
       throw new Error('fetchTelemetry is not supported with GraphQL enabled');
-    } 
+    }
     if (!this.config?.instance?.summaryTelemetry) {
       return;
     }
@@ -1843,7 +1844,7 @@ export class EPI2ME_FS extends EPI2ME {
       toFetch.push(
         (async (): Promise<JSONObject | null> => {
           try {
-            const body = await this.REST.fetchContent(url) as JSONObject;
+            const body = (await this.REST.fetchContent(url)) as JSONObject;
             fs.writeJSONSync(fn, body);
             this.reportState$.next(true);
             this.log.debug(`fetched telemetry summary ${fn}`);

@@ -94,13 +94,13 @@ describe('stubbed tests', () => {
       const stub = sinon.stub(Network, 'post').resolves(response);
       stubs.push(stub);
       const reqData = { token_type: 'jwt' };
-      const JWTString = 'RANDOMJWTLIKESTRINGHERE';
-      const res = await graphqlObj.convertONTJWT(JWTString, reqData);
+      const JWT_STRING = 'RANDOMJWTLIKESTRINGHERE';
+      const res = await graphqlObj.convertONTJWT(JWT_STRING, reqData);
       assert.equal(res.access, response.access);
       const calledArgs = stub.getCall(0).args;
       assert.equal(calledArgs[0], 'convert-ont');
       assert.equal(calledArgs[1], reqData);
-      assert.deepEqual(calledArgs[2].headers, { 'X-ONT-JWT': JWTString });
+      assert.deepEqual(calledArgs[2].headers, { 'X-ONT-JWT': JWT_STRING });
     });
   });
 

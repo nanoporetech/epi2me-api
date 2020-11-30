@@ -20,9 +20,11 @@ module.exports = {
     es6: true,
   },
   rules: {
-    camelcase: 'off',
     curly: 'error',
-    '@typescript-eslint/camelcase': ['error', { properties: 'never' }],
+    '@typescript-eslint/naming-convention': [
+      'error',
+      { selector: 'variable', format: ['camelCase', 'UPPER_CASE', 'PascalCase'] },
+    ],
     '@typescript-eslint/class-name-casing': 'off',
     '@typescript-eslint/no-empty-function': 'off',
     'prettier/prettier': 'error',

@@ -73,14 +73,12 @@ export class Telemetry {
 
     // TODO check for error ?
 
-    return Object.values(response.data).map(({ getUrl, headUrl }, index) => 
-      ({
-        getUrl,
-        headUrl,
-        instanceId: this.id,
-        reportId: reportNames[index],
-      })
-    );
+    return Object.values(response.data).map(({ getUrl, headUrl }, index) => ({
+      getUrl,
+      headUrl,
+      instanceId: this.id,
+      reportId: reportNames[index],
+    }));
   }
 
   telemetryUpdates$(): Observable<TelemetrySource> {

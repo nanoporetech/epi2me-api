@@ -1,8 +1,7 @@
 import assert from 'assert';
 import sinon from 'sinon';
+import { Factory } from '../../src/factory';
 import { EPI2ME_FS as EPI2ME } from '../../src/epi2me-fs';
-
-const { Factory } = EPI2ME;
 
 describe('Factory', () => {
   let stubs;
