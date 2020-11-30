@@ -27,6 +27,7 @@ import {
   isArray,
   asOptRecordRecursive,
   UnknownFunction,
+  JSONValue,
 } from 'ts-runtime-typecheck';
 import AWS from 'aws-sdk';
 import fs from 'fs-extra'; /* MC-565 handle EMFILE & EXDIR gracefully; use Promises */
@@ -50,9 +51,11 @@ import { gql } from '@apollo/client/core';
 import { createInterval, createTimeout } from './timers';
 import { Telemetry } from './telemetry';
 import { resolve } from 'url';
-import { first, map, mapTo } from 'rxjs/operators';
+import { first, map, mapTo, takeUntil } from 'rxjs/operators';
 import { recordDelta } from './operators';
 import { GraphQLFS } from './graphql-fs';
+import { Subject } from 'rxjs';
+import { createQueue } from './queue';
 
 import type { MappedFileStats } from './filestats';
 import type { DisposeTimer } from './timers';
@@ -66,7 +69,6 @@ import type { ResponseStartWorkflow } from './graphql-types';
 import type { InstanceAttribute } from './factory.type';
 import type { ReportID } from './telemetry.type';
 import type { EPI2ME_OPTIONS } from './epi2me-options';
-import { Subscription } from 'rxjs';
 
 const networkStreamErrors: WeakSet<Writable> = new WeakSet();
 
@@ -108,7 +110,7 @@ export class EPI2ME_FS extends EPI2ME {
   REST: REST_FS;
 
   private telemetry?: Telemetry;
-  private telemetrySubscription?: Subscription;
+  private telemetryDestroySignal$?: Subject<void>;
 
   constructor(optstring: Partial<EPI2ME_OPTIONS> | string) {
     super(optstring); // sets up this.config & this.log
@@ -575,7 +577,8 @@ export class EPI2ME_FS extends EPI2ME {
   async stopAnalysis(): Promise<void> {
     await super.stopAnalysis();
     this.telemetry?.disconnect();
-    this.telemetrySubscription?.unsubscribe();
+    this.telemetryDestroySignal$?.next();
+    this.telemetryDestroySignal$?.complete();
   }
 
   async stopEverything(): Promise<void> {
@@ -1792,26 +1795,27 @@ export class EPI2ME_FS extends EPI2ME {
     this.telemetry = Telemetry.connect(idWorkflowInstance, this.graphQL, reportsList);
 
     const reports$ = this.telemetry.telemetryReports$();
-    const subscription = new Subscription();
-
+    const destroySignal$ = new Subject<void>();
+    const writeQueue = createQueue<[string, JSONValue]>(1, destroySignal$, ([filePath, content]) =>
+      fs.writeJSON(filePath, content),
+    );
     // update the public reportState$ subject to indicate reports are ready on our first signal
-    subscription.add(reports$.pipe(first(), mapTo(true)).subscribe(this.reportState$));
+    reports$.pipe(first(), mapTo(true), takeUntil(destroySignal$)).subscribe(this.reportState$);
 
     // pass all telemetry fils to public instanceTelemetry$ subject
-    subscription.add(reports$.pipe(map(Object.values)).subscribe(this.instanceTelemetry$));
+    reports$.pipe(map(Object.values), takeUntil(destroySignal$)).subscribe(this.instanceTelemetry$);
 
     // write any changed telemetry files to disk
-    subscription.add(
-      reports$.pipe(recordDelta()).subscribe((reports: Dictionary<JSONObject>) => {
-        // download and save report
-        for (const [componentId, body] of Object.entries(reports)) {
-          // This could be made async
-          fs.writeJSONSync(path.join(instanceDir, `${componentId}.json`), body);
-        }
-      }),
-    );
+    reports$.pipe(recordDelta(), takeUntil(destroySignal$)).subscribe((reports: Dictionary<JSONObject>) => {
+      // download and save report
+      for (const [componentId, body] of Object.entries(reports)) {
+        // queue file writes to prevent a race condition where we could attempt
+        // to write a report file while it's already being written
+        writeQueue([path.join(instanceDir, `${componentId}.json`), body]);
+      }
+    });
 
-    this.telemetrySubscription = subscription;
+    this.telemetryDestroySignal$ = destroySignal$;
   }
 
   async fetchTelemetry(): Promise<void> {
