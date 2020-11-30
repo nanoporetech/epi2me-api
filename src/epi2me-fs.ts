@@ -1794,7 +1794,7 @@ export class EPI2ME_FS extends EPI2ME {
 
     this.telemetry = Telemetry.connect(idWorkflowInstance, this.graphQL, reportsList);
 
-    const reports$ = this.telemetry.telemetryReports$();
+    const reports$ = this.telemetry.telemetryReports$(this.config.options.downloadCheckInterval * 10000);
     const destroySignal$ = new Subject<void>();
     const writeQueue = createQueue<[string, JSONValue]>(1, destroySignal$, ([filePath, content]) =>
       fs.writeJSON(filePath, content),

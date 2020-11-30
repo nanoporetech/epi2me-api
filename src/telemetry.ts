@@ -8,7 +8,7 @@ import type { Dictionary, JSONObject, Optional } from 'ts-runtime-typecheck';
 import type { GraphQL } from './graphql';
 import type { ReportID, TelemetrySource } from './telemetry.type';
 
-const INTERVAL = 5000;
+const SOURCE_EXPIRY_INTERVAL = 1 * 60 * 60 * 1000 - 10 * 1000; // Sources are valid for 1 hour, purposefully expire them a little early ( 10 seconds should do it )
 const TELEMETRY_INSTANCES: Map<string, Telemetry> = new Map();
 
 export class Telemetry {
@@ -28,7 +28,8 @@ export class Telemetry {
     }
     TELEMETRY_INSTANCES.set(id, this);
 
-    const sources$ = timer(0, 3_600_000).pipe(switchMap(() => this.getTelemetrySources(reportNames)));
+    // WARN if the interval changes on the server this will cause problems...
+    const sources$ = timer(0, SOURCE_EXPIRY_INTERVAL).pipe(switchMap(() => this.getTelemetrySources(reportNames)));
     const subject$ = new BehaviorSubject<Optional<TelemetrySource[]>>(null);
 
     this.subscription = sources$.subscribe(subject$); // does this actually sub or does it create a pipe? Maybe do dumb subscription
@@ -81,10 +82,10 @@ export class Telemetry {
     }));
   }
 
-  telemetryUpdates$(): Observable<TelemetrySource> {
+  telemetryUpdates$(interval: number): Observable<TelemetrySource> {
     const reportEtag = new Map();
 
-    return timer(0, INTERVAL).pipe(
+    return timer(0, interval).pipe(
       switchMap(() => this.sources$),
       switchMap(async (source) => {
         const response = await fetch(source.headUrl, { method: 'head' });
@@ -106,9 +107,9 @@ export class Telemetry {
     );
   }
 
-  telemetryReports$(): Observable<Dictionary<JSONObject>> {
+  telemetryReports$(interval: number): Observable<Dictionary<JSONObject>> {
     const aggregationMap: Dictionary<JSONObject> = {};
-    return this.telemetryUpdates$().pipe(
+    return this.telemetryUpdates$(interval).pipe(
       switchMap(async (source) => {
         const response = await fetch(source.getUrl);
         if (!response.ok) {
