@@ -12,7 +12,6 @@ import type { UtilityFS } from './utils-fs';
 import type { Index, Dictionary } from 'ts-runtime-typecheck';
 import type { EPI2ME_OPTIONS } from './epi2me-options';
 import type { GQLWorkflowConfig } from './factory.type';
-import type { ReportID } from './telemetry.type';
 
 function printError(log: Logger, msg: string, err: unknown): void {
   if (err instanceof Error) {
@@ -85,8 +84,8 @@ export class Factory {
     return this.primary.SampleReader;
   }
 
-  telemetry(id: string, reportNames: ReportID[]): Telemetry {
-    return Telemetry.connect(id, this.graphQL, reportNames);
+  telemetry(id: string, telemetryNames: Dictionary<Dictionary<string>>): Telemetry {
+    return Telemetry.connect(id, this.graphQL, telemetryNames);
   }
 
   reset(options: Partial<EPI2ME_OPTIONS> = {}): void {

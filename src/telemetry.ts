@@ -18,7 +18,7 @@ export class Telemetry {
   private subscription: Subscription;
   private sources$: Observable<TelemetrySource>;
 
-  constructor(id: string, graphql: GraphQL, reportNames: ReportID[]) {
+  constructor(id: string, graphql: GraphQL, telemetryNames: Dictionary<Dictionary<string>>) {
     this.id = id;
     this.graphQL = graphql;
     if (TELEMETRY_INSTANCES.has(id)) {
@@ -27,6 +27,11 @@ export class Telemetry {
       );
     }
     TELEMETRY_INSTANCES.set(id, this);
+
+    const reportNames = Object.entries(telemetryNames).map(
+      ([componentId, componentTelemetryDetails]) =>
+        [componentId, Object.values(componentTelemetryDetails)[0]] as ReportID,
+    );
 
     // WARN if the interval changes on the server this will cause problems...
     const sources$ = timer(0, SOURCE_EXPIRY_INTERVAL).pipe(switchMap(() => this.getTelemetrySources(reportNames)));
@@ -51,7 +56,7 @@ export class Telemetry {
     }
   }
 
-  static connect(id: string, graphQL: GraphQL, reportNames: ReportID[]): Telemetry {
+  static connect(id: string, graphQL: GraphQL, reportNames: Dictionary<Dictionary<string>>): Telemetry {
     let inst = TELEMETRY_INSTANCES.get(id);
     if (!inst) {
       inst = new Telemetry(id, graphQL, reportNames);
@@ -61,7 +66,7 @@ export class Telemetry {
     return inst;
   }
 
-  async getTelemetrySources(reportNames: ReportID[]): Promise<TelemetrySource[]> {
+  private async getTelemetrySources(reportNames: ReportID[]): Promise<TelemetrySource[]> {
     const response = await this.graphQL.query<Dictionary<TelemetrySource>>(`query {
       ${reportNames.map((report, index) => {
         return `_${index}: workflowInstanceTelemetry(idWorkflowInstance:${this.id}, report:"${report}") {
@@ -82,10 +87,16 @@ export class Telemetry {
     }));
   }
 
+  private __telemetryUpdates$?: Observable<TelemetrySource>;
+
   telemetryUpdates$(interval: number): Observable<TelemetrySource> {
+    if (this.__telemetryUpdates$) {
+      return this.__telemetryUpdates$;
+    }
+
     const reportEtag = new Map();
 
-    return timer(0, interval).pipe(
+    this.__telemetryUpdates$ = timer(0, interval).pipe(
       switchMap(() => this.sources$),
       switchMap(async (source) => {
         const response = await fetch(source.headUrl, { method: 'head' });
@@ -105,11 +116,18 @@ export class Telemetry {
         return a.etag !== old;
       }),
     );
+
+    return this.__telemetryUpdates$;
   }
 
+  private __telemetryReports$?: Observable<Dictionary<JSONObject>>;
+
   telemetryReports$(interval: number): Observable<Dictionary<JSONObject>> {
+    if (this.__telemetryReports$) {
+      return this.__telemetryReports$;
+    }
     const aggregationMap: Dictionary<JSONObject> = {};
-    return this.telemetryUpdates$(interval).pipe(
+    this.__telemetryReports$ = this.telemetryUpdates$(interval).pipe(
       switchMap(async (source) => {
         const response = await fetch(source.getUrl);
         if (!response.ok) {
@@ -121,5 +139,7 @@ export class Telemetry {
       multicast(new BehaviorSubject<Optional<Dictionary<JSONObject>>>(null)),
       filterDefined(),
     );
+
+    return this.__telemetryReports$;
   }
 }

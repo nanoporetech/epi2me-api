@@ -67,7 +67,6 @@ import type { JSONObject, Dictionary, Index, Optional } from 'ts-runtime-typeche
 import type { FileStat } from './utils-fs';
 import type { ResponseStartWorkflow } from './graphql-types';
 import type { InstanceAttribute } from './factory.type';
-import type { ReportID } from './telemetry.type';
 import type { EPI2ME_OPTIONS } from './epi2me-options';
 
 const networkStreamErrors: WeakSet<Writable> = new WeakSet();
@@ -1785,14 +1784,9 @@ export class EPI2ME_FS extends EPI2ME {
 
     const instanceDir = path.join(rootDir(), 'instances', makeString(this.config.instance.id_workflow_instance));
     const telemetryNames = this.config?.instance?.telemetryNames;
-    const reportsList = Object.entries(asDefined(telemetryNames)).map(
-      ([componentId, componentTelemetryDetails]) =>
-        [componentId, Object.values(componentTelemetryDetails)[0]] as ReportID,
-    );
-
     const idWorkflowInstance = makeString(this.config.instance.id_workflow_instance);
 
-    this.telemetry = Telemetry.connect(idWorkflowInstance, this.graphQL, reportsList);
+    this.telemetry = Telemetry.connect(idWorkflowInstance, this.graphQL, asDefined(telemetryNames));
 
     const reports$ = this.telemetry.telemetryReports$(this.config.options.downloadCheckInterval * 10000);
     const destroySignal$ = new Subject<void>();
