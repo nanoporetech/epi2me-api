@@ -69,7 +69,7 @@ export class Telemetry {
   private async getTelemetrySources(reportNames: ReportID[]): Promise<TelemetrySource[]> {
     const response = await this.graphQL.query<Dictionary<TelemetrySource>>(`query {
       ${reportNames.map((report, index) => {
-        return `_${index}: workflowInstanceTelemetry(idWorkflowInstance:${this.id}, report:"${report}") {
+        return `_${index}: workflowInstanceTelemetry(idWorkflowInstance:${this.id}, report:"${report[1]}") {
             getUrl
             headUrl
             expiresIn
