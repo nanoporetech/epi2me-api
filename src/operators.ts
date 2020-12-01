@@ -25,15 +25,15 @@ import type { Optional } from 'ts-runtime-typecheck';
 */
 export function filterDefined<T>(): OperatorFunction<Optional<T>, T> {
   return (source$: Observable<Optional<T>>): Observable<T> => {
-    return new Observable(({ next, complete, error }) => {
+    return new Observable((subscriber) => {
       source$.subscribe({
         next(value) {
           if (isDefined(value)) {
-            next(value);
+            subscriber.next(value);
           }
         },
-        complete,
-        error,
+        complete: subscriber.complete.bind(subscriber),
+        error: subscriber.error.bind(subscriber),
       });
     });
   };
@@ -57,7 +57,7 @@ export function filterDefined<T>(): OperatorFunction<Optional<T>, T> {
 export function recordDelta<V>(): OperatorFunction<Dictionary<V>, Dictionary<V>> {
   return (source$: Observable<Dictionary<V>>): Observable<Dictionary<V>> => {
     let previous: Dictionary<V> = {};
-    return new Observable(({ next, complete, error }) => {
+    return new Observable((subscriber) => {
       source$.subscribe({
         next(record) {
           const output: Dictionary<V> = {};
@@ -67,10 +67,10 @@ export function recordDelta<V>(): OperatorFunction<Dictionary<V>, Dictionary<V>>
             }
           }
           previous = record;
-          next(output);
+          subscriber.next(output);
         },
-        complete,
-        error,
+        complete: subscriber.complete.bind(subscriber),
+        error: subscriber.error.bind(subscriber),
       });
     });
   };
