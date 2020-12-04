@@ -3,6 +3,7 @@ export interface TelemetrySource {
   headUrl: string;
   instanceId: string;
   reportId: ReportID;
+  hasReport?: boolean;
 }
 
 export interface ReportID {

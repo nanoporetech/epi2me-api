@@ -102,15 +102,14 @@ export class Telemetry {
       switchMap(async (source) => {
         const response = await fetch(source.headUrl, { method: 'head' });
         if (!response.ok) {
-          return null;
+          return { ...source, etag: '', hasReport: false };
         }
         const etag = response.headers.get('etag');
         if (!etag) {
           throw new Error('Server responded without etag on telemetry HEAD request');
         }
-        return { ...source, etag };
+        return { ...source, etag, hasReport: true };
       }),
-      filter(isDefined),
       filter((a) => {
         const old = reportEtag.get(a.reportId.componentId);
         reportEtag.set(a.reportId.componentId, a.etag);
@@ -132,6 +131,7 @@ export class Telemetry {
     }
     const aggregationMap: Dictionary<JSONObject> = {};
     this.__telemetryReports$ = this.telemetryUpdates$().pipe(
+      filter((source) => source.hasReport ?? false),
       switchMap(async (source) => {
         const response = await fetch(source.getUrl);
         if (!response.ok) {
