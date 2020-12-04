@@ -1,13 +1,14 @@
 import { fetch } from './network/fetch';
 import { BehaviorSubject, timer } from 'rxjs';
-import { filter, multicast, switchMap } from 'rxjs/operators';
+import { filter, multicast, refCount, switchMap } from 'rxjs/operators';
 import { filterDefined } from './operators';
 
 import type { Subscription, Observable } from 'rxjs';
-import type { Dictionary, JSONObject, Optional } from 'ts-runtime-typecheck';
+import { Dictionary, isDefined, JSONObject, Optional } from 'ts-runtime-typecheck';
 import type { GraphQL } from './graphql';
 import type { ReportID, TelemetrySource } from './telemetry.type';
 
+const TELEMETRY_INTERVAL = 30 * 1000;
 const SOURCE_EXPIRY_INTERVAL = 1 * 60 * 60 * 1000 - 10 * 1000; // Sources are valid for 1 hour, purposefully expire them a little early ( 10 seconds should do it )
 const TELEMETRY_INSTANCES: Map<string, Telemetry> = new Map();
 
@@ -28,10 +29,10 @@ export class Telemetry {
     }
     TELEMETRY_INSTANCES.set(id, this);
 
-    const reportNames = Object.entries(telemetryNames).map(
-      ([componentId, componentTelemetryDetails]) =>
-        [componentId, Object.values(componentTelemetryDetails)[0]] as ReportID,
-    );
+    const reportNames = Object.entries(telemetryNames).map(([componentId, componentTelemetryDetails]) => ({
+      componentId,
+      reportName: Object.values(componentTelemetryDetails)[0],
+    }));
 
     // WARN if the interval changes on the server this will cause problems...
     const sources$ = timer(0, SOURCE_EXPIRY_INTERVAL).pipe(switchMap(() => this.getTelemetrySources(reportNames)));
@@ -68,8 +69,8 @@ export class Telemetry {
 
   private async getTelemetrySources(reportNames: ReportID[]): Promise<TelemetrySource[]> {
     const response = await this.graphQL.query<Dictionary<TelemetrySource>>(`query {
-      ${reportNames.map((report, index) => {
-        return `_${index}: workflowInstanceTelemetry(idWorkflowInstance:${this.id}, report:"${report[1]}") {
+      ${reportNames.map(({ reportName }, index) => {
+        return `_${index}: workflowInstanceTelemetry(idWorkflowInstance:${this.id}, report:"${reportName}") {
             getUrl
             headUrl
             expiresIn
@@ -89,14 +90,14 @@ export class Telemetry {
 
   private __telemetryUpdates$?: Observable<TelemetrySource>;
 
-  telemetryUpdates$(interval: number): Observable<TelemetrySource> {
+  telemetryUpdates$(): Observable<TelemetrySource> {
     if (this.__telemetryUpdates$) {
       return this.__telemetryUpdates$;
     }
 
-    const reportEtag = new Map();
+    const reportEtag: Map<string, string> = new Map();
 
-    this.__telemetryUpdates$ = timer(0, interval).pipe(
+    this.__telemetryUpdates$ = timer(0, TELEMETRY_INTERVAL).pipe(
       switchMap(() => this.sources$),
       switchMap(async (source) => {
         const response = await fetch(source.headUrl, { method: 'head' });
@@ -109,12 +110,15 @@ export class Telemetry {
         }
         return { ...source, etag };
       }),
-      filterDefined(),
+      filter(isDefined),
       filter((a) => {
-        const old = reportEtag.get(a.reportId[0]);
-        reportEtag.set(a.reportId, a.etag);
+        const old = reportEtag.get(a.reportId.componentId);
+        reportEtag.set(a.reportId.componentId, a.etag);
         return a.etag !== old;
       }),
+      multicast(new BehaviorSubject<Optional<TelemetrySource>>(null)),
+      refCount(),
+      filter(isDefined),
     );
 
     return this.__telemetryUpdates$;
@@ -122,22 +126,23 @@ export class Telemetry {
 
   private __telemetryReports$?: Observable<Dictionary<JSONObject>>;
 
-  telemetryReports$(interval: number): Observable<Dictionary<JSONObject>> {
+  telemetryReports$(): Observable<Dictionary<JSONObject>> {
     if (this.__telemetryReports$) {
       return this.__telemetryReports$;
     }
     const aggregationMap: Dictionary<JSONObject> = {};
-    this.__telemetryReports$ = this.telemetryUpdates$(interval).pipe(
+    this.__telemetryReports$ = this.telemetryUpdates$().pipe(
       switchMap(async (source) => {
         const response = await fetch(source.getUrl);
         if (!response.ok) {
           return aggregationMap;
         }
-        aggregationMap[source.reportId[0]] = await response.json();
+        aggregationMap[source.reportId.componentId] = await response.json();
         return aggregationMap;
       }),
       multicast(new BehaviorSubject<Optional<Dictionary<JSONObject>>>(null)),
-      filterDefined(),
+      refCount(),
+      filter(isDefined),
     );
 
     return this.__telemetryReports$;

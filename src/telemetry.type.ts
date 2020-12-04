@@ -5,4 +5,7 @@ export interface TelemetrySource {
   reportId: ReportID;
 }
 
-export type ReportID = [componentID: string, reportName: string];
+export interface ReportID {
+  componentId: string;
+  reportName: string;
+}
