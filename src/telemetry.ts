@@ -1,6 +1,6 @@
 import { fetch } from './network/fetch';
-import { BehaviorSubject, timer } from 'rxjs';
-import { filter, multicast, refCount, switchMap } from 'rxjs/operators';
+import { BehaviorSubject, Subject, timer } from 'rxjs';
+import { filter, map, multicast, refCount, switchMap } from 'rxjs/operators';
 import { filterDefined } from './operators';
 
 import type { Subscription, Observable } from 'rxjs';
@@ -15,6 +15,7 @@ const TELEMETRY_INSTANCES: Map<string, Telemetry> = new Map();
 export class Telemetry {
   private readonly id: string;
   private readonly graphQL: GraphQL;
+  private readonly reportCount;
   private references = 0;
   private subscription: Subscription;
   private sources$: Observable<TelemetrySource>;
@@ -33,6 +34,8 @@ export class Telemetry {
       componentId,
       reportName: Object.values(componentTelemetryDetails)[0],
     }));
+
+    this.reportCount = reportNames.length;
 
     // WARN if the interval changes on the server this will cause problems...
     const sources$ = timer(0, SOURCE_EXPIRY_INTERVAL).pipe(switchMap(() => this.getTelemetrySources(reportNames)));
@@ -115,12 +118,33 @@ export class Telemetry {
         reportEtag.set(a.reportId.componentId, a.etag);
         return a.etag !== old;
       }),
-      multicast(new BehaviorSubject<Optional<TelemetrySource>>(null)),
+      multicast(new Subject<TelemetrySource>()),
+      refCount(),
+    );
+
+    return this.__telemetryUpdates$;
+  }
+
+  private __reportReady$?: Observable<Dictionary<TelemetrySource>>;
+
+  reportReady$() {
+    if (this.__reportReady$) {
+      return this.__reportReady$;
+    }
+    const aggregationMap: Dictionary<TelemetrySource> = {};
+    this.__reportReady$ = this.telemetryUpdates$().pipe(
+      // WARN assumes that the componentId is unique for each telemetry item ( correct at time of writing, but backend allows )
+      map((source) => {
+        aggregationMap[source.reportId.componentId] = source;
+        return aggregationMap;
+      }),
+      filter((map) => Object.keys(map).length === this.reportCount),
+      multicast(new BehaviorSubject<Optional<Dictionary<TelemetrySource>>>(null)),
       refCount(),
       filter(isDefined),
     );
 
-    return this.__telemetryUpdates$;
+    return this.__reportReady$;
   }
 
   private __telemetryReports$?: Observable<Dictionary<JSONObject>>;
@@ -132,6 +156,7 @@ export class Telemetry {
     const aggregationMap: Dictionary<JSONObject> = {};
     this.__telemetryReports$ = this.telemetryUpdates$().pipe(
       filter((source) => source.hasReport ?? false),
+      // WARN assumes that the componentId is unique for each telemetry item ( correct at time of writing, but backend allows )
       switchMap(async (source) => {
         const response = await fetch(source.getUrl);
         if (!response.ok) {
