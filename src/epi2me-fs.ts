@@ -28,6 +28,7 @@ import {
   asOptRecordRecursive,
   UnknownFunction,
   JSONValue,
+  isDefined,
 } from 'ts-runtime-typecheck';
 import AWS from 'aws-sdk';
 import fs from 'fs-extra'; /* MC-565 handle EMFILE & EXDIR gracefully; use Promises */
@@ -51,7 +52,7 @@ import { gql } from '@apollo/client/core';
 import { createInterval, createTimeout } from './timers';
 import { Telemetry } from './telemetry';
 import { resolve } from 'url';
-import { first, map, mapTo, takeUntil } from 'rxjs/operators';
+import { filter, first, map, mapTo, takeUntil } from 'rxjs/operators';
 import { recordDelta } from './operators';
 import { GraphQLFS } from './graphql-fs';
 import { Subject } from 'rxjs';
@@ -1788,7 +1789,7 @@ export class EPI2ME_FS extends EPI2ME {
 
     this.telemetry = Telemetry.connect(idWorkflowInstance, this.graphQL, asDefined(telemetryNames));
 
-    const reports$ = this.telemetry.telemetryReports$();
+    const reports$ = this.telemetry.telemetryReports$().pipe(filter(isDefined));
     const destroySignal$ = new Subject<void>();
     const writeQueue = createQueue<[string, JSONValue]>(1, destroySignal$, ([filePath, content]) =>
       fs.writeJSON(filePath, content),

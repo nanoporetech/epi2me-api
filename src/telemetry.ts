@@ -1,7 +1,6 @@
 import { fetch } from './network/fetch';
-import { BehaviorSubject, Subject, timer } from 'rxjs';
+import { BehaviorSubject, timer } from 'rxjs';
 import { filter, map, multicast, refCount, switchMap } from 'rxjs/operators';
-import { filterDefined } from './operators';
 
 import type { Subscription, Observable } from 'rxjs';
 import { Dictionary, isDefined, JSONObject, Optional } from 'ts-runtime-typecheck';
@@ -43,7 +42,7 @@ export class Telemetry {
 
     this.subscription = sources$.subscribe(subject$); // does this actually sub or does it create a pipe? Maybe do dumb subscription
     this.sources$ = subject$.pipe(
-      filterDefined(),
+      filter(isDefined),
       switchMap((sources) => sources),
     );
   }
@@ -71,14 +70,15 @@ export class Telemetry {
   }
 
   private async getTelemetrySources(reportNames: ReportID[]): Promise<TelemetrySource[]> {
+    const createFragment = (report: string, index: number) => {
+      return `_${index}: workflowInstanceTelemetry(idWorkflowInstance:${this.id}, report:"${report}") {
+        getUrl
+        headUrl
+        expiresIn
+      }`;
+    };
     const response = await this.graphQL.query<Dictionary<TelemetrySource>>(`query {
-      ${reportNames.map(({ reportName }, index) => {
-        return `_${index}: workflowInstanceTelemetry(idWorkflowInstance:${this.id}, report:"${reportName}") {
-            getUrl
-            headUrl
-            expiresIn
-          }`;
-      })}
+      ${reportNames.map(({ reportName }, index) => createFragment(reportName, index))}
     }`)();
 
     // TODO check for error ?
@@ -118,8 +118,9 @@ export class Telemetry {
         reportEtag.set(a.reportId.componentId, a.etag);
         return a.etag !== old;
       }),
-      multicast(new Subject<TelemetrySource>()),
+      multicast(new BehaviorSubject<Optional<TelemetrySource>>(null)),
       refCount(),
+      filter(isDefined),
     );
 
     return this.__telemetryUpdates$;
@@ -147,9 +148,9 @@ export class Telemetry {
     return this.__reportReady$;
   }
 
-  private __telemetryReports$?: Observable<Dictionary<JSONObject>>;
+  private __telemetryReports$?: Observable<Optional<Dictionary<JSONObject>>>;
 
-  telemetryReports$(): Observable<Dictionary<JSONObject>> {
+  telemetryReports$(): Observable<Optional<Dictionary<JSONObject>>> {
     if (this.__telemetryReports$) {
       return this.__telemetryReports$;
     }
@@ -167,7 +168,7 @@ export class Telemetry {
       }),
       multicast(new BehaviorSubject<Optional<Dictionary<JSONObject>>>(null)),
       refCount(),
-      filter(isDefined),
+      // filter(isDefined),
     );
 
     return this.__telemetryReports$;
