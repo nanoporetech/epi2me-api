@@ -28,7 +28,6 @@ import {
   asOptRecordRecursive,
   UnknownFunction,
   JSONValue,
-  isDefined,
 } from 'ts-runtime-typecheck';
 import AWS from 'aws-sdk';
 import fs from 'fs-extra'; /* MC-565 handle EMFILE & EXDIR gracefully; use Promises */
@@ -52,10 +51,9 @@ import { gql } from '@apollo/client/core';
 import { createInterval, createTimeout } from './timers';
 import { Telemetry } from './telemetry';
 import { resolve } from 'url';
-import { filter, first, map, mapTo, takeUntil } from 'rxjs/operators';
-import { recordDelta } from './operators';
+import { filter, first, map, takeUntil, withLatestFrom } from 'rxjs/operators';
 import { GraphQLFS } from './graphql-fs';
-import { Subject } from 'rxjs';
+import { BehaviorSubject, Subject } from 'rxjs';
 import { createQueue } from './queue';
 
 import type { MappedFileStats } from './filestats';
@@ -576,7 +574,6 @@ export class EPI2ME_FS extends EPI2ME {
 
   async stopAnalysis(): Promise<void> {
     await super.stopAnalysis();
-    this.telemetry?.disconnect();
     this.telemetryDestroySignal$?.next();
     this.telemetryDestroySignal$?.complete();
   }
@@ -1789,26 +1786,65 @@ export class EPI2ME_FS extends EPI2ME {
 
     this.telemetry = Telemetry.connect(idWorkflowInstance, this.graphQL, asDefined(telemetryNames));
 
-    const reports$ = this.telemetry.telemetryReports$().pipe(filter(isDefined));
+    // const reports$ = this.telemetry.telemetryReports$().pipe(filter(isDefined));
+
     const destroySignal$ = new Subject<void>();
     const writeQueue = createQueue<[string, JSONValue]>(1, destroySignal$, ([filePath, content]) =>
       fs.writeJSON(filePath, content),
     );
+
     // update the public reportState$ subject to indicate reports are ready on our first signal
-    reports$.pipe(first(), mapTo(true), takeUntil(destroySignal$)).subscribe(this.reportState$);
+    this.telemetry.anyReportsReady$
+      .pipe(
+        filter((isReady) => isReady),
+        first(),
+        takeUntil(destroySignal$),
+      )
+      .subscribe(this.reportState$);
 
     // pass all telemetry fils to public instanceTelemetry$ subject
-    reports$.pipe(map(Object.values), takeUntil(destroySignal$)).subscribe(this.instanceTelemetry$);
+    this.telemetry.reports$
+      .pipe(
+        map((reports) => {
+          return reports.map(({ report }) => report);
+        }),
+        takeUntil(destroySignal$),
+      )
+      .subscribe(this.instanceTelemetry$);
+
+    const previousReports$ = new BehaviorSubject<(JSONObject | null)[]>([]);
 
     // write any changed telemetry files to disk
-    reports$.pipe(recordDelta(), takeUntil(destroySignal$)).subscribe((reports: Dictionary<JSONObject>) => {
-      // download and save report
-      for (const [componentId, body] of Object.entries(reports)) {
-        // queue file writes to prevent a race condition where we could attempt
-        // to write a report file while it's already being written
-        writeQueue([path.join(instanceDir, `${componentId}.json`), body]);
-      }
-    });
+    this.telemetry.reports$
+      .pipe(
+        withLatestFrom(previousReports$),
+        map(([reports, previous]) => {
+          const updated = reports.map(({ report }) => report);
+
+          previousReports$.next(updated);
+
+          const changeList: { report: JSONObject; id: string }[] = [];
+          for (let i = 0; i < reports.length; i++) {
+            const old = previous[i];
+            const { report, id } = reports[i];
+            if (report && report !== old) {
+              changeList.push({
+                report,
+                id,
+              });
+            }
+          }
+
+          return changeList;
+        }),
+      )
+      .subscribe((changeReports) => {
+        for (const { id, report } of changeReports) {
+          // queue file writes to prevent a race condition where we could attempt
+          // to write a report file while it's already being written
+          writeQueue([path.join(instanceDir, `${id}.json`), report]);
+        }
+      });
 
     this.telemetryDestroySignal$ = destroySignal$;
   }

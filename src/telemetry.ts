@@ -1,176 +1,220 @@
 import { fetch } from './network/fetch';
 import { BehaviorSubject, timer } from 'rxjs';
-import { filter, map, multicast, refCount, switchMap } from 'rxjs/operators';
+import {
+  delayWhen,
+  distinctUntilChanged,
+  filter,
+  map,
+  multicast,
+  refCount,
+  retryWhen,
+  switchMap,
+  withLatestFrom,
+} from 'rxjs/operators';
 
-import type { Subscription, Observable } from 'rxjs';
-import { Dictionary, isDefined, JSONObject, Optional } from 'ts-runtime-typecheck';
+import { Observable } from 'rxjs';
+import { Dictionary, isDefined, JSONObject } from 'ts-runtime-typecheck';
 import type { GraphQL } from './graphql';
-import type { ReportID, TelemetrySource } from './telemetry.type';
+import type { ExtendedTelemetrySource, ReportID, TelemetrySource } from './telemetry.type';
+
+type TelemetryNames = Dictionary<Dictionary<string>>;
 
 const TELEMETRY_INTERVAL = 30 * 1000;
-const SOURCE_EXPIRY_INTERVAL = 1 * 60 * 60 * 1000 - 10 * 1000; // Sources are valid for 1 hour, purposefully expire them a little early ( 10 seconds should do it )
+const EXPIRY_GRACE_PERIOD = 5000;
 const TELEMETRY_INSTANCES: Map<string, Telemetry> = new Map();
 
+function cacheSubject$<T>(): BehaviorSubject<T | null> {
+  return new BehaviorSubject<T | null>(null);
+}
+
+function sleep(duration: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, duration);
+  });
+}
+
 export class Telemetry {
-  private readonly id: string;
-  private readonly graphQL: GraphQL;
-  private readonly reportCount;
-  private references = 0;
-  private subscription: Subscription;
-  private sources$: Observable<TelemetrySource>;
+  readonly sources$: Observable<TelemetrySource[]>;
+  readonly updates$: Observable<ExtendedTelemetrySource[]>;
+  readonly reports$: Observable<{ report: JSONObject | null; id: string }[]>;
+  readonly anyReportsReady$: Observable<boolean>;
 
-  constructor(id: string, graphql: GraphQL, telemetryNames: Dictionary<Dictionary<string>>) {
-    this.id = id;
-    this.graphQL = graphql;
-    if (TELEMETRY_INSTANCES.has(id)) {
-      throw new Error(
-        `Telemetry instance ${id} already exists. Ensure all consumers use the "Telemetry.create" to instantiate and "disconnect" when it is not longer needed.`,
-      );
-    }
-    TELEMETRY_INSTANCES.set(id, this);
+  constructor(id: string, graphql: GraphQL, telemetryNames: TelemetryNames) {
+    /*
+      NOTE this used to flatten sources so that each pipeline dealt with only
+      1 report at a time, and then aggregated them as needed. This caused more
+      complexity that was really needed. Also it highlighted the cancellation
+      behavior in switchMap (quote from docs below) which causes unresolvable
+      issues in that design. Mainly that spreading an array of values into a
+      pipeline then performing async actions on them causes all but the last
+      value in the pipe to be cancelled.
+      
+      https://www.learnrxjs.io/learn-rxjs/operators/transformation/switchmap#why-use-switchmap
 
-    const reportNames = Object.entries(telemetryNames).map(([componentId, componentTelemetryDetails]) => ({
-      componentId,
-      reportName: Object.values(componentTelemetryDetails)[0],
-    }));
+      "The main difference between switchMap and other flattening operators is
+      the cancelling effect. On each emission the previous inner observable
+      (the result of the function you supplied) is cancelled and the new
+      observable is subscribed. You can remember this by the phrase switch to
+      a new observable."
+    */
 
-    this.reportCount = reportNames.length;
-
-    // WARN if the interval changes on the server this will cause problems...
-    const sources$ = timer(0, SOURCE_EXPIRY_INTERVAL).pipe(switchMap(() => this.getTelemetrySources(reportNames)));
-    const subject$ = new BehaviorSubject<Optional<TelemetrySource[]>>(null);
-
-    this.subscription = sources$.subscribe(subject$); // does this actually sub or does it create a pipe? Maybe do dumb subscription
-    this.sources$ = subject$.pipe(
+    // get the sources for the telemetry reports on this instance ( automatically updates when the sources expire )
+    this.sources$ = this.getSources$(graphql, id, telemetryNames).pipe(
+      multicast(cacheSubject$<TelemetrySource[]>()),
+      refCount(),
       filter(isDefined),
-      switchMap((sources) => sources),
+    );
+
+    // poll the sources to see if any have changed, emits all the sources if any have
+    this.updates$ = timer(0, TELEMETRY_INTERVAL).pipe(
+      withLatestFrom(this.sources$),
+      switchMap(async ([, sources]) => {
+        return Promise.all(
+          sources.map(async (source) => {
+            const response = await fetch(source.headUrl, { method: 'head' });
+            if (!response.ok) {
+              // when no report is available yet the head request produces a 404
+              return { ...source, etag: '', hasReport: false };
+            }
+            // a change in the etag means a report has been updated, so add it to the output for comparison later
+            const etag = response.headers.get('etag');
+            if (!etag) {
+              throw new Error('Server responded without etag on telemetry HEAD request');
+            }
+            return { ...source, etag, hasReport: true };
+          }),
+        );
+      }),
+      // after recieving an error from the network request above retry after 5 seconds ( note: error is not logged )
+      retryWhen((errors$) => errors$.pipe(delayWhen(() => timer(5000)))),
+      // only emit if one of the etags has changed
+      distinctUntilChanged((previousSources, sources) =>
+        previousSources.every((previous, index) => previous.etag === sources[index].etag),
+      ),
+      multicast(cacheSubject$<ExtendedTelemetrySource[]>()),
+      refCount(),
+      filter(isDefined),
+    );
+
+    // observe the updates$ to see if any report is currently available
+    this.anyReportsReady$ = this.updates$.pipe(
+      map((sources) => sources.some((source) => source.hasReport)),
+      distinctUntilChanged(),
+    );
+
+    // used to compare against previous values within the reports$ pipeline
+    const previousSourceList$ = cacheSubject$<ExtendedTelemetrySource[]>();
+    const aggregatedReports$ = cacheSubject$<(JSONObject | null)[]>();
+
+    this.reports$ = this.updates$.pipe(
+      withLatestFrom(previousSourceList$, aggregatedReports$),
+      switchMap(async ([sources, previous, reports]) => {
+        const previousSources = previous ?? [];
+
+        const results: (JSONObject | null)[] = await Promise.all(
+          sources.map(async (current, index) => {
+            // if there is no report we shouldn't try to get it
+            if (!current.hasReport) {
+              return null;
+            }
+
+            // first run, or has changed. we should fetch the report content
+            if (!reports || current.etag !== previousSources[index]?.etag) {
+              const response = await fetch(current.getUrl);
+              if (!response.ok) {
+                throw new Error('Unable to retrieve report content');
+              }
+              return response.json() as Promise<JSONObject>;
+              // otherwise return the previous value
+            } else {
+              return reports[index];
+            }
+          }),
+        );
+
+        // update the "previous value" subjects
+        previousSourceList$.next(sources);
+        aggregatedReports$.next(results);
+
+        // emit as an array as so not to reorder the components
+        return results.map((report, index) => {
+          const { reportId } = sources[index];
+          return {
+            report,
+            id: reportId.componentId,
+          };
+        });
+      }),
+      // after recieving an error from the network request above retry after 5 seconds ( note: error is not logged )
+      retryWhen((errors$) => errors$.pipe(delayWhen(() => timer(5000)))),
+      multicast(cacheSubject$<{ report: JSONObject | null; id: string }[]>()),
+      refCount(),
+      filter(isDefined),
     );
   }
 
-  __connect(): void {
-    this.references += 1;
-  }
-
-  disconnect(): void {
-    this.references -= 1;
-    if (this.references <= 0) {
-      this.subscription.unsubscribe();
-      TELEMETRY_INSTANCES.delete(this.id);
-    }
-  }
-
-  static connect(id: string, graphQL: GraphQL, reportNames: Dictionary<Dictionary<string>>): Telemetry {
-    let inst = TELEMETRY_INSTANCES.get(id);
-    if (!inst) {
-      inst = new Telemetry(id, graphQL, reportNames);
-      TELEMETRY_INSTANCES.set(id, inst);
-    }
-    inst.__connect();
-    return inst;
-  }
-
-  private async getTelemetrySources(reportNames: ReportID[]): Promise<TelemetrySource[]> {
+  private async getTelemetrySources(graphql: GraphQL, id: string, reportNames: ReportID[]): Promise<TelemetrySource[]> {
     const createFragment = (report: string, index: number) => {
-      return `_${index}: workflowInstanceTelemetry(idWorkflowInstance:${this.id}, report:"${report}") {
+      return `_${index}: workflowInstanceTelemetry(idWorkflowInstance:${id}, report:"${report}") {
         getUrl
         headUrl
         expiresIn
       }`;
     };
-    const response = await this.graphQL.query<Dictionary<TelemetrySource>>(`query {
+    const response = await graphql.query<Dictionary<TelemetrySource>>(`query {
       ${reportNames.map(({ reportName }, index) => createFragment(reportName, index))}
     }`)();
 
-    // TODO check for error ?
+    // WARN is this the correct behavior??
+    if (response.error) {
+      throw new Error(response.error.message);
+    }
 
-    return Object.values(response.data).map(({ getUrl, headUrl }, index) => ({
+    return Object.values(response.data).map(({ getUrl, headUrl, expiresIn }, index) => ({
       getUrl,
       headUrl,
-      instanceId: this.id,
+      instanceId: id,
+      expiresIn,
       reportId: reportNames[index],
     }));
   }
 
-  private __telemetryUpdates$?: Observable<TelemetrySource>;
+  private getSources$(graphql: GraphQL, id: string, telemetryNames: TelemetryNames): Observable<TelemetrySource[]> {
+    return new Observable((subscriber) => {
+      let stopped = false;
 
-  telemetryUpdates$(): Observable<TelemetrySource> {
-    if (this.__telemetryUpdates$) {
-      return this.__telemetryUpdates$;
-    }
+      const reportNames = Object.entries(telemetryNames).map(([componentId, componentTelemetryDetails]) => ({
+        componentId,
+        reportName: Object.values(componentTelemetryDetails)[0],
+      }));
 
-    const reportEtag: Map<string, string> = new Map();
-
-    this.__telemetryUpdates$ = timer(0, TELEMETRY_INTERVAL).pipe(
-      switchMap(() => this.sources$),
-      switchMap(async (source) => {
-        const response = await fetch(source.headUrl, { method: 'head' });
-        if (!response.ok) {
-          return { ...source, etag: '', hasReport: false };
+      (async () => {
+        while (true) {
+          const startTime = Date.now();
+          const sources = await this.getTelemetrySources(graphql, id, reportNames);
+          subscriber.next(sources);
+          const expiresIn = sources.reduce((acc, source) => Math.min(acc, source.expiresIn), Infinity);
+          const deltaTime = Date.now() - startTime;
+          await sleep(expiresIn - deltaTime - EXPIRY_GRACE_PERIOD);
+          if (stopped) {
+            break;
+          }
         }
-        const etag = response.headers.get('etag');
-        if (!etag) {
-          throw new Error('Server responded without etag on telemetry HEAD request');
-        }
-        return { ...source, etag, hasReport: true };
-      }),
-      filter((a) => {
-        const old = reportEtag.get(a.reportId.componentId);
-        reportEtag.set(a.reportId.componentId, a.etag);
-        return a.etag !== old;
-      }),
-      multicast(new BehaviorSubject<Optional<TelemetrySource>>(null)),
-      refCount(),
-      filter(isDefined),
-    );
+      })();
 
-    return this.__telemetryUpdates$;
+      return () => {
+        stopped = true;
+      };
+    });
   }
 
-  private __reportReady$?: Observable<Dictionary<TelemetrySource>>;
-
-  reportReady$() {
-    if (this.__reportReady$) {
-      return this.__reportReady$;
+  // ensures we don't get more than 1 instance of telemetry for a epi2me instance
+  static connect(id: string, graphQL: GraphQL, reportNames: TelemetryNames): Telemetry {
+    let inst = TELEMETRY_INSTANCES.get(id);
+    if (!inst) {
+      inst = new Telemetry(id, graphQL, reportNames);
+      TELEMETRY_INSTANCES.set(id, inst);
     }
-    const aggregationMap: Dictionary<TelemetrySource> = {};
-    this.__reportReady$ = this.telemetryUpdates$().pipe(
-      // WARN assumes that the componentId is unique for each telemetry item ( correct at time of writing, but backend allows )
-      map((source) => {
-        aggregationMap[source.reportId.componentId] = source;
-        return aggregationMap;
-      }),
-      filter((map) => Object.keys(map).length === this.reportCount),
-      multicast(new BehaviorSubject<Optional<Dictionary<TelemetrySource>>>(null)),
-      refCount(),
-      filter(isDefined),
-    );
-
-    return this.__reportReady$;
-  }
-
-  private __telemetryReports$?: Observable<Optional<Dictionary<JSONObject>>>;
-
-  telemetryReports$(): Observable<Optional<Dictionary<JSONObject>>> {
-    if (this.__telemetryReports$) {
-      return this.__telemetryReports$;
-    }
-    const aggregationMap: Dictionary<JSONObject> = {};
-    this.__telemetryReports$ = this.telemetryUpdates$().pipe(
-      filter((source) => source.hasReport ?? false),
-      // WARN assumes that the componentId is unique for each telemetry item ( correct at time of writing, but backend allows )
-      switchMap(async (source) => {
-        const response = await fetch(source.getUrl);
-        if (!response.ok) {
-          return aggregationMap;
-        }
-        aggregationMap[source.reportId.componentId] = await response.json();
-        return aggregationMap;
-      }),
-      multicast(new BehaviorSubject<Optional<Dictionary<JSONObject>>>(null)),
-      refCount(),
-      // filter(isDefined),
-    );
-
-    return this.__telemetryReports$;
+    return inst;
   }
 }
