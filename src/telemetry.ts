@@ -65,8 +65,11 @@ export class Telemetry {
       filter(isDefined),
     );
 
+    // for updates to actually trigger on the first interval the timer MUST be a BehaviourSubject
+    const intervalSubject$ = interval(TELEMETRY_INTERVAL).pipe(multicast(new BehaviorSubject(0)), refCount());
+
     // poll the sources to see if any have changed, emits all the sources if any have
-    this.updates$ = combineLatest([interval(TELEMETRY_INTERVAL), this.sources$]).pipe(
+    this.updates$ = combineLatest([intervalSubject$, this.sources$]).pipe(
       switchMap(async ([, sources]) => {
         return Promise.all(
           sources.map(async (source) => {
