@@ -1,5 +1,5 @@
 import { fetch } from './network/fetch';
-import { BehaviorSubject, timer } from 'rxjs';
+import { BehaviorSubject, combineLatest, interval, timer } from 'rxjs';
 import {
   delayWhen,
   distinctUntilChanged,
@@ -66,8 +66,7 @@ export class Telemetry {
     );
 
     // poll the sources to see if any have changed, emits all the sources if any have
-    this.updates$ = timer(0, TELEMETRY_INTERVAL).pipe(
-      withLatestFrom(this.sources$),
+    this.updates$ = combineLatest([interval(TELEMETRY_INTERVAL), this.sources$]).pipe(
       switchMap(async ([, sources]) => {
         return Promise.all(
           sources.map(async (source) => {
@@ -193,7 +192,7 @@ export class Telemetry {
           const startTime = Date.now();
           const sources = await this.getTelemetrySources(graphql, id, reportNames);
           subscriber.next(sources);
-          const expiresIn = sources.reduce((acc, source) => Math.min(acc, source.expiresIn), Infinity);
+          const expiresIn = sources.reduce((acc, source) => Math.min(acc, source.expiresIn), Infinity) * 1000;
           const deltaTime = Date.now() - startTime;
           await sleep(expiresIn - deltaTime - EXPIRY_GRACE_PERIOD);
           if (stopped) {
