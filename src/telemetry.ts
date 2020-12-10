@@ -13,8 +13,9 @@ import {
 } from 'rxjs/operators';
 
 import { Observable } from 'rxjs';
-import { Dictionary, isDefined, JSONObject } from 'ts-runtime-typecheck';
-import type { GraphQL } from './graphql';
+import { isDefined } from 'ts-runtime-typecheck';
+import { GraphQL } from './graphql';
+import type { Dictionary, JSONObject } from 'ts-runtime-typecheck';
 import type { ExtendedTelemetrySource, ReportID, TelemetrySource } from './telemetry.type';
 
 type TelemetryNames = Dictionary<Dictionary<string>>;
@@ -165,7 +166,11 @@ export class Telemetry {
     };
     const response = await graphql.query<Dictionary<TelemetrySource>>(`query {
       ${reportNames.map(({ reportName }, index) => createFragment(reportName, index))}
-    }`)();
+    }`)({
+      options: {
+        fetchPolicy: GraphQL.NETWORK_ONLY,
+      },
+    });
 
     // WARN is this the correct behavior??
     if (response.error) {
