@@ -15,7 +15,7 @@ import {
 import { Observable } from 'rxjs';
 import { isDefined } from 'ts-runtime-typecheck';
 import { GraphQL } from './graphql';
-import type { Dictionary, JSONObject } from 'ts-runtime-typecheck';
+import type { Dictionary, JSONObject, Optional } from 'ts-runtime-typecheck';
 import type { ExtendedTelemetrySource, ReportID, TelemetrySource } from './telemetry.type';
 
 type TelemetryNames = Dictionary<Dictionary<string>>;
@@ -28,14 +28,8 @@ function cacheSubject$<T>(): BehaviorSubject<T | null> {
   return new BehaviorSubject<T | null>(null);
 }
 
-function sleep(duration: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, duration);
-  });
-}
-
 export class Telemetry {
-  readonly sources$: Observable<TelemetrySource[]>;
+  private readonly sources$: Observable<TelemetrySource[]>;
   readonly updates$: Observable<ExtendedTelemetrySource[]>;
   readonly reports$: Observable<{ report: JSONObject | null; id: string }[]>;
   readonly anyReportsReady$: Observable<boolean>;
@@ -60,18 +54,15 @@ export class Telemetry {
     */
 
     // get the sources for the telemetry reports on this instance ( automatically updates when the sources expire )
-    this.sources$ = this.getSources$(graphql, id, telemetryNames).pipe(
-      multicast(cacheSubject$<TelemetrySource[]>()),
-      refCount(),
-      filter(isDefined),
-    );
+    this.sources$ = this.getSources$(graphql, id, telemetryNames);
 
     // for updates to actually trigger on the first interval the timer MUST be a BehaviourSubject
     const intervalSubject$ = interval(TELEMETRY_INTERVAL).pipe(multicast(new BehaviorSubject(0)), refCount());
 
     // poll the sources to see if any have changed, emits all the sources if any have
     this.updates$ = combineLatest([intervalSubject$, this.sources$]).pipe(
-      switchMap(async ([, sources]) => {
+      switchMap(() => this.sources$),
+      switchMap(async (sources) => {
         return Promise.all(
           sources.map(async (source) => {
             const response = await fetch(source.headUrl, { method: 'head' });
@@ -187,31 +178,35 @@ export class Telemetry {
   }
 
   private getSources$(graphql: GraphQL, id: string, telemetryNames: TelemetryNames): Observable<TelemetrySource[]> {
-    return new Observable((subscriber) => {
-      let stopped = false;
+    let expires = 0;
+    let sources: Optional<TelemetrySource[]> = null;
 
-      const reportNames = Object.entries(telemetryNames).map(([componentId, componentTelemetryDetails]) => ({
-        componentId,
-        reportName: Object.values(componentTelemetryDetails)[0],
-      }));
+    const reportNames = Object.entries(telemetryNames).map(([componentId, componentTelemetryDetails]) => ({
+      componentId,
+      reportName: Object.values(componentTelemetryDetails)[0],
+    }));
+
+    return new Observable((subscriber) => {
+      const startTime = Date.now();
+
+      if (startTime < expires && sources) {
+        subscriber.next(sources);
+        subscriber.complete();
+      }
 
       (async () => {
-        while (true) {
-          const startTime = Date.now();
-          const sources = await this.getTelemetrySources(graphql, id, reportNames);
+        const startTime = Date.now();
+        try {
+          sources = await this.getTelemetrySources(graphql, id, reportNames);
           subscriber.next(sources);
+          subscriber.complete();
           const expiresIn = sources.reduce((acc, source) => Math.min(acc, source.expiresIn), Infinity) * 1000;
           const deltaTime = Date.now() - startTime;
-          await sleep(expiresIn - deltaTime - EXPIRY_GRACE_PERIOD);
-          if (stopped) {
-            break;
-          }
+          expires = expiresIn - deltaTime - EXPIRY_GRACE_PERIOD;
+        } catch (e) {
+          subscriber.error(e);
         }
       })();
-
-      return () => {
-        stopped = true;
-      };
     });
   }
 
