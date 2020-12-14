@@ -41,6 +41,7 @@ type AttributeValueType {
   idUserOwner: Float!
   created: DateTime
   lastModified: DateTime
+  datasetSet: [DatasetType!]!
   workflowSet: [WorkflowType!]!
   workflowinstanceSet: [WorkflowInstanceType!]!
 }
@@ -70,6 +71,7 @@ type DatasetType {
   datasetStatus: DatasetStatusType!
   created: DateTime!
   lastModified: DateTime!
+  attributes: [AttributeValueType!]!
   workflowinstanceSet: [WorkflowInstanceType!]!
 }
 
@@ -146,11 +148,17 @@ type Query {
   allWorkflowInstances(
     idUser: ID
     shared: Boolean
+    search: String
+    attrsFilter: [AttributeParams]
     page: Int
     pageSize: Int
     orderBy: String
   ): PaginatedWorkflowInstanceType
   workflowInstance(idWorkflowInstance: ID!): WorkflowInstanceType
+  workflowInstanceTelemetry(
+    idWorkflowInstance: ID!
+    report: String!
+  ): WorkflowInstanceTelemetry
   allWorkflows(
     isActive: Int
     attrsFilter: AttributeParams
@@ -159,10 +167,16 @@ type Query {
     pageSize: Int
     orderBy: String
   ): PaginatedWorkflowType
-  allDatasets(page: Int, pageSize: Int, orderBy: String): PaginatedDatasetType
+  allDatasets(
+    onlyReferences: Boolean
+    page: Int
+    pageSize: Int
+    orderBy: String
+  ): PaginatedDatasetType
   workflow(idWorkflow: ID!): WorkflowType
   status: StatusType
   regions: [RegionType]
+  attributes: [AttributeType]
   allUsers: [UserObjectType]
   allUserAccounts: [UserAccountObjectType]
   me: UserObjectType
@@ -250,6 +264,12 @@ type WorkflowInstanceMutation {
   remoteAddr: String
 }
 
+type WorkflowInstanceTelemetry {
+  getUrl: String
+  headUrl: String
+  expiresIn: Int
+}
+
 type WorkflowInstanceType {
   idWorkflowInstance: ID!
   idUser: Float!
@@ -264,6 +284,7 @@ type WorkflowInstanceType {
   dataset: [DatasetType!]!
   telemetry: GenericScalar
   mappedTelemetry: GenericScalar
+  telemetryNames: GenericScalar
   keyId: String
   state: String
 }

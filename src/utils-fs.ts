@@ -12,7 +12,7 @@ import { utils } from './utils';
 import { NoopLogger } from './Logger';
 import * as tunnel from 'tunnel';
 
-let IdCounter = 0;
+let idCounter = 0;
 
 export interface FileStat {
   name: string;
@@ -127,8 +127,8 @@ export const utilsFS: UtilityFS = {
   },
 
   getFileID(): string {
-    IdCounter += 1;
-    return `FILE_${IdCounter}`;
+    idCounter += 1;
+    return `FILE_${idCounter}`;
   },
 
   async lsRecursive(

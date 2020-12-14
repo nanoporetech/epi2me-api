@@ -1,8 +1,9 @@
 import fs from 'fs-extra';
+import { Dictionary } from 'ts-runtime-typecheck';
 import zlib from 'zlib';
 import fastqCommon from './fastq-common';
 
-export default async function (filePath: string, opts: any, handler: any, log: any): Promise<any> {
+export default async function (filePath: string, opts: Dictionary, handler: any, log: any): Promise<any> {
   return fastqCommon(
     filePath,
     opts,

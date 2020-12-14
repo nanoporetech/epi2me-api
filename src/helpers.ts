@@ -28,7 +28,7 @@ export function validateAndAddAttribute(
   instanceAttributes: InstanceAttribute[],
   attributeDef: { idAttribute: Index; format: string },
 ): void {
-  // eslint-disable-next-line @typescript-eslint/camelcase
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   const { format, idAttribute: id_attribute } = attributeDef;
   const valueRE = new RegExp(format, 'g');
   attributeValue &&

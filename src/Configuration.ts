@@ -17,6 +17,7 @@ export interface Configuration {
     remote_addr?: string;
     region?: string;
     summaryTelemetry?: Dictionary;
+    telemetryNames?: Dictionary<Dictionary<string>>;
     chain?: Dictionary;
     key_id?: string;
     awssettings: {

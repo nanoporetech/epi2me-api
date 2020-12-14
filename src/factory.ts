@@ -2,6 +2,7 @@ import { EPI2ME_FS } from './epi2me-fs';
 import { BehaviorSubject, Subject, merge } from 'rxjs';
 import { withLatestFrom, map, mapTo } from 'rxjs/operators';
 import { Map as ImmutableMap } from 'immutable';
+import { Telemetry } from './telemetry';
 
 import type { REST_FS } from './rest-fs';
 import type { GraphQL } from './graphql';
@@ -81,6 +82,10 @@ export class Factory {
 
   get sampleReader(): SampleReader {
     return this.primary.SampleReader;
+  }
+
+  telemetry(id: string, telemetryNames: Dictionary<Dictionary<string>>): Telemetry {
+    return Telemetry.connect(id, this.graphQL, telemetryNames);
   }
 
   reset(options: Partial<EPI2ME_OPTIONS> = {}): void {

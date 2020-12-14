@@ -3,38 +3,25 @@ import proxy from 'proxy-agent'; // odd one out
 import { Logger } from './Logger';
 import { REST } from './rest';
 import { GraphQL } from './graphql';
-import { Index, asRecord, isIndex } from 'ts-runtime-typecheck';
-
-interface SessionManagerOptions {
-  log: Logger;
-  useGraphQL?: unknown;
-  sessionGrace?: string;
-  proxy?:
-    | string
-    | {
-        timeout?: number;
-        host?: string;
-        port?: number;
-      };
-  region?: unknown;
-}
+import { Index, asRecord, isIndex, Dictionary, makeNumber } from 'ts-runtime-typecheck';
+import { EPI2ME_OPTIONS } from './epi2me-options';
 
 export default class SessionManager {
   readonly log: Logger;
   readonly REST: REST;
   readonly graphQL: GraphQL;
-  readonly options: SessionManagerOptions;
+  readonly options: EPI2ME_OPTIONS;
 
   readonly id_workflow_instance: Index;
-  readonly children: { config: { update: Function } }[];
+  readonly children: { config: { update: (option: Dictionary) => void } }[];
 
   sts_expiration?: number;
 
   constructor(
     idWorkflowInstance: Index,
     REST: REST,
-    children: { config: { update: Function } }[],
-    opts: SessionManagerOptions,
+    children: { config: { update: (option: Dictionary) => void } }[],
+    opts: Partial<EPI2ME_OPTIONS>,
     graphQL: GraphQL,
   ) {
     this.id_workflow_instance = idWorkflowInstance;
@@ -73,9 +60,9 @@ export default class SessionManager {
 
       this.log.debug(`allocated new instance token expiring at ${token.expiration}`);
 
-      this.sts_expiration = new Date(token.expiration).getTime() - 60 * parseInt(this.options.sessionGrace || '0', 10); // refresh token x mins before it expires
+      this.sts_expiration = new Date(token.expiration).getTime() - 60 * makeNumber(this.options.sessionGrace ?? '0'); // refresh token x mins before it expires
 
-      const configUpdate = {};
+      const configUpdate: Dictionary = {};
       if (this.options.proxy) {
         merge(configUpdate, {
           httpOptions: {

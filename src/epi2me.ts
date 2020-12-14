@@ -32,6 +32,8 @@ import {
   Index,
   Dictionary,
   Optional,
+  JSONObject,
+  UnknownFunction,
 } from 'ts-runtime-typecheck';
 import {
   createUploadState,
@@ -77,7 +79,7 @@ export class EPI2ME {
     mapTo(true),
   );
 
-  instanceTelemetry$ = new BehaviorSubject<unknown[]>([]);
+  instanceTelemetry$ = new BehaviorSubject<(JSONObject | null)[]>([]);
   experimentalWorkerStatus$ = new BehaviorSubject<
     {
       running: number;
@@ -245,7 +247,7 @@ export class EPI2ME {
   setTimer(
     intervalName: 'downloadCheckInterval' | 'stateCheckInterval' | 'fileCheckInterval' | 'summaryTelemetryInterval',
     intervalDuration: number,
-    cb: Function,
+    cb: UnknownFunction,
   ): void {
     if (this.timers[intervalName]) {
       throw new Error(`An interval with the name ${intervalName} has already been created`);

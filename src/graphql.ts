@@ -127,7 +127,7 @@ export class GraphQL {
     };
   };
 
-  query<T = unknown, Var extends {} = {}>(
+  query<T = unknown, Var extends Dictionary = Dictionary>(
     queryString: ((str: string) => DocumentNode) | string | DocumentNode,
   ): (opt?: QueryOptions<Var>) => AsyncAQR<T> {
     return (opt?: QueryOptions<Var>): AsyncAQR<T> => {
@@ -159,7 +159,7 @@ export class GraphQL {
     };
   }
 
-  mutate<T = unknown, Var extends {} = {}>(
+  mutate<T = unknown, Var extends Dictionary = Dictionary>(
     queryString: string | DocumentNode,
   ): (opt?: QueryOptions<Var>) => Promise<FetchResult<T>> {
     return (opt?: QueryOptions<Var>): Promise<FetchResult<T>> => {
@@ -311,6 +311,7 @@ export class GraphQL {
           keyId
           outputqueue
           mappedTelemetry
+          telemetryNames
           workflowImage {
             inputqueue
             workflow {
@@ -349,7 +350,7 @@ export class GraphQL {
 
   // user - me
 
-  user = this.query<ResponseUser, {}>(gql`
+  user = this.query<ResponseUser, Dictionary>(gql`
     query user {
       me {
         username
@@ -410,7 +411,7 @@ export class GraphQL {
   }
 
   // status
-  status = this.query<ResponseStatus, {}>(gql`
+  status = this.query<ResponseStatus, Dictionary>(gql`
     query status {
       status {
         portalVersion
@@ -434,7 +435,7 @@ export class GraphQL {
 
   // Regions
 
-  regions = this.query<ResponseRegions, {}>(gql`
+  regions = this.query<ResponseRegions, Dictionary>(gql`
     query regions {
       regions {
         idRegion

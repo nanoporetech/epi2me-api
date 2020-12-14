@@ -52,6 +52,7 @@ export type AttributeValueType = {
   idUserOwner: Scalars['Float'];
   created?: Maybe<Scalars['DateTime']>;
   lastModified?: Maybe<Scalars['DateTime']>;
+  datasetSet: Array<DatasetType>;
   workflowSet: Array<WorkflowType>;
   workflowinstanceSet: Array<WorkflowInstanceType>;
 };
@@ -83,6 +84,7 @@ export type DatasetType = {
   datasetStatus: DatasetStatusType;
   created: Scalars['DateTime'];
   lastModified: Scalars['DateTime'];
+  attributes: Array<AttributeValueType>;
   workflowinstanceSet: Array<WorkflowInstanceType>;
 };
 
@@ -177,11 +179,13 @@ export type Query = {
   __typename?: 'Query';
   allWorkflowInstances?: Maybe<PaginatedWorkflowInstanceType>;
   workflowInstance?: Maybe<WorkflowInstanceType>;
+  workflowInstanceTelemetry?: Maybe<WorkflowInstanceTelemetry>;
   allWorkflows?: Maybe<PaginatedWorkflowType>;
   allDatasets?: Maybe<PaginatedDatasetType>;
   workflow?: Maybe<WorkflowType>;
   status?: Maybe<StatusType>;
   regions?: Maybe<Array<Maybe<RegionType>>>;
+  attributes?: Maybe<Array<Maybe<AttributeType>>>;
   allUsers?: Maybe<Array<Maybe<UserObjectType>>>;
   allUserAccounts?: Maybe<Array<Maybe<UserAccountObjectType>>>;
   me?: Maybe<UserObjectType>;
@@ -190,6 +194,8 @@ export type Query = {
 export type QueryAllWorkflowInstancesArgs = {
   idUser?: Maybe<Scalars['ID']>;
   shared?: Maybe<Scalars['Boolean']>;
+  search?: Maybe<Scalars['String']>;
+  attrsFilter?: Maybe<Array<Maybe<AttributeParams>>>;
   page?: Maybe<Scalars['Int']>;
   pageSize?: Maybe<Scalars['Int']>;
   orderBy?: Maybe<Scalars['String']>;
@@ -197,6 +203,11 @@ export type QueryAllWorkflowInstancesArgs = {
 
 export type QueryWorkflowInstanceArgs = {
   idWorkflowInstance: Scalars['ID'];
+};
+
+export type QueryWorkflowInstanceTelemetryArgs = {
+  idWorkflowInstance: Scalars['ID'];
+  report: Scalars['String'];
 };
 
 export type QueryAllWorkflowsArgs = {
@@ -209,6 +220,7 @@ export type QueryAllWorkflowsArgs = {
 };
 
 export type QueryAllDatasetsArgs = {
+  onlyReferences?: Maybe<Scalars['Boolean']>;
   page?: Maybe<Scalars['Int']>;
   pageSize?: Maybe<Scalars['Int']>;
   orderBy?: Maybe<Scalars['String']>;
@@ -310,6 +322,13 @@ export type WorkflowInstanceMutation = {
   remoteAddr?: Maybe<Scalars['String']>;
 };
 
+export type WorkflowInstanceTelemetry = {
+  __typename?: 'WorkflowInstanceTelemetry';
+  getUrl?: Maybe<Scalars['String']>;
+  headUrl?: Maybe<Scalars['String']>;
+  expiresIn?: Maybe<Scalars['Int']>;
+};
+
 export type WorkflowInstanceType = {
   __typename?: 'WorkflowInstanceType';
   idWorkflowInstance: Scalars['ID'];
@@ -325,6 +344,7 @@ export type WorkflowInstanceType = {
   dataset: Array<DatasetType>;
   telemetry?: Maybe<Scalars['GenericScalar']>;
   mappedTelemetry?: Maybe<Scalars['GenericScalar']>;
+  telemetryNames?: Maybe<Scalars['GenericScalar']>;
   keyId?: Maybe<Scalars['String']>;
   state?: Maybe<Scalars['String']>;
 };

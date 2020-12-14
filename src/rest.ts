@@ -26,6 +26,7 @@ import {
   isUndefined,
   Dictionary,
   isDefined,
+  UnknownFunction,
 } from 'ts-runtime-typecheck';
 
 export type AsyncCallback = (err: unknown, data: unknown) => void;
@@ -106,7 +107,7 @@ export class REST {
     return asString(result);
   }
 
-  async instanceToken(id: unknown, opts: {}): Promise<Dictionary> {
+  async instanceToken(id: unknown, opts: Partial<EPI2ME_OPTIONS>): Promise<Dictionary> {
     return utils.post(
       'token',
       merge(opts, {
@@ -191,7 +192,11 @@ export class REST {
     return this.read('ami_image', id);
   }
 
-  async workflow(first: string | Dictionary, second?: Dictionary | Function, third?: Function): Promise<unknown> {
+  async workflow(
+    first: string | Dictionary,
+    second?: Dictionary | UnknownFunction,
+    third?: UnknownFunction,
+  ): Promise<unknown> {
     if (first && second && third instanceof Function) {
       return this.updateWorkflow(asString(first), asRecord(second), third);
     } else if (first && second instanceof Object && !(second instanceof Function)) {
@@ -315,7 +320,7 @@ export class REST {
     return workflow;
   }
 
-  async updateWorkflow(id: string, obj: Dictionary, cb?: Function): Promise<Dictionary> {
+  async updateWorkflow(id: string, obj: Dictionary, cb?: UnknownFunction): Promise<Dictionary> {
     const promise = utils.put('workflow', id, obj, this.options);
     if (cb) {
       try {
@@ -327,7 +332,7 @@ export class REST {
     return promise;
   }
 
-  async createWorkflow(obj: Dictionary, cb?: Function): Promise<Dictionary> {
+  async createWorkflow(obj: Dictionary, cb?: UnknownFunction): Promise<Dictionary> {
     const promise = utils.post('workflow', obj, this.options);
     if (cb) {
       try {

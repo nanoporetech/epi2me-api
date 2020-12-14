@@ -6,25 +6,6 @@
  *
  */
 
-import AWS from 'aws-sdk';
-import fs from 'fs-extra'; /* MC-565 handle EMFILE & EXDIR gracefully; use Promises */
-import { merge } from 'lodash';
-import { EOL, homedir } from 'os';
-import path from 'path';
-import { resolve } from 'url';
-import DB from './db';
-import { EPI2ME } from './epi2me';
-import { Factory } from './factory';
-import filestats, { MappedFileStats } from './filestats';
-import niceSize from './niceSize';
-import { ProfileFS as Profile } from './profile-fs';
-import PromisePipeline from './promise-pipeline';
-import { REST_FS } from './rest-fs';
-import { SampleReader } from './sample-reader';
-import SessionManager from './session-manager';
-import fastqSplitter from './splitters/fastq';
-import fastqGzipSplitter from './splitters/fastq-gz';
-import { utilsFS as utils } from './utils-fs';
 import {
   asOptString,
   asString,
@@ -44,19 +25,48 @@ import {
   isString,
   isUndefined,
   isArray,
+  asOptRecordRecursive,
+  UnknownFunction,
+  JSONValue,
 } from 'ts-runtime-typecheck';
-import { FetchResult, gql } from '@apollo/client/core';
-import { Configuration } from './Configuration';
-import { createInterval, DisposeTimer, createTimeout } from './timers';
-import { Readable, Writable } from 'stream';
-import { PromiseResult } from 'aws-sdk/lib/request';
-import { EPI2ME_OPTIONS } from './epi2me-options';
+import AWS from 'aws-sdk';
+import fs from 'fs-extra'; /* MC-565 handle EMFILE & EXDIR gracefully; use Promises */
+import { merge } from 'lodash';
+import { EOL, homedir } from 'os';
+import path from 'path';
+import DB from './db';
+import { EPI2ME } from './epi2me';
+import { Factory } from './factory';
+import filestats from './filestats';
+import niceSize from './niceSize';
+import { ProfileFS as Profile } from './profile-fs';
+import PromisePipeline from './promise-pipeline';
+import { REST_FS } from './rest-fs';
+import { SampleReader } from './sample-reader';
+import SessionManager from './session-manager';
+import fastqSplitter from './splitters/fastq';
+import fastqGzipSplitter from './splitters/fastq-gz';
+import { utilsFS as utils } from './utils-fs';
+import { gql } from '@apollo/client/core';
+import { createInterval, createTimeout } from './timers';
+import { Telemetry } from './telemetry';
+import { resolve } from 'url';
+import { filter, first, map, takeUntil, withLatestFrom } from 'rxjs/operators';
 import { GraphQLFS } from './graphql-fs';
+import { BehaviorSubject, Subject } from 'rxjs';
+import { createQueue } from './queue';
 
-import type { Dictionary, Index, Optional } from 'ts-runtime-typecheck';
+import type { MappedFileStats } from './filestats';
+import type { DisposeTimer } from './timers';
+import type { Readable, Writable } from 'stream';
+import type { PromiseResult } from 'aws-sdk/lib/request';
+import type { FetchResult } from '@apollo/client/core';
+import type { Configuration } from './Configuration';
+import type { JSONObject, Dictionary, Index, Optional } from 'ts-runtime-typecheck';
 import type { FileStat } from './utils-fs';
 import type { ResponseStartWorkflow } from './graphql-types';
 import type { InstanceAttribute } from './factory.type';
+import type { EPI2ME_OPTIONS } from './epi2me-options';
 
 const networkStreamErrors: WeakSet<Writable> = new WeakSet();
 
@@ -96,6 +106,9 @@ export class EPI2ME_FS extends EPI2ME {
   downloadMessageQueue?: unknown;
 
   REST: REST_FS;
+
+  private telemetry?: Telemetry;
+  private telemetryDestroySignal$?: Subject<void>;
 
   constructor(optstring: Partial<EPI2ME_OPTIONS> | string) {
     super(optstring); // sets up this.config & this.log
@@ -305,7 +318,7 @@ export class EPI2ME_FS extends EPI2ME {
     const instance = startData?.instance;
     const workflowImage = instance?.workflowImage;
     const { bucket, idUser, remoteAddr } = startData ?? {};
-    const { outputqueue, keyId, startDate, idWorkflowInstance, mappedTelemetry } = instance ?? {};
+    const { outputqueue, keyId, startDate, idWorkflowInstance, mappedTelemetry, telemetryNames } = instance ?? {};
 
     const chain = isString(instance?.chain) ? asString(instance?.chain) : asRecord(instance?.chain);
     const name = workflowImage?.region.name;
@@ -321,6 +334,7 @@ export class EPI2ME_FS extends EPI2ME {
       start_date: asOptString(startDate),
       outputQueueName: asOptString(outputqueue),
       summaryTelemetry: asOptRecord(mappedTelemetry),
+      telemetryNames: asOptRecordRecursive(asRecordRecursive(asString))(telemetryNames),
       inputQueueName: asOptString(inputqueue),
       id_workflow: idWorkflow,
       region: asString(name, this.config.options.region),
@@ -358,13 +372,16 @@ export class EPI2ME_FS extends EPI2ME {
     }
   }
 
-  initSessionManager(opts?: Optional<Dictionary>, children: { config: { update: Function } }[] = []): SessionManager {
+  initSessionManager(
+    opts?: Optional<Dictionary>,
+    children: { config: { update: (option: Dictionary) => void } }[] = [],
+  ): SessionManager {
     return new SessionManager(
       asIndex(this.config.instance.id_workflow_instance),
       this.REST,
       [AWS, ...children],
       {
-        sessionGrace: makeString(this.config.options.sessionGrace),
+        sessionGrace: this.config.options.sessionGrace,
         proxy: this.config.options.proxy,
         region: this.config.instance.region,
         log: this.log,
@@ -447,17 +464,21 @@ export class EPI2ME_FS extends EPI2ME {
       autoStartCb(''); // WARN this used to pass (null, instance) except the callback doesn't appear to accept this anywhere it is defined
     }
 
-    // MC-7056 periodically fetch summary telemetry for local reporting purposes
-    this.timers.summaryTelemetryInterval = createInterval(this.config.options.downloadCheckInterval * 10000, () => {
-      if (this.stopped) {
-        const timer = this.timers.summaryTelemetryInterval;
-        if (timer) {
-          timer();
+    if (this.config.options.useGraphQL) {
+      this.observeTelemetry();
+    } else {
+      // MC-7056 periodically fetch summary telemetry for local reporting purposes
+      this.timers.summaryTelemetryInterval = createInterval(this.config.options.downloadCheckInterval * 10000, () => {
+        if (this.stopped) {
+          const timer = this.timers.summaryTelemetryInterval;
+          if (timer) {
+            timer();
+          }
+          return;
         }
-        return;
-      }
-      this.fetchTelemetry();
-    }); // 10x slower than downloadChecks - is this reasonable?
+        this.fetchTelemetry();
+      });
+    }
 
     // MC-2068 - Don't use an interval.
     this.timers.downloadCheckInterval = createInterval(this.config.options.downloadCheckInterval * 1000, () => {
@@ -549,6 +570,12 @@ export class EPI2ME_FS extends EPI2ME {
     if (this.db) {
       await this.db.splitClean(); // remove any split files whose transfers were disrupted and which didn't self-clean
     }
+  }
+
+  async stopAnalysis(): Promise<void> {
+    await super.stopAnalysis();
+    this.telemetryDestroySignal$?.next();
+    this.telemetryDestroySignal$?.complete();
   }
 
   async stopEverything(): Promise<void> {
@@ -887,7 +914,7 @@ export class EPI2ME_FS extends EPI2ME {
             stats,
             size: stats.bytes,
           };
-          const p = new Promise((chunkResolve: Function): void => {
+          const p = new Promise((chunkResolve: UnknownFunction): void => {
             queue.enqueue(
               async (): Promise<void> => {
                 this.log.info(`chunk upload starting ${chunkStruct.id} ${chunkStruct.path}`);
@@ -1200,7 +1227,7 @@ export class EPI2ME_FS extends EPI2ME {
 
           // we ignore failures to fetch anything with extra suffixes by wrapping
           // initiateDownloadStream with another Promise which permits fetch-with-suffix failures
-          return new Promise((resolve, reject) => {
+          return new Promise<void>((resolve, reject) => {
             this.initiateDownloadStream(
               {
                 bucket: asString(messageBody.bucket),
@@ -1208,16 +1235,17 @@ export class EPI2ME_FS extends EPI2ME {
               },
               message,
               fetchFile,
-            )
-              .then(resolve)
-              .catch((e) => {
+            ).then(
+              () => resolve(),
+              (e) => {
                 this.log.error(`Caught exception waiting for initiateDownloadStream: ${String(e)}`);
                 if (suffix) {
                   reject(e);
                   return;
                 }
                 resolve();
-              });
+              },
+            );
           });
         });
 
@@ -1274,9 +1302,8 @@ export class EPI2ME_FS extends EPI2ME {
     s3Item: { bucket: string; path: string },
     message: AWS.SQS.Message,
     outputFile: string,
-  ): Promise<unknown> {
-    // eslint-disable-next-line
-    return new Promise(async (resolve, reject) => {
+  ): Promise<void> {
+    return new Promise<void>(async (resolve, reject) => {
       let s3;
       try {
         s3 = await this.sessionedS3();
@@ -1744,14 +1771,96 @@ export class EPI2ME_FS extends EPI2ME {
     return this.db.uploadFile(file.path);
   }
 
+  observeTelemetry(): void {
+    if (!this.config.options.useGraphQL) {
+      // uses fetchTelemetry instead
+      throw new Error('observeTelemetry is only supported with GraphQL enabled');
+    }
+    if (this.telemetry) {
+      throw new Error('telemetry is already instantiated');
+    }
+
+    const instanceDir = path.join(rootDir(), 'instances', makeString(this.config.instance.id_workflow_instance));
+    const telemetryNames = this.config?.instance?.telemetryNames;
+    const idWorkflowInstance = makeString(this.config.instance.id_workflow_instance);
+
+    this.telemetry = Telemetry.connect(idWorkflowInstance, this.graphQL, asDefined(telemetryNames));
+
+    // const reports$ = this.telemetry.telemetryReports$().pipe(filter(isDefined));
+
+    const destroySignal$ = new Subject<void>();
+    const writeQueue = createQueue<[string, JSONValue]>(1, destroySignal$, ([filePath, content]) =>
+      fs.writeJSON(filePath, content),
+    );
+
+    // update the public reportState$ subject to indicate reports are ready on our first signal
+    this.telemetry.anyReportsReady$
+      .pipe(
+        filter((isReady) => isReady),
+        first(),
+        takeUntil(destroySignal$),
+      )
+      .subscribe(this.reportState$);
+
+    // pass all telemetry fils to public instanceTelemetry$ subject
+    this.telemetry.reports$
+      .pipe(
+        map((reports) => {
+          return reports.map(({ report }) => report);
+        }),
+        takeUntil(destroySignal$),
+      )
+      .subscribe(this.instanceTelemetry$);
+
+    const previousReports$ = new BehaviorSubject<(JSONObject | null)[]>([]);
+
+    // write any changed telemetry files to disk
+    this.telemetry.reports$
+      .pipe(
+        withLatestFrom(previousReports$),
+        map(([reports, previous]) => {
+          const updated = reports.map(({ report }) => report);
+
+          previousReports$.next(updated);
+
+          const changeList: { report: JSONObject; id: string }[] = [];
+          for (let i = 0; i < reports.length; i++) {
+            const old = previous[i];
+            const { report, id } = reports[i];
+            if (report && report !== old) {
+              changeList.push({
+                report,
+                id,
+              });
+            }
+          }
+
+          return changeList;
+        }),
+      )
+      .subscribe((changeReports) => {
+        for (const { id, report } of changeReports) {
+          // queue file writes to prevent a race condition where we could attempt
+          // to write a report file while it's already being written
+          writeQueue([path.join(instanceDir, `${id}.json`), report]);
+        }
+      });
+
+    this.telemetryDestroySignal$ = destroySignal$;
+  }
+
   async fetchTelemetry(): Promise<void> {
+    const instanceDir = path.join(rootDir(), 'instances', makeString(this.config.instance.id_workflow_instance));
+
+    if (this.config.options.useGraphQL) {
+      // uses observeTelemetry instead
+      throw new Error('fetchTelemetry is not supported with GraphQL enabled');
+    }
     if (!this.config?.instance?.summaryTelemetry) {
       return;
     }
 
-    const instancesDir = path.join(rootDir(), 'instances');
-    const thisInstanceDir = path.join(instancesDir, makeString(this.config.instance.id_workflow_instance));
-    const toFetch: Promise<unknown>[] = [];
+    const toFetch: Promise<JSONObject | null>[] = [];
 
     const summaryTelemetry = asRecord(this.config.instance.summaryTelemetry);
     Object.keys(summaryTelemetry).forEach((componentId) => {
@@ -1767,12 +1876,12 @@ export class EPI2ME_FS extends EPI2ME {
         url = resolve(this.config.options.url, url);
       }
 
-      const fn = path.join(thisInstanceDir, `${componentId}.json`);
+      const fn = path.join(instanceDir, `${componentId}.json`);
 
       toFetch.push(
-        (async (): Promise<Optional<Dictionary>> => {
+        (async (): Promise<JSONObject | null> => {
           try {
-            const body = await this.REST.fetchContent(url);
+            const body = (await this.REST.fetchContent(url)) as JSONObject;
             fs.writeJSONSync(fn, body);
             this.reportState$.next(true);
             this.log.debug(`fetched telemetry summary ${fn}`);
