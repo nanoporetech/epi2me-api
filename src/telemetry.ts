@@ -192,6 +192,7 @@ export class Telemetry {
       if (startTime < expires && sources) {
         subscriber.next(sources);
         subscriber.complete();
+        return;
       }
 
       (async () => {
