@@ -201,8 +201,7 @@ export class Telemetry {
           subscriber.next(sources);
           subscriber.complete();
           const expiresIn = sources.reduce((acc, source) => Math.min(acc, source.expiresIn), Infinity) * 1000;
-          const deltaTime = Date.now() - startTime;
-          expires = expiresIn - deltaTime - EXPIRY_GRACE_PERIOD;
+          expires = startTime + expiresIn - EXPIRY_GRACE_PERIOD;
         } catch (e) {
           subscriber.error(e);
         }
