@@ -855,7 +855,7 @@ export class EPI2ME_FS extends EPI2ME {
         this.states.upload.filesCount -= 1;
         this.log.error(msg);
         this.states.warnings.push(warning);
-      } else if (file.path?.match(/\.(?:fastq|fq)(?:\.gz)?$/) && ((splitSize && file.size > splitSize) || splitReads)) {
+      } else if (file.path?.match(/\.(?:fastq|fq)(?:\.gz)?$/i) && ((splitSize && file.size > splitSize) || splitReads)) {
         //
         // file too big to process but can be split
         //
@@ -874,7 +874,7 @@ export class EPI2ME_FS extends EPI2ME {
           : {
               maxChunkReads: splitReads,
             };
-        const splitter = file.path.match(/\.gz$/) ? fastqGzipSplitter : fastqSplitter;
+        const splitter = file.path.match(/\.gz$/i) ? fastqGzipSplitter : fastqSplitter;
 
         const fileId = utils.getFileID();
         const queue = new PromisePipeline({
@@ -1220,7 +1220,16 @@ export class EPI2ME_FS extends EPI2ME {
       }
 
       try {
-        const fetchPromises = fetchSuffixes.map((suffix) => {
+        const fetchPromises = fetchSuffixes
+        .map((suffixIn) => { return "." + suffixIn.replace(/^\./, ""); }) // map fastq => .fastq and .fastq => .fastq
+        .map((suffix) => {
+          // MC-8328 duplicate file extension fetch check
+          const extensionCheck = new RegExp(suffix.replace(".","\\."));
+          if (suffix !== "" && String(messageBody.path).match(extensionCheck)) {
+            this.log.debug(`download.processMessage: ${message.MessageId} skipping download of extra suffix ${suffix}`);
+            return Promise.resolve();
+          }
+
           const fetchObject = messageBody.path + suffix;
           const fetchFile = outputFile + suffix;
           this.log.debug(`download.processMessage: ${message.MessageId} downloading ${fetchObject} to ${fetchFile}`);
