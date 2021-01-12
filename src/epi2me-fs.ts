@@ -1224,7 +1224,7 @@ export class EPI2ME_FS extends EPI2ME {
         .map((suffixIn) => { return "." + suffixIn.replace(/^\./, ""); }) // map fastq => .fastq and .fastq => .fastq
         .map((suffix) => {
           // MC-8328 duplicate file extension fetch check
-          const extensionCheck = new RegExp(suffix.replace(".","\\."));
+          const extensionCheck = new RegExp(suffix.replace(".","\\."), "i");
           if (suffix !== "" && String(messageBody.path).match(extensionCheck)) {
             this.log.debug(`download.processMessage: ${message.MessageId} skipping download of extra suffix ${suffix}`);
             return Promise.resolve();
