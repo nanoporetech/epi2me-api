@@ -1817,7 +1817,7 @@ export class EPI2ME_FS extends EPI2ME {
         first(),
         takeUntil(destroySignal$),
       )
-      .subscribe(this.reportState$);
+      .subscribe(() => this.reportState$.next(true));
 
     // pass all telemetry fils to public instanceTelemetry$ subject
     this.telemetry.reports$
@@ -1827,7 +1827,7 @@ export class EPI2ME_FS extends EPI2ME {
         }),
         takeUntil(destroySignal$),
       )
-      .subscribe(this.instanceTelemetry$);
+      .subscribe((reports) => this.instanceTelemetry$.next(reports));
 
     const previousReports$ = new BehaviorSubject<(JSONObject | null)[]>([]);
 

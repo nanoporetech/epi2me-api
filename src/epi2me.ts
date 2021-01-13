@@ -10,7 +10,6 @@ import { BehaviorSubject, combineLatest } from 'rxjs';
 import DEFAULTS from './default_options.json';
 import { GraphQL } from './graphql';
 import niceSize from './niceSize';
-import { Profile, AllProfileData } from './profile';
 import { REST } from './rest';
 import Socket from './socket';
 import { utils } from './utils';
@@ -52,14 +51,10 @@ import { parseCoreOpts } from './parseCoreOpts';
 import type { EPI2ME_OPTIONS } from './epi2me-options';
 import type { DisposeTimer } from './timers';
 import type { Configuration } from './Configuration';
-import type { REST_FS } from './rest-fs';
-import type { ProfileFS } from './profile-fs';
 import { filter, mapTo, skipWhile, takeWhile } from 'rxjs/operators';
-
+import { REST_FS } from './rest-fs';
 export class EPI2ME {
   static version = utils.version;
-  static Profile: { new (o: AllProfileData): Profile } | { new (s?: string, r?: boolean): ProfileFS } = Profile;
-  static REST: { new (o: EPI2ME_OPTIONS): REST | REST_FS } = REST; // to allow import { REST } from '@metrichor/epi2me-api'
   static utils = utils;
 
   readonly log: Logger;
@@ -69,10 +64,18 @@ export class EPI2ME {
   uploadState$ = new BehaviorSubject(false);
   analyseState$ = new BehaviorSubject(false);
   reportState$ = new BehaviorSubject(false);
-  runningStates$ = combineLatest(this.uploadState$, this.analyseState$, this.reportState$);
+  runningStates$ = combineLatest([this.uploadState$, this.analyseState$, this.reportState$]);
 
   // NOTE emits a signal exactly once, after uploadState changes from true, to false
   uploadStopped$ = this.uploadState$.pipe(
+    skipWhile((state) => !state),
+    takeWhile((state) => state, true),
+    filter((state) => !state),
+    mapTo(true),
+  );
+
+  // NOTE emits a signal exactly once, after analyseState changes from true, to false
+  analysisStopped$ = this.analyseState$.pipe(
     skipWhile((state) => !state),
     takeWhile((state) => state, true),
     filter((state) => !state),

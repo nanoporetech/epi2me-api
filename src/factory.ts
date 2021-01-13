@@ -109,7 +109,7 @@ export class Factory {
   private manageInstance(inst: EPI2ME_FS): void {
     this.addRunningInstance$.next(inst);
     // NOTE ensure the 'complete' message from uploadStopped$ is not passed to removeRunningInstanceById$
-    inst.uploadStopped$.pipe(mapTo(inst.id)).subscribe((id: Index) => this.removeRunningInstanceById$.next(id));
+    inst.analysisStopped$.pipe(mapTo(inst.id)).subscribe((id: Index) => this.removeRunningInstanceById$.next(id));
   }
 
   async startRun(

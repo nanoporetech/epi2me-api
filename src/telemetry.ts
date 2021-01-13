@@ -1,5 +1,5 @@
 import { fetch } from './network/fetch';
-import { BehaviorSubject, combineLatest, interval, timer } from 'rxjs';
+import { BehaviorSubject, interval, timer } from 'rxjs';
 import {
   delayWhen,
   distinctUntilChanged,
@@ -29,7 +29,7 @@ function cacheSubject$<T>(): BehaviorSubject<T | null> {
 }
 
 export class Telemetry {
-  private readonly sources$: Observable<TelemetrySource[]>;
+  private readonly sources: () => Promise<TelemetrySource[]>;
   readonly updates$: Observable<ExtendedTelemetrySource[]>;
   readonly reports$: Observable<{ report: JSONObject | null; id: string }[]>;
   readonly anyReportsReady$: Observable<boolean>;
@@ -54,14 +54,14 @@ export class Telemetry {
     */
 
     // get the sources for the telemetry reports on this instance ( automatically updates when the sources expire )
-    this.sources$ = this.getSources$(graphql, id, telemetryNames);
+    this.sources = this.getSources$(graphql, id, telemetryNames);
 
     // for updates to actually trigger on the first interval the timer MUST be a BehaviourSubject
     const intervalSubject$ = interval(TELEMETRY_INTERVAL).pipe(multicast(new BehaviorSubject(0)), refCount());
 
     // poll the sources to see if any have changed, emits all the sources if any have
-    this.updates$ = combineLatest([intervalSubject$, this.sources$]).pipe(
-      switchMap(() => this.sources$),
+    this.updates$ = intervalSubject$.pipe(
+      switchMap(() => this.sources()),
       switchMap(async (sources) => {
         return Promise.all(
           sources.map(async (source) => {
@@ -100,13 +100,28 @@ export class Telemetry {
     const previousSourceList$ = cacheSubject$<ExtendedTelemetrySource[]>();
     const aggregatedReports$ = cacheSubject$<(JSONObject | null)[]>();
 
+    const updateSourceList = async (existing: ExtendedTelemetrySource[]) => {
+      const newSources = await this.sources();
+      return existing.map(({ etag, hasReport }, i) => {
+        const newSource = newSources[i];
+
+        return {
+          ...newSource,
+          etag,
+          hasReport,
+        };
+      });
+    };
+
     this.reports$ = this.updates$.pipe(
       withLatestFrom(previousSourceList$, aggregatedReports$),
       switchMap(async ([sources, previous, reports]) => {
         const previousSources = previous ?? [];
 
+        // NOTE this checks for expired sources
+        const updatedSources = await updateSourceList(sources);
         const results: (JSONObject | null)[] = await Promise.all(
-          sources.map(async (current, index) => {
+          updatedSources.map(async (current, index) => {
             // if there is no report we shouldn't try to get it
             if (!current.hasReport) {
               return null;
@@ -127,7 +142,7 @@ export class Telemetry {
         );
 
         // update the "previous value" subjects
-        previousSourceList$.next(sources);
+        previousSourceList$.next(updatedSources);
         aggregatedReports$.next(results);
 
         // emit as an array as so not to reorder the components
@@ -177,7 +192,7 @@ export class Telemetry {
     }));
   }
 
-  private getSources$(graphql: GraphQL, id: string, telemetryNames: TelemetryNames): Observable<TelemetrySource[]> {
+  private getSources$(graphql: GraphQL, id: string, telemetryNames: TelemetryNames): () => Promise<TelemetrySource[]> {
     let expires = 0;
     let sources: Optional<TelemetrySource[]> = null;
 
@@ -186,28 +201,18 @@ export class Telemetry {
       reportName: Object.values(componentTelemetryDetails)[0],
     }));
 
-    return new Observable((subscriber) => {
+    return async () => {
       const startTime = Date.now();
 
       if (startTime < expires && sources) {
-        subscriber.next(sources);
-        subscriber.complete();
-        return;
+        return sources;
       }
 
-      (async () => {
-        const startTime = Date.now();
-        try {
-          sources = await this.getTelemetrySources(graphql, id, reportNames);
-          subscriber.next(sources);
-          subscriber.complete();
-          const expiresIn = sources.reduce((acc, source) => Math.min(acc, source.expiresIn), Infinity) * 1000;
-          expires = startTime + expiresIn - EXPIRY_GRACE_PERIOD;
-        } catch (e) {
-          subscriber.error(e);
-        }
-      })();
-    });
+      sources = await this.getTelemetrySources(graphql, id, reportNames);
+      const expiresIn = sources.reduce((acc, source) => Math.min(acc, source.expiresIn), Infinity) * 1000;
+      expires = startTime + expiresIn - EXPIRY_GRACE_PERIOD;
+      return sources;
+    };
   }
 
   // ensures we don't get more than 1 instance of telemetry for a epi2me instance
