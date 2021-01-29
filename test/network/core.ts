@@ -1,7 +1,7 @@
 import { Network, stubFetch } from '../../src/network';
 import { Request, Response } from '../../src/network/fetch';
 import assert from 'assert';
-import { asRecord } from 'ts-runtime-typecheck';
+import { asDictionary } from 'ts-runtime-typecheck';
 
 const BASE_OPTS = { base_url: 'https://test.example.com', agent_version: '3.1.4' };
 
@@ -181,7 +181,7 @@ describe('Network', () => {
         { ...BASE_OPTS, encode_method: 'url' },
       );
       assert.deepStrictEqual(
-        asRecord(res).body,
+        asDictionary(res).body,
         'id_entity=123&json=%7B%22name%22%3A%22test+entity%22%2C%22id_entity%22%3A123%7D&name=test+entity',
       );
     });
@@ -251,7 +251,7 @@ describe('Network', () => {
         { ...BASE_OPTS, encode_method: 'url' },
       );
       assert.deepStrictEqual(
-        asRecord(res).body,
+        asDictionary(res).body,
         'id_entity=123&json=%7B%22name%22%3A%22test+entity%22%2C%22id_entity%22%3A123%7D&name=test+entity',
       );
     });

@@ -1,6 +1,6 @@
 import { fetch, Request, Headers } from './fetch';
 import { version as API_VERSION } from '../../package.json';
-import { isRecord, isString } from 'ts-runtime-typecheck';
+import { isDictionary, isString, isStruct } from 'ts-runtime-typecheck';
 
 import type { Dictionary } from 'ts-runtime-typecheck';
 import type { RequestOptions, ExtendedRequestOptions } from './RequestOptions';
@@ -25,9 +25,13 @@ async function tryReadAsJson(response: Response): Promise<unknown> {
   }
 }
 
+const isErrorResponse = isStruct({
+  error: isString,
+});
+
 async function checkJsonResponseForError(response: Response, allowNull = false): Promise<unknown> {
   const jsonResponse = await (allowNull ? tryReadAsJson(response) : response.json());
-  if (isRecord(jsonResponse) && isString(jsonResponse.error)) {
+  if (isErrorResponse(jsonResponse)) {
     throw new Error(jsonResponse.error);
   }
   return jsonResponse;
@@ -90,7 +94,7 @@ async function makeRequest(uri: string, options: ExtendedRequestOptions): Promis
 }
 
 function encodeBody(rawBody: Body | Dictionary, encoding: 'json' | 'url'): Body {
-  if (isRecord(rawBody)) {
+  if (isDictionary(rawBody)) {
     if (encoding === 'json') {
       return JSON.stringify(rawBody);
     } else if (encoding === 'url') {

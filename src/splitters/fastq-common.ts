@@ -2,7 +2,7 @@ import readline from 'readline';
 import fs from 'fs-extra';
 import path from 'path';
 import { merge } from 'lodash';
-import { Dictionary } from 'ts-runtime-typecheck';
+import type { Dictionary } from 'ts-runtime-typecheck';
 
 export default async function (
   filePath: string,

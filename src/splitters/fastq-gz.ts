@@ -1,5 +1,5 @@
 import fs from 'fs-extra';
-import { Dictionary } from 'ts-runtime-typecheck';
+import type { Dictionary } from 'ts-runtime-typecheck';
 import zlib from 'zlib';
 import fastqCommon from './fastq-common';
 

@@ -13,7 +13,9 @@ import {
 } from '../../../protos/workflow_pb';
 import { Workflow } from '../../../protos/workflow_pb_service';
 import { EPI2ME_OPTIONS } from '../../epi2me-options';
-import { asNumber, asString, Dictionary } from 'ts-runtime-typecheck';
+import { asNumber, asString } from 'ts-runtime-typecheck';
+import type { Dictionary } from 'ts-runtime-typecheck';
+
 import { createGrpcRequest$ } from '../utils';
 
 import type { GQLWorkflowConfig } from '../../factory.type';

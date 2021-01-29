@@ -1,6 +1,6 @@
 {
   "name": "@metrichor/epi2me-api",
-  "version": "4.0.1026",
+  "version": "4.0.1153",
   "license": "MPL-2.0",
   "repository": "git@github.com:nanoporetech/epi2me-api.git",
   "description": "API for communicating with the EPI2ME website(s)",
@@ -41,7 +41,7 @@
     "save": "^2.4.0",
     "socket.io-client": "^2.3.0",
     "sqlite": "^3.0.3",
-    "ts-runtime-typecheck": "^1.2.0",
+    "ts-runtime-typecheck": "^2.0.0",
     "tunnel": "^0.0.6"
   },
   "devDependencies": {

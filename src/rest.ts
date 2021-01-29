@@ -11,14 +11,13 @@ import { EPI2ME_OPTIONS } from './epi2me-options';
 import { AxiosResponse } from 'axios';
 import {
   asArray,
-  asArrayRecursive,
+  asArrayOf,
   asIndex,
-  asIndexable,
-  asOptArrayRecursive,
+  asOptArrayOf,
   asOptFunction,
   asOptIndex,
   asOptString,
-  asRecord,
+  asDictionary,
   asString,
   Index,
   isArray,
@@ -27,6 +26,8 @@ import {
   Dictionary,
   isDefined,
   UnknownFunction,
+  isIndexable,
+  isDictionary,
 } from 'ts-runtime-typecheck';
 
 export type AsyncCallback = (err: unknown, data: unknown) => void;
@@ -170,10 +171,10 @@ export class REST {
 
     // if we have 2 arguments then preform update
     if (second instanceof Object) {
-      return this.updateAmiImage(asString(first), asRecord(second));
+      return this.updateAmiImage(asString(first), asDictionary(second));
       // if we have 1 object argument then perform create
     } else if (first instanceof Object) {
-      return utils.post('ami_image', asRecord(first), this.options);
+      return utils.post('ami_image', asDictionary(first), this.options);
       // otherwise we should have 1 string argument
     } else {
       return this.read('ami_image', asString(first));
@@ -198,13 +199,13 @@ export class REST {
     third?: UnknownFunction,
   ): Promise<unknown> {
     if (first && second && third instanceof Function) {
-      return this.updateWorkflow(asString(first), asRecord(second), third);
+      return this.updateWorkflow(asString(first), asDictionary(second), third);
     } else if (first && second instanceof Object && !(second instanceof Function)) {
-      return this.updateWorkflow(asString(first), asRecord(second));
+      return this.updateWorkflow(asString(first), asDictionary(second));
     } else if (first instanceof Object && second instanceof Function) {
-      return this.createWorkflow(asRecord(first), second);
+      return this.createWorkflow(asDictionary(first), second);
     } else if (first instanceof Object && !second) {
-      return this.createWorkflow(asRecord(first));
+      return this.createWorkflow(asDictionary(first));
     }
 
     // read with callback or promise
@@ -255,11 +256,11 @@ export class REST {
     }
 
     // NOTE it would appear that params can be either an array or an object, the tests are not consistent
-    const params = isArray(workflow.params) ? asArray(workflow.params) : asRecord(workflow.params);
+    const params = isArray(workflow.params) ? asArray(workflow.params) : asDictionary(workflow.params);
     // MC-6483 - fetch ajax options for "AJAX drop down widget"
 
     const toFetch = Object.values(params)
-      .map((value: unknown) => asRecord(value))
+      .map((value: unknown) => asDictionary(value))
       .filter((obj: Dictionary) => obj.widget === 'ajax_dropdown');
 
     const promises = [
@@ -269,8 +270,8 @@ export class REST {
           throw new Error('parameter is undefined');
         }
 
-        const values = asRecord(param.values);
-        const items = asRecord(values.items);
+        const values = asDictionary(param.values);
+        const items = asDictionary(values.items);
         const uri = asString(values.source)
           .replace('{{EPI2ME_HOST}}', '')
           .replace(/&?apikey=\{\{EPI2ME_API_KEY\}\}/, '');
@@ -291,7 +292,7 @@ export class REST {
 
         const index = asOptIndex(values.data_root);
         // NOTE dataRoot appears to be an array of object/arrays
-        const dataRoot = isDefined(index) && asOptArrayRecursive(asIndexable)(workflowParam[index]); // e.g. [{dataset},{dataset}]
+        const dataRoot = isDefined(index) && asOptArrayOf(isIndexable)(workflowParam[index]); // e.g. [{dataset},{dataset}]
 
         if (dataRoot) {
           param.values = dataRoot.map((o) => ({
@@ -367,7 +368,7 @@ export class REST {
       this.options,
     );
 
-    const data = asArrayRecursive(asRecord)(json.data);
+    const data = asArrayOf(isDictionary)(json.data);
     return data.map((o: Dictionary) => ({
       id_workflow_instance: o.id_ins,
       id_workflow: o.id_flo,
@@ -413,7 +414,7 @@ export class REST {
     }
 
     const sets = await this.list(`dataset?show=${query.show}`);
-    return asArrayRecursive(asRecord)(sets);
+    return asArrayOf(isDictionary)(sets);
   }
 
   async dataset(id: string): Promise<unknown> {
@@ -421,7 +422,7 @@ export class REST {
       return this.read('dataset', id);
     }
 
-    const datasets = asArrayRecursive(asRecord)(await this.datasets());
+    const datasets = asArrayOf(isDictionary)(await this.datasets());
 
     return datasets.find((o) => o.id_dataset === id);
   }
