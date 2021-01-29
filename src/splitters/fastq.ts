@@ -1,5 +1,5 @@
 import fs from 'fs-extra';
-import { Dictionary } from 'ts-runtime-typecheck';
+import type { Dictionary } from 'ts-runtime-typecheck';
 import fastqCommon from './fastq-common';
 
 export default async function (filePath: string, opts: Dictionary, handler: any, log: any): Promise<any> {

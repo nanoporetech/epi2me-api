@@ -6,10 +6,10 @@ import fs from 'fs-extra';
 import path from 'path';
 import {
   Dictionary,
-  asOptRecord,
+  asOptDictionary,
   asOptFunction,
   asFunction,
-  asRecord,
+  asDictionary,
   isFunction,
   UnknownFunction,
 } from 'ts-runtime-typecheck';
@@ -68,7 +68,7 @@ export class REST_FS extends REST {
       if (isFunction(first) || second) {
         throw new Error('Local workflows cannot accept a callback');
       }
-      return super.workflowInstances(asOptRecord(first));
+      return super.workflowInstances(asOptDictionary(first));
     }
     let cb;
     let query;
@@ -134,7 +134,7 @@ export class REST_FS extends REST {
       if (cb) {
         throw new Error('Callback is not supported in local mode');
       }
-      return super.datasets(asRecord(first));
+      return super.datasets(asDictionary(first));
     }
 
     if (query.show !== 'mine') {

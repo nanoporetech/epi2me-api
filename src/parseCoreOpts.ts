@@ -3,10 +3,10 @@ import type { Dictionary } from 'ts-runtime-typecheck';
 import { LogMethod, Logger, FallbackLogger } from './Logger';
 import { version as VERSION } from '../package.json';
 import DEFAULTS from './default_options.json';
-import { isRecord, asFunction, asString, asBoolean, asOptString } from 'ts-runtime-typecheck';
+import { isDictionary, asFunction, asString, asBoolean, asOptString } from 'ts-runtime-typecheck';
 
 function resolveLogger(log: unknown): Logger {
-  if (isRecord(log)) {
+  if (isDictionary(log)) {
     try {
       return {
         info: asFunction(log.info) as LogMethod,

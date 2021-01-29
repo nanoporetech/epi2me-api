@@ -3,7 +3,7 @@ import proxy from 'proxy-agent'; // odd one out
 import { Logger } from './Logger';
 import { REST } from './rest';
 import { GraphQL } from './graphql';
-import { Index, asRecord, isIndex, Dictionary, makeNumber } from 'ts-runtime-typecheck';
+import { Index, asDictionary, isIndex, Dictionary, makeNumber } from 'ts-runtime-typecheck';
 import { EPI2ME_OPTIONS } from './epi2me-options';
 
 export default class SessionManager {
@@ -49,7 +49,7 @@ export default class SessionManager {
       if (this.options.useGraphQL) {
         const instanceTokenOptions = { variables: { idWorkflowInstance: this.id_workflow_instance } };
         const result = await this.graphQL.instanceToken(instanceTokenOptions);
-        token = asRecord(result.data?.token);
+        token = asDictionary(result.data?.token);
       } else {
         token = await this.REST.instanceToken(this.id_workflow_instance, this.options);
       }

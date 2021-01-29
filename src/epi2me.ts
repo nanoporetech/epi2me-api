@@ -15,24 +15,26 @@ import Socket from './socket';
 import { utils } from './utils';
 import { Logger } from './Logger';
 import {
-  asRecord,
+  asDictionary,
   asOptString,
   asOptBoolean,
   asString,
   asNumber,
-  asArrayRecursive,
+  asArrayOf,
   asBoolean,
   asOptNumber,
   asIndexable,
   asIndex,
   asOptFunction,
-  asOptRecord,
+  asOptDictionary,
   asOptIndex,
   Index,
   Dictionary,
   Optional,
   JSONObject,
   UnknownFunction,
+  asJSONObject,
+  isString,
 } from 'ts-runtime-typecheck';
 import {
   createUploadState,
@@ -125,7 +127,7 @@ export class EPI2ME {
   constructor(optstring: Partial<EPI2ME_OPTIONS> | string = {}) {
     let options: EPI2ME_OPTIONS;
     if (typeof optstring === 'string') {
-      const json = asRecord(JSON.parse(optstring));
+      const json = asJSONObject(JSON.parse(optstring));
       // WARN maybe we should put a depreciation warning here
       // it's not particularly useful accepting a json string
       // and increases the required validation code
@@ -174,7 +176,7 @@ export class EPI2ME {
       waitTokenError: asNumber(opt.waitTokenError, DEFAULTS.waitTokenError),
       transferPoolSize: asNumber(opt.transferPoolSize, DEFAULTS.transferPoolSize),
       downloadMode: asString(opt.downloadMode, DEFAULTS.downloadMode),
-      filetype: asArrayRecursive(asString)(opt.filetype, DEFAULTS.filetype),
+      filetype: asArrayOf(isString)(opt.filetype, DEFAULTS.filetype),
       sampleDirectory: asString(opt.sampleDirectory, DEFAULTS.sampleDirectory),
       // optional values
       useGraphQL: asOptBoolean(opt.useGraphQL),
@@ -182,7 +184,7 @@ export class EPI2ME {
       debounceWindow: asOptNumber(opt.debounceWindow),
       proxy: asOptString(opt.proxy),
       // EPI2ME-FS options
-      inputFolders: asArrayRecursive(asString)(opt.inputFolders, []),
+      inputFolders: asArrayOf(isString)(opt.inputFolders, []),
       outputFolder: asOptString(opt.outputFolder),
       awsAcceleration: asOptString(opt.awsAcceleration),
       agent_address: asOptString(opt.agent_address),
@@ -208,9 +210,9 @@ export class EPI2ME {
     if (idWorkflowInstance) {
       this.mySocket.watch(`workflow_instance:state:${idWorkflowInstance}`, (newWorkerStatus) => {
         const { instance: instanceConfig } = this.config;
-        const components = asOptRecord(instanceConfig.chain?.components);
+        const components = asOptDictionary(instanceConfig.chain?.components);
         if (components) {
-          const summaryTelemetry = asRecord(instanceConfig.summaryTelemetry);
+          const summaryTelemetry = asDictionary(instanceConfig.summaryTelemetry);
           const workerStatus = Object.entries(components).sort((a, b) => parseInt(a[0], 10) - parseInt(b[0], 10));
           const indexableNewWorkerStatus = asIndexable(newWorkerStatus);
           const results = [];
@@ -219,8 +221,8 @@ export class EPI2ME {
               const step = +key;
               let name = 'ROOT';
               if (step !== 0) {
-                const wid = asIndex(asRecord(value).wid);
-                name = Object.keys(asRecord(summaryTelemetry[wid]))[0] ?? 'ROOT';
+                const wid = asIndex(asDictionary(value).wid);
+                name = Object.keys(asDictionary(summaryTelemetry[wid]))[0] ?? 'ROOT';
               }
               const [running, complete, error] = asString(indexableNewWorkerStatus[key])
                 .split(',')
@@ -538,7 +540,7 @@ export class EPI2ME {
           this.config.options[key] = asBoolean(value);
           break;
         case 'filetype':
-          this.config.options[key] = asArrayRecursive(asString)(value);
+          this.config.options[key] = asArrayOf(isString)(value);
           break;
         default:
           throw new Error('Cannot modify the "log" attribute');

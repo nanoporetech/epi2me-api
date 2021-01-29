@@ -6,7 +6,8 @@
 
 import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 import crypto from 'crypto';
-import { Dictionary, isRecord } from 'ts-runtime-typecheck';
+import type { Dictionary } from 'ts-runtime-typecheck';
+import { isDictionary } from 'ts-runtime-typecheck';
 import * as tunnel from 'tunnel';
 import { version as VERSION } from '../package.json';
 import { NoopLogger, LogMethod } from './Logger';
@@ -97,7 +98,7 @@ export const utils: Utility = (function magic(): Utility {
     },
 
     responseHandler(r: AxiosResponse<unknown>): Dictionary {
-      const json = r && isRecord(r.data) ? r.data : null;
+      const json = r && isDictionary(r.data) ? r.data : null;
 
       if (r && r.status >= 400) {
         let msg = `Network error ${r.status}`;
