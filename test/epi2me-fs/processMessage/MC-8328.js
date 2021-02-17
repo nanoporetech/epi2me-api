@@ -166,7 +166,7 @@ describe('epi2me-api.processMessage', () => {
       // MC-7519: Multiple instances running means multiple outputs need to be namespaced by id_workflow_instance
       // processMessage should be called for running instances so there should be an id_workflow_instance
       client.config.instance.id_workflow_instance = '1234567';
-      client.config.workflow = { settings: { output_format: 'fastq , .fastq , .bam' } };
+      client.config.workflow = { settings: { output_format: ['fastq', '.fastq', '.bam'] } };
 
       const s3 = new AWS.S3();
       sinon.stub(client, 'sessionedS3').resolves(s3);
