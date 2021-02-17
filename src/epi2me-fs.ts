@@ -266,6 +266,7 @@ export class EPI2ME_FS extends EPI2ME {
   async autoStartGeneric<T>(
     workflowConfig: unknown,
     startFn: () => Promise<T>,
+    // cb doesn't appear to be used by CLI, and isn't used by agent
     cb?: (msg: string) => void,
   ): Promise<T> {
     this.stopped = false;
@@ -750,7 +751,7 @@ export class EPI2ME_FS extends EPI2ME {
     const workflow = asOptDictionary(this.config.workflow);
     if (workflow) {
       const workflowAttributes = asOptDictionary(workflow.workflow_attributes);
-      const attributes = asOptDictionary(workflow.attributes);
+      const attributes = asOptDictionaryOf(isArray)(workflow.attributes);
       if (workflowAttributes) {
         // started from GUI agent
         settings = workflowAttributes;
@@ -758,22 +759,21 @@ export class EPI2ME_FS extends EPI2ME {
         // started from CLI
 
         if ('epi2me:max_size' in attributes) {
-          settings.max_size = makeNumber(attributes['epi2me:max_size']);
+          settings.max_size = makeNumber(attributes['epi2me:max_size'][0]);
         }
         if ('epi2me:max_files' in attributes) {
-          settings.max_files = makeNumber(attributes['epi2me:max_files']);
+          settings.max_files = makeNumber(attributes['epi2me:max_files'][0]);
         }
         if ('epi2me:split_size' in attributes) {
-          settings.split_size = makeNumber(attributes['epi2me:split_size']);
+          settings.split_size = makeNumber(attributes['epi2me:split_size'][0]);
         }
         if ('epi2me:split_reads' in attributes) {
-          settings.split_reads = makeNumber(attributes['epi2me:split_reads']);
+          settings.split_reads = makeNumber(attributes['epi2me:split_reads'][0]);
         }
 
         if ('epi2me:category' in attributes) {
           // WARN this assumes that the value is a string, could actually be an array? both have the includes method
-          const epi2meCategory = asString(attributes['epi2me:category']);
-          if (epi2meCategory.includes('storage')) {
+          if (attributes['epi2me:category'].includes('storage')) {
             settings.requires_storage = true;
           }
         }
