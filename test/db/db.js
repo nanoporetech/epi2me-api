@@ -28,8 +28,7 @@ describe('db.db', () => {
     const fileName = '/data/test/1.fastq';
     let seen = await dbh.seenUpload(fileName);
     assert.strictEqual(seen, 0);
-    const uploaded = await dbh.uploadFile(fileName);
-    assert.strictEqual(uploaded.changes, 1);
+    await dbh.uploadFile(fileName);
     seen = await dbh.seenUpload(fileName);
     assert.strictEqual(seen, 1);
   });
@@ -37,8 +36,7 @@ describe('db.db', () => {
     const fileName = '/data/test/sub/1.fastq';
     let seen = await dbh.seenUpload(fileName);
     assert.strictEqual(seen, 0);
-    const uploaded = await dbh.uploadFile(fileName);
-    assert.strictEqual(uploaded.changes, 1);
+    await dbh.uploadFile(fileName);
     seen = await dbh.seenUpload(fileName);
     assert.strictEqual(seen, 1);
   });
@@ -46,8 +44,7 @@ describe('db.db', () => {
     const fileName = '/data/test/1.fastq';
     let seen = await dbh.seenUpload(fileName);
     assert.strictEqual(seen, 0);
-    const uploaded = await dbh.skipFile(fileName);
-    assert.strictEqual(uploaded.changes, 1);
+    await dbh.skipFile(fileName);
     seen = await dbh.seenUpload(fileName);
     assert.strictEqual(seen, 1);
   });
@@ -55,8 +52,7 @@ describe('db.db', () => {
     const fileName = '/data/test/sub/1.fastq';
     let seen = await dbh.seenUpload(fileName);
     assert.strictEqual(seen, 0);
-    const uploaded = await dbh.skipFile(fileName);
-    assert.strictEqual(uploaded.changes, 1);
+    await dbh.skipFile(fileName);
     seen = await dbh.seenUpload(fileName);
     assert.strictEqual(seen, 1);
   });

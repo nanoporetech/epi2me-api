@@ -9,7 +9,15 @@ import { terser } from 'rollup-plugin-terser';
 import copy from 'rollup-plugin-copy';
 import pkg from './package.json';
 
-const external = [...Object.keys(pkg.dependencies || {}), ...Object.keys(pkg.peerDependencies || {})];
+const external = [
+  ...Object.keys(pkg.dependencies || {}),
+  ...Object.keys(pkg.peerDependencies || {}),
+  'path',
+  'os',
+  'crypto',
+  'zlib',
+  'readline',
+];
 
 const pluginsCommon = [
   // Allow json resolution

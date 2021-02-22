@@ -435,7 +435,7 @@ export class EPI2ME_FS extends EPI2ME {
     this.db = new DB(
       thisInstanceDir,
       {
-        idWorkflowInstance: this.config.instance.id_workflow_instance,
+        idWorkflowInstance: makeString(this.config.instance.id_workflow_instance),
         inputFolders: this.config.options.inputFolders,
       },
       this.log,
@@ -655,7 +655,7 @@ export class EPI2ME_FS extends EPI2ME {
     return this.receiveMessages(receiveMessageSet);
   }
 
-  async loadUploadFiles(): Promise<unknown> {
+  async loadUploadFiles(): Promise<void> {
     /**
      * Entry point for new files. Triggered on an interval
      *  - Scan the input folder files
@@ -1679,7 +1679,7 @@ export class EPI2ME_FS extends EPI2ME {
     return p;
   }
 
-  async uploadComplete(objectId: string, file: { id: string; path: string }): Promise<unknown> {
+  async uploadComplete(objectId: string, file: { id: string; path: string }): Promise<void> {
     this.log.info(`${file.id} uploaded to S3: ${objectId}`);
 
     const message: {
@@ -1782,7 +1782,8 @@ export class EPI2ME_FS extends EPI2ME {
     if (!this.db) {
       throw new Error('Database has not been instantiated');
     }
-    return this.db.uploadFile(file.path);
+
+    await this.db.uploadFile(file.path);
   }
 
   observeTelemetry(): void {
