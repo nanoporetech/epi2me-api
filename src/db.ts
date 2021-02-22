@@ -6,7 +6,7 @@ import type { Database } from 'sqlite';
 import { Database as DatabaseDriver } from 'sqlite3';
 import pkg from '../package.json';
 import { utilsFS as utils } from './utils-fs';
-import { Logger } from './Logger';
+import type { Logger } from './Logger';
 
 export interface DBOptions {
   idWorkflowInstance: string;
