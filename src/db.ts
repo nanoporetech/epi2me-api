@@ -1,18 +1,22 @@
 import fs from 'fs-extra';
-import { merge, remove } from 'lodash';
+import { remove } from 'lodash';
 import path from 'path';
-import sqlite from 'sqlite';
+import { open } from 'sqlite';
+import type { Database } from 'sqlite';
+import { Database as DatabaseDriver } from 'sqlite3';
 import pkg from '../package.json';
 import { utilsFS as utils } from './utils-fs';
+import type { Logger } from './Logger';
 
+export interface DBOptions {
+  idWorkflowInstance: string;
+  inputFolders: string[];
+}
 export default class db {
-  options: any; // [key: string]: string;
-  log: any;
-  db: Promise<sqlite.Database>;
+  log: Logger;
+  readonly db: Promise<Database>;
 
-  constructor(dbRoot: string, optionsIn: any, log: any) {
-    const options = merge({}, optionsIn);
-    this.options = options;
+  constructor(dbRoot: string, options: DBOptions, log: Logger) {
     this.log = log;
 
     const { idWorkflowInstance, inputFolders } = options;
@@ -23,7 +27,10 @@ export default class db {
       .mkdirp(dbRoot)
       .then(() => {
         this.log.debug(`opening ${dbRoot}/db.sqlite`);
-        return sqlite.open(path.join(dbRoot, 'db.sqlite')).then(async (dbh) => {
+        return open({
+          filename: path.join(dbRoot, 'db.sqlite'),
+          driver: DatabaseDriver,
+        }).then(async (dbh) => {
           this.log.debug(`opened ${dbRoot}/db.sqlite`); // eslint-disable-line no-console
           await dbh.migrate({ migrationsPath: path.join(__dirname, 'migrations') });
           const placeholders = inputFolders.map(() => '(?)').join(',');
@@ -46,34 +53,34 @@ export default class db {
       });
   }
 
-  async uploadFile(filename: string): Promise<sqlite.Statement> {
+  async uploadFile(filename: string): Promise<void> {
     const dbh = await this.db;
     const [dir, relative] = utils.stripFile(filename);
     await dbh.run('INSERT OR IGNORE INTO folders (folder_path) VALUES (?)', dir);
-    return dbh.run(
+    await dbh.run(
       'INSERT INTO uploads(filename, path_id) VALUES(?, (SELECT folder_id FROM folders WHERE folder_path = ?))',
       relative,
       dir,
     );
   }
 
-  async skipFile(filename: string): Promise<sqlite.Statement> {
+  async skipFile(filename: string): Promise<void> {
     const dbh = await this.db;
     const [dir, relative] = utils.stripFile(filename);
     await dbh.run('INSERT OR IGNORE INTO folders (folder_path) VALUES (?)', dir);
-    return dbh.run(
+    await dbh.run(
       'INSERT INTO skips(filename, path_id) VALUES(?, (SELECT folder_id FROM folders WHERE folder_path = ?))',
       relative,
       dir,
     );
   }
 
-  async splitFile(child: string, parent: string): Promise<sqlite.Statement> {
+  async splitFile(child: string, parent: string): Promise<void> {
     const dbh = await this.db;
     const [dirChild, relativeChild] = utils.stripFile(child);
     const relativeParent = utils.stripFile(parent)[1];
     await dbh.run('INSERT OR IGNORE INTO folders (folder_path) VALUES (?)', dirChild);
-    return dbh.run(
+    await dbh.run(
       'INSERT INTO splits(filename, parent, child_path_id, start, end) VALUES(?, ?, (SELECT folder_id FROM folders WHERE folder_path = ?), CURRENT_TIMESTAMP, NULL)',
       relativeChild,
       relativeParent,
@@ -81,10 +88,10 @@ export default class db {
     );
   }
 
-  async splitDone(child: string): Promise<sqlite.Statement> {
+  async splitDone(child: string): Promise<void> {
     const dbh = await this.db;
     const [dirChild, relativeChild] = utils.stripFile(child);
-    return dbh.run(
+    await dbh.run(
       'UPDATE splits SET end=CURRENT_TIMESTAMP WHERE filename=? AND child_path_id=(SELECT folder_id FROM folders WHERE folder_path=?)',
       relativeChild,
       dirChild,
