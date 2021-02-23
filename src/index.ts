@@ -18,4 +18,6 @@ export * as Helpers from './helpers';
 export const version = utils.version;
 export const EPI2ME_HOME = EPI2ME.EPI2ME_HOME;
 
+export * as FileExtension from './file_extensions';
+
 export type { UtilityFS, Options, Logger, graphQLSchema, SampleReader };

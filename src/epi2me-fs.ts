@@ -69,6 +69,7 @@ import type { FileStat } from './utils-fs';
 import type { ResponseStartWorkflow } from './graphql-types';
 import type { InstanceAttribute } from './factory.type';
 import type { EPI2ME_OPTIONS } from './epi2me-options';
+import { isFastq } from './file_extensions';
 
 const networkStreamErrors: WeakSet<Writable> = new WeakSet();
 
@@ -857,10 +858,7 @@ export class EPI2ME_FS extends EPI2ME {
         this.states.upload.filesCount -= 1;
         this.log.error(msg);
         this.states.warnings.push(warning);
-      } else if (
-        file.path?.match(/\.(?:fastq|fq)(?:\.gz)?$/i) &&
-        ((splitSize && file.size > splitSize) || splitReads)
-      ) {
+      } else if (isFastq(file.path ?? '', true) && ((splitSize && file.size > splitSize) || splitReads)) {
         //
         // file too big to process but can be split
         //
