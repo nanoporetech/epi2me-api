@@ -80,7 +80,17 @@ export class GraphQL {
     // They are _maybe_ being used `utils.get` but we need to resolve this.
     // CR: I believe local isn't required, the rest will be used for signing on
     // GraphQLFS
-    const { apikey, apisecret, jwt, log, local, signing, url: originalUrl, ...parsedOpts } = parseCoreOpts(opts);
+    const {
+      apikey,
+      apisecret,
+      jwt,
+      log,
+      local,
+      signing,
+      url: originalUrl,
+      agent_version: agentVersion,
+      user_agent: userAgent,
+    } = parseCoreOpts(opts);
 
     // https://epi2me-dev.bla => https://graphql.epi2me-dev.bla
     let url = originalUrl.replace(/:\/\//, '://graphql.');
@@ -90,9 +100,9 @@ export class GraphQL {
     this.options = {
       url,
       base_url: url, // New networking wants base_url
-      agent_version: parsedOpts.agent_version,
+      agent_version: agentVersion,
       local,
-      user_agent: parsedOpts.user_agent,
+      user_agent: userAgent,
       signing,
       apikey,
       apisecret,
