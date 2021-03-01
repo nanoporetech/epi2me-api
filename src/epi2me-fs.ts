@@ -41,7 +41,6 @@ import { EPI2ME } from './epi2me';
 import { Factory } from './factory';
 import filestats from './filestats';
 import niceSize from './niceSize';
-import { ProfileFS as Profile } from './profile-fs';
 import PromisePipeline from './promise-pipeline';
 import { REST_FS } from './rest-fs';
 import { SampleReader } from './sample-reader';
@@ -94,7 +93,6 @@ export class EPI2ME_FS extends EPI2ME {
   static utils = utils;
   static SessionManager = SessionManager;
   static EPI2ME_HOME = rootDir();
-  static Profile = Profile;
   static Factory = Factory;
   static GraphQL = GraphQLFS;
 

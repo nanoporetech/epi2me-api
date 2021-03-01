@@ -7,7 +7,7 @@ import { fetch, Headers } from './network/fetch';
 import { EPI2ME_OPTIONS } from './epi2me-options';
 
 export class GraphQLFS extends GraphQL {
-  constructor(opts: EPI2ME_OPTIONS) {
+  constructor(opts: Partial<EPI2ME_OPTIONS>) {
     super(opts);
     this.client = this.initClient();
   }
