@@ -42,8 +42,7 @@
     "socket.io-client": "^2.3.0",
     "sqlite": "^4.0.19",
     "sqlite3": "^5.0.2",
-    "ts-runtime-typecheck": "^2.0.0",
-    "tunnel": "^0.0.6"
+    "ts-runtime-typecheck": "^2.0.0"
   },
   "devDependencies": {
     "@graphql-codegen/cli": "1.17.10",

@@ -1,5 +1,5 @@
 import { merge } from 'lodash';
-import proxy from 'proxy-agent'; // odd one out
+import ProxyAgent from 'proxy-agent';
 import { Logger } from './Logger';
 import { REST } from './rest';
 import { GraphQL } from './graphql';
@@ -66,7 +66,7 @@ export default class SessionManager {
       if (this.options.proxy) {
         merge(configUpdate, {
           httpOptions: {
-            agent: proxy(this.options.proxy),
+            agent: ProxyAgent(this.options.proxy),
           },
         });
       }
