@@ -8,7 +8,7 @@ import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 import crypto from 'crypto';
 import type { Dictionary } from 'ts-runtime-typecheck';
 import { isDictionary } from 'ts-runtime-typecheck';
-import * as tunnel from 'tunnel';
+import ProxyAgent from 'proxy-agent';
 import { version as VERSION } from '../package.json';
 import { NoopLogger, LogMethod } from './Logger';
 
@@ -146,36 +146,10 @@ export const utils: Utility = (function magic(): Utility {
       }
 
       if (options.proxy) {
-        const matches = options.proxy.match(/https?:\/\/((\S+):(\S+)@)?(\S+):(\d+)/);
-        if (!matches) {
-          throw new Error(`Failed to parse Proxy URL`);
-        }
-        const user = matches[2];
-        const pass = matches[3];
-        const host = matches[4];
-        const port = parseInt(matches[5], 10);
-        const proxy: tunnel.ProxyOptions = {
-          host,
-          port,
-        };
-
-        if (user && pass) {
-          proxy.proxyAuth = `${user}:${pass}`;
-        }
-
+        const proxy = ProxyAgent(options.proxy);
         const log = options.log ?? NoopLogger;
-
-        if (options.proxy.match(/^https/)) {
-          log.debug(`using HTTPS over HTTPS proxy`, JSON.stringify(proxy)); // nb. there's no CA/cert handling for self-signed certs
-          req.httpsAgent = tunnel.httpsOverHttps({
-            proxy,
-          });
-        } else {
-          log.debug(`using HTTPS over HTTP proxy`, JSON.stringify(proxy));
-          req.httpsAgent = tunnel.httpsOverHttp({
-            proxy,
-          });
-        }
+        log.debug(`Using proxy for request`);
+        req.httpsAgent = proxy;
         req.proxy = false; // do not double-interpret proxy settings
       }
     },
