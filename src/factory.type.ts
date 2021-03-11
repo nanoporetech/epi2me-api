@@ -15,4 +15,5 @@ export interface GQLWorkflowConfig {
   region?: string;
   userDefined?: Dictionary<Dictionary>;
   instanceAttributes?: InstanceAttribute[];
+  workflowAttributes?: Dictionary<string | number | boolean>;
 }
