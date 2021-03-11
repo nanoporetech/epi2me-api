@@ -745,11 +745,14 @@ export class EPI2ME_FS extends EPI2ME {
       return;
     }
 
+    // TODO this block could likely be simplified significantly
+
     this.log.info(`enqueueUploadFiles ${files.length} files: ${files.map((file) => file.path).join(' ')}.`);
 
     const workflow = asOptDictionary(this.config.workflow);
     if (workflow) {
-      const workflowAttributes = asOptDictionary(workflow.workflow_attributes);
+      const workflowAttributes = asOptDictionary(workflow.workflowAttributes || workflow.workflow_attributes);
+
       const attributes = asOptDictionaryOf(isArray)(workflow.attributes);
       if (workflowAttributes) {
         // started from GUI agent

@@ -122,6 +122,7 @@ export class Factory {
       compute_account?: string;
       storage_account?: string;
       store_results?: boolean;
+      workflowAttributes?: Dictionary<string | number | boolean>;
     },
   ): Promise<EPI2ME_FS> {
     const inst = this.instantiate(options);
