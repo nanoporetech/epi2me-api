@@ -119,8 +119,8 @@ export class Factory {
       is_consented_human: 0 | 1;
       user_defined: unknown;
       instance_attributes: unknown;
-      compute_account?: string;
-      storage_account?: string;
+      compute_account?: Index;
+      storage_account?: Index;
       store_results?: boolean;
       workflowAttributes?: Dictionary<string | number | boolean>;
     },

@@ -1,4 +1,4 @@
-import { asStruct, isOptDictionaryOf, isOptString, isStruct } from 'ts-runtime-typecheck';
+import { asStruct, isOptDictionaryOf, isOptIndex, isOptString, isStruct } from 'ts-runtime-typecheck';
 import { ProfileManager } from './ProfileManager';
 import { url as DEFAULT_ENDPOINT } from './default_options.json';
 
@@ -23,8 +23,8 @@ const isProfile = isStruct({
   apikey: isOptString,
   apisecret: isOptString,
   endpoint: isOptString,
-  billing_account: isOptString,
-  compute_account: isOptString,
+  billing_account: isOptIndex,
+  compute_account: isOptIndex,
 });
 
 const asProfileFileStructure = asStruct({
