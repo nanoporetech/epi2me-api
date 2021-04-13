@@ -81,6 +81,34 @@ describe('ProfileManager', () => {
     assert.strictEqual([...manager.profileNames()].length, 2);
     assert.deepStrictEqual(manager.get('first'), { apikey: 'first', endpoint: 'endpoint.net' });
   });
+  it('returns a unique copy of a profile', () => {
+    const manager = new ProfileManager({}, 'endpoint.net');
+    manager.create('first', { apikey: 'first' });
+    assert.notStrictEqual(manager.get('first'), manager.get('first'));
+  });
+  it('returns "raw" profile', () => {
+    const manager = new ProfileManager({}, 'endpoint.net');
+    manager.create('first', { apikey: 'first' });
+    assert.deepStrictEqual(manager.get('first', true), { apikey: 'first' });
+  });
+  it('can iterate over profiles', () => {
+    const manager = new ProfileManager({}, 'endpoint.net');
+    manager.create('first', { apikey: 'first' });
+    manager.create('second', { apikey: 'second' });
+    assert.deepStrictEqual(Array.from(manager.entries()), [
+      ['first', { apikey: 'first', endpoint: 'endpoint.net' }],
+      ['second', { apikey: 'second', endpoint: 'endpoint.net' }],
+    ]);
+  });
+  it('can iterate over "raw" profiles', () => {
+    const manager = new ProfileManager({}, 'endpoint.net');
+    manager.create('first', { apikey: 'first' });
+    manager.create('second', { apikey: 'second' });
+    assert.deepStrictEqual(Array.from(manager.entries(true)), [
+      ['first', { apikey: 'first' }],
+      ['second', { apikey: 'second' }],
+    ]);
+  });
   it('prevents creating a duplicate entry', () => {
     const manager = new ProfileManager(
       {
@@ -180,6 +208,24 @@ describe('ProfileManager', () => {
           },
         },
       });
+    });
+
+    it('accepts a numeric billing/compute account', async () => {
+      new ProfileManager(
+        {
+          example_a: { billing_account: 42, compute_account: 88 },
+        },
+        'other.net',
+      );
+      const profilePath = path.join(tmp.dirSync().name, '.epi2me.json');
+
+      const data = {
+        profiles: {
+          example_a: { billing_account: 42, compute_account: 88 },
+        },
+      };
+      await fs.writeFile(profilePath, JSON.stringify(data));
+      await instantiateProfileManager({ filepath: profilePath, defaultEndpoint: 'endpoint.net' });
     });
 
     it('empty file gives empty profile', async () => {
