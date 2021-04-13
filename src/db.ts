@@ -125,7 +125,7 @@ export default class db {
     await Promise.all(cleanupPromises);
   }
 
-  async seenUpload(filename: string): Promise<number> {
+  async seenUpload(filename: string): Promise<boolean> {
     //    console.log(`checking seenUpload ${filename}`); // eslint-disable-line no-console
     const dbh = await this.db;
     const [dir, relative] = utils.stripFile(filename);
@@ -141,7 +141,7 @@ export default class db {
       ),
     ]).then((results) => {
       // console.log(`checked seenUpload ${filename} \n ${results}`); // eslint-disable-line no-console
-      return remove(results, undefined).length;
+      return remove(results, undefined).length > 0;
     });
   }
 }

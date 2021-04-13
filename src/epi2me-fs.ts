@@ -56,6 +56,8 @@ import { filter, first, map, takeUntil, withLatestFrom } from 'rxjs/operators';
 import { GraphQLFS } from './graphql-fs';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { createQueue } from './queue';
+import { isFastq } from './file_extensions';
+import { loadInputFiles } from './inputScanner';
 
 import type { MappedFileStats } from './filestats';
 import type { DisposeTimer } from './timers';
@@ -64,11 +66,10 @@ import type { PromiseResult } from 'aws-sdk/lib/request';
 import type { FetchResult } from '@apollo/client/core';
 import type { Configuration } from './Configuration';
 import type { JSONObject, Dictionary, Index, Optional } from 'ts-runtime-typecheck';
-import type { FileStat } from './utils-fs';
 import type { ResponseStartWorkflow } from './graphql-types';
 import type { InstanceAttribute } from './factory.type';
 import type { EPI2ME_OPTIONS } from './epi2me-options';
-import { isFastq } from './file_extensions';
+import type { FileStat } from './inputScanner.type';
 
 const networkStreamErrors: WeakSet<Writable> = new WeakSet();
 
@@ -676,11 +677,20 @@ export class EPI2ME_FS extends EPI2ME {
         if (isUndefined(this.db)) {
           throw new Error('Database has not been initialized');
         }
-        return makeBoolean(await this.db.seenUpload(fileIn));
+        const exists = await this.db.seenUpload(fileIn);
+        // invert because filter operates on a "should I include" basis
+        return !exists;
       };
 
+      const { inputFolders, outputFolder, filetype } = this.config.options;
+
       // find files waiting for upload
-      const files = await utils.loadInputFiles(this.config.options, this.log, dbFilter);
+      const files = await loadInputFiles({
+        inputFolders,
+        outputFolder,
+        filetypes: filetype,
+        filter: dbFilter,
+      });
       // trigger upload for all waiting files, blocking until all complete
 
       let running = 0;
@@ -880,7 +890,6 @@ export class EPI2ME_FS extends EPI2ME {
             };
         const splitter = file.path.match(/\.gz$/i) ? fastqGzipSplitter : fastqSplitter;
 
-        const fileId = utils.getFileID();
         const queue = new PromisePipeline({
           bandwidth: this.config.options.transferPoolSize,
         });
@@ -914,7 +923,7 @@ export class EPI2ME_FS extends EPI2ME {
             name: path.basename(chunkFile), // "my.fastq"
             path: chunkFile, // "/Users/rpettett/test_sets/zymo/demo/INPUT_PREFIX/my.fastq"
             relative: asString(relativePath), // "INPUT_PREFIX/my.fastq"
-            id: `${fileId}_${chunkId}`,
+            id: `${file.id}_${chunkId}`,
             stats,
             size: stats.bytes,
           };
@@ -1803,7 +1812,7 @@ export class EPI2ME_FS extends EPI2ME {
     // const reports$ = this.telemetry.telemetryReports$().pipe(filter(isDefined));
 
     const destroySignal$ = new Subject<void>();
-    const writeQueue = createQueue<[string, JSONValue]>(1, destroySignal$, ([filePath, content]) =>
+    const { add: writeQueue } = createQueue({ signal$: destroySignal$ }, ([filePath, content]: [string, JSONValue]) =>
       fs.writeJSON(filePath, content),
     );
 
