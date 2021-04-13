@@ -1,11 +1,11 @@
 import type * as graphQLSchema from './graphql-types';
 
-export type { UtilityFS } from './utils-fs';
 export type { EPI2ME_OPTIONS as Options } from './epi2me-options';
 export type { Logger } from './Logger';
 export type { SampleReader } from './sample-reader';
 export type { Profile } from './ProfileManager.type';
 export type { graphQLSchema };
+export type UtilityFS = typeof utils;
 
 import SessionManager from './session-manager';
 import { EPI2ME_FS as EPI2ME } from './epi2me-fs';

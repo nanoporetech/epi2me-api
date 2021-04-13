@@ -8,7 +8,6 @@ import type { REST_FS } from './rest-fs';
 import type { GraphQL } from './graphql';
 import type { Logger } from './Logger';
 import type { SampleReader } from './sample-reader';
-import type { UtilityFS } from './utils-fs';
 import type { Index, Dictionary } from 'ts-runtime-typecheck';
 import type { EPI2ME_OPTIONS } from './epi2me-options';
 import type { GQLWorkflowConfig } from './factory.type';
@@ -60,7 +59,7 @@ export class Factory {
     });
   }
 
-  get utils(): UtilityFS {
+  get utils(): typeof EPI2ME_FS.utils {
     return this.EPI2ME.utils;
   }
 

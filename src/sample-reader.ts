@@ -37,7 +37,7 @@ export class SampleReader {
       .withBasePath()
       .withErrors()
       .withDirs()
-      .filter((path: string) => path.includes(fileToCheck))
+      .filter((path: string) => !path.includes(fileToCheck))
       .exclude((path: string) => path.includes('fastq_'))
       .withMaxDepth(3)
       .crawl(sourceDir);
@@ -46,6 +46,8 @@ export class SampleReader {
     try {
       files = (await crawler.withPromise()) as string[];
     } catch {
+      // TODO this doesn't really feel like the correct behaviour
+      // should we check for ENOENT here perhaps?
       return;
     }
 

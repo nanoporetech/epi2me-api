@@ -27,57 +27,57 @@ describe('db.db', () => {
   it('uploadFile & seenFile', async () => {
     const fileName = '/data/test/1.fastq';
     let seen = await dbh.seenUpload(fileName);
-    assert.strictEqual(seen, 0);
+    assert.strictEqual(seen, false);
     await dbh.uploadFile(fileName);
     seen = await dbh.seenUpload(fileName);
-    assert.strictEqual(seen, 1);
+    assert.strictEqual(seen, true);
   });
   it('uploadFile in subdir & seenFile', async () => {
     const fileName = '/data/test/sub/1.fastq';
     let seen = await dbh.seenUpload(fileName);
-    assert.strictEqual(seen, 0);
+    assert.strictEqual(seen, false);
     await dbh.uploadFile(fileName);
     seen = await dbh.seenUpload(fileName);
-    assert.strictEqual(seen, 1);
+    assert.strictEqual(seen, true);
   });
   it('skipFile && seenFile', async () => {
     const fileName = '/data/test/1.fastq';
     let seen = await dbh.seenUpload(fileName);
-    assert.strictEqual(seen, 0);
+    assert.strictEqual(seen, false);
     await dbh.skipFile(fileName);
     seen = await dbh.seenUpload(fileName);
-    assert.strictEqual(seen, 1);
+    assert.strictEqual(seen, true);
   });
   it('skipFile in subdir && seenFile', async () => {
     const fileName = '/data/test/sub/1.fastq';
     let seen = await dbh.seenUpload(fileName);
-    assert.strictEqual(seen, 0);
+    assert.strictEqual(seen, false);
     await dbh.skipFile(fileName);
     seen = await dbh.seenUpload(fileName);
-    assert.strictEqual(seen, 1);
+    assert.strictEqual(seen, true);
   });
   it('uploadFile differentiates based on path', async () => {
     const fileName = '/data/test/1.fastq';
     const fileName2 = '/data/test2/1.fastq';
     let seen = await dbh.seenUpload(fileName);
-    assert.strictEqual(seen, 0);
+    assert.strictEqual(seen, false);
     await dbh.uploadFile(fileName);
     seen = await dbh.seenUpload(fileName2);
-    assert.strictEqual(seen, 0);
+    assert.strictEqual(seen, false);
     await dbh.uploadFile(fileName2);
     seen = await dbh.seenUpload(fileName);
-    assert.strictEqual(seen, 1);
+    assert.strictEqual(seen, true);
     seen = await dbh.seenUpload(fileName2);
-    assert.strictEqual(seen, 1);
+    assert.strictEqual(seen, true);
   });
   it('skipFile differentiates based on path', async () => {
     const fileName = '/data/test/1.fastq';
     const fileName2 = '/data/test2/1.fastq';
     let seen = await dbh.seenUpload(fileName);
-    assert.strictEqual(seen, 0);
+    assert.strictEqual(seen, false);
     await dbh.skipFile(fileName);
     seen = await dbh.seenUpload(fileName2);
-    assert.strictEqual(seen, 0);
+    assert.strictEqual(seen, false);
   });
   describe('file splitting', () => {
     const child = '/data/test/split.fastq';
