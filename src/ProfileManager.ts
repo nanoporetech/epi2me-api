@@ -1,5 +1,7 @@
-import { Subject } from 'rxjs';
+import { BehaviorSubject, Subject } from 'rxjs';
+import { Map as ImmutableMap } from 'immutable';
 
+import type { Observable } from 'rxjs';
 import type { Dictionary } from 'ts-runtime-typecheck';
 import type { Profile } from './ProfileManager.type';
 
@@ -28,9 +30,12 @@ export class ProfileManager {
     this.updateProfiles();
   }
 
-  get(id: string): Profile | null {
+  get(id: string, raw = false): Profile | null {
     const profile = this.profiles.get(id);
     if (profile) {
+      if (raw) {
+        return { ...profile };
+      }
       return {
         endpoint: this.defaultEndpoint,
         ...profile,
@@ -64,5 +69,27 @@ export class ProfileManager {
 
   profileNames(): Iterable<string> {
     return this.profiles.keys();
+  }
+
+  entries$(raw = false): Observable<ImmutableMap<string, Profile>> {
+    const subject$ = new BehaviorSubject(ImmutableMap(this.entries(raw)));
+    this.profiles$.subscribe(() => subject$.next(ImmutableMap(this.entries(raw))));
+    return subject$;
+  }
+
+  *entries(raw = false): Iterable<[string, Profile]> {
+    for (const [profileName, profile] of this.profiles) {
+      if (raw) {
+        yield [profileName, { ...profile }];
+      } else {
+        yield [
+          profileName,
+          {
+            endpoint: this.defaultEndpoint,
+            ...profile,
+          },
+        ];
+      }
+    }
   }
 }
