@@ -19,7 +19,6 @@ import {
   asOptNumber,
   asDictionaryOf,
   makeString,
-  makeBoolean,
   makeNumber,
   isString,
   isUndefined,
