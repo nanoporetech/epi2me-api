@@ -1,5 +1,5 @@
 import io from 'socket.io-client';
-import { merge } from 'lodash';
+import { isDictionary } from 'ts-runtime-typecheck';
 
 import type { Logger } from './Logger';
 import { REST } from './rest';
@@ -45,10 +45,9 @@ export default class Socket {
   }
 
   debounce(data: unknown, func: (data: unknown) => void): void {
-    // NOTE is this actually required? why is no explanation given for this?
-    const uuid = merge(data)._uuid; // eslint-disable-line
+    if (isDictionary(data) && '_uuid' in data) {
+      const { _uuid: uuid } = data;
 
-    if (uuid) {
       if (this.debounces.has(uuid)) {
         return;
       }

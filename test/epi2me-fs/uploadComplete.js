@@ -98,7 +98,7 @@ describe('epi2me.uploadComplete', () => {
         'uploadComplete payload',
       );
       return {
-        promise: () => Promise.resolve(),
+        promise: () => Promise.resolve({ MessageId: 42 }),
       };
     });
 
@@ -170,7 +170,7 @@ describe('epi2me.uploadComplete', () => {
         'uploadComplete payload',
       );
       return {
-        promise: () => Promise.resolve(),
+        promise: () => Promise.resolve({ MessageId: 0 }),
       };
     });
 
@@ -223,7 +223,7 @@ describe('epi2me.uploadComplete', () => {
         'uploadComplete payload',
       );
       return {
-        promise: () => Promise.resolve(),
+        promise: () => Promise.resolve({ MessageId: 0 }),
       };
     });
 
@@ -271,7 +271,7 @@ describe('epi2me.uploadComplete', () => {
         'uploadComplete replaced component queue names',
       );
       return {
-        promise: () => Promise.resolve(),
+        promise: () => Promise.resolve({ MessageId: 0 }),
       };
     });
 
@@ -321,7 +321,7 @@ describe('epi2me.uploadComplete', () => {
       assert.equal(struct.prefix, '/aaa-bbb-ccc-123/1/123456/component-0/file.fastq', 'message prefix');
 
       return {
-        promise: () => Promise.resolve(),
+        promise: () => Promise.resolve({ MessageId: 0 }),
       };
     });
 
@@ -360,7 +360,7 @@ describe('epi2me.uploadComplete', () => {
       assert.equal(struct.prefix, '/aaa-bbb-ccc-123/1/123456/component-0/file.fastq', 'message prefix');
 
       return {
-        promise: () => Promise.resolve(),
+        promise: () => Promise.resolve({ MessageId: 0 }),
       };
     });
     try {

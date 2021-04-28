@@ -1,5 +1,4 @@
 import fs from 'fs-extra';
-import { remove } from 'lodash';
 import path from 'path';
 import { open } from 'sqlite';
 import type { Database } from 'sqlite';
@@ -7,6 +6,7 @@ import { Database as DatabaseDriver } from 'sqlite3';
 import pkg from '../package.json';
 import { utilsFS as utils } from './utils-fs';
 import type { Logger } from './Logger';
+import { isDefined } from 'ts-runtime-typecheck';
 
 export interface DBOptions {
   idWorkflowInstance: string;
@@ -129,7 +129,7 @@ export default class db {
     //    console.log(`checking seenUpload ${filename}`); // eslint-disable-line no-console
     const dbh = await this.db;
     const [dir, relative] = utils.stripFile(filename);
-    return Promise.all([
+    const [uploads, skips] = await Promise.all([
       dbh.get(
         'SELECT * FROM uploads u INNER JOIN folders ON folders.folder_id = u.path_id WHERE u.filename=? AND folders.folder_path=? LIMIT 1',
         [relative, dir],
@@ -139,9 +139,8 @@ export default class db {
         relative,
         dir,
       ),
-    ]).then((results) => {
-      // console.log(`checked seenUpload ${filename} \n ${results}`); // eslint-disable-line no-console
-      return remove(results, undefined).length > 0;
-    });
+    ]);
+
+    return isDefined(uploads) || isDefined(skips);
   }
 }
