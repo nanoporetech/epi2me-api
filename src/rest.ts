@@ -3,7 +3,6 @@
  * Authors: rpettett, gvanginkel
  */
 
-import { assign, merge } from 'lodash';
 import os from 'os';
 import { utils } from './utils';
 import { Logger } from './Logger';
@@ -111,12 +110,14 @@ export class REST {
   async instanceToken(id: unknown, opts: Partial<EPI2ME_OPTIONS>): Promise<Dictionary> {
     return utils.post(
       'token',
-      merge(opts, {
+      {
+        ...opts,
         id_workflow_instance: id,
-      }),
-      assign({}, this.options, {
+      },
+      {
+        ...this.options,
         legacy_form: true,
-      }),
+      },
     );
   }
 
@@ -126,9 +127,10 @@ export class REST {
       {
         id_workflow: id,
       },
-      assign({}, this.options, {
+      {
+        ...this.options,
         legacy_form: true,
-      }),
+      },
     );
   }
 
@@ -219,13 +221,12 @@ export class REST {
       return cb ? cb(err) : Promise.reject(err);
     }
 
-    const workflow: Dictionary = {};
+    let workflow: Dictionary;
     try {
-      const struct = await this.read('workflow', id);
-      if (struct.error) {
-        throw new Error(struct.error + '');
+      workflow = await this.read('workflow', id);
+      if (workflow.error) {
+        throw new Error(workflow.error + '');
       }
-      merge(workflow, struct);
     } catch (err) {
       this.log.error(`${id}: error fetching workflow ${String(err)}`);
       if (cb) {
@@ -235,17 +236,20 @@ export class REST {
       throw err;
     }
 
-    // placeholder
-    merge(workflow, {
+    workflow = {
       params: {},
-    });
+      ...workflow,
+    };
 
     try {
       const workflowConfig = await utils.get(`workflow/config/${id}`, this.options);
       if (workflowConfig.error) {
         throw new Error(workflowConfig.error + '');
       }
-      merge(workflow, workflowConfig);
+      workflow = {
+        ...workflow,
+        ...workflowConfig,
+      };
     } catch (err) {
       this.log.error(`${id}: error fetching workflow config ${String(err)}`);
       if (cb) {
@@ -393,9 +397,10 @@ export class REST {
       {
         description: description || `${os.userInfo().username}@${os.hostname()}`,
       },
-      assign({}, this.options, {
+      {
+        ...this.options,
         signing: false,
-      }),
+      },
     );
   }
 

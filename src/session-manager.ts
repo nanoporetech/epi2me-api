@@ -1,16 +1,15 @@
-import { merge } from 'lodash';
 import ProxyAgent from 'proxy-agent';
 import { Logger } from './Logger';
 import { REST } from './rest';
 import { GraphQL } from './graphql';
 import { Index, asDictionary, isIndex, Dictionary, makeNumber } from 'ts-runtime-typecheck';
-import { EPI2ME_OPTIONS } from './epi2me-options';
+import { SessionManagerOptions } from './session-manager.type';
 
 export default class SessionManager {
   readonly log: Logger;
   readonly REST: REST;
   readonly graphQL: GraphQL;
-  readonly options: EPI2ME_OPTIONS;
+  readonly options: SessionManagerOptions;
 
   readonly id_workflow_instance: Index;
   readonly children: { config: { update: (option: Dictionary) => void } }[];
@@ -21,12 +20,12 @@ export default class SessionManager {
     idWorkflowInstance: Index,
     REST: REST,
     children: { config: { update: (option: Dictionary) => void } }[],
-    opts: Partial<EPI2ME_OPTIONS>,
+    opts: SessionManagerOptions,
     graphQL: GraphQL,
   ) {
     this.id_workflow_instance = idWorkflowInstance;
     this.children = children;
-    this.options = merge(opts);
+    this.options = opts;
     this.log = this.options.log;
     this.REST = REST; // EPI2ME REST API object
     this.graphQL = graphQL; // EPI2ME graphQL API object
@@ -62,22 +61,15 @@ export default class SessionManager {
 
       this.sts_expiration = new Date(token.expiration).getTime() - 60 * makeNumber(this.options.sessionGrace ?? '0'); // refresh token x mins before it expires
 
-      const configUpdate: Dictionary = {};
+      const configUpdate: Dictionary = token;
+
       if (this.options.proxy) {
-        merge(configUpdate, {
-          httpOptions: {
-            agent: ProxyAgent(this.options.proxy),
-          },
-        });
+        configUpdate.httpOptions = {
+          agent: ProxyAgent(this.options.proxy),
+        };
       }
 
-      merge(
-        configUpdate,
-        {
-          region: this.options.region,
-        },
-        token,
-      );
+      configUpdate.region = this.options.region;
 
       for (const child of this.children) {
         try {

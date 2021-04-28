@@ -32,7 +32,6 @@ import {
 } from 'ts-runtime-typecheck';
 import AWS from 'aws-sdk';
 import fs from 'fs-extra'; /* MC-565 handle EMFILE & EXDIR gracefully; use Promises */
-import { merge } from 'lodash';
 import { EOL, homedir } from 'os';
 import path from 'path';
 import DB from './db';
@@ -44,8 +43,7 @@ import PromisePipeline from './promise-pipeline';
 import { REST_FS } from './rest-fs';
 import { SampleReader } from './sample-reader';
 import SessionManager from './session-manager';
-import fastqSplitter from './splitters/fastq';
-import fastqGzipSplitter from './splitters/fastq-gz';
+import { splitter } from './splitters/fastq';
 import { utilsFS as utils } from './utils-fs';
 import { gql } from '@apollo/client/core';
 import { createInterval, createTimeout } from './timers';
@@ -64,7 +62,7 @@ import type { Readable, Writable } from 'stream';
 import type { PromiseResult } from 'aws-sdk/lib/request';
 import type { FetchResult } from '@apollo/client/core';
 import type { Configuration } from './Configuration';
-import type { JSONObject, Dictionary, Index, Optional } from 'ts-runtime-typecheck';
+import type { JSONObject, Dictionary, Index } from 'ts-runtime-typecheck';
 import type { ResponseStartWorkflow } from './graphql-types';
 import type { InstanceAttribute } from './factory.type';
 import type { EPI2ME_OPTIONS } from './epi2me-options';
@@ -374,10 +372,7 @@ export class EPI2ME_FS extends EPI2ME {
     }
   }
 
-  initSessionManager(
-    opts?: Optional<Dictionary>,
-    children: { config: { update: (option: Dictionary) => void } }[] = [],
-  ): SessionManager {
+  initSessionManager(children: { config: { update: (option: Dictionary) => void } }[] = []): SessionManager {
     return new SessionManager(
       asIndex(this.config.instance.id_workflow_instance),
       this.REST,
@@ -388,7 +383,6 @@ export class EPI2ME_FS extends EPI2ME {
         region: this.config.instance.region,
         log: this.log,
         useGraphQL: this.config.options.useGraphQL,
-        ...(opts ?? {}),
       },
       this.graphQL,
     );
@@ -887,7 +881,7 @@ export class EPI2ME_FS extends EPI2ME {
           : {
               maxChunkReads: splitReads,
             };
-        const splitter = file.path.match(/\.gz$/i) ? fastqGzipSplitter : fastqSplitter;
+        const isCompressed = /\.gz$/i.test(file.path);
 
         const queue = new PromisePipeline({
           bandwidth: this.config.options.transferPoolSize,
@@ -926,7 +920,7 @@ export class EPI2ME_FS extends EPI2ME {
             stats,
             size: stats.bytes,
           };
-          const p = new Promise((chunkResolve: UnknownFunction): void => {
+          await new Promise((chunkResolve: UnknownFunction): void => {
             queue.enqueue(
               async (): Promise<void> => {
                 this.log.info(`chunk upload starting ${chunkStruct.id} ${chunkStruct.path}`);
@@ -952,11 +946,10 @@ export class EPI2ME_FS extends EPI2ME {
               },
             );
           });
-          await p; // need to wait for p to resolve before resolving the filestats outer
         };
 
         try {
-          await splitter(file.path, splitStyle, chunkHandler, this.log);
+          await splitter(file.path, splitStyle, chunkHandler, isCompressed);
           queue.stop();
         } catch (splitterError) {
           queue.stop();
@@ -1310,7 +1303,7 @@ export class EPI2ME_FS extends EPI2ME {
       id_workflow_instance: this.config.instance.id_workflow_instance,
       id_workflow: this.config.instance.id_workflow,
       component_id: '0',
-      message_id: merge(message).MessageId,
+      message_id: message.MessageId,
       id_user: this.config.instance.id_user,
     }).catch((e) => {
       this.log.warn(`realtimeFeedback failed: ${String(e)}`);
@@ -1636,7 +1629,7 @@ export class EPI2ME_FS extends EPI2ME {
 
         const managedUpload = s3.upload(params, options);
         this.uploadsInProgress.push(managedUpload);
-        const sessionManager = this.initSessionManager(null, [service]);
+        const sessionManager = this.initSessionManager([service]);
         sessionManager.sts_expiration = this.sessionManager?.sts_expiration; // No special options here, so use the main session and don't refetch until it's expired
 
         managedUpload.on('httpUploadProgress', async (progress) => {
@@ -1757,7 +1750,7 @@ export class EPI2ME_FS extends EPI2ME {
       }
     }
 
-    let sentMessage = {};
+    let sentMessage: PromiseResult<AWS.SQS.SendMessageResult, AWS.AWSError>;
     try {
       const inputQueueURL = await this.discoverQueue(asOptString(this.config.instance.inputQueueName));
       const sqs = await this.sessionedSQS();
@@ -1771,7 +1764,7 @@ export class EPI2ME_FS extends EPI2ME {
         .promise();
     } catch (sendMessageException) {
       this.log.error(`${file.id} exception sending SQS message: ${String(sendMessageException)}`);
-      return Promise.reject(sendMessageException);
+      throw sendMessageException;
     }
 
     this.realtimeFeedback(`workflow_instance:state`, {
@@ -1779,7 +1772,7 @@ export class EPI2ME_FS extends EPI2ME {
       id_workflow_instance: this.config.instance.id_workflow_instance,
       id_workflow: this.config.instance.id_workflow,
       component_id: '0',
-      message_id: merge(sentMessage).MessageId,
+      message_id: sentMessage.MessageId,
       id_user: this.config.instance.id_user,
     }).catch((e) => {
       this.log.warn(`realtimeFeedback failed: ${String(e)}`);
