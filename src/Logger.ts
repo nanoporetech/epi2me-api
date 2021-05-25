@@ -5,18 +5,20 @@ export interface Logger {
   error: LogMethod;
   info: LogMethod;
   warn: LogMethod;
+  critical(id: CriticalErrorId, reason: string): void;
 }
 
-export const NoopLogMethod: LogMethod = (...args: unknown[]): void => {
-  args;
-};
+export const NoopLogMethod: LogMethod = () => {};
 
 export const NoopLogger: Logger = {
-  debug: NoopLogMethod,
-  error: NoopLogMethod,
-  info: NoopLogMethod,
-  warn: NoopLogMethod,
+  debug() {},
+  error() {},
+  info() {},
+  warn() {},
+  critical() {},
 };
+
+export type CriticalErrorId = 'UNKNOWN';
 
 export const FallbackLogger: Logger = {
   info(...args: unknown[]): void {
@@ -30,5 +32,8 @@ export const FallbackLogger: Logger = {
   },
   error(...args: unknown[]): void {
     console.error(`[${new Date().toISOString()}] ERROR:`, ...args);
+  },
+  critical(id: CriticalErrorId, reason: string): void {
+    console.error(`[${new Date().toISOString()}] CRITICAL: ${id}`, reason);
   },
 };

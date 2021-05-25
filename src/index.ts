@@ -1,7 +1,7 @@
 import type * as graphQLSchema from './graphql-types';
 
 export type { EPI2ME_OPTIONS as Options } from './epi2me-options';
-export type { Logger } from './Logger';
+export type { CriticalErrorId, Logger } from './Logger';
 export type { SampleReader } from './sample-reader';
 export type { Profile } from './ProfileManager.type';
 export type { graphQLSchema };
