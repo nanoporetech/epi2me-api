@@ -73,7 +73,7 @@ export async function instantiateProfileManager({
       }),
     ).catch((err) => {
       if (logger) {
-        logger?.error('Failed to serialize profiles to disc', err);
+        logger.critical('PROFILE_PERSIST', 'Failed to serialize profiles to disc ' + err.message);
       } else {
         console.error('Failed to serialize profiles to disc', err);
       }

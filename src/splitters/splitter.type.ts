@@ -11,6 +11,7 @@ export interface Chunk {
   location: string;
   writer: NodeJS.WritableStream;
   closed: Promise<void>;
+  error?: unknown;
 }
 
 export type Splitter = (

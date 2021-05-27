@@ -2,7 +2,8 @@ import readline from 'readline';
 import fs from 'fs';
 import path from 'path';
 import zlib from 'zlib';
-import { promisify } from 'util';
+import { isDefined } from 'ts-runtime-typecheck';
+
 import type { Chunk, SplitStyle } from './splitter.type';
 
 const LINES_PER_READ = 4;
@@ -18,7 +19,10 @@ export function createWriteStream(
 ): { writer: NodeJS.WritableStream; closed: Promise<void> } {
   const destination = fs.createWriteStream(location);
   // ensure we monitor when the destination write stream finishes, not the GZip transform stream
-  const closed = promisify<void>(destination.once.bind(destination, 'close'))();
+  const closed = new Promise<void>((resolve, reject) => {
+    destination.once('close', () => resolve());
+    destination.once('error', reject);
+  });
   if (isCompressed) {
     const compress = zlib.createGzip();
     compress.pipe(destination);
@@ -28,6 +32,10 @@ export function createWriteStream(
 }
 
 export function writeToChunk(chunk: Chunk, lines: string[]): void {
+  if (isDefined(chunk.error)) {
+    throw chunk.error;
+  }
+
   const read = lines.join('\n') + '\n';
 
   chunk.reads += 1;
@@ -79,14 +87,19 @@ export function constructChunkLocation(prefix: string, suffix: string, id: numbe
 export function createChunk(prefix: string, suffix: string, id: number, isCompressed: boolean): Chunk {
   const location = constructChunkLocation(prefix, suffix, id);
   const { writer, closed } = createWriteStream(location, isCompressed);
-
-  return {
+  const chunk: Chunk = {
     bytes: 0,
     reads: 0,
     location,
     writer,
     closed,
   };
+
+  closed.catch((err) => {
+    chunk.error = err;
+  });
+
+  return chunk;
 }
 
 export async function splitter(
