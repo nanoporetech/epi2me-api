@@ -1,4 +1,5 @@
 export { GraphQL } from './graphql';
+export type { CriticalErrorId, Logger } from './Logger';
 export * as EPI2ME_RPC from './grpc';
 export * as Helpers from './helpers';
 
