@@ -53,7 +53,14 @@ export async function completeChunk(chunk: Chunk, handler: (location: string) =>
   try {
     await handler(chunk.location);
   } finally {
-    await fs.promises.unlink(chunk.location);
+    // NOTE ensure that if the file does not exist, we don't throw about not being able to delete it
+    try {
+      await fs.promises.unlink(chunk.location);
+    } catch (err) {
+      if (err.code !== 'ENOENT') {
+        throw err;
+      }
+    }
   }
 }
 
