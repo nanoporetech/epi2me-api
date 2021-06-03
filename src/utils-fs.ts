@@ -66,10 +66,8 @@ export const utilsFS = {
         resolve(filepath);
       });
       writer.on('error', (error: NodeJS.ErrnoException) => {
-        if (error.code === 'ENOSPC') {
-          // NOTE this is ONLY used by REST.bundleWorkflow
-          log.critical('FS_FULL', 'Failed to bundle workflow ' + error.message); // TODO
-        }
+        // NOTE this is ONLY used by REST.bundleWorkflow
+        log.critical('FS_FAILURE', `Failed to bundle workflow ${error.message}`);
         reject(new Error(`writer failed ${String(error)}`));
       });
     });
