@@ -12,6 +12,7 @@ describe('epi2me.autoJoin', () => {
         info: sinon.stub(),
         warn: sinon.stub(),
         error: sinon.stub(),
+        critical: sinon.stub(),
       },
     });
 

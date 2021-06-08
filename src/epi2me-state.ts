@@ -5,7 +5,7 @@ export interface UploadState {
   success: SuccessState;
   //        failure: {}, // failed upload counts by error message
   types: Dictionary<number>; // completely uploaded file counts by file type {".fastq": 1, ".vcf": 17}
-  failure?: Dictionary;
+  failure?: Dictionary<number>;
   niceTypes: string; // "1 .fastq, 17.vcf"
   progress: ProgressState;
 }
@@ -36,12 +36,14 @@ export interface DownloadState {
   niceTypes: string; // "17 .fastq, 1.vcf"
 }
 
-export type WarningState = unknown[];
-
+export interface Warning {
+  msg: string;
+  type: string; // this should probably be typed or an enum
+}
 export interface States {
   upload: UploadState;
   download: DownloadState;
-  warnings: WarningState;
+  warnings: Warning[];
 }
 
 export function createSuccessState(): SuccessState {

@@ -15,7 +15,7 @@ describe('epi2me.queueLength', () => {
         error: sinon.stub(),
         debug: sinon.stub(),
         info: sinon.stub(),
-        json: sinon.stub(),
+        critical: sinon.stub(),
       },
     });
   });

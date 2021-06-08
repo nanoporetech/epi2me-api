@@ -2,8 +2,11 @@ import ProxyAgent from 'proxy-agent';
 import { Logger } from './Logger';
 import { REST } from './rest';
 import { GraphQL } from './graphql';
-import { Index, asDictionary, isIndex, Dictionary, makeNumber } from 'ts-runtime-typecheck';
+import { Index, isIndex, makeNumber, asDefined, asOptString, isDefined } from 'ts-runtime-typecheck';
 import { SessionManagerOptions } from './session-manager.type';
+import AWS from 'aws-sdk';
+import { InstanceTokenMutation } from './generated/graphql.type';
+import { CredentialsOptions } from 'aws-sdk/lib/credentials';
 
 export default class SessionManager {
   readonly log: Logger;
@@ -12,14 +15,14 @@ export default class SessionManager {
   readonly options: SessionManagerOptions;
 
   readonly id_workflow_instance: Index;
-  readonly children: { config: { update: (option: Dictionary) => void } }[];
+  readonly children: { config: AWS.Config }[];
 
   sts_expiration?: number;
 
   constructor(
     idWorkflowInstance: Index,
     REST: REST,
-    children: { config: { update: (option: Dictionary) => void } }[],
+    children: { config: AWS.Config }[],
     opts: SessionManagerOptions,
     graphQL: GraphQL,
   ) {
@@ -44,11 +47,11 @@ export default class SessionManager {
     this.log.debug('new instance token needed');
 
     try {
-      let token;
+      let token: InstanceTokenMutation;
       if (this.options.useGraphQL) {
         const instanceTokenOptions = { variables: { idWorkflowInstance: this.id_workflow_instance } };
         const result = await this.graphQL.instanceToken(instanceTokenOptions);
-        token = asDictionary(result.data?.token);
+        token = asDefined(result.data?.token);
       } else {
         token = await this.REST.instanceToken(this.id_workflow_instance, this.options);
       }
@@ -61,9 +64,24 @@ export default class SessionManager {
 
       this.sts_expiration = new Date(token.expiration).getTime() - 60 * makeNumber(this.options.sessionGrace ?? '0'); // refresh token x mins before it expires
 
-      const configUpdate: Dictionary = token;
+      let credentials: CredentialsOptions | null = null;
+
+      if (isDefined(token.accessKeyId) && isDefined(token.secretAccessKey)) {
+        credentials = {
+          accessKeyId: token.accessKeyId,
+          secretAccessKey: token.secretAccessKey,
+          sessionToken: asOptString(token.sessionToken),
+        };
+      }
+
+      const configUpdate: Parameters<AWS.Config['update']>[0] = {
+        credentials,
+        region: asOptString(token.region),
+      };
 
       if (this.options.proxy) {
+        // NOTE AWS SDK explicitly does a deep merge on httpOptions
+        // so this won't squash any options that have already been set
         configUpdate.httpOptions = {
           agent: ProxyAgent(this.options.proxy),
         };

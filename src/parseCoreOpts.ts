@@ -13,6 +13,7 @@ function resolveLogger(log: unknown): Logger {
         debug: asFunction(log.debug) as LogMethod,
         warn: asFunction(log.warn) as LogMethod,
         error: asFunction(log.error) as LogMethod,
+        critical: asFunction(log.critical) as Logger['critical'],
       };
     } catch (e) {
       throw new Error('expected log object to have error, debug, info and warn methods');

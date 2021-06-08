@@ -16,7 +16,7 @@ describe('epi2me.checkForDownloads', () => {
             info: sinon.stub(),
             warn,
             error: sinon.stub(),
-            json: sinon.stub(),
+            critical: sinon.stub(),
           },
         },
         opts,

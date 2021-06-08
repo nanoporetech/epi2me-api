@@ -1,7 +1,7 @@
-import fs from 'fs-extra';
+import fs from 'fs';
 import { createGunzip } from 'zlib';
 
-export default function (filePath: string): Promise<{ type: string; bytes: number; reads: number }> {
+export function fastqgzFileStatistics(filePath: string): Promise<{ type: string; bytes: number; reads: number }> {
   return new Promise((resolve, reject) => {
     const linesPerRead = 4;
     let lineCount = 1;
@@ -11,6 +11,7 @@ export default function (filePath: string): Promise<{ type: string; bytes: numbe
     };
 
     try {
+      // TODO make this async
       stat = fs.statSync(filePath);
     } catch (e) {
       reject(e);

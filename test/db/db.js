@@ -2,7 +2,7 @@ import assert from 'assert';
 import fs from 'fs-extra';
 import sinon from 'sinon';
 import tmp from 'tmp';
-import DB from '../../src/db';
+import { DB } from '../../src/db';
 
 describe('db.db', () => {
   let dbh;

@@ -4,6 +4,7 @@ import assert from 'assert';
 import path from 'path';
 import tmp from 'tmp';
 import { promises as fs } from 'fs';
+import { sleep } from '../src/timers';
 
 async function deleteFile(filepath: string) {
   try {
@@ -25,12 +26,6 @@ async function exists(filepath: string) {
     }
   }
   return false;
-}
-
-function delay(duration: number) {
-  return new Promise((resolve) => {
-    setTimeout(resolve, duration);
-  });
 }
 
 describe('ProfileManager', () => {
@@ -188,7 +183,7 @@ describe('ProfileManager', () => {
       await deleteFile(profilePath);
       await instantiateProfileManager({ filepath: profilePath });
       // hopefully long enough...
-      await delay(50);
+      await sleep(50);
       assert.strictEqual(await exists(profilePath), false);
     });
 
@@ -199,7 +194,7 @@ describe('ProfileManager', () => {
       const manager = await instantiateProfileManager({ filepath: profilePath });
       manager.create('bob', { apikey: 'bobskey' });
       // hopefully long enough...
-      await delay(50);
+      await sleep(50);
       const contents = JSON.parse(await fs.readFile(profilePath, 'utf8'));
       assert.deepStrictEqual(contents, {
         profiles: {
@@ -259,7 +254,7 @@ describe('ProfileManager', () => {
       const manager = await instantiateProfileManager({ filepath: profilePath, defaultEndpoint: 'endpoint.net' });
       assert.deepStrictEqual(manager.get('bob'), { ...data.profiles.bob, endpoint: 'special.net' });
       manager.create('alice', { apisecret: 'bobs secret' });
-      await delay(50);
+      await sleep(50);
       assert.deepStrictEqual(JSON.parse(await fs.readFile(profilePath, 'utf8')), {
         endpoint: 'special.net',
         profiles: {
@@ -272,7 +267,7 @@ describe('ProfileManager', () => {
         },
       });
       manager.delete('bob');
-      await delay(50);
+      await sleep(50);
       assert.deepStrictEqual(JSON.parse(await fs.readFile(profilePath, 'utf8')), {
         endpoint: 'special.net',
         profiles: {

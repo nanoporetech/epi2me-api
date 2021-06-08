@@ -95,10 +95,10 @@ describe('loadInputFiles', () => {
     assert.deepStrictEqual(description, {
       name: '1.fastq',
       path: path.join(batch1, '1.fastq'),
-      relative: '/1.fastq',
+      relative: '1.fastq',
       size: 0,
-      // 5 reads in this test suite, 2 in "loadUploadFiles" = 7
-      id: 'FILE_7',
+      // 5 reads in this test suite, 10 in "fileUploader" = 15
+      id: 'FILE_0015',
     });
   });
 

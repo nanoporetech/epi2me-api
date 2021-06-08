@@ -11,7 +11,7 @@ describe('epi2me.autoStart', () => {
         info: sinon.stub(),
         warn: sinon.stub(),
         error: sinon.stub(),
-        json: sinon.stub(),
+        critical: sinon.stub(),
       },
     });
 
@@ -72,7 +72,7 @@ describe('epi2me.autoStart', () => {
         info: sinon.stub(),
         warn: sinon.stub(),
         error: sinon.stub(),
-        json: sinon.stub(),
+        critical: sinon.stub(),
       },
     });
 

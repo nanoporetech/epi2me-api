@@ -12,6 +12,7 @@ describe('utils.headers', () => {
       debug: sinon.stub(),
       warn: sinon.stub(),
       error: sinon.stub(),
+      critical: sinon.stub(),
     };
   });
   afterEach(() => {

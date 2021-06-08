@@ -10,6 +10,7 @@ export interface EPI2ME_OPTIONS {
   user_agent: string;
   sessionGrace: number;
   uploadTimeout: number;
+  uploadRetries: number;
   downloadTimeout: number;
   fileCheckInterval: number;
   downloadCheckInterval: number;

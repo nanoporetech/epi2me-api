@@ -1,7 +1,7 @@
-import fs from 'fs-extra';
+import fs from 'fs';
 
-export default async function (filePath: string): Promise<{ type: string; bytes: number }> {
-  return fs.stat(filePath).then((d) => {
+export async function genericFileStatistics(filePath: string): Promise<{ type: string; bytes: number }> {
+  return fs.promises.stat(filePath).then((d) => {
     return { type: 'bytes', bytes: d.size };
   });
 }

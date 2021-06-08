@@ -23,7 +23,7 @@ describe('epi2me.initiateDownloadStream', () => {
             warn: sinon.stub(),
             error: sinon.stub(),
             debug: sinon.stub(),
-            json: sinon.stub(),
+            critical: sinon.stub(),
           },
         },
         opts,
