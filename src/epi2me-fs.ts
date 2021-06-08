@@ -771,12 +771,12 @@ export class EPI2ME_FS extends EPI2ME {
         ? messageBody.downloads
         : [asString(messageBody.path)];
 
-      try {
-        await Promise.all(
-          downloads.map(async (filepath) => {
-            const destination = path.join(folder, path.basename(filepath));
-            this.log.debug(`download.processMessage: ${message.MessageId} downloading ${filepath} to ${destination}`);
+      await Promise.all(
+        downloads.map(async (filepath) => {
+          const destination = path.join(folder, path.basename(filepath));
+          this.log.debug(`download.processMessage: ${message.MessageId} downloading ${filepath} to ${destination}`);
 
+          try {
             await this.initiateDownloadStream(
               {
                 bucket: asString(messageBody.bucket),
@@ -785,11 +785,11 @@ export class EPI2ME_FS extends EPI2ME {
               message,
               destination,
             );
-          }),
-        );
-      } catch (e) {
-        this.log.error(`Exception fetching file batch: ${String(e)}`);
-      }
+          } catch (e) {
+            this.log.error(`Exception fetching file batch: ${String(e)}`);
+          }
+        }),
+      );
     } else {
       const batchSummary = asOptDictionary(telemetry?.batch_summary);
       // telemetry-only mode uses readcount from message
