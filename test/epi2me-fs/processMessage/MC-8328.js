@@ -154,41 +154,5 @@ describe('epi2me-api.processMessage', () => {
       },
       id_master: '1694',
     };
-
-    it('should not add duplicate suffix MC-8328', async () => {
-      const tmpDir = tmp.dirSync();
-      const client = clientFactory({
-        filter: 'on',
-        downloadMode: 'data+telemetry',
-        outputFolder: tmpDir.name,
-      });
-      client.telemetryLogStream = fs.createWriteStream('/dev/null');
-      // MC-7519: Multiple instances running means multiple outputs need to be namespaced by id_workflow_instance
-      // processMessage should be called for running instances so there should be an id_workflow_instance
-      client.config.instance.id_workflow_instance = '1234567';
-      client.config.workflow = { settings: { output_format: ['fastq', '.fastq', '.bam'] } };
-
-      const s3 = new AWS.S3();
-      sinon.stub(client, 'sessionedS3').resolves(s3);
-      sinon.stub(client, 'initiateDownloadStream').resolves();
-      sinon.stub(client, 'deleteMessage').resolves();
-      stubs.push(sinon.stub(fs, 'mkdirpSync').callsFake());
-
-      await client.processMessage({
-        MessageId: 'abcd-1234',
-        Body: JSON.stringify(message),
-      });
-
-      assert.strictEqual(client.initiateDownloadStream.callCount, 2, 'matching duplicate suffixes are ignored');
-      assert.strictEqual(
-        client.initiateDownloadStream.args[0][2],
-        path.join(tmpDir.name, '1234567/PASS/fastq_runid_738d663ef9214e590fb4806bf5aed784b941fd48_1.fastq'),
-      );
-      assert.strictEqual(
-        client.initiateDownloadStream.args[1][2],
-        path.join(tmpDir.name, '1234567/PASS/fastq_runid_738d663ef9214e590fb4806bf5aed784b941fd48_1.fastq.bam'), // and definitely not .fastq.fastq.bam
-      );
-      tmpDir.removeCallback();
-    });
   });
 });
