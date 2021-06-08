@@ -21,7 +21,6 @@ import {
   asString,
   asNumber,
   asArrayOf,
-  asBoolean,
   asOptNumber,
   asIndexable,
   asIndex,
@@ -163,6 +162,18 @@ export class EPI2ME {
   // jwt?: string;
 
   static parseOptObject(opt: Dictionary | Partial<EPI2ME_OPTIONS>): EPI2ME_OPTIONS {
+    const downloadMode = asString(opt.downloadMode, DEFAULTS.downloadMode);
+
+    switch (downloadMode) {
+      case 'data':
+      case 'telemetry':
+      case 'none':
+      case 'data+telemetry':
+        break;
+      default:
+        throw new Error(`Invalid downloadMode ${downloadMode}`);
+    }
+
     const options = {
       ...parseCoreOpts(opt),
       region: asString(opt.region, DEFAULTS.region),
@@ -177,7 +188,7 @@ export class EPI2ME {
       waitTimeSeconds: asNumber(opt.waitTimeSeconds, DEFAULTS.waitTimeSeconds),
       waitTokenError: asNumber(opt.waitTokenError, DEFAULTS.waitTokenError),
       transferPoolSize: asNumber(opt.transferPoolSize, DEFAULTS.transferPoolSize),
-      downloadMode: asString(opt.downloadMode, DEFAULTS.downloadMode),
+      downloadMode,
       filetype: asArrayOf(isString)(opt.filetype, DEFAULTS.filetype),
       sampleDirectory: asString(opt.sampleDirectory, DEFAULTS.sampleDirectory),
       // optional values
@@ -502,56 +513,6 @@ export class EPI2ME {
 
   apikey(): string | undefined {
     return this.config.options.apikey;
-  }
-
-  /**
-   * @deprecated attr() breaks type guarantees for the configuration options
-   * and hence is depreciated.
-   */
-  attr(
-    key: keyof EPI2ME_OPTIONS,
-    value: EPI2ME_OPTIONS[keyof EPI2ME_OPTIONS],
-  ): EPI2ME_OPTIONS[keyof EPI2ME_OPTIONS] | this {
-    if (value) {
-      switch (key) {
-        case 'url':
-        case 'region':
-        case 'user_agent':
-        case 'downloadMode':
-        case 'sampleDirectory':
-        case 'apikey':
-        case 'apisecret':
-          this.config.options[key] = asString(value);
-          break;
-        case 'id_workflow_instance':
-        case 'sessionGrace':
-        case 'uploadTimeout':
-        case 'fileCheckInterval':
-        case 'downloadCheckInterval':
-        case 'stateCheckInterval':
-        case 'inFlightDelay':
-        case 'waitTimeSeconds':
-        case 'waitTokenError':
-        case 'transferPoolSize':
-        case 'debounceWindow':
-          this.config.options[key] = asNumber(value);
-          break;
-        case 'signing':
-        case 'useGraphQL':
-        case 'local':
-          this.config.options[key] = asBoolean(value);
-          break;
-        case 'filetype':
-          this.config.options[key] = asArrayOf(isString)(value);
-          break;
-        default:
-          throw new Error('Cannot modify the "log" attribute');
-      }
-    } else {
-      return this.config.options[key];
-    }
-
-    return this;
   }
 
   stats(key: keyof States): UploadState | DownloadState | Warning[] {
