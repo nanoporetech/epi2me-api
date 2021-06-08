@@ -8,7 +8,7 @@ describe('epi2me.downloadAvailable', () => {
   let warn;
   let info;
   let error;
-  let json;
+  let critical;
 
   const clientFactory = (opts) =>
     new EPI2ME(
@@ -20,7 +20,7 @@ describe('epi2me.downloadAvailable', () => {
             info,
             warn,
             error,
-            json,
+            critical,
           },
         },
         opts,
@@ -32,7 +32,7 @@ describe('epi2me.downloadAvailable', () => {
     warn = sinon.stub();
     info = sinon.stub();
     error = sinon.stub();
-    json = sinon.stub();
+    critical = sinon.stub();
   });
 
   it('should resolve if already busy', async () => {

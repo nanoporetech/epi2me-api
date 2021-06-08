@@ -5,6 +5,7 @@
   "region": "eu-west-1",
   "sessionGrace": 5,
   "uploadTimeout": 1200,
+  "uploadRetries": 10,
   "downloadTimeout": 1200,
   "fileCheckInterval": 5,
   "downloadCheckInterval": 3,

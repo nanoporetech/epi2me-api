@@ -9,7 +9,7 @@ let idCounter = 0;
 
 export function createFileID(): string {
   idCounter += 1;
-  return `FILE_${idCounter}`;
+  return `FILE_${idCounter.toString().padStart(4, '0')}`;
 }
 
 export function createExtensionFilter(filetypes: string | string[]): (base: string) => boolean {
@@ -41,6 +41,7 @@ export async function loadInputFiles({
   outputFolder,
   filetypes,
   filter,
+  errorHandler,
 }: InputFileOptions): Promise<FileStat[]> {
   const extensionFilter = createExtensionFilter(filetypes ?? '');
   const outputBasename = outputFolder ? basename(outputFolder) : null;
@@ -50,21 +51,29 @@ export async function loadInputFiles({
       // WARN this check for the output folder doesn't seem correct, but its what the old version did...
       return COMMON_ILLEGAL_BASENAMES.has(base) || base === outputBasename;
     },
-    filter({ base, relative }) {
+    filter({ base, absolute }) {
       if (!extensionFilter(base)) {
         return false;
       }
-      return filter ? filter(relative) : true;
+      return filter ? filter(absolute) : true;
     },
     map({ size, base: name, absolute: path, relative }) {
-      return {
+      const result = {
         size,
         name,
         path,
-        relative: `/${relative}`,
+        relative,
         id: createFileID(),
       };
+      // NOTE check if we are uploading a single file. In that case modify the relative path
+      // so that appears we scanned the parent directory and found a single file. This ensures
+      // our upload actually has a relative path.
+      if (relative === '') {
+        result.relative = name;
+      }
+      return result;
     },
+    catch: errorHandler,
   });
 
   const results = [];

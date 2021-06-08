@@ -13,7 +13,7 @@ describe('epi2me.receiveMessages', () => {
         warn: sinon.stub(),
         error: sinon.stub(),
         debug: sinon.stub(),
-        json: sinon.stub(),
+        critical: sinon.stub(),
       },
     });
     clock = sinon.useFakeTimers();

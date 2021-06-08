@@ -1,39 +1,25 @@
 import assert from 'assert';
-import bunyan from 'bunyan';
 import gql from 'graphql-tag';
 import sinon from 'sinon';
 import { GraphQL } from '../../src/graphql';
 import { Network } from '../../src/network';
+import { NoopLogger } from '../../src/Logger';
 
 const makeGQL = (profile) => {
-  const ringbuf = new bunyan.RingBuffer({
-    limit: 100,
-  });
-  const log = bunyan.createLogger({
-    name: 'log',
-    stream: ringbuf,
-  });
   return new GraphQL({
-    log,
+    log: NoopLogger,
     url: '',
     ...profile,
   });
 };
 
 const makeRegisteredGQL = () => {
-  const ringbuf = new bunyan.RingBuffer({
-    limit: 100,
-  });
-  const log = bunyan.createLogger({
-    name: 'log',
-    stream: ringbuf,
-  });
   const profile = {
     apikey: 'bd2e57b8cbaffe1c957616c4afca0f6734ae9012',
     apisecret: 'a527f9aa0713a5f9cfd99af9a174b73d4df34dcbb3be13b97ccd108314ab0f17',
   };
   return new GraphQL({
-    log,
+    log: NoopLogger,
     url: '',
     ...profile,
   });

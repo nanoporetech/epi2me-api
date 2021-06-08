@@ -2,7 +2,7 @@ import assert from 'assert';
 import path from 'path';
 import tmp from 'tmp';
 import fs from 'fs-extra';
-import filestats from '../../src/filestats/default';
+import { genericFileStatistics } from '../../src/filestats/default';
 
 describe('epi2me.filestats.default', () => {
   it('should default', async () => {
@@ -11,7 +11,7 @@ describe('epi2me.filestats.default', () => {
 
     let struct;
     try {
-      struct = await filestats(tmpfile);
+      struct = await genericFileStatistics(tmpfile);
     } catch (e) {
       assert.fail(e);
     }
@@ -25,7 +25,7 @@ describe('epi2me.filestats.default', () => {
     const tmpfile = path.join(tmp.dirSync().name, 'bar.txt');
 
     try {
-      await filestats(tmpfile);
+      await genericFileStatistics(tmpfile);
       assert.fail('unexpected success');
     } catch (e) {
       assert.ok(String(e).match(/no such file/));

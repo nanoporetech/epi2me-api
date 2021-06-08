@@ -1,6 +1,6 @@
 {
   "name": "@metrichor/epi2me-api",
-  "version": "5.0.1604",
+  "version": "5.0.1728",
   "license": "MPL-2.0",
   "repository": "git@github.com:nanoporetech/epi2me-api.git",
   "description": "API for communicating with the EPI2ME website(s)",
@@ -38,11 +38,10 @@
     "immutable": "^4.0.0-rc.12",
     "proxy-agent": "^4.0.1",
     "rxjs": "^6.3.1",
-    "save": "^2.4.0",
     "socket.io-client": "^2.3.0",
     "sqlite": "^4.0.19",
     "sqlite3": "^5.0.2",
-    "ts-runtime-typecheck": "^2.0.0"
+    "ts-runtime-typecheck": "^2.3.0"
   },
   "devDependencies": {
     "@graphql-codegen/cli": "1.17.10",
@@ -52,7 +51,9 @@
     "@rollup/plugin-node-resolve": "^8.4.0",
     "@rollup/plugin-typescript": "^5.0.2",
     "@types/bunyan": "^1.8.6",
+    "@types/chai": "^4.2.17",
     "@types/fs-extra": "^8.1.0",
+    "@types/sinon": "^10.0.0",
     "@types/google-protobuf": "^3.7.3",
     "@types/lifeomic__axios-fetch": "^1.5.0",
     "@types/lodash": "^4.14.149",
@@ -66,6 +67,7 @@
     "@typescript-eslint/eslint-plugin": "^4.8.2",
     "@typescript-eslint/parser": "^4.8.2",
     "bunyan": "^1.8.12",
+    "chai": "^4.3.4",
     "eslint": "^7.5.0",
     "eslint-config-prettier": "^6.11.0",
     "eslint-plugin-prettier": "^3.1.4",
@@ -123,7 +125,7 @@
     "clean": "npm run clean:build && npm run clean:dist",
     "test": "mocha --recursive --require ts-node/register --extension ts --extension js test/",
     "test:single": "mocha --require ts-node/register ",
-    "cover": "npm install && npm run lint && npx nyc --reporter=html --reporter=text mocha --recursive --require ts-node/register --extension ts --extension js test/",
+    "cover": "npx nyc --reporter=html --reporter=text mocha --recursive --require ts-node/register --extension ts --extension js test/",
     "build": "npm run deps && npm run build:dist",
     "rollup:build": "npx rollup -c",
     "rollup:watch": "npx rollup -cw",
@@ -135,6 +137,7 @@
     "compile:esm:web": "tsc --p ./tsconfig-web.json --outDir build/temp -d --module esnext --declarationDir build/web/types --sourceMap false",
     "compile:cjs": "tsc --outDir build/cjs --module commonjs --sourceMap false",
     "package:compile": "npm run compile:esm && npm run compile:cjs && npm run compile:esm:web",
-    "build:graphql": "graphql-codegen --config .gql-codegen.yml && eslint ./src/generated/graphql.type.ts --fix"
+    "build:graphql": "graphql-codegen --config .gql-codegen.yml && eslint ./src/generated/graphql.type.ts --fix",
+    "typecheck": "tsc --noEmit --watch"
   }
 }

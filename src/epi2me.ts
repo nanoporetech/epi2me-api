@@ -9,7 +9,7 @@
 import { BehaviorSubject, combineLatest } from 'rxjs';
 import DEFAULTS from './default_options.json';
 import { GraphQL } from './graphql';
-import niceSize from './niceSize';
+import { niceSize } from './niceSize';
 import { REST } from './rest';
 import Socket from './socket';
 import { utils } from './utils';
@@ -42,7 +42,7 @@ import {
   States,
   UploadState,
   DownloadState,
-  WarningState,
+  Warning,
   SuccessState,
   ProgressState,
 } from './epi2me-state';
@@ -51,8 +51,9 @@ import { createInterval } from './timers';
 import { parseCoreOpts } from './parseCoreOpts';
 
 import type { EPI2ME_OPTIONS } from './epi2me-options';
-import type { DisposeTimer } from './timers';
 import type { Configuration } from './Configuration';
+import type { Timer } from './timer.type';
+
 import { filter, mapTo, skipWhile, takeWhile } from 'rxjs/operators';
 import { REST_FS } from './rest-fs';
 export class EPI2ME {
@@ -104,12 +105,12 @@ export class EPI2ME {
   // placeholders for all the timers we might want to cancel if forcing a stop
 
   timers: {
-    downloadCheckInterval?: DisposeTimer;
-    stateCheckInterval?: DisposeTimer;
-    fileCheckInterval?: DisposeTimer;
-    transferTimeouts: Dictionary<DisposeTimer>;
-    visibilityIntervals: Dictionary<DisposeTimer>;
-    summaryTelemetryInterval?: DisposeTimer;
+    downloadCheckInterval?: Timer;
+    stateCheckInterval?: Timer;
+    fileCheckInterval?: Timer;
+    transferTimeouts: Dictionary<Timer>;
+    visibilityIntervals: Dictionary<Timer>;
+    summaryTelemetryInterval?: Timer;
   } = {
     transferTimeouts: {},
     visibilityIntervals: {},
@@ -167,6 +168,7 @@ export class EPI2ME {
       region: asString(opt.region, DEFAULTS.region),
       sessionGrace: asNumber(opt.sessionGrace, DEFAULTS.sessionGrace),
       uploadTimeout: asNumber(opt.uploadTimeout, DEFAULTS.uploadTimeout),
+      uploadRetries: asNumber(opt.uploadRetries, DEFAULTS.uploadRetries),
       downloadTimeout: asNumber(opt.downloadTimeout, DEFAULTS.downloadTimeout),
       fileCheckInterval: asNumber(opt.fileCheckInterval, DEFAULTS.fileCheckInterval),
       downloadCheckInterval: asNumber(opt.downloadCheckInterval, DEFAULTS.downloadCheckInterval),
@@ -270,7 +272,7 @@ export class EPI2ME {
     const timer = this.timers[intervalGroupName];
     if (timer) {
       this.log.debug(`clearing ${intervalGroupName} interval`);
-      timer();
+      timer.cancel();
       delete this.timers[intervalGroupName];
     }
   }
@@ -278,7 +280,7 @@ export class EPI2ME {
   stopTimeout(timerGroupName: 'transferTimeouts', timerName: string): void {
     const timeout = this.timers[timerGroupName][timerName];
     if (timeout) {
-      timeout();
+      timeout.cancel();
       delete this.timers[timerGroupName][timerName];
     }
   }
@@ -327,7 +329,7 @@ export class EPI2ME {
       const timer = this.timers.transferTimeouts[key];
       // NOTE id should always be defined here, this is purely for type checking
       if (timer) {
-        timer();
+        timer.cancel();
       }
       delete this.timers.transferTimeouts[key];
     }
@@ -336,7 +338,7 @@ export class EPI2ME {
       this.log.debug(`clearing visibilityInterval for ${key}`);
       const timer = this.timers.visibilityIntervals[key];
       if (timer) {
-        timer();
+        timer.cancel();
       }
       delete this.timers.visibilityIntervals[key];
     }
@@ -552,7 +554,7 @@ export class EPI2ME {
     return this;
   }
 
-  stats(key: keyof States): UploadState | DownloadState | WarningState {
+  stats(key: keyof States): UploadState | DownloadState | Warning[] {
     return this.states[key];
   }
 }

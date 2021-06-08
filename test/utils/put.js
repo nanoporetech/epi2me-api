@@ -23,6 +23,7 @@ describe('utils.put', () => {
       debug: sinon.stub(),
       warn: sinon.stub(),
       error: sinon.stub(),
+      critical: sinon.stub(),
     };
   });
 

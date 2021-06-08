@@ -12,7 +12,7 @@ export interface DBOptions {
   idWorkflowInstance: string;
   inputFolders: string[];
 }
-export default class db {
+export class DB {
   log: Logger;
   readonly db: Promise<Database>;
 

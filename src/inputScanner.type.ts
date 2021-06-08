@@ -3,6 +3,7 @@ export interface InputFileOptions {
   filetypes?: string | string[];
   outputFolder?: string;
   filter?: (location: string) => boolean | Promise<boolean>;
+  errorHandler?: (error: unknown, location: string) => void | Promise<void>;
 }
 
 export interface FileStat {

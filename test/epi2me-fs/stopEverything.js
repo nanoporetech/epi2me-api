@@ -19,7 +19,7 @@ describe('epi2me.stopEverything', () => {
             info: sinon.stub(),
             warn: sinon.stub(),
             error: sinon.stub(),
-            json: sinon.stub(),
+            critical: sinon.stub(),
           },
         },
         opts,

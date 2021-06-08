@@ -42,6 +42,7 @@ describe('epi2me', () => {
         info: () => {},
         warn: () => {},
         error: () => {},
+        critical: () => {},
       };
 
       // Default
@@ -116,34 +117,6 @@ describe('epi2me', () => {
       );
       assert.equal(client.url(), 'https://epi2me.local:8000', 'url built from constructor');
       assert.equal(client.apikey(), 'FooBar02', 'apikey built from constructor');
-    });
-
-    it('should create and fire default loggers', () => {
-      let client;
-      const stubs = {
-        info: sinon.stub(console, 'info').callsFake(),
-        warn: sinon.stub(console, 'warn').callsFake(),
-        error: sinon.stub(console, 'error').callsFake(),
-        debug: sinon.stub(console, 'debug').callsFake(),
-      };
-
-      assert.doesNotThrow(
-        () => {
-          client = new EPI2ME({
-            loglevel: 'debug',
-          });
-          Object.keys(stubs).forEach((o) => {
-            client.log[o](`hello ${o}`);
-          });
-        },
-        Error,
-        'client obtained',
-      );
-
-      Object.keys(stubs).forEach((o) => {
-        stubs[o].restore();
-        assert.ok(stubs[o].args[0][1].match(`hello ${o}`), 'correct log level called with message');
-      });
     });
   });
 });

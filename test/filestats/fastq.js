@@ -2,7 +2,7 @@ import assert from 'assert';
 import fs from 'fs-extra';
 import path from 'path';
 import tmp from 'tmp';
-import filestats from '../../src/filestats/fastq';
+import { fastqFileStatistics } from '../../src/filestats/fastq';
 
 describe('epi2me.filestats.fastq', () => {
   it('should pass', async () => {
@@ -11,7 +11,7 @@ describe('epi2me.filestats.fastq', () => {
 
     let struct;
     try {
-      struct = await filestats(tmpfile);
+      struct = await fastqFileStatistics(tmpfile);
     } catch (e) {
       assert.fail(e);
     }
@@ -26,7 +26,7 @@ describe('epi2me.filestats.fastq', () => {
     const tmpfile = path.join(tmp.dirSync().name, 'bar.txt');
 
     try {
-      await filestats(tmpfile);
+      await fastqFileStatistics(tmpfile);
       assert.fail('unexpected success');
     } catch (e) {
       assert.ok(String(e).match(/no such file/));
