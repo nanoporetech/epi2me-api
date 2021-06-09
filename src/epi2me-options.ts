@@ -19,7 +19,7 @@ export interface EPI2ME_OPTIONS {
   waitTimeSeconds: number;
   waitTokenError: number;
   transferPoolSize: number;
-  downloadMode: string;
+  downloadMode: 'data' | 'telemetry' | 'none' | 'data+telemetry';
   filetype: string[];
   signing: boolean;
   sampleDirectory: string;
