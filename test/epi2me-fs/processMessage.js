@@ -219,7 +219,7 @@ describe('epi2me-api.processMessage', () => {
     sinon.stub(client, 'sessionedS3').resolves(s3);
     sinon.stub(client, 'initiateDownloadStream').resolves();
     sinon.stub(client, 'deleteMessage').resolves();
-    stubs.push(sinon.stub(fs, 'mkdirpSync').callsFake());
+    stubs.push(sinon.stub(fs, 'mkdirp').callsFake());
 
     await client.processMessage(
       {
@@ -372,7 +372,7 @@ describe('epi2me-api.processMessage', () => {
       path.join(tmpDir.name, '1234567/PASS/fastq_runid_738d663ef9214e590fb4806bf5aed784b941fd48_1.fastq.bam'),
       'initiateDownloadStream argument',
     );
-    assert.strictEqual(fs.mkdirpSync.args[0][0], path.join(tmpDir.name, '1234567', 'PASS'), 'mkdirpSync argument');
+    assert.strictEqual(fs.mkdirp.args[0][0], path.join(tmpDir.name, '1234567', 'PASS'), 'mkdirpSync argument');
     tmpDir.removeCallback();
   });
 });

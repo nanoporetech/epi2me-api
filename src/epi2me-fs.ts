@@ -404,7 +404,14 @@ export class EPI2ME_FS extends EPI2ME {
       throw new Error('outputQueueName must be set');
     }
 
-    fs.mkdirpSync(this.config.options.outputFolder);
+    try {
+      await fs.mkdirp(this.config.options.outputFolder);
+    } catch (err) {
+      if (err.code !== 'EEXIST') {
+        this.log.error('Failed to create output folder');
+        throw err;
+      }
+    }
 
     // MC-7108 use common epi2me working folder
     const instancesDir = path.join(rootDir(), 'instances');
@@ -426,20 +433,27 @@ export class EPI2ME_FS extends EPI2ME {
     const telemetryLogFolder = path.join(this.config.options.outputFolder, 'epi2me-logs');
     const telemetryLogPath = path.join(telemetryLogFolder, fileName);
 
-    fs.mkdirp(telemetryLogFolder, (mkdirException) => {
-      if (mkdirException && !String(mkdirException).match(/EEXIST/)) {
-        this.log.error(`error opening telemetry log stream: mkdirpException:${String(mkdirException)}`);
-      } else {
-        try {
-          this.telemetryLogStream = fs.createWriteStream(telemetryLogPath, {
-            flags: 'a',
-          });
-          this.log.info(`logging telemetry to ${telemetryLogPath}`);
-        } catch (telemetryLogStreamErr) {
-          this.log.error(`error opening telemetry log stream: ${String(telemetryLogStreamErr)}`);
-        }
+    try {
+      await fs.mkdirp(telemetryLogFolder);
+    } catch (err) {
+      if (err.code !== 'EEXIST') {
+        this.log.error(`error opening telemetry log stream: mkdirpException:${String(err)}`);
+        throw err;
       }
-    });
+    }
+
+    try {
+      this.telemetryLogStream = fs.createWriteStream(telemetryLogPath, {
+        flags: 'a',
+      });
+      this.telemetryLogStream.on('error', (err) => {
+        this.log.critical('FS_FAILURE', `Error writing telemetry to log file :${err.message}`);
+      });
+      this.log.info(`logging telemetry to ${telemetryLogPath}`);
+    } catch (err) {
+      this.log.error(`error opening telemetry log stream: ${String(err)}`);
+      throw err;
+    }
 
     if (autoStartCb) {
       autoStartCb(''); // WARN this used to pass (null, instance) except the callback doesn't appear to accept this anywhere it is defined
@@ -763,7 +777,11 @@ export class EPI2ME_FS extends EPI2ME {
       folder = path.join.apply(null, [folder, ...codes]);
     }
 
-    fs.mkdirpSync(folder);
+    try {
+      await fs.mkdirp(folder);
+    } catch (err) {
+      this.log.critical('FS_FAILURE', `Failed to create instance output folder :${err.message}`);
+    }
 
     if (downloadMode.includes('data')) {
       /* download file[s] from S3 */
@@ -967,7 +985,10 @@ export class EPI2ME_FS extends EPI2ME {
         resolve();
       });
 
-      file.on('error', onStreamError);
+      file.on('error', (err) => {
+        this.log.critical('FS_FAILURE', `Failed to write ${path.basename(outputFile)} to output :${err.message}`);
+        onStreamError(err);
+      });
 
       const transferTimeout = createTimeout(1000 * this.config.options.downloadTimeout, () => {
         onStreamError(new Error('transfer timed out'));
@@ -1054,8 +1075,15 @@ export class EPI2ME_FS extends EPI2ME {
     // const reports$ = this.telemetry.telemetryReports$().pipe(filter(isDefined));
 
     const destroySignal$ = new Subject<void>();
-    const { add: writeQueue } = createQueue({ signal$: destroySignal$ }, ([filePath, content]: [string, JSONValue]) =>
-      fs.writeJSON(filePath, content),
+    const { add: writeQueue } = createQueue(
+      { signal$: destroySignal$ },
+      async ([filePath, content]: [string, JSONValue]) => {
+        try {
+          await fs.writeJSON(filePath, content);
+        } catch (err) {
+          this.log.critical('FS_FAILURE', `Failed to write report telemetry to disk :${err.message}`);
+        }
+      },
     );
 
     // update the public reportState$ subject to indicate reports are ready on our first signal
@@ -1145,16 +1173,23 @@ export class EPI2ME_FS extends EPI2ME {
 
       toFetch.push(
         (async (): Promise<JSONObject | null> => {
+          let body;
           try {
-            const body = (await this.REST.fetchContent(url)) as JSONObject;
-            fs.writeJSONSync(fn, body);
-            this.reportState$.next(true);
+            body = (await this.REST.fetchContent(url)) as JSONObject;
             this.log.debug(`fetched telemetry summary ${fn}`);
-            return body;
+            this.reportState$.next(true);
           } catch (err) {
             this.log.debug(`Error fetching telemetry`, err);
             return null;
           }
+
+          try {
+            // NOTE sadly this needs to be sync atm
+            fs.writeJSONSync(fn, body);
+          } catch (err) {
+            this.log.critical('FS_FAILURE', `Failed to write report telemetry to disk :${err.message}`);
+          }
+          return body;
         })(),
       );
     });

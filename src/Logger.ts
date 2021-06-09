@@ -18,7 +18,7 @@ export const NoopLogger: Logger = {
   critical() {},
 };
 
-export type CriticalErrorId = 'UNKNOWN';
+export type CriticalErrorId = 'UNKNOWN' | 'FS_FAILURE' | 'PROFILE_PERSIST';
 
 export const FallbackLogger: Logger = {
   info(...args: unknown[]): void {

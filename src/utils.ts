@@ -10,7 +10,7 @@ import type { Dictionary } from 'ts-runtime-typecheck';
 import { isDictionary } from 'ts-runtime-typecheck';
 import ProxyAgent from 'proxy-agent';
 import { version as VERSION } from '../package.json';
-import { NoopLogger, LogMethod } from './Logger';
+import { NoopLogger, Logger } from './Logger';
 
 axios.defaults.validateStatus = (status: number): boolean => status <= 504; // Reject only if the status code is greater than or equal to 500
 
@@ -40,9 +40,7 @@ export interface UtilityOptions {
   proxy?: string;
   apisecret?: string;
   apikey?: string;
-  log?: {
-    debug: LogMethod;
-  };
+  log?: Logger;
   legacy_form?: boolean;
 }
 

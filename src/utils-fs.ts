@@ -5,7 +5,7 @@
  */
 
 import axios, { AxiosRequestConfig } from 'axios';
-import fs from 'fs-extra';
+import fs from 'fs';
 import path from 'path';
 import type { UtilityOptions } from './utils';
 import { utils } from './utils';
@@ -34,11 +34,12 @@ export const utilsFS = {
       },
     };
 
+    const log = options.log ?? NoopLogger;
+
     this.headers(req, options);
 
     if (options.proxy) {
       const proxy = ProxyAgent(options.proxy);
-      const log = options.log ?? NoopLogger;
       log.debug(`Using proxy for request`);
       req.httpsAgent = proxy;
       req.proxy = false; // do not double-interpret proxy settings
@@ -64,7 +65,9 @@ export const utilsFS = {
       writer.on('finish', () => {
         resolve(filepath);
       });
-      writer.on('error', (error) => {
+      writer.on('error', (error: NodeJS.ErrnoException) => {
+        // NOTE this is ONLY used by REST.bundleWorkflow
+        log.critical('FS_FAILURE', `Failed to bundle workflow ${error.message}`);
         reject(new Error(`writer failed ${String(error)}`));
       });
     });
