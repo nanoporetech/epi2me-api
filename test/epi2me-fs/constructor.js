@@ -79,30 +79,6 @@ describe('epi2me', () => {
       );
     });
 
-    it('should get and overwrite config properties', () => {
-      let client;
-      assert.doesNotThrow(
-        () => {
-          client = new EPI2ME({
-            url: 'initial',
-          });
-        },
-        Error,
-        'client obtained',
-      );
-
-      assert.equal(client.attr('url'), 'initial');
-      client.attr('url', 'test');
-      assert.equal(client.attr('url'), 'test');
-      assert.throws(
-        () => {
-          client.attr('not_a_key', 'value');
-        },
-        Error,
-        'config object does not contain property not_a_key',
-      );
-    });
-
     it('should create an epi2me with opts', () => {
       let client;
       assert.doesNotThrow(
