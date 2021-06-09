@@ -782,7 +782,6 @@ export class EPI2ME_FS extends EPI2ME {
     } catch (err) {
       this.log.critical('FS_FAILURE', `Failed to create instance output folder :${err.message}`);
     }
-    const outputFile = path.join(folder, fn);
 
     if (downloadMode.includes('data')) {
       /* download file[s] from S3 */
