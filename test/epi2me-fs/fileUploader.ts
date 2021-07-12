@@ -68,11 +68,8 @@ function uploadContextFactory(settings: Partial<UploadSettings> = {}, state: Par
     warnings: [],
     logger: NoopLogger,
     instance: {
-      initSessionManager: stub().callsFake(() => {
-        return {
-          session: stub(),
-        };
-      }),
+      discoverQueue: stub().resolves(''),
+      realtimeFeedback: stub().resolves(),
       sessionedS3: stub().callsFake(() => {
         return {
           upload: stub().callsFake(() => {
@@ -83,9 +80,26 @@ function uploadContextFactory(settings: Partial<UploadSettings> = {}, state: Par
           }),
         };
       }),
-      discoverQueue: stub().resolves(''),
-      realtimeFeedback: stub().resolves(),
       sessionedSQS: stub().callsFake(() => {
+        return {
+          sendMessage: stub().callsFake(() => {
+            return {
+              promise: stub().returns(Promise.resolve({ MessageId: '0' })),
+            };
+          }),
+        };
+      }),
+      getS3SessionedService: stub().callsFake(() => {
+        return {
+          upload: stub().callsFake(() => {
+            return {
+              on: stub(),
+              promise: stub(),
+            };
+          }),
+        };
+      }),
+      getSQSSessionedService: stub().callsFake(() => {
         return {
           sendMessage: stub().callsFake(() => {
             return {
@@ -123,11 +137,8 @@ function epi2meInstanceFactory(split_size: number, input: string[], types: strin
   return ({
     log: NoopLogger,
     uploadStopped$: new Subject<boolean>(),
-    initSessionManager: stub().callsFake(() => {
-      return {
-        session: stub(),
-      };
-    }),
+    discoverQueue: stub().resolves(''),
+    realtimeFeedback: stub().resolves(),
     sessionedS3: stub().callsFake(() => {
       return {
         upload: stub().callsFake(() => {
@@ -138,13 +149,30 @@ function epi2meInstanceFactory(split_size: number, input: string[], types: strin
         }),
       };
     }),
-    discoverQueue: stub().resolves(''),
-    realtimeFeedback: stub().resolves(),
     sessionedSQS: stub().callsFake(() => {
       return {
         sendMessage: stub().callsFake(() => {
           return {
             promise: stub().resolves({ MessageId: '0' }),
+          };
+        }),
+      };
+    }),
+    getS3SessionedService: stub().callsFake(() => {
+      return {
+        upload: stub().callsFake(() => {
+          return {
+            on: stub(),
+            promise: stub(),
+          };
+        }),
+      };
+    }),
+    getSQSSessionedService: stub().callsFake(() => {
+      return {
+        sendMessage: stub().callsFake(() => {
+          return {
+            promise: stub().returns(Promise.resolve({ MessageId: '0' })),
           };
         }),
       };
@@ -315,11 +343,11 @@ describe('file uploader', () => {
     };
 
     (instance.sessionedS3 as SinonStub).callsFake((conf: AWS.S3.ClientConfiguration) => {
-      return Promise.resolve({
+      return {
         upload: simulatedUpload(conf, () => {
           throw new Error('Simulated upload failure');
         }),
-      });
+      };
     });
     instance.config.options.uploadRetries = 0;
 
@@ -365,7 +393,7 @@ describe('file uploader', () => {
     };
 
     (instance.sessionedS3 as SinonStub).callsFake((conf: AWS.S3.ClientConfiguration) => {
-      return Promise.resolve({
+      return {
         upload: simulatedUpload(conf, async (attempt) => {
           // fail the first attempt, succeed after that
           if (attempt > 1) {
@@ -375,7 +403,7 @@ describe('file uploader', () => {
           await sleep(100);
           throw new Error('Simulated upload failure');
         }),
-      });
+      };
     });
 
     const stop$ = instance.uploadStopped$ as Subject<boolean>;
@@ -417,7 +445,7 @@ describe('file uploader', () => {
     };
 
     (instance.sessionedS3 as SinonStub).callsFake((conf: AWS.S3.ClientConfiguration) => {
-      return Promise.resolve({
+      return {
         upload: simulatedUpload(conf, async (attempt) => {
           // fail the first attempt, succeed after that
           if (attempt > 1) {
@@ -425,7 +453,7 @@ describe('file uploader', () => {
           }
           throw new Error('Simulated upload failure');
         }),
-      });
+      };
     });
 
     const stop$ = instance.uploadStopped$ as Subject<boolean>;
@@ -471,7 +499,7 @@ describe('file uploader', () => {
     };
 
     const progress = new Subject();
-    (instance.sessionedS3 as SinonStub).resolves({
+    (instance.sessionedS3 as SinonStub).callsFake(() => ({
       upload() {
         return {
           on(_, handler) {
@@ -485,7 +513,7 @@ describe('file uploader', () => {
           }),
         };
       },
-    });
+    }));
 
     const stop$ = instance.uploadStopped$ as Subject<boolean>;
     const stop = () => {
@@ -569,20 +597,17 @@ describe('file uploader', () => {
     };
 
     (instance.sessionedS3 as SinonStub).callsFake((conf: AWS.S3.ClientConfiguration) => {
-      return Promise.resolve({
+      return {
         upload: simulatedUpload(conf, async (_, progress) => {
           progress.next({ loaded: fileSize * 0.2 });
           progress.next({ loaded: fileSize * 0.6 });
           await sleep(5);
           throw new Error('simulated failure');
         }),
-      });
+      };
     });
 
     instance.config.options.uploadRetries = 0;
-    (instance.initSessionManager as SinonStub).callsFake(() => {
-      return { session: stub().rejects(new Error('no session')) };
-    });
 
     const stop$ = instance.uploadStopped$ as Subject<boolean>;
     const stop = () => {

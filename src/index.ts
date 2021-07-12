@@ -7,7 +7,6 @@ export type { Profile } from './ProfileManager.type';
 export type { graphQLSchema };
 export type UtilityFS = typeof utils;
 
-import SessionManager from './session-manager';
 import { EPI2ME_FS as EPI2ME } from './epi2me-fs';
 import { utilsFS as utils } from './utils-fs';
 
@@ -17,7 +16,7 @@ export { GraphQLFS } from './graphql-fs';
 export { GraphQL } from './graphql';
 export { ProfileManager } from './ProfileManager';
 export { instantiateProfileManager } from './instantiateProfileManager';
-export { SessionManager, EPI2ME, utils };
+export { EPI2ME, utils };
 export * as Helpers from './helpers';
 export * as FileExtension from './file_extensions';
 

@@ -72,13 +72,13 @@ describe('epi2me.downloadAvailable', () => {
     const client = clientFactory();
     delete client.downloadWorkerPool; // force missing
     sinon.stub(client, 'discoverQueue').resolves('http://queue.url/');
-    sinon.stub(client, 'sessionedSQS').resolves({
+    sinon.stub(client, 'sessionedSQS').callsFake(() => ({
       receiveMessage: () => {
         return {
           promise: () => Promise.reject(new Error('timed out')),
         };
       },
-    }); // undefined
+    })); // undefined
     sinon.stub(client, 'receiveMessages').resolves();
 
     let err;
@@ -98,13 +98,13 @@ describe('epi2me.downloadAvailable', () => {
     };
     delete client.downloadWorkerPool; // force missing
     sinon.stub(client, 'discoverQueue').resolves('http://queue.url/');
-    sinon.stub(client, 'sessionedSQS').resolves({
+    sinon.stub(client, 'sessionedSQS').callsFake(() => ({
       receiveMessage: () => {
         return {
           promise: () => Promise.reject(new Error('timed out')),
         };
       },
-    }); // undefined
+    })); // undefined
     sinon.stub(client, 'receiveMessages').resolves();
 
     let err;
@@ -124,13 +124,13 @@ describe('epi2me.downloadAvailable', () => {
     const client = clientFactory();
     delete client.downloadWorkerPool; // force missing
     sinon.stub(client, 'discoverQueue').resolves('http://queue.url/');
-    sinon.stub(client, 'sessionedSQS').resolves({
+    sinon.stub(client, 'sessionedSQS').callsFake(() => ({
       receiveMessage: () => {
         return {
           promise: () => Promise.resolve([{}, {}]),
         };
       },
-    }); // undefined
+    })); // undefined
     sinon.stub(client, 'receiveMessages').resolves();
 
     try {

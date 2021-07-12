@@ -143,7 +143,7 @@ export class Factory {
    * @param {Object<string, any>} options
    * @param {GQLRunVariables} variables { userDefined: { [componentID]: { [paramOverride]: any } } }
    */
-  async startGQLRun(options: Dictionary, variables: GQLWorkflowConfig): Promise<EPI2ME_FS> {
+  async startGQLRun(options: Partial<EPI2ME_OPTIONS>, variables: GQLWorkflowConfig): Promise<EPI2ME_FS> {
     const inst = this.instantiate({ ...options, useGraphQL: true });
     try {
       await inst.autoStartGQL(variables);
