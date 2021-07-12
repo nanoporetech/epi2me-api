@@ -366,12 +366,14 @@ export class EPI2ME {
 
   reportProgress(): void {
     const { upload, download } = this.states;
-    this.log.debug({
-      progress: {
-        download,
-        upload,
-      },
-    });
+    this.log.debug(
+      JSON.stringify({
+        progress: {
+          download,
+          upload,
+        },
+      }),
+    );
   }
 
   uploadState(table: 'success' | 'types' | 'progress', op: string, newData: Dictionary<number>): void {

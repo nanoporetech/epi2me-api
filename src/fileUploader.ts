@@ -400,10 +400,10 @@ export function constructUploadParameters(ctx: UploadContext, file: FileStat, rs
 }
 
 export async function uploadFile(file: FileStat, stats: MappedFileStats, ctx: UploadContext): Promise<void> {
-  const { state, instance, logger, stopped$ } = ctx;
+  const { state, instance, stopped$ } = ctx;
   try {
     const timeout = (instance.config.options.uploadTimeout + 5) * 1000;
-    const s3 = await instance.sessionedS3({
+    const s3 = instance.sessionedS3({
       retryDelayOptions: {
         customBackoff(count: number, err?: Error): number {
           addFileWarning(file, ctx, FileUploadWarnings.UPLOAD_FAILED);
@@ -425,7 +425,7 @@ export async function uploadFile(file: FileStat, stats: MappedFileStats, ctx: Up
       const params = constructUploadParameters(ctx, file, rs);
       const options = {
         partSize: 10 * 1024 * 1024,
-        queueSize: 1,
+        queueSize: 2,
       };
 
       instance.uploadState('progress', 'incr', {
@@ -441,10 +441,6 @@ export async function uploadFile(file: FileStat, stats: MappedFileStats, ctx: Up
         managedUpload.abort();
       });
 
-      const sessionManager = instance.initSessionManager([s3]);
-      sessionManager.sts_expiration = instance.sessionManager?.sts_expiration; // No special options here, so use the main session and don't refetch until it's expired
-      sessionManager.session();
-
       let currentProgress = 0;
 
       managedUpload.on('httpUploadProgress', async (progress) => {
@@ -453,11 +449,6 @@ export async function uploadFile(file: FileStat, stats: MappedFileStats, ctx: Up
           bytes: progressDelta,
         }); // delta since last time
         currentProgress = progress.loaded; // store for calculating delta next iteration
-        try {
-          await sessionManager.session(); // MC-7129 force refresh token on the MANAGED UPLOAD instance of the s3 service
-        } catch (e) {
-          logger.warn(`Error refreshing token: ${String(e)}`);
-        }
       });
 
       try {
@@ -543,7 +534,7 @@ async function messageInputQueue(ctx: UploadContext, objectId: string, file: Fil
 
   try {
     const inputQueueURL = await instance.discoverQueue(asOptString(instance.config.instance.inputQueueName));
-    const sqs = await instance.sessionedSQS({
+    const sqs = instance.sessionedSQS({
       retryDelayOptions: {
         customBackoff(count: number, err?: Error): number {
           ctx.logger.error('Upload message error', err);

@@ -13,7 +13,6 @@ import {
   asDictionary,
   asOptIndex,
   asOptDictionary,
-  asIndex,
   asDefined,
   asOptFunction,
   asOptNumber,
@@ -24,6 +23,7 @@ import {
   JSONValue,
   isDictionaryOf,
   isArrayOf,
+  asIndex,
 } from 'ts-runtime-typecheck';
 import AWS from 'aws-sdk';
 import fs from 'fs-extra'; /* MC-565 handle EMFILE & EXDIR gracefully; use Promises */
@@ -34,7 +34,7 @@ import { EPI2ME } from './epi2me';
 import { Factory } from './factory';
 import { REST_FS } from './rest-fs';
 import { SampleReader } from './sample-reader';
-import SessionManager from './session-manager';
+import { Epi2meCredentials } from './credentials';
 import { utilsFS as utils } from './utils-fs';
 import { gql } from '@apollo/client/core';
 import { createInterval, createTimeout } from './timers';
@@ -55,6 +55,7 @@ import type { ResponseStartWorkflow } from './graphql-types';
 import type { InstanceAttribute } from './factory.type';
 import type { EPI2ME_OPTIONS } from './epi2me-options';
 import { instantiateFileUpload } from './fileUploader';
+import { InstanceTokenMutation } from './generated/graphql.type';
 
 const networkStreamErrors: WeakSet<Writable> = new WeakSet();
 
@@ -75,13 +76,11 @@ export class EPI2ME_FS extends EPI2ME {
   static version = utils.version;
   static REST = REST_FS;
   static utils = utils;
-  static SessionManager = SessionManager;
   static EPI2ME_HOME = rootDir();
   static Factory = Factory;
   static GraphQL = GraphQLFS;
 
   SampleReader: SampleReader;
-  sessionManager?: SessionManager;
   telemetryLogStream?: fs.WriteStream;
   db?: DB;
   checkForDownloadsRunning?: boolean;
@@ -93,6 +92,8 @@ export class EPI2ME_FS extends EPI2ME {
 
   private telemetry?: Telemetry;
   private telemetryDestroySignal$?: Subject<void>;
+  private sqs?: AWS.SQS;
+  private s3?: AWS.S3;
 
   constructor(optstring: Partial<EPI2ME_OPTIONS> | string) {
     super(optstring); // sets up this.config & this.log
@@ -103,31 +104,58 @@ export class EPI2ME_FS extends EPI2ME {
     this.SampleReader = new SampleReader();
   }
 
-  async sessionedS3(options: AWS.S3.ClientConfiguration = {}): Promise<AWS.S3> {
-    if (!this.sessionManager) {
-      this.sessionManager = this.initSessionManager();
+  private fetchToken = async (): Promise<InstanceTokenMutation> => {
+    let token: InstanceTokenMutation;
+    if (this.config.options.useGraphQL) {
+      const instanceTokenOptions = {
+        variables: { idWorkflowInstance: asIndex(this.config.instance.id_workflow_instance) },
+      };
+      const result = await this.graphQL.instanceToken(instanceTokenOptions);
+      token = asDefined(result.data?.token);
+    } else {
+      token = await this.REST.instanceToken(this.config.instance.id_workflow_instance, this.config.options);
     }
+    return token;
+  };
 
-    await this.sessionManager.session();
+  sessionedS3(options: AWS.S3.ClientConfiguration = {}): AWS.S3 {
+    const credentials = new Epi2meCredentials(this.fetchToken, this.config.options.sessionGrace);
+    // Will need to prefetch a token to acccess region before creating the S3 service
     return new AWS.S3({
       useAccelerateEndpoint: this.config.options.awsAcceleration === 'on',
       ...options,
+      region: this.config.options.region,
+      credentials,
     });
   }
 
-  async sessionedSQS(options: AWS.SQS.ClientConfiguration = {}): Promise<AWS.SQS> {
-    if (!this.sessionManager) {
-      this.sessionManager = this.initSessionManager();
-    }
+  sessionedSQS(options: AWS.SQS.ClientConfiguration = {}): AWS.SQS {
+    const credentials = new Epi2meCredentials(this.fetchToken, this.config.options.sessionGrace);
+    return new AWS.SQS({
+      ...options,
+      region: this.config.options.region,
+      credentials,
+    });
+  }
 
-    await this.sessionManager.session();
-    return new AWS.SQS(options);
+  getSQSSessionedService(): AWS.SQS {
+    if (!this.sqs) {
+      this.sqs = this.sessionedSQS();
+    }
+    return this.sqs;
+  }
+
+  getS3SessionedService(): AWS.S3 {
+    if (!this.s3) {
+      this.s3 = this.sessionedS3();
+    }
+    return this.s3;
   }
 
   async deleteMessage(message: { ReceiptHandle?: string }): Promise<unknown> {
     try {
       const queueURL = await this.discoverQueue(asOptString(this.config.instance.outputQueueName));
-      const sqs = await this.sessionedSQS();
+      const sqs = this.getSQSSessionedService();
       return sqs
         .deleteMessage({
           QueueUrl: queueURL,
@@ -155,7 +183,7 @@ export class EPI2ME_FS extends EPI2ME {
 
     let getQueue;
     try {
-      const sqs = await this.sessionedSQS();
+      const sqs = this.getSQSSessionedService();
       getQueue = await sqs
         .getQueueUrl({
           QueueName: queueName,
@@ -178,11 +206,11 @@ export class EPI2ME_FS extends EPI2ME {
       throw new Error('no queueURL specified');
     }
 
-    const queueName = queueURL.match(/([\w\-_]+)$/)?.[0];
-    this.log.debug(`querying queue length of ${queueName}`);
+    // const queueName = queueURL.match(/([\w\-_]+)$/)?.[0];
+    // this.log.debug(`querying queue length of ${queueName}`);
 
     try {
-      const sqs = await this.sessionedSQS();
+      const sqs = this.getSQSSessionedService();
       const attrs = await sqs
         .getQueueAttributes({
           QueueUrl: queueURL,
@@ -357,22 +385,6 @@ export class EPI2ME_FS extends EPI2ME {
     }
   }
 
-  initSessionManager(children: { config: AWS.Config }[] = []): SessionManager {
-    return new SessionManager(
-      asIndex(this.config.instance.id_workflow_instance),
-      this.REST,
-      [AWS, ...children],
-      {
-        sessionGrace: this.config.options.sessionGrace,
-        proxy: this.config.options.proxy,
-        region: this.config.instance.region,
-        log: this.log,
-        useGraphQL: this.config.options.useGraphQL,
-      },
-      this.graphQL,
-    );
-  }
-
   async autoConfigure<T>(instance: T, autoStartCb?: (msg: string) => void): Promise<T> {
     /*
     Ensure
@@ -528,11 +540,6 @@ export class EPI2ME_FS extends EPI2ME {
       }
     });
 
-    this.sessionManager = this.initSessionManager();
-
-    /* Request session token */
-    await this.sessionManager.session();
-
     this.reportProgress();
     this.uploadState$.next(true);
 
@@ -560,7 +567,6 @@ export class EPI2ME_FS extends EPI2ME {
   }
 
   async stopEverything(): Promise<void> {
-    delete this.sessionManager;
     await super.stopEverything();
   }
 
@@ -569,15 +575,13 @@ export class EPI2ME_FS extends EPI2ME {
       return;
     }
     this.checkForDownloadsRunning = true;
-    this.log.debug('checkForDownloads checking for downloads');
+    // this.log.debug('checkForDownloads checking for downloads');
 
     try {
       const queueURL = await this.discoverQueue(asOptString(this.config.instance.outputQueueName));
       const len = await this.queueLength(queueURL);
 
-      if (!len) {
-        this.log.debug('no downloads available');
-      } else {
+      if (len) {
         /* only process downloads if there are downloads to process */
         this.log.debug(`downloads available: ${len}`);
         await this.downloadAvailable();
@@ -609,7 +613,7 @@ export class EPI2ME_FS extends EPI2ME {
       const queueURL = await this.discoverQueue(asOptString(this.config.instance.outputQueueName));
       this.log.debug('fetching messages');
 
-      const sqs = await this.sessionedSQS();
+      const sqs = this.getSQSSessionedService();
       receiveMessageSet = await sqs
         .receiveMessage({
           AttributeNames: ['All'], // to check if the same message is received multiple times
@@ -707,7 +711,7 @@ export class EPI2ME_FS extends EPI2ME {
       if (telemetry.tm_path) {
         try {
           this.log.debug(`download.processMessage: ${message.MessageId} fetching telemetry`);
-          const s3 = await this.sessionedS3();
+          const s3 = this.getS3SessionedService();
           const data = await s3
             .getObject({
               Bucket: asString(messageBody.bucket),
@@ -850,7 +854,7 @@ export class EPI2ME_FS extends EPI2ME {
     return new Promise<void>(async (resolve, reject) => {
       let s3;
       try {
-        s3 = await this.sessionedS3();
+        s3 = this.getS3SessionedService();
       } catch (e) {
         reject(e);
       }
@@ -1015,7 +1019,7 @@ export class EPI2ME_FS extends EPI2ME {
         );
 
         try {
-          const sqs = await this.sessionedSQS();
+          const sqs = this.getSQSSessionedService();
           await sqs
             .changeMessageVisibility({
               QueueUrl: asString(queueUrl),
