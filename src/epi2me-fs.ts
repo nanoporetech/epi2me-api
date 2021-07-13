@@ -5,6 +5,16 @@
  * When: A long time ago, in a galaxy far, far away
  *
  */
+import type { Readable, Writable } from 'stream';
+import type { PromiseResult } from 'aws-sdk/lib/request';
+import type { FetchResult } from '@apollo/client/core';
+import type { Configuration } from './Configuration.type';
+import type { JSONObject, Dictionary, Index } from 'ts-runtime-typecheck';
+import type { ResponseStartWorkflow } from './graphql.type';
+import type { InstanceAttribute } from './factory.type';
+import type { EPI2ME_OPTIONS } from './epi2me-options.type';
+import type { InstanceTokenMutation } from './generated/graphql.type';
+import type { JSONValue } from 'ts-runtime-typecheck';
 
 import {
   asOptString,
@@ -20,7 +30,6 @@ import {
   isString,
   isUndefined,
   asOptDictionaryOf,
-  JSONValue,
   isDictionaryOf,
   isArrayOf,
   asIndex,
@@ -44,18 +53,8 @@ import { filter, first, map, takeUntil, withLatestFrom } from 'rxjs/operators';
 import { GraphQLFS } from './graphql-fs';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { createQueue } from './queue';
-
 import { filestats } from './filestats';
-import type { Readable, Writable } from 'stream';
-import type { PromiseResult } from 'aws-sdk/lib/request';
-import type { FetchResult } from '@apollo/client/core';
-import type { Configuration } from './Configuration';
-import type { JSONObject, Dictionary, Index } from 'ts-runtime-typecheck';
-import type { ResponseStartWorkflow } from './graphql-types';
-import type { InstanceAttribute } from './factory.type';
-import type { EPI2ME_OPTIONS } from './epi2me-options';
 import { instantiateFileUpload } from './fileUploader';
-import { InstanceTokenMutation } from './generated/graphql.type';
 
 const networkStreamErrors: WeakSet<Writable> = new WeakSet();
 

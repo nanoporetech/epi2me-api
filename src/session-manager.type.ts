@@ -1,4 +1,4 @@
-import type { Logger } from './Logger';
+import type { Logger } from './Logger.type';
 
 export interface SessionManagerOptions {
   sessionGrace: number;

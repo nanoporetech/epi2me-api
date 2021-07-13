@@ -1,11 +1,11 @@
 import type { Dictionary, Index } from 'ts-runtime-typecheck';
 import type { DB } from './db';
 import type { EPI2ME_FS } from './epi2me-fs';
-import type { UploadState, Warning } from './epi2me-state';
-import type { Logger } from './Logger';
+import type { UploadState, Warning } from './epi2me-state.type';
+import type { Logger } from './Logger.type';
 import type { SplitStyle } from './splitters/splitter.type';
 import type { Observable } from 'rxjs';
-import { Configuration } from './Configuration';
+import type { Configuration } from './Configuration.type';
 
 export interface UploaderOptions {
   database: DB;

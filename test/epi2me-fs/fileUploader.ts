@@ -3,16 +3,16 @@ import { EPI2ME_FS as EPI2ME, EPI2ME_FS } from '../../src/epi2me-fs';
 import { expect } from 'chai';
 import { DB } from '../../src/db';
 import { UploadContext, UploadSettings } from '../../src/fileUploader.type';
-import { ProgressState, States, SuccessState, UploadState } from '../../src/epi2me-state';
+import { ProgressState, States, SuccessState, UploadState } from '../../src/epi2me-state.type';
 import { stub, SinonStub } from 'sinon';
 import { FileStat } from '../../src/inputScanner.type';
 import path from 'path';
 import tmp from 'tmp';
 import fs from 'fs';
-import { Configuration } from '../../src/Configuration';
+import { Configuration } from '../../src/Configuration.type';
 import { Subject } from 'rxjs';
 import { sleep } from '../../src/timers';
-import { EPI2ME_OPTIONS } from '../../src/epi2me-options';
+import { EPI2ME_OPTIONS } from '../../src/epi2me-options.type';
 import { NoopLogger } from '../../src/Logger';
 
 function generateRandomFastQ(readCount: number, perRead: number) {

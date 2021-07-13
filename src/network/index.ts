@@ -1,11 +1,11 @@
+import type { Dictionary } from 'ts-runtime-typecheck';
+import type { RequestOptions, ExtendedRequestOptions } from './RequestOptions.type';
+import type { Body } from './Body.type';
+import type { NetworkInterface } from './NetworkInterface.type';
+
 import { fetch, Request, Headers } from './fetch';
 import { version as API_VERSION } from '../../package.json';
 import { isDictionary, isString, isStruct } from 'ts-runtime-typecheck';
-
-import type { Dictionary } from 'ts-runtime-typecheck';
-import type { RequestOptions, ExtendedRequestOptions } from './RequestOptions';
-import type { Body } from './Body';
-import type { NetworkInterface } from './NetworkInterface';
 
 let fetchMethod = fetch;
 

@@ -1,3 +1,5 @@
+import type { MappedFileStats } from './filestats.type';
+
 import { genericFileStatistics } from './default';
 import { fastaFileStatistics } from './fasta';
 import { fastqFileStatistics } from './fastq';
@@ -12,13 +14,6 @@ const mapping = new Map([
 ]);
 
 const DEFAULT_MAPPING = genericFileStatistics;
-
-export type MappedFileStats = {
-  type: string;
-  bytes: number;
-  sequences?: number;
-  reads?: number;
-};
 
 export async function filestats(filePath: string): Promise<MappedFileStats> {
   const ext = getNormalisedFileExtension(filePath);

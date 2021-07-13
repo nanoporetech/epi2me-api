@@ -3,14 +3,15 @@
  * Authors: rpettett, ahurst, gvanginkel
  * Created: 2016-05-17
  */
+import type { Dictionary } from 'ts-runtime-typecheck';
+import type { Logger } from './Logger.type';
 
 import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 import crypto from 'crypto';
-import type { Dictionary } from 'ts-runtime-typecheck';
 import { isDictionary } from 'ts-runtime-typecheck';
 import ProxyAgent from 'proxy-agent';
 import { version as VERSION } from '../package.json';
-import { NoopLogger, Logger } from './Logger';
+import { NoopLogger } from './Logger';
 
 axios.defaults.validateStatus = (status: number): boolean => status <= 504; // Reject only if the status code is greater than or equal to 500
 

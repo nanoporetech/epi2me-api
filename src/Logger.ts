@@ -1,12 +1,4 @@
-export type LogMethod = (...params: unknown[]) => void;
-
-export interface Logger {
-  debug: LogMethod;
-  error: LogMethod;
-  info: LogMethod;
-  warn: LogMethod;
-  critical(id: CriticalErrorId, reason: string): void;
-}
+import type { CriticalErrorId, Logger, LogMethod } from './Logger.type';
 
 export const NoopLogMethod: LogMethod = () => {};
 
@@ -17,8 +9,6 @@ export const NoopLogger: Logger = {
   warn() {},
   critical() {},
 };
-
-export type CriticalErrorId = 'UNKNOWN' | 'FS_FAILURE' | 'PROFILE_PERSIST';
 
 export const FallbackLogger: Logger = {
   info(...args: unknown[]): void {

@@ -5,6 +5,13 @@
  * When: A long time ago, in a galaxy far, far away
  *
  */
+import type { Logger } from './Logger.type';
+import type { EPI2ME_OPTIONS } from './epi2me-options.type';
+import type { Configuration } from './Configuration.type';
+import type { Timer } from './timer.type';
+import type { REST_FS } from './rest-fs';
+import type { Index, Dictionary, Optional, JSONObject, UnknownFunction } from 'ts-runtime-typecheck';
+import type { States, UploadState, DownloadState, Warning, SuccessState, ProgressState } from './epi2me-state.type';
 
 import { BehaviorSubject, combineLatest } from 'rxjs';
 import DEFAULTS from './default_options.json';
@@ -13,7 +20,6 @@ import { niceSize } from './niceSize';
 import { REST } from './rest';
 import Socket from './socket';
 import { utils } from './utils';
-import { Logger } from './Logger';
 import {
   asDictionary,
   asOptString,
@@ -27,34 +33,13 @@ import {
   asOptFunction,
   asOptDictionary,
   asOptIndex,
-  Index,
-  Dictionary,
-  Optional,
-  JSONObject,
-  UnknownFunction,
   asJSONObject,
   isString,
 } from 'ts-runtime-typecheck';
-import {
-  createUploadState,
-  createDownloadState,
-  States,
-  UploadState,
-  DownloadState,
-  Warning,
-  SuccessState,
-  ProgressState,
-} from './epi2me-state';
-
+import { createUploadState, createDownloadState } from './epi2me-state';
 import { createInterval } from './timers';
 import { parseCoreOpts } from './parseCoreOpts';
-
-import type { EPI2ME_OPTIONS } from './epi2me-options';
-import type { Configuration } from './Configuration';
-import type { Timer } from './timer.type';
-
 import { filter, mapTo, skipWhile, takeWhile } from 'rxjs/operators';
-import { REST_FS } from './rest-fs';
 export class EPI2ME {
   static version = utils.version;
   static utils = utils;

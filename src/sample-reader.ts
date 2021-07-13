@@ -1,7 +1,8 @@
+import type { Experiments } from './sample.type';
+
 import { fdir } from 'fdir';
 import path from 'path';
 import DEFAULTS from './default_options.json';
-import type { Experiments } from './sample.type';
 
 export class SampleReader {
   /*

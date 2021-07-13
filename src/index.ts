@@ -1,10 +1,4 @@
-import type * as graphQLSchema from './graphql-types';
-
-export type { EPI2ME_OPTIONS as Options } from './epi2me-options';
-export type { CriticalErrorId, Logger } from './Logger';
-export type { SampleReader } from './sample-reader';
-export type { Profile } from './ProfileManager.type';
-export type { graphQLSchema };
+export * from './index.type';
 export type UtilityFS = typeof utils;
 
 import { EPI2ME_FS as EPI2ME } from './epi2me-fs';

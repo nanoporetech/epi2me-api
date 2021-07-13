@@ -1,4 +1,4 @@
-import { grpc } from '@improbable-eng/grpc-web';
+import type { grpc } from '@improbable-eng/grpc-web';
 import { WorkflowApi } from './api/workflow';
 import { SampleReaderApi } from './api/samples';
 import { StatusApi } from './api/status';

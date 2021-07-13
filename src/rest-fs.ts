@@ -2,18 +2,13 @@
  * Copyright (c) 2019 Metrichor Ltd.
  * Authors: rpettett,gvanginkel
  */
+import type { Dictionary, UnknownFunction } from 'ts-runtime-typecheck';
+import type { AsyncCallback } from './rest.type';
+
 import fs from 'fs-extra';
 import path from 'path';
-import {
-  Dictionary,
-  asOptDictionary,
-  asOptFunction,
-  asFunction,
-  asDictionary,
-  isFunction,
-  UnknownFunction,
-} from 'ts-runtime-typecheck';
-import { AsyncCallback, REST } from './rest';
+import { asOptDictionary, asOptFunction, asFunction, asDictionary, isFunction } from 'ts-runtime-typecheck';
+import { REST } from './rest';
 import { utilsFS as utils } from './utils-fs';
 
 export class REST_FS extends REST {

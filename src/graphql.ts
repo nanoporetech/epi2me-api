@@ -3,26 +3,18 @@
  * Authors: rpettett, gvanginkel
  */
 
-import gql from 'graphql-tag';
-import PageFragment from './fragments/PageFragment';
-import WorkflowFragment from './fragments/WorkflowFragment';
-import WorkflowInstanceFragment from './fragments/WorkflowInstanceFragment';
-import { createClient } from './gql-client';
-import { Network } from './network';
-import { NoopLogMethod } from './Logger';
-import { fetch, Headers } from './network/fetch';
-
-import { asBoolean, Index } from 'ts-runtime-typecheck';
-import { writeCommonHeaders } from './network';
-import { parseCoreOpts } from './parseCoreOpts';
-
-import type { Logger } from './Logger';
+import type { Logger } from './Logger.type';
 import type { DocumentNode } from 'graphql';
 import type { Dictionary } from 'ts-runtime-typecheck';
 import type { ApolloQueryResult, FetchResult, NormalizedCacheObject, ApolloClient } from '@apollo/client/core';
-import type { EPI2ME_OPTIONS } from './epi2me-options';
+import type { EPI2ME_OPTIONS } from './epi2me-options.type';
 import type { InstanceAttribute } from './factory.type';
+import type { Index } from 'ts-runtime-typecheck';
 import type {
+  AsyncAQR,
+  GraphQLConfiguration,
+  QueryOptions,
+  RequestContext,
   ResponseWorkflowInstance,
   ResponseAllWorkflowInstances,
   ResponseStartWorkflow,
@@ -35,34 +27,20 @@ import type {
   ResponseUpdateUser,
   ResponseStatus,
   ResponseRegions,
-} from './graphql-types';
+} from './graphql.type';
 
-export interface GraphQLConfiguration {
-  url: string;
-  base_url: string;
-  apikey?: string;
-  apisecret?: string;
-  agent_version: string;
-  jwt?: string;
-  local: boolean;
-  user_agent: string;
-  signing: boolean;
-}
+import gql from 'graphql-tag';
+import PageFragment from './fragments/PageFragment';
+import WorkflowFragment from './fragments/WorkflowFragment';
+import WorkflowInstanceFragment from './fragments/WorkflowInstanceFragment';
+import { createClient } from './gql-client';
+import { Network } from './network';
+import { NoopLogMethod } from './Logger';
+import { fetch, Headers } from './network/fetch';
+import { asBoolean } from 'ts-runtime-typecheck';
+import { writeCommonHeaders } from './network';
+import { parseCoreOpts } from './parseCoreOpts';
 
-export interface RequestContext {
-  apikey?: string;
-  apisecret?: string;
-  url: string;
-  [key: string]: unknown;
-}
-
-export interface QueryOptions<Var = Dictionary, Ctx = Dictionary, Opt = Dictionary> {
-  context?: Ctx;
-  variables?: Var;
-  options?: Opt;
-}
-
-export type AsyncAQR<T = unknown> = Promise<ApolloQueryResult<T>>;
 export class GraphQL {
   readonly log: Logger;
   readonly options: GraphQLConfiguration;

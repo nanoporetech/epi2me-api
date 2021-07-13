@@ -1,7 +1,8 @@
-import { isDefined, asString } from 'ts-runtime-typecheck';
-import { Credentials } from 'aws-sdk';
 import type { AWSError } from 'aws-sdk';
 import type { InstanceTokenMutation } from './generated/graphql.type';
+
+import { isDefined, asString } from 'ts-runtime-typecheck';
+import { Credentials } from 'aws-sdk';
 
 export class Epi2meCredentials extends Credentials {
   region = '';

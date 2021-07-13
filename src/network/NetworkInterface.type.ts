@@ -1,5 +1,5 @@
-import type { RequestOptions } from './RequestOptions';
-import type { Body } from './Body';
+import type { RequestOptions } from './RequestOptions.type';
+import type { Body } from './Body.type';
 import type { Dictionary } from 'ts-runtime-typecheck';
 
 export interface NetworkInterface {
