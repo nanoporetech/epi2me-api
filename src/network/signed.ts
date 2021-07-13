@@ -4,13 +4,13 @@
   If we need it we could potentially replace the signing behavior with web crypto, but it's problematic
   to test.
 */
+import type { RequestOptions } from './RequestOptions.type';
+import type { Body } from './Body.type';
+import type { Credentials } from './Credentials.type';
+import type { NetworkInterface } from './NetworkInterface.type';
+
 import { Network } from './index';
 import crypto from 'crypto';
-
-import type { RequestOptions } from './RequestOptions';
-import type { Body } from './Body';
-import type { Credentials } from './Credentials';
-import type { NetworkInterface } from './NetworkInterface';
 import { asString } from 'ts-runtime-typecheck';
 
 export function signMessage(

@@ -15,7 +15,8 @@
     "noImplicitThis": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "target": "es2017"
+    "target": "es2017",
+    "importsNotUsedAsValues": "error"
   },
   "include": ["src", "src/.eslintrc.js"],
   "exclude": ["dist", "node_modules"],

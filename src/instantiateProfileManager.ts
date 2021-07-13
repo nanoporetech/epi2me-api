@@ -1,3 +1,7 @@
+import type { Logger } from './Logger.type';
+import type { Profile } from './ProfileManager.type';
+import type { Dictionary, Optional } from 'ts-runtime-typecheck';
+
 import { asStruct, isOptDictionaryOf, isOptIndex, isOptString, isStruct } from 'ts-runtime-typecheck';
 import { ProfileManager } from './ProfileManager';
 import { url as DEFAULT_ENDPOINT } from './default_options.json';
@@ -6,10 +10,6 @@ import { url as DEFAULT_ENDPOINT } from './default_options.json';
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
-
-import type { Logger } from './Logger';
-import type { Profile } from './ProfileManager.type';
-import type { Dictionary, Optional } from 'ts-runtime-typecheck';
 
 function getDefaultEndpoint() {
   return process.env.METRICHOR || DEFAULT_ENDPOINT;

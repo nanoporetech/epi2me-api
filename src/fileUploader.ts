@@ -1,12 +1,20 @@
+import type { S3 } from 'aws-sdk';
+import type { FileStat } from './inputScanner.type';
+import type { FileScannerOptions, UploadContext, UploadSettings } from './fileUploader.type';
+import type { MappedFileStats } from './filestats/filestats.type';
+import type { UploadState } from './epi2me-state.type';
+import type { EPI2ME_FS } from './epi2me-fs';
+import type { Dictionary } from 'ts-runtime-typecheck';
+import type { InputQueueMessage, UploadConfigurationSubset } from './fileUploader.type';
+
 import { loadInputFiles } from './inputScanner';
 import { createQueue } from './queue';
 import { sleep } from './timers';
 import { isFastq } from './file_extensions';
-import { FileUploadWarnings, InputQueueMessage, UploadConfigurationSubset, UploadWarnings } from './fileUploader.type';
+import { FileUploadWarnings, UploadWarnings } from './fileUploader.type';
 import { splitter } from './splitters/fastq';
 import { filestats } from './filestats';
 import { niceSize } from './niceSize';
-
 import {
   asNumber,
   asOptDictionary,
@@ -22,14 +30,6 @@ import {
 import { first } from 'rxjs/operators';
 import path from 'path';
 import fs from 'fs';
-
-import type { S3 } from 'aws-sdk';
-import type { FileStat } from './inputScanner.type';
-import type { FileScannerOptions, UploadContext, UploadSettings } from './fileUploader.type';
-import type { MappedFileStats } from './filestats';
-import type { UploadState } from './epi2me-state';
-import type { EPI2ME_FS } from './epi2me-fs';
-import type { Dictionary } from 'ts-runtime-typecheck';
 
 export function instantiateFileUpload(instance: EPI2ME_FS): () => Promise<void> {
   assertDefined(instance.config.workflow, 'Workflow');

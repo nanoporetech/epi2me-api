@@ -1,7 +1,10 @@
-import { grpc } from '@improbable-eng/grpc-web';
-import { Subject, Observable } from 'rxjs';
+import type { grpc } from '@improbable-eng/grpc-web';
+import type { Observable } from 'rxjs';
+import type { ExperimentMap } from '../../../protos/samples_pb';
+
+import { Subject } from 'rxjs';
 import { map, takeUntil } from 'rxjs/operators';
-import { ExperimentMap, SamplesRequest } from '../../../protos/samples_pb';
+import { SamplesRequest } from '../../../protos/samples_pb';
 import { Samples } from '../../../protos/samples_pb_service';
 import { createGrpcRequest$ } from '../utils';
 

@@ -1,11 +1,7 @@
-import { Subject } from 'rxjs';
 import type { Optional } from 'ts-runtime-typecheck';
-import type { Observable } from 'rxjs';
+import type { Queue } from './queue.type';
 
-export interface Queue<T> {
-  add(value: T): void;
-  empty$: Observable<void>;
-}
+import { Subject } from 'rxjs';
 
 export function createQueue<T>(
   { concurrency = 1, signal$ }: { concurrency?: number; signal$?: Subject<void> },

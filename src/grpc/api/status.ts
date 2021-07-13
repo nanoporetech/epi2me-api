@@ -1,8 +1,10 @@
-import { grpc } from '@improbable-eng/grpc-web';
+import type { grpc } from '@improbable-eng/grpc-web';
+import type { AliveReply } from '../../../protos/status_pb';
+import type { Observable } from 'rxjs';
+
 import { Empty } from 'google-protobuf/google/protobuf/empty_pb';
-import { Observable, Subject } from 'rxjs';
+import { Subject } from 'rxjs';
 import { map, takeUntil } from 'rxjs/operators';
-import { AliveReply } from '../../../protos/status_pb';
 import { Status } from '../../../protos/status_pb_service';
 import { createGrpcRequest$ } from '../utils';
 

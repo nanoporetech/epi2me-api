@@ -1,4 +1,4 @@
-import type { Logger } from './Logger';
+import type { Logger } from './Logger.type';
 import type { Index, UnknownFunction } from 'ts-runtime-typecheck';
 export interface EPI2ME_OPTIONS {
   agent_version: string;

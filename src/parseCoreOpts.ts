@@ -1,6 +1,8 @@
-import type { EPI2ME_OPTIONS } from './epi2me-options';
+import type { EPI2ME_OPTIONS } from './epi2me-options.type';
 import type { Dictionary } from 'ts-runtime-typecheck';
-import { LogMethod, Logger, FallbackLogger } from './Logger';
+import type { LogMethod, Logger } from './Logger.type';
+
+import { FallbackLogger } from './Logger';
 import { version as VERSION } from '../package.json';
 import DEFAULTS from './default_options.json';
 import { isDictionary, asFunction, asString, asBoolean, asOptString } from 'ts-runtime-typecheck';

@@ -1,7 +1,7 @@
-import type { Credentials } from './Credentials';
+import type { Credentials } from './Credentials.type';
 import type { Agent } from 'http';
-import type { LogMethod } from '../Logger';
-import type { Body } from './Body';
+import type { LogMethod } from '../Logger.type';
+import type { Body } from './Body.type';
 
 export interface RequestOptions {
   base_url?: string;

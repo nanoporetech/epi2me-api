@@ -1,10 +1,9 @@
-import { BehaviorSubject, Subject } from 'rxjs';
-import { Map as ImmutableMap } from 'immutable';
-
 import type { Observable } from 'rxjs';
 import type { Dictionary } from 'ts-runtime-typecheck';
 import type { Profile } from './ProfileManager.type';
 
+import { BehaviorSubject, Subject } from 'rxjs';
+import { Map as ImmutableMap } from 'immutable';
 export class ProfileManager {
   private profiles: Map<string, Profile>;
   private defaultEndpoint: string;

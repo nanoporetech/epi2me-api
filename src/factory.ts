@@ -1,16 +1,16 @@
-import { EPI2ME_FS } from './epi2me-fs';
+import type { REST_FS } from './rest-fs';
+import type { GraphQL } from './graphql';
+import type { Logger } from './Logger.type';
+import type { SampleReader } from './sample-reader';
+import type { Index, Dictionary } from 'ts-runtime-typecheck';
+import type { EPI2ME_OPTIONS } from './epi2me-options.type';
+import type { GQLWorkflowConfig } from './factory.type';
+import type { EPI2ME_FS } from './epi2me-fs';
+
 import { BehaviorSubject, Subject, merge } from 'rxjs';
 import { withLatestFrom, map, mapTo } from 'rxjs/operators';
 import { Map as ImmutableMap } from 'immutable';
 import { Telemetry } from './telemetry';
-
-import type { REST_FS } from './rest-fs';
-import type { GraphQL } from './graphql';
-import type { Logger } from './Logger';
-import type { SampleReader } from './sample-reader';
-import type { Index, Dictionary } from 'ts-runtime-typecheck';
-import type { EPI2ME_OPTIONS } from './epi2me-options';
-import type { GQLWorkflowConfig } from './factory.type';
 
 function printError(log: Logger, msg: string, err: unknown): void {
   if (err instanceof Error) {

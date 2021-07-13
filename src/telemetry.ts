@@ -1,3 +1,7 @@
+import type { Dictionary, JSONObject, Optional } from 'ts-runtime-typecheck';
+import type { ExtendedTelemetrySource, ReportID, TelemetryNames, TelemetrySource } from './telemetry.type';
+import type { Observable } from 'rxjs';
+
 import { fetch } from './network/fetch';
 import { BehaviorSubject, interval, timer } from 'rxjs';
 import {
@@ -11,14 +15,8 @@ import {
   switchMap,
   withLatestFrom,
 } from 'rxjs/operators';
-
-import { Observable } from 'rxjs';
 import { isDefined } from 'ts-runtime-typecheck';
 import { GraphQL } from './graphql';
-import type { Dictionary, JSONObject, Optional } from 'ts-runtime-typecheck';
-import type { ExtendedTelemetrySource, ReportID, TelemetrySource } from './telemetry.type';
-
-type TelemetryNames = Dictionary<Dictionary<string>>;
 
 const TELEMETRY_INTERVAL = 30 * 1000;
 const EXPIRY_GRACE_PERIOD = 5000;

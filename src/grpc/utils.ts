@@ -1,24 +1,13 @@
-import { grpc } from '@improbable-eng/grpc-web';
-import { ProtobufMessage } from '@improbable-eng/grpc-web/dist/typings/message';
+import type { ProtobufMessage } from '@improbable-eng/grpc-web/dist/typings/message';
 import type { Message } from 'google-protobuf';
-import { Observable, Observer } from 'rxjs';
+import type { Observer } from 'rxjs';
+import type { RequestConfig, Tokens } from './utils.type';
+
+import { grpc } from '@improbable-eng/grpc-web';
+import { Observable } from 'rxjs';
 
 const Code = grpc.Code;
 grpc.setDefaultTransport(grpc.FetchReadableStreamTransport({ credentials: 'omit' }));
-
-interface Tokens {
-  jwt: string;
-}
-
-interface RequestConfig {
-  grpcUrl: string;
-  tokens: Tokens;
-  request: Message;
-  service: any;
-  // Transport can be optionally passed in to support running on node
-  // Default is the browser compatible FetchReadableStreamTransport
-  transport?: grpc.TransportFactory;
-}
 
 function checkError(
   observer: Observer<Message>,

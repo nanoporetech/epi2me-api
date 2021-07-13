@@ -1,10 +1,10 @@
+import type { Chunk, SplitStyle } from './splitter.type';
+
 import readline from 'readline';
 import fs from 'fs';
 import path from 'path';
 import zlib from 'zlib';
 import { isDefined } from 'ts-runtime-typecheck';
-
-import type { Chunk, SplitStyle } from './splitter.type';
 
 const LINES_PER_READ = 4;
 

@@ -1,17 +1,15 @@
+import type { Logger } from './Logger.type';
+import type { Database } from 'sqlite';
+import type { DBOptions } from './db.type';
+
 import fs from 'fs-extra';
 import path from 'path';
 import { open } from 'sqlite';
-import type { Database } from 'sqlite';
 import { Database as DatabaseDriver } from 'sqlite3';
 import pkg from '../package.json';
 import { utilsFS as utils } from './utils-fs';
-import type { Logger } from './Logger';
 import { isDefined } from 'ts-runtime-typecheck';
 
-export interface DBOptions {
-  idWorkflowInstance: string;
-  inputFolders: string[];
-}
 export class DB {
   log: Logger;
   readonly db: Promise<Database>;

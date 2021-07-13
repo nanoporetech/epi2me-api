@@ -3,11 +3,11 @@
  * Authors: rpettett, ahurst, gvanginkel
  * Created: 2016-05-17
  */
+import type { UtilityOptions } from './utils';
 
 import axios, { AxiosRequestConfig } from 'axios';
 import fs from 'fs';
 import path from 'path';
-import type { UtilityOptions } from './utils';
 import { utils } from './utils';
 import { NoopLogger } from './Logger';
 import ProxyAgent from 'proxy-agent';

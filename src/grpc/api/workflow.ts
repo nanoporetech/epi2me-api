@@ -1,25 +1,23 @@
-import { grpc } from '@improbable-eng/grpc-web';
-import { Empty } from 'google-protobuf/google/protobuf/empty_pb';
-import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
-import { Observable, Subject } from 'rxjs';
-import { map, takeUntil } from 'rxjs/operators';
-import {
+import type { grpc } from '@improbable-eng/grpc-web';
+import type { EPI2ME_OPTIONS } from '../../epi2me-options.type';
+import type { Dictionary } from 'ts-runtime-typecheck';
+import type { GQLWorkflowConfig } from '../../factory.type';
+import type { Observable } from 'rxjs';
+import type {
   RunningInstancesReply,
   RunningInstanceStateReply,
   StartReply,
-  StartRequest,
   StopReply,
-  WorkflowInstanceByIdRequest,
 } from '../../../protos/workflow_pb';
+
+import { Subject } from 'rxjs';
+import { Empty } from 'google-protobuf/google/protobuf/empty_pb';
+import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
+import { map, takeUntil } from 'rxjs/operators';
+import { StartRequest, WorkflowInstanceByIdRequest } from '../../../protos/workflow_pb';
 import { Workflow } from '../../../protos/workflow_pb_service';
-import { EPI2ME_OPTIONS } from '../../epi2me-options';
 import { asNumber, asString } from 'ts-runtime-typecheck';
-import type { Dictionary } from 'ts-runtime-typecheck';
-
 import { createGrpcRequest$ } from '../utils';
-
-import type { GQLWorkflowConfig } from '../../factory.type';
-
 export class WorkflowApi {
   private readonly _destroySubs$ = new Subject();
 

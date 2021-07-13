@@ -1,6 +1,6 @@
 {
   "name": "@metrichor/epi2me-api",
-  "version": "5.0.1728",
+  "version": "5.0.1744",
   "license": "MPL-2.0",
   "repository": "git@github.com:nanoporetech/epi2me-api.git",
   "description": "API for communicating with the EPI2ME website(s)",

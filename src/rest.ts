@@ -2,12 +2,14 @@
  * Copyright (c) 2019 Metrichor Ltd.
  * Authors: rpettett, gvanginkel
  */
+import type { Logger } from './Logger.type';
+import type { EPI2ME_OPTIONS } from './epi2me-options.type';
+import type { AxiosResponse } from 'axios';
+import type { Index, Dictionary, UnknownFunction } from 'ts-runtime-typecheck';
+import type { AsyncCallback } from './rest.type';
 
 import os from 'os';
 import { utils } from './utils';
-import { Logger } from './Logger';
-import { EPI2ME_OPTIONS } from './epi2me-options';
-import { AxiosResponse } from 'axios';
 import {
   asArray,
   asArrayOf,
@@ -18,18 +20,13 @@ import {
   asOptString,
   asDictionary,
   asString,
-  Index,
   isArray,
   isFunction,
   isUndefined,
-  Dictionary,
   isDefined,
-  UnknownFunction,
   isIndexable,
   isDictionary,
 } from 'ts-runtime-typecheck';
-
-export type AsyncCallback = (err: unknown, data: unknown) => void;
 
 export class REST {
   options: EPI2ME_OPTIONS;

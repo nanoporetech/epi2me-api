@@ -1,14 +1,9 @@
+import type { Logger } from './Logger.type';
+import type { REST } from './rest';
+import type { SocketOptions } from './socket.type';
+
 import io from 'socket.io-client';
 import { isDictionary } from 'ts-runtime-typecheck';
-
-import type { Logger } from './Logger';
-import { REST } from './rest';
-
-interface SocketOptions {
-  log: Logger;
-  debounceWindow?: number;
-  url: string;
-}
 
 export default class Socket {
   debounces: Set<unknown> = new Set();

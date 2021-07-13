@@ -1,7 +1,8 @@
+import type { FileStat, InputFileOptions } from './inputScanner.type';
+
 import { createInspector } from 'fs-inspect';
 import { basename } from 'path';
 import { getNormalisedFileExtension } from './file_extensions';
-import type { FileStat, InputFileOptions } from './inputScanner.type';
 
 const COMMON_ILLEGAL_BASENAMES = new Set(['downloads', 'skip', 'fail', 'fastq_fail', 'tmp']);
 

@@ -1,5 +1,5 @@
 import type { Index, Dictionary } from 'ts-runtime-typecheck';
-import type { EPI2ME_OPTIONS } from './epi2me-options';
+import type { EPI2ME_OPTIONS } from './epi2me-options.type';
 
 export interface Configuration {
   options: EPI2ME_OPTIONS;
