@@ -83,7 +83,7 @@ describe('epi2me-api.processMessage', () => {
   });
 
   it('should not double-prepend drive letters MC-6850', async () => {
-    const tmpDir = tmp.dirSync();
+    const tmpDir = tmp.dirSync({ unsafeCleanup: true });
     const client = clientFactory({
       filter: 'on',
       downloadMode: 'data+telemetry',
@@ -106,8 +106,7 @@ describe('epi2me-api.processMessage', () => {
       {
         Body: JSON.stringify({
           bucket: 'epi2test',
-          path:
-            'OUTPUT-UUID/INPUT-UUID/9999/999999/component-2/OK/pass/CLASSIFIED/fastq_runid_shasum_15.fastq/fastq_runid_shasum_15.fastq',
+          path: 'OUTPUT-UUID/INPUT-UUID/9999/999999/component-2/OK/pass/CLASSIFIED/fastq_runid_shasum_15.fastq/fastq_runid_shasum_15.fastq',
           telemetry: {
             hints: {
               folder: 'OK/pass/CLASSIFIED',
@@ -126,7 +125,7 @@ describe('epi2me-api.processMessage', () => {
   });
 
   it('should retain output folder when no telemetry', async () => {
-    const tmpDir = tmp.dirSync();
+    const tmpDir = tmp.dirSync({ unsafeCleanup: true });
     const client = clientFactory({
       filter: 'on',
       downloadMode: 'data+telemetry',
@@ -147,8 +146,7 @@ describe('epi2me-api.processMessage', () => {
       {
         Body: JSON.stringify({
           bucket: '',
-          path:
-            'OUTPUT-UUID/INPUT-UUID/9999/999999/component-2/OK/pass/CLASSIFIED/fastq_runid_shasum_15.fastq/fastq_runid_shasum_15.fastq',
+          path: 'OUTPUT-UUID/INPUT-UUID/9999/999999/component-2/OK/pass/CLASSIFIED/fastq_runid_shasum_15.fastq/fastq_runid_shasum_15.fastq',
         }),
       },
       () => {},
@@ -275,8 +273,7 @@ describe('epi2me-api.processMessage', () => {
                     title: 'Pass',
                   },
                 ],
-                cwl:
-                  's3://metrichor-prod-cwl-eu-west-1/bioinformatics-workflows/telemap-workflow/amd64-v1.3.5-release/telemap_map_epi2me_directive.yml',
+                cwl: 's3://metrichor-prod-cwl-eu-west-1/bioinformatics-workflows/telemap-workflow/amd64-v1.3.5-release/telemap_map_epi2me_directive.yml',
               },
               command:
                 'cgd --working_directory /tmp/analysis/%id_worker -o %outputfolder -d %cwl workflow.data.input.path=%input workflow.data.reference.path=%reference workflow.data.min_mq=0 workflow.data.primary_only=true',
@@ -291,8 +288,7 @@ describe('epi2me-api.processMessage', () => {
           },
           id_workflow_instance: '182103',
           targetComponentId: '0',
-          path:
-            '0F95872C-D6D2-11E8-9DBC-0371A22B323C/2185/182103/component-2/PASS/fastq_runid_738d663ef9214e590fb4806bf5aed784b941fd48_1.fastq/fastq_runid_738d663ef9214e590fb4806bf5aed784b941fd48_1.fastq.bam',
+          path: '0F95872C-D6D2-11E8-9DBC-0371A22B323C/2185/182103/component-2/PASS/fastq_runid_738d663ef9214e590fb4806bf5aed784b941fd48_1.fastq/fastq_runid_738d663ef9214e590fb4806bf5aed784b941fd48_1.fastq.bam',
           telemetry: {
             filename: 'fastq_runid_738d663ef9214e590fb4806bf5aed784b941fd48_1.fastq.bam',
             id_workflow_instance: '182103',
@@ -313,8 +309,7 @@ describe('epi2me-api.processMessage', () => {
                   title: 'Pass',
                 },
               ],
-              cwl:
-                's3://metrichor-prod-cwl-eu-west-1/bioinformatics-workflows/telemap-workflow/amd64-v1.3.5-release/telemap_map_epi2me_directive.yml',
+              cwl: 's3://metrichor-prod-cwl-eu-west-1/bioinformatics-workflows/telemap-workflow/amd64-v1.3.5-release/telemap_map_epi2me_directive.yml',
             },
             agent_address: {
               remote_addr: '193.240.53.18, 10.132.3.56',

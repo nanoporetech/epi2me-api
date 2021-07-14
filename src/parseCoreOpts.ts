@@ -25,9 +25,7 @@ function resolveLogger(log: unknown): Logger {
   }
 }
 
-export function parseCoreOpts(
-  opt: Dictionary | Partial<EPI2ME_OPTIONS>,
-): {
+export function parseCoreOpts(opt: Dictionary | Partial<EPI2ME_OPTIONS>): {
   url: string;
   apikey?: string;
   apisecret?: string;

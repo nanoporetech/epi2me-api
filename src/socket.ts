@@ -1,15 +1,16 @@
 import type { Logger } from './Logger.type';
 import type { REST } from './rest';
 import type { SocketOptions } from './socket.type';
+import type { Socket as IOClientSocket } from 'socket.io-client';
 
-import io from 'socket.io-client';
+import { io } from 'socket.io-client';
 import { isDictionary } from 'ts-runtime-typecheck';
 
 export default class Socket {
   debounces: Set<unknown> = new Set();
   log: Logger;
   debounceWindow: number;
-  socket?: SocketIOClient.Socket;
+  socket?: IOClientSocket;
 
   constructor(rest: REST, opts: SocketOptions) {
     this.debounceWindow = opts.debounceWindow ?? 2000;

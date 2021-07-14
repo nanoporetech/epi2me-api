@@ -56,7 +56,7 @@ function uploadContextFactory(settings: Partial<UploadSettings> = {}, state: Par
       progress: {} as ProgressState, // TODO this is left absent as it's not needed right now, but should be done
       ...state,
     },
-    database: ({
+    database: {
       log: NoopLogger,
       uploadFile: stub(),
       splitFile: stub(),
@@ -64,7 +64,7 @@ function uploadContextFactory(settings: Partial<UploadSettings> = {}, state: Par
       splitClean: stub(),
       seenUpload: stub(),
       skipFile: stub(),
-    } as unknown) as DB,
+    } as unknown as DB,
     warnings: [],
     logger: NoopLogger,
     instance: {
@@ -134,7 +134,7 @@ function uploadContextFactory(settings: Partial<UploadSettings> = {}, state: Par
 function epi2meInstanceFactory(split_size: number, input: string[], types: string[]): EPI2ME_FS {
   const seenFiles = new Set();
 
-  return ({
+  return {
     log: NoopLogger,
     uploadStopped$: new Subject<boolean>(),
     discoverQueue: stub().resolves(''),
@@ -203,7 +203,7 @@ function epi2meInstanceFactory(split_size: number, input: string[], types: strin
         },
       } as Partial<Configuration['instance']>,
     } as Partial<Configuration>,
-    db: ({
+    db: {
       log: NoopLogger,
       uploadFile: stub(),
       splitFile: stub(),
@@ -217,7 +217,7 @@ function epi2meInstanceFactory(split_size: number, input: string[], types: strin
         return false;
       }),
       skipFile: stub(),
-    } as unknown) as DB,
+    } as unknown as DB,
     states: {
       upload: {
         filesCount: 0,
@@ -230,7 +230,7 @@ function epi2meInstanceFactory(split_size: number, input: string[], types: strin
       warnings: [],
     } as States,
     uploadJob: stub(),
-  } as unknown) as EPI2ME_FS;
+  } as unknown as EPI2ME_FS;
 }
 
 function fileStatFactory(

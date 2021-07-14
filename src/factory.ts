@@ -30,10 +30,10 @@ export class Factory {
   private options: Partial<EPI2ME_OPTIONS>;
   private primary: EPI2ME_FS;
 
-  readonly runningInstances$: BehaviorSubject<ImmutableMap<Index, EPI2ME_FS>> = new BehaviorSubject(ImmutableMap());
+  readonly runningInstances$ = new BehaviorSubject(ImmutableMap<Index, EPI2ME_FS>());
 
-  private readonly addRunningInstance$: Subject<EPI2ME_FS> = new Subject();
-  private readonly removeRunningInstanceById$: Subject<Index> = new Subject();
+  private readonly addRunningInstance$ = new Subject<EPI2ME_FS>();
+  private readonly removeRunningInstanceById$ = new Subject<Index>();
 
   constructor(api: typeof EPI2ME_FS, opts: Partial<EPI2ME_OPTIONS> = {}) {
     this.EPI2ME = api;
@@ -90,7 +90,7 @@ export class Factory {
   reset(options: Partial<EPI2ME_OPTIONS> = {}): void {
     this.options = options;
     // WARN what happens to the running instances here?
-    this.runningInstances$.next(ImmutableMap());
+    this.runningInstances$.next(ImmutableMap<Index, EPI2ME_FS>());
     this.primary = this.instantiate();
   }
 
