@@ -94,8 +94,8 @@ export function createGrpcRequest$<TRequest extends Message, TResponse extends M
     }
 
     const req = isStream
-      ? invokeRequest((observer as unknown) as Observer<Message>, requestConfig)
-      : unaryRequest((observer as unknown) as Observer<Message>, requestConfig);
+      ? invokeRequest(observer as unknown as Observer<Message>, requestConfig)
+      : unaryRequest(observer as unknown as Observer<Message>, requestConfig);
 
     return (): void => {
       req.close();
