@@ -12,8 +12,8 @@ import fs from 'fs';
 import { Configuration } from '../../src/Configuration.type';
 import { Subject } from 'rxjs';
 import { sleep } from '../../src/timers';
-import { EPI2ME_OPTIONS } from '../../src/epi2me-options.type';
 import { NoopLogger } from '../../src/Logger';
+import { Duration } from '../../src/Duration';
 
 function generateRandomFastQ(readCount: number, perRead: number) {
   /*
@@ -46,6 +46,7 @@ function uploadContextFactory(settings: Partial<UploadSettings> = {}, state: Par
       requiresStorage: false,
       ...settings,
     },
+    hasStopped: false,
     stopped$: new Subject(),
     state: {
       filesCount: 0,
@@ -110,9 +111,9 @@ function uploadContextFactory(settings: Partial<UploadSettings> = {}, state: Par
       }),
       config: {
         options: {
-          fileCheckInterval: 0.01, // nice and fast for the tests
-          uploadTimeout: 0.01, // nice and fast again
-        } as EPI2ME_OPTIONS,
+          fileCheckInterval: Duration.Milliseconds(10), // nice and fast for the tests
+          uploadTimeout: Duration.Milliseconds(10), // nice and fast again
+        } as Partial<Configuration['options']>,
         instance: {
           bucket: 'bucket ID',
           bucketFolder: '/bucket/folder',
@@ -127,7 +128,7 @@ function uploadContextFactory(settings: Partial<UploadSettings> = {}, state: Par
       } as Partial<Configuration>,
       uploadState: stub(),
       uploadComplete: stub(),
-    } as Partial<EPI2ME_FS>,
+    } as unknown as EPI2ME_FS,
   } as UploadContext;
 }
 
@@ -188,9 +189,9 @@ function epi2meInstanceFactory(split_size: number, input: string[], types: strin
       options: {
         inputFolders: input,
         filetype: types,
-        fileCheckInterval: 0.01, // nice and fast for the tests
-        uploadTimeout: 0.01, // nice and fast again
-      } as EPI2ME_OPTIONS,
+        fileCheckInterval: Duration.Milliseconds(10), // nice and fast for the tests
+        uploadTimeout: Duration.Milliseconds(10), // nice and fast again
+      } as Partial<Configuration['options']>,
       instance: {
         bucket: 'bucket ID',
         bucketFolder: '/bucket/folder',
@@ -272,7 +273,7 @@ function simulatedUpload(
           if (delay < 0) {
             throw err;
           }
-          await sleep(delay);
+          await sleep(Duration.Milliseconds(delay));
           retry += 1;
         }
       }
@@ -323,7 +324,7 @@ describe('file uploader', () => {
     const uploader = await instantiateFileUpload(instance);
     const didComplete = uploader();
 
-    await sleep(1);
+    await sleep(Duration.Milliseconds(1));
 
     stop();
     await didComplete;
@@ -366,7 +367,7 @@ describe('file uploader', () => {
     const uploader = await instantiateFileUpload(instance);
     const didComplete = uploader();
 
-    await sleep(10);
+    await sleep(Duration.Milliseconds(10));
 
     stop();
     await didComplete;
@@ -400,7 +401,7 @@ describe('file uploader', () => {
             return;
           }
           // delay then throw... bit like a network timeout
-          await sleep(100);
+          await sleep(Duration.Milliseconds(100));
           throw new Error('Simulated upload failure');
         }),
       };
@@ -421,7 +422,7 @@ describe('file uploader', () => {
     const didComplete = uploader();
     const { warnings } = instance.states;
 
-    await sleep(5);
+    await sleep(Duration.Milliseconds(5));
     // shouldn't have failed yet, check the warnings then stop it while the upload is pending
     expect(warnings.length).to.equals(0);
 
@@ -471,7 +472,7 @@ describe('file uploader', () => {
     const didComplete = uploader();
     const { warnings } = instance.states;
     // fake timers can probably speed this up
-    await sleep(2010);
+    await sleep(Duration.Seconds(2.1));
     // shouldn't have failed yet, check the warnings then stop it while the upload is pending
     expect(
       warnings.filter(({ type }) => type === 'WARNING_FILE_UPLOAD_FAILED').length,
@@ -530,7 +531,7 @@ describe('file uploader', () => {
     const didComplete = uploader();
     const { warnings } = instance.states;
 
-    await sleep(5);
+    await sleep(Duration.Milliseconds(5));
     stop();
     await didComplete;
 
@@ -601,7 +602,7 @@ describe('file uploader', () => {
         upload: simulatedUpload(conf, async (_, progress) => {
           progress.next({ loaded: fileSize * 0.2 });
           progress.next({ loaded: fileSize * 0.6 });
-          await sleep(5);
+          await sleep(Duration.Milliseconds(5));
           throw new Error('simulated failure');
         }),
       };
@@ -624,7 +625,7 @@ describe('file uploader', () => {
     const didComplete = uploader();
     const { warnings } = instance.states;
 
-    await sleep(5);
+    await sleep(Duration.Milliseconds(5));
     stop();
     await didComplete;
 
@@ -693,7 +694,7 @@ describe('file uploader', () => {
 
     const didComplete = uploader();
 
-    await sleep(5);
+    await sleep(Duration.Milliseconds(5));
 
     stop();
     await didComplete;
@@ -1136,7 +1137,7 @@ describe('file uploader', () => {
 
     const didComplete = uploader();
 
-    await sleep(50);
+    await sleep(Duration.Milliseconds(50));
 
     const { warnings, upload } = instance.states;
     expect((instance.sessionedS3 as SinonStub).callCount, 'Uploads jobs').to.equals(2);
@@ -1145,7 +1146,7 @@ describe('file uploader', () => {
 
     await addFile('another.fastq', 10);
 
-    await sleep(50);
+    await sleep(Duration.Milliseconds(50));
 
     expect((instance.sessionedS3 as SinonStub).callCount, 'Uploads jobs').to.equals(7);
     expect(upload.filesCount, 'File count').to.equals(3);
@@ -1153,6 +1154,6 @@ describe('file uploader', () => {
 
     stop();
 
-    await Promise.race([didComplete, sleep(500).then(() => Promise.reject('Loop did not stop'))]);
+    await Promise.race([didComplete, sleep(Duration.Seconds(0.5)).then(() => Promise.reject('Loop did not stop'))]);
   });
 });

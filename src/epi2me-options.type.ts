@@ -29,6 +29,7 @@ export interface EPI2ME_OPTIONS {
   apikey?: string;
   apisecret?: string;
   id_workflow_instance?: Index;
+  id_dataset?: Index;
   debounceWindow?: number;
   proxy?: string;
   jwt?: string;

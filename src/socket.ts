@@ -2,18 +2,20 @@ import type { Logger } from './Logger.type';
 import type { REST } from './rest';
 import type { SocketOptions } from './socket.type';
 import type { Socket as IOClientSocket } from 'socket.io-client';
+import type { Duration } from './Duration';
 
 import { io } from 'socket.io-client';
 import { isDictionary } from 'ts-runtime-typecheck';
+import { createTimeout } from './timers';
 
 export default class Socket {
   debounces: Set<unknown> = new Set();
   log: Logger;
-  debounceWindow: number;
+  debounceWindow: Duration;
   socket?: IOClientSocket;
 
   constructor(rest: REST, opts: SocketOptions) {
-    this.debounceWindow = opts.debounceWindow ?? 2000;
+    this.debounceWindow = opts.debounceWindow;
     this.log = opts.log;
     this.initialise(rest, opts.url);
   }
@@ -49,9 +51,7 @@ export default class Socket {
       }
 
       this.debounces.add(uuid);
-      setTimeout(() => {
-        this.debounces.delete(uuid);
-      }, this.debounceWindow);
+      createTimeout(this.debounceWindow, () => this.debounces.delete(uuid));
     }
 
     if (func) {

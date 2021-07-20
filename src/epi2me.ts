@@ -23,23 +23,23 @@ import { utils } from './utils';
 import {
   asDictionary,
   asOptString,
-  asOptBoolean,
   asString,
   asNumber,
   asArrayOf,
-  asOptNumber,
   asIndexable,
   asIndex,
   asOptFunction,
   asOptDictionary,
   asOptIndex,
   asJSONObject,
+  asBoolean,
   isString,
 } from 'ts-runtime-typecheck';
 import { createUploadState, createDownloadState } from './epi2me-state';
 import { createInterval } from './timers';
 import { parseCoreOpts } from './parseCoreOpts';
 import { filter, mapTo, skipWhile, takeWhile } from 'rxjs/operators';
+import { Duration } from './Duration';
 export class EPI2ME {
   static version = utils.version;
   static utils = utils;
@@ -110,7 +110,7 @@ export class EPI2ME {
   mySocket?: Socket;
 
   constructor(optstring: Partial<EPI2ME_OPTIONS> | string = {}) {
-    let options: EPI2ME_OPTIONS;
+    let options: Configuration['options'];
     if (typeof optstring === 'string') {
       const json = asJSONObject(JSON.parse(optstring));
       // WARN maybe we should put a depreciation warning here
@@ -146,7 +146,7 @@ export class EPI2ME {
 
   // jwt?: string;
 
-  static parseOptObject(opt: Dictionary | Partial<EPI2ME_OPTIONS>): EPI2ME_OPTIONS {
+  static parseOptObject(opt: Dictionary | Partial<EPI2ME_OPTIONS>): Configuration['options'] {
     const downloadMode = asString(opt.downloadMode, DEFAULTS.downloadMode);
 
     switch (downloadMode) {
@@ -162,24 +162,25 @@ export class EPI2ME {
     const options = {
       ...parseCoreOpts(opt),
       region: asString(opt.region, DEFAULTS.region),
-      sessionGrace: asNumber(opt.sessionGrace, DEFAULTS.sessionGrace),
-      uploadTimeout: asNumber(opt.uploadTimeout, DEFAULTS.uploadTimeout),
+      sessionGrace: Duration.Seconds(asNumber(opt.sessionGrace, DEFAULTS.sessionGrace)),
+      uploadTimeout: Duration.Seconds(asNumber(opt.uploadTimeout, DEFAULTS.uploadTimeout)),
       uploadRetries: asNumber(opt.uploadRetries, DEFAULTS.uploadRetries),
-      downloadTimeout: asNumber(opt.downloadTimeout, DEFAULTS.downloadTimeout),
-      fileCheckInterval: asNumber(opt.fileCheckInterval, DEFAULTS.fileCheckInterval),
-      downloadCheckInterval: asNumber(opt.downloadCheckInterval, DEFAULTS.downloadCheckInterval),
-      stateCheckInterval: asNumber(opt.stateCheckInterval, DEFAULTS.stateCheckInterval),
-      inFlightDelay: asNumber(opt.inFlightDelay, DEFAULTS.inFlightDelay),
-      waitTimeSeconds: asNumber(opt.waitTimeSeconds, DEFAULTS.waitTimeSeconds),
+      downloadTimeout: Duration.Seconds(asNumber(opt.downloadTimeout, DEFAULTS.downloadTimeout)),
+      fileCheckInterval: Duration.Seconds(asNumber(opt.fileCheckInterval, DEFAULTS.fileCheckInterval)),
+      downloadCheckInterval: Duration.Seconds(asNumber(opt.downloadCheckInterval, DEFAULTS.downloadCheckInterval)),
+      stateCheckInterval: Duration.Seconds(asNumber(opt.stateCheckInterval, DEFAULTS.stateCheckInterval)),
+      inFlightDelay: Duration.Seconds(asNumber(opt.inFlightDelay, DEFAULTS.inFlightDelay)),
+      waitTimeSeconds: Duration.Seconds(asNumber(opt.waitTimeSeconds, DEFAULTS.waitTimeSeconds)),
       waitTokenError: asNumber(opt.waitTokenError, DEFAULTS.waitTokenError),
       transferPoolSize: asNumber(opt.transferPoolSize, DEFAULTS.transferPoolSize),
       downloadMode,
       filetype: asArrayOf(isString)(opt.filetype, DEFAULTS.filetype),
       sampleDirectory: asString(opt.sampleDirectory, DEFAULTS.sampleDirectory),
       // optional values
-      useGraphQL: asOptBoolean(opt.useGraphQL),
+      useGraphQL: asBoolean(opt.useGraphQL, false),
       id_workflow_instance: asOptIndex(opt.id_workflow_instance),
-      debounceWindow: asOptNumber(opt.debounceWindow),
+      id_dataset: asOptIndex(opt.id_dataset),
+      debounceWindow: Duration.Seconds(asNumber(opt.debounceWindow, DEFAULTS.debounceWindow)),
       proxy: asOptString(opt.proxy),
       // EPI2ME-FS options
       inputFolders: asArrayOf(isString)(opt.inputFolders, []),
@@ -249,7 +250,7 @@ export class EPI2ME {
 
   setTimer(
     intervalName: 'downloadCheckInterval' | 'stateCheckInterval' | 'fileCheckInterval' | 'summaryTelemetryInterval',
-    intervalDuration: number,
+    intervalDuration: Duration,
     cb: UnknownFunction,
   ): void {
     if (this.timers[intervalName]) {

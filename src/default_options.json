@@ -7,6 +7,7 @@
   "uploadTimeout": 1200,
   "uploadRetries": 10,
   "downloadTimeout": 1200,
+  "debounceWindow": 2000,
   "fileCheckInterval": 5,
   "downloadCheckInterval": 3,
   "stateCheckInterval": 60,

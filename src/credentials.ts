@@ -1,16 +1,17 @@
 import type { AWSError } from 'aws-sdk';
 import type { InstanceTokenMutation } from './generated/graphql.type';
 
-import { isDefined, asString } from 'ts-runtime-typecheck';
+import { asString, assertDefined } from 'ts-runtime-typecheck';
 import { Credentials } from 'aws-sdk';
+import { Duration } from './Duration';
 
 export class Epi2meCredentials extends Credentials {
   region = '';
 
-  private readonly sessionGrace: number;
+  private readonly sessionGrace: Duration;
   private fetchToken: () => Promise<InstanceTokenMutation>;
 
-  constructor(fetchTokenHandler: () => Promise<InstanceTokenMutation>, sessionGrace = 0) {
+  constructor(fetchTokenHandler: () => Promise<InstanceTokenMutation>, sessionGrace: Duration = Duration.Seconds(0)) {
     super({
       accessKeyId: '',
       sessionToken: '',
@@ -30,16 +31,17 @@ export class Epi2meCredentials extends Credentials {
     }
     const { accessKeyId, secretAccessKey, sessionToken, expiration, region } = await this.fetchToken();
 
-    if (isDefined(accessKeyId) && isDefined(secretAccessKey) && isDefined(sessionToken)) {
-      this.accessKeyId = accessKeyId;
-      this.secretAccessKey = secretAccessKey;
-      this.sessionToken = sessionToken;
-      this.region = region ?? '';
+    assertDefined(accessKeyId, 'accessKeyId');
+    assertDefined(secretAccessKey, 'secretAccessKey');
+    assertDefined(sessionToken, 'sessionToken');
+    assertDefined(expiration, 'expiration');
 
-      const stsExpiration = new Date(asString(expiration)).getTime() - 1000 * this.sessionGrace ?? 0; // refresh token x seconds before it expires
+    this.accessKeyId = accessKeyId;
+    this.secretAccessKey = secretAccessKey;
+    this.sessionToken = sessionToken;
+    this.region = region ?? '';
 
-      this.expireTime = new Date(stsExpiration);
-    }
+    this.expireTime = Duration.FromDate(asString(expiration)).subtract(this.sessionGrace).toDate();
   };
 
   refresh = (callback: (err?: AWSError) => void): void => {

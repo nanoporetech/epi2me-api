@@ -32,7 +32,7 @@ import {
   asOptDictionaryOf,
   isDictionaryOf,
   isArrayOf,
-  asIndex,
+  assertDefined,
 } from 'ts-runtime-typecheck';
 import AWS from 'aws-sdk';
 import fs from 'fs-extra'; /* MC-565 handle EMFILE & EXDIR gracefully; use Promises */
@@ -55,6 +55,7 @@ import { BehaviorSubject, Subject } from 'rxjs';
 import { createQueue } from './queue';
 import { filestats } from './filestats';
 import { instantiateFileUpload } from './fileUploader';
+import { Duration } from './Duration';
 
 const networkStreamErrors: WeakSet<Writable> = new WeakSet();
 
@@ -105,14 +106,16 @@ export class EPI2ME_FS extends EPI2ME {
 
   private fetchToken = async (): Promise<InstanceTokenMutation> => {
     let token: InstanceTokenMutation;
+    assertDefined(this.config.instance.id_workflow_instance);
     if (this.config.options.useGraphQL) {
       const instanceTokenOptions = {
-        variables: { idWorkflowInstance: asIndex(this.config.instance.id_workflow_instance) },
+        variables: { idWorkflowInstance: this.config.instance.id_workflow_instance },
       };
       const result = await this.graphQL.instanceToken(instanceTokenOptions);
       token = asDefined(result.data?.token);
     } else {
-      token = await this.REST.instanceToken(this.config.instance.id_workflow_instance, this.config.options);
+      const opts = { id_dataset: this.config.options.id_dataset };
+      token = await this.REST.instanceToken(this.config.instance.id_workflow_instance, opts);
     }
     return token;
   };
@@ -474,17 +477,20 @@ export class EPI2ME_FS extends EPI2ME {
       this.observeTelemetry();
     } else {
       // MC-7056 periodically fetch summary telemetry for local reporting purposes
-      this.timers.summaryTelemetryInterval = createInterval(this.config.options.downloadCheckInterval * 10000, () => {
-        if (this.stopped) {
-          this.timers.summaryTelemetryInterval?.cancel();
-          return;
-        }
-        this.fetchTelemetry();
-      });
+      this.timers.summaryTelemetryInterval = createInterval(
+        this.config.options.downloadCheckInterval.multiply(10),
+        () => {
+          if (this.stopped) {
+            this.timers.summaryTelemetryInterval?.cancel();
+            return;
+          }
+          this.fetchTelemetry();
+        },
+      );
     }
 
     // MC-2068 - Don't use an interval.
-    this.timers.downloadCheckInterval = createInterval(this.config.options.downloadCheckInterval * 1000, () => {
+    this.timers.downloadCheckInterval = createInterval(this.config.options.downloadCheckInterval, () => {
       if (this.stopped) {
         this.timers.downloadCheckInterval?.cancel();
         return;
@@ -493,7 +499,7 @@ export class EPI2ME_FS extends EPI2ME {
     });
 
     // MC-1795 - stop workflow when instance has been stopped remotely
-    this.timers.stateCheckInterval = createInterval(this.config.options.stateCheckInterval * 1000, async () => {
+    this.timers.stateCheckInterval = createInterval(this.config.options.stateCheckInterval, async () => {
       if (this.stopped) {
         this.timers.stateCheckInterval?.cancel();
         return;
@@ -617,9 +623,9 @@ export class EPI2ME_FS extends EPI2ME {
         .receiveMessage({
           AttributeNames: ['All'], // to check if the same message is received multiple times
           QueueUrl: queueURL,
-          VisibilityTimeout: this.config.options.inFlightDelay, // approximate time taken to pass/fail job before resubbing
+          VisibilityTimeout: this.config.options.inFlightDelay.seconds, // approximate time taken to pass/fail job before resubbing
           MaxNumberOfMessages: this.config.options.transferPoolSize - downloadWorkerPoolRemaining, // download enough messages to fill the pool up again
-          WaitTimeSeconds: this.config.options.waitTimeSeconds, // long-poll
+          WaitTimeSeconds: this.config.options.waitTimeSeconds.seconds, // long-poll
         })
         .promise();
     } catch (err) {
@@ -654,10 +660,15 @@ export class EPI2ME_FS extends EPI2ME {
       workerPool[id] = 1;
 
       // WARN this behaviour does not appear to be correct, where does the error go???
-      const { cancel: timeoutHandle } = createTimeout((60 + this.config.options.downloadTimeout) * 1000, () => {
-        this.log.error(`this.downloadWorkerPool timeoutHandle. Clearing queue slot for message: ${message.MessageId}`);
-        throw new Error('download timed out');
-      });
+      const { cancel: timeoutHandle } = createTimeout(
+        this.config.options.downloadTimeout.add(Duration.Minutes(1)),
+        () => {
+          this.log.error(
+            `this.downloadWorkerPool timeoutHandle. Clearing queue slot for message: ${message.MessageId}`,
+          );
+          throw new Error('download timed out');
+        },
+      );
 
       this.processMessage(message)
         .catch((err) => {
@@ -993,7 +1004,7 @@ export class EPI2ME_FS extends EPI2ME {
         onStreamError(err);
       });
 
-      const transferTimeout = createTimeout(1000 * this.config.options.downloadTimeout, () => {
+      const transferTimeout = createTimeout(this.config.options.downloadTimeout, () => {
         onStreamError(new Error('transfer timed out'));
       });
       this.timers.transferTimeouts[outputFile] = transferTimeout;
@@ -1023,7 +1034,7 @@ export class EPI2ME_FS extends EPI2ME {
             .changeMessageVisibility({
               QueueUrl: asString(queueUrl),
               ReceiptHandle: asString(receiptHandle),
-              VisibilityTimeout: this.config.options.inFlightDelay,
+              VisibilityTimeout: this.config.options.inFlightDelay.seconds,
             })
             .promise();
         } catch (err) {
@@ -1045,7 +1056,7 @@ export class EPI2ME_FS extends EPI2ME {
       };
 
       this.timers.visibilityIntervals[outputFile] = createInterval(
-        900 * this.config.options.inFlightDelay,
+        this.config.options.inFlightDelay.multiply(0.9),
         updateVisibilityFunc,
       ); /* message in flight timeout in ms, less 10% */
 
