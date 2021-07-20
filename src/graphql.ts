@@ -39,7 +39,7 @@ import { NoopLogMethod } from './Logger';
 import { fetch, Headers } from './network/fetch';
 import { asBoolean } from 'ts-runtime-typecheck';
 import { writeCommonHeaders } from './network';
-import { parseCoreOpts } from './parseCoreOpts';
+import { parseCoreOptions } from './parseOptions';
 
 export class GraphQL {
   readonly log: Logger;
@@ -68,12 +68,10 @@ export class GraphQL {
       url: originalUrl,
       agent_version: agentVersion,
       user_agent: userAgent,
-    } = parseCoreOpts(opts);
+    } = parseCoreOptions(opts);
 
     // https://epi2me-dev.bla => https://graphql.epi2me-dev.bla
-    let url = originalUrl.replace(/:\/\//, '://graphql.');
-    // https://epi2me-dev.graphql.bla/ => https://graphql.epi2me-dev.bla
-    url = url.replace(/\/$/, '');
+    const url = originalUrl.replace(/:\/\//, '://graphql.');
 
     this.options = {
       url,

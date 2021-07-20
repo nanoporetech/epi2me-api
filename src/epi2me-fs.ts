@@ -95,8 +95,8 @@ export class EPI2ME_FS extends EPI2ME {
   private sqs?: AWS.SQS;
   private s3?: AWS.S3;
 
-  constructor(optstring: Partial<EPI2ME_OPTIONS> | string) {
-    super(optstring); // sets up this.config & this.log
+  constructor(opts: Partial<EPI2ME_OPTIONS>) {
+    super(opts); // sets up this.config & this.log
 
     // overwrite non-fs REST and GQL object
     this.REST = new REST_FS(this.config.options);
@@ -114,7 +114,7 @@ export class EPI2ME_FS extends EPI2ME {
       const result = await this.graphQL.instanceToken(instanceTokenOptions);
       token = asDefined(result.data?.token);
     } else {
-      const opts = { id_dataset: this.config.options.id_dataset };
+      const opts = { id_dataset: this.config.options.idDataset };
       token = await this.REST.instanceToken(this.config.instance.id_workflow_instance, opts);
     }
     return token;

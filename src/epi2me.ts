@@ -12,9 +12,9 @@ import type { Timer } from './timer.type';
 import type { REST_FS } from './rest-fs';
 import type { Index, Dictionary, Optional, JSONObject, UnknownFunction } from 'ts-runtime-typecheck';
 import type { States, UploadState, DownloadState, Warning, SuccessState, ProgressState } from './epi2me-state.type';
+import type { Duration } from './Duration';
 
 import { BehaviorSubject, combineLatest } from 'rxjs';
-import DEFAULTS from './default_options.json';
 import { GraphQL } from './graphql';
 import { niceSize } from './niceSize';
 import { REST } from './rest';
@@ -22,24 +22,17 @@ import Socket from './socket';
 import { utils } from './utils';
 import {
   asDictionary,
-  asOptString,
   asString,
   asNumber,
-  asArrayOf,
   asIndexable,
   asIndex,
-  asOptFunction,
   asOptDictionary,
-  asOptIndex,
-  asJSONObject,
-  asBoolean,
-  isString,
+  asDefined,
 } from 'ts-runtime-typecheck';
 import { createUploadState, createDownloadState } from './epi2me-state';
 import { createInterval } from './timers';
-import { parseCoreOpts } from './parseCoreOpts';
+import { parseOptions } from './parseOptions';
 import { filter, mapTo, skipWhile, takeWhile } from 'rxjs/operators';
-import { Duration } from './Duration';
 export class EPI2ME {
   static version = utils.version;
   static utils = utils;
@@ -109,94 +102,27 @@ export class EPI2ME {
   graphQL: GraphQL;
   mySocket?: Socket;
 
-  constructor(optstring: Partial<EPI2ME_OPTIONS> | string = {}) {
-    let options: Configuration['options'];
-    if (typeof optstring === 'string') {
-      const json = asJSONObject(JSON.parse(optstring));
-      // WARN maybe we should put a depreciation warning here
-      // it's not particularly useful accepting a json string
-      // and increases the required validation code
-      options = EPI2ME.parseOptObject(json);
-    } else {
-      options = EPI2ME.parseOptObject(optstring);
-    }
-
+  constructor(optstring: Partial<EPI2ME_OPTIONS> = {}) {
+    const options = parseOptions(optstring);
+    const { idWorkflowInstance, log, region } = options;
     this.config = {
       options: options,
       instance: {
-        id_workflow_instance: options.id_workflow_instance,
+        id_workflow_instance: idWorkflowInstance,
         discoverQueueCache: {},
         awssettings: {
-          region: options.region,
+          region,
         },
       },
     };
 
-    this.log = options.log;
+    this.log = log;
     this.REST = new REST(options);
     this.graphQL = new GraphQL(options);
   }
 
   get id(): Index {
     return asIndex(this.config.instance.id_workflow_instance);
-  }
-
-  // apikey?: string;
-  // apisecret?: string;
-
-  // jwt?: string;
-
-  static parseOptObject(opt: Dictionary | Partial<EPI2ME_OPTIONS>): Configuration['options'] {
-    const downloadMode = asString(opt.downloadMode, DEFAULTS.downloadMode);
-
-    switch (downloadMode) {
-      case 'data':
-      case 'telemetry':
-      case 'none':
-      case 'data+telemetry':
-        break;
-      default:
-        throw new Error(`Invalid downloadMode ${downloadMode}`);
-    }
-
-    const options = {
-      ...parseCoreOpts(opt),
-      region: asString(opt.region, DEFAULTS.region),
-      sessionGrace: Duration.Seconds(asNumber(opt.sessionGrace, DEFAULTS.sessionGrace)),
-      uploadTimeout: Duration.Seconds(asNumber(opt.uploadTimeout, DEFAULTS.uploadTimeout)),
-      uploadRetries: asNumber(opt.uploadRetries, DEFAULTS.uploadRetries),
-      downloadTimeout: Duration.Seconds(asNumber(opt.downloadTimeout, DEFAULTS.downloadTimeout)),
-      fileCheckInterval: Duration.Seconds(asNumber(opt.fileCheckInterval, DEFAULTS.fileCheckInterval)),
-      downloadCheckInterval: Duration.Seconds(asNumber(opt.downloadCheckInterval, DEFAULTS.downloadCheckInterval)),
-      stateCheckInterval: Duration.Seconds(asNumber(opt.stateCheckInterval, DEFAULTS.stateCheckInterval)),
-      inFlightDelay: Duration.Seconds(asNumber(opt.inFlightDelay, DEFAULTS.inFlightDelay)),
-      waitTimeSeconds: Duration.Seconds(asNumber(opt.waitTimeSeconds, DEFAULTS.waitTimeSeconds)),
-      waitTokenError: asNumber(opt.waitTokenError, DEFAULTS.waitTokenError),
-      transferPoolSize: asNumber(opt.transferPoolSize, DEFAULTS.transferPoolSize),
-      downloadMode,
-      filetype: asArrayOf(isString)(opt.filetype, DEFAULTS.filetype),
-      sampleDirectory: asString(opt.sampleDirectory, DEFAULTS.sampleDirectory),
-      // optional values
-      useGraphQL: asBoolean(opt.useGraphQL, false),
-      id_workflow_instance: asOptIndex(opt.id_workflow_instance),
-      id_dataset: asOptIndex(opt.id_dataset),
-      debounceWindow: Duration.Seconds(asNumber(opt.debounceWindow, DEFAULTS.debounceWindow)),
-      proxy: asOptString(opt.proxy),
-      // EPI2ME-FS options
-      inputFolders: asArrayOf(isString)(opt.inputFolders, []),
-      outputFolder: asOptString(opt.outputFolder),
-      awsAcceleration: asOptString(opt.awsAcceleration),
-      agent_address: asOptString(opt.agent_address),
-      telemetryCb: asOptFunction(opt.telemetryCb),
-      dataCb: asOptFunction(opt.dataCb),
-      remoteShutdownCb: asOptFunction(opt.remoteShutdownCb),
-    };
-
-    if (opt.inputFolder) {
-      options.inputFolders.push(asString(opt.inputFolder));
-    }
-
-    return options;
   }
 
   async socket(): Promise<Socket> {
@@ -495,8 +421,8 @@ export class EPI2ME {
     }
   }
 
-  url(): string | undefined {
-    return this.config.options.url;
+  url(): string {
+    return asDefined(this.config.options.url);
   }
 
   apikey(): string | undefined {

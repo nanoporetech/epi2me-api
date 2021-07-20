@@ -2,7 +2,7 @@ import sinon from 'sinon';
 import assert from 'assert';
 import { REST } from '../../src/rest';
 import { utils } from '../../src/utils';
-import { EPI2ME } from '../../src/epi2me';
+import { parseOptions } from '../../src/parseOptions';
 
 describe('rest.installToken', () => {
   it('must invoke post with options', async () => {
@@ -10,7 +10,7 @@ describe('rest.installToken', () => {
       data: 'some data',
     });
 
-    const options = EPI2ME.parseOptObject({
+    const options = parseOptions({
       agent_version: '3.0.0',
     });
     const rest = new REST(options);
@@ -49,7 +49,7 @@ describe('rest.installToken', () => {
 
   it('must handle error', async () => {
     const stub = sinon.stub(utils, 'post').rejects(new Error('token fail'));
-    const options = EPI2ME.parseOptObject({});
+    const options = parseOptions({});
     const rest = new REST(options);
 
     let err;

@@ -1,5 +1,4 @@
 import assert from 'assert';
-import sinon from 'sinon';
 import { EPI2ME_FS as EPI2ME } from '../../src/epi2me-fs';
 
 describe('epi2me', () => {
@@ -16,22 +15,6 @@ describe('epi2me', () => {
 
       assert.equal(client.url(), 'https://epi2me.nanoporetech.com', 'default url');
       assert.equal(client.apikey(), null, 'default apikey');
-    });
-
-    it('should create an epi2me object using the parsed options string', () => {
-      let client;
-      assert.doesNotThrow(
-        () => {
-          client = new EPI2ME(
-            JSON.stringify({
-              url: 'test_url',
-            }),
-          );
-        },
-        Error,
-        'client obtained',
-      );
-      assert.equal(client.url(), 'test_url', 'custom url');
     });
 
     it('should create an epi2me object with log functions', () => {
