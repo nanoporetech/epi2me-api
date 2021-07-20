@@ -9,6 +9,7 @@ export { Factory } from './factory';
 export { GraphQLFS } from './graphql-fs';
 export { GraphQL } from './graphql';
 export { ProfileManager } from './ProfileManager';
+export { SampleReader } from './sample-reader';
 export { instantiateProfileManager } from './instantiateProfileManager';
 export { EPI2ME, utils };
 export * as Helpers from './helpers';

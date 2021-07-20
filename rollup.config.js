@@ -13,6 +13,7 @@ const external = [
   ...Object.keys(pkg.dependencies || {}),
   ...Object.keys(pkg.peerDependencies || {}),
   'fs',
+  'fs-extra',
   'util',
   'path',
   'os',

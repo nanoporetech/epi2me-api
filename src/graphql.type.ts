@@ -12,7 +12,7 @@ import type {
   WorkflowType,
   StatusType,
 } from './generated/graphql.type';
-import type { ApolloQueryResult } from '@apollo/client';
+import type { ApolloQueryResult } from '@apollo/client/core';
 import type { Dictionary } from 'ts-runtime-typecheck';
 
 export * from './generated/graphql.type';
