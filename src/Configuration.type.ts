@@ -4,7 +4,6 @@ import type { Duration } from './Duration';
 
 export interface Configuration {
   options: CoreOptions & {
-    endpoint?: string;
     region: string;
     sessionGrace: Duration;
     uploadTimeout: Duration;
@@ -23,13 +22,9 @@ export interface Configuration {
     filetype: string[];
     sampleDirectory: string;
 
-    // optional values
-    id_workflow_instance?: Index;
-    id_dataset?: Index;
+    idWorkflowInstance?: Index;
+    idDataset?: Index;
     proxy?: string;
-
-    // EPI2ME-FS options
-    inputFolder?: string;
     inputFolders: string[];
     outputFolder?: string;
     awsAcceleration?: string;

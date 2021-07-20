@@ -75,6 +75,10 @@ export class Factory {
     return this.primary.REST;
   }
 
+  get url(): string {
+    return this.primary.url();
+  }
+
   get graphQL(): GraphQL {
     return this.primary.graphQL;
   }

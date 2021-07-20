@@ -2,7 +2,7 @@ import sinon from 'sinon';
 import assert from 'assert';
 import { REST } from '../../src/rest';
 import { utils } from '../../src/utils';
-import { EPI2ME } from '../../src/epi2me';
+import { parseOptions } from '../../src/parseOptions';
 
 describe('rest.read', () => {
   let stubs;
@@ -20,7 +20,7 @@ describe('rest.read', () => {
   it('must invoke get with options', async () => {
     const stub = sinon.stub(utils, 'get').resolves({ id_thing: 5, name: 'thing five' });
     stubs.push(stub);
-    const options = EPI2ME.parseOptObject({
+    const options = parseOptions({
       agent_version: '3.0.0',
     });
     const rest = new REST(options);
@@ -38,7 +38,7 @@ describe('rest.read', () => {
     const fake = sinon.fake();
     const stub = sinon.stub(utils, 'get').rejects(new Error('get failure'));
     stubs.push(stub);
-    const options = EPI2ME.parseOptObject({});
+    const options = parseOptions({});
     const rest = new REST(options);
 
     try {
