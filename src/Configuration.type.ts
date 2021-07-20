@@ -1,8 +1,43 @@
-import type { Index, Dictionary } from 'ts-runtime-typecheck';
-import type { EPI2ME_OPTIONS } from './epi2me-options.type';
+import type { Index, Dictionary, UnknownFunction } from 'ts-runtime-typecheck';
+import type { CoreOptions } from './CoreOptions.type';
+import type { Duration } from './Duration';
 
 export interface Configuration {
-  options: EPI2ME_OPTIONS;
+  options: CoreOptions & {
+    endpoint?: string;
+    region: string;
+    sessionGrace: Duration;
+    uploadTimeout: Duration;
+    uploadRetries: number;
+    downloadTimeout: Duration;
+    fileCheckInterval: Duration;
+    downloadCheckInterval: Duration;
+    stateCheckInterval: Duration;
+    inFlightDelay: Duration;
+    waitTimeSeconds: Duration;
+    debounceWindow: Duration;
+    useGraphQL: boolean;
+    waitTokenError: number;
+    transferPoolSize: number;
+    downloadMode: 'data' | 'telemetry' | 'none' | 'data+telemetry';
+    filetype: string[];
+    sampleDirectory: string;
+
+    // optional values
+    id_workflow_instance?: Index;
+    id_dataset?: Index;
+    proxy?: string;
+
+    // EPI2ME-FS options
+    inputFolder?: string;
+    inputFolders: string[];
+    outputFolder?: string;
+    awsAcceleration?: string;
+    agent_address?: string;
+    telemetryCb?: UnknownFunction;
+    dataCb?: UnknownFunction;
+    remoteShutdownCb?: UnknownFunction;
+  };
   instance: {
     id_workflow_instance?: Index;
     id_workflow?: Index;

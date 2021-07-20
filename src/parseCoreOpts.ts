@@ -1,6 +1,5 @@
-import type { EPI2ME_OPTIONS } from './epi2me-options.type';
-import type { Dictionary } from 'ts-runtime-typecheck';
 import type { LogMethod, Logger } from './Logger.type';
+import type { CoreOptions } from './CoreOptions.type';
 
 import { FallbackLogger } from './Logger';
 import { version as VERSION } from '../package.json';
@@ -25,17 +24,7 @@ function resolveLogger(log: unknown): Logger {
   }
 }
 
-export function parseCoreOpts(opt: Dictionary | Partial<EPI2ME_OPTIONS>): {
-  url: string;
-  apikey?: string;
-  apisecret?: string;
-  agent_version: string;
-  jwt?: string;
-  local: boolean;
-  log: Logger;
-  user_agent: string;
-  signing: boolean;
-} {
+export function parseCoreOpts(opt: Partial<CoreOptions> & { endpoint?: string }): CoreOptions {
   // URL preference is opt.endpoint > opt.url > DEFAULT.url
   const legacyURL = asString(opt.url, DEFAULTS.url);
   return {
@@ -52,3 +41,5 @@ export function parseCoreOpts(opt: Dictionary | Partial<EPI2ME_OPTIONS>): {
     jwt: asOptString(opt.jwt),
   };
 }
+
+// export function parseFullOpts(opt: )

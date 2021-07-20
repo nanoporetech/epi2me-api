@@ -30,6 +30,7 @@ import {
 import { first } from 'rxjs/operators';
 import path from 'path';
 import fs from 'fs';
+import { Duration } from './Duration';
 
 export function instantiateFileUpload(instance: EPI2ME_FS): () => Promise<void> {
   assertDefined(instance.config.workflow, 'Workflow');
@@ -78,12 +79,12 @@ export function instantiateFileUpload(instance: EPI2ME_FS): () => Promise<void> 
       await processFile(context, file);
     }
   });
-  const uploadInterval = instance.config.options.fileCheckInterval * 1000;
+  const uploadInterval = instance.config.options.fileCheckInterval;
   const queueEmpty = () => empty$.pipe(first()).toPromise();
 
   return async () => {
     while (running) {
-      const startTime = Date.now();
+      const uploadDuration = Duration.Delta();
 
       // NOTE scanner errors are handled inside createFileScanner
       const files = await scanner();
@@ -96,9 +97,7 @@ export function instantiateFileUpload(instance: EPI2ME_FS): () => Promise<void> 
         await queueEmpty();
       }
 
-      const deltaTime = Date.now() - startTime;
-      const delay = Math.max(0, uploadInterval - deltaTime);
-      await sleep(delay);
+      await sleep(uploadInterval.subtract(uploadDuration()).clamp(Duration.ZERO));
     }
   };
 }
@@ -402,7 +401,7 @@ export function constructUploadParameters(ctx: UploadContext, file: FileStat, rs
 export async function uploadFile(file: FileStat, stats: MappedFileStats, ctx: UploadContext): Promise<void> {
   const { state, instance, stopped$ } = ctx;
   try {
-    const timeout = (instance.config.options.uploadTimeout + 5) * 1000;
+    const timeout = instance.config.options.uploadTimeout.add(Duration.Seconds(5));
     const s3 = instance.sessionedS3({
       retryDelayOptions: {
         customBackoff(count: number, err?: Error): number {
@@ -417,7 +416,7 @@ export async function uploadFile(file: FileStat, stats: MappedFileStats, ctx: Up
       },
       maxRetries: ctx.settings.retries,
       httpOptions: {
-        timeout,
+        timeout: timeout.milliseconds,
       },
     });
 

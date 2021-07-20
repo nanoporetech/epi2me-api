@@ -3,10 +3,10 @@
  * Authors: rpettett, gvanginkel
  */
 import type { Logger } from './Logger.type';
-import type { EPI2ME_OPTIONS } from './epi2me-options.type';
 import type { AxiosResponse } from 'axios';
 import type { Index, Dictionary, UnknownFunction } from 'ts-runtime-typecheck';
 import type { AsyncCallback } from './rest.type';
+import type { Configuration } from './Configuration.type';
 
 import os from 'os';
 import { utils } from './utils';
@@ -29,7 +29,7 @@ import {
 } from 'ts-runtime-typecheck';
 
 export class REST {
-  options: EPI2ME_OPTIONS;
+  options: Configuration['options'];
   log: Logger;
   cachedResponses: Map<
     string,
@@ -39,7 +39,7 @@ export class REST {
     }
   > = new Map();
 
-  constructor(options: EPI2ME_OPTIONS) {
+  constructor(options: Configuration['options']) {
     this.options = options;
     this.log = this.options.log;
   }
@@ -104,7 +104,8 @@ export class REST {
     return asString(result);
   }
 
-  async instanceToken(id: unknown, opts: Partial<EPI2ME_OPTIONS>): Promise<Dictionary> {
+  // id_dataset appears to be used within
+  async instanceToken(id: Index, opts: { id_dataset?: Index } = {}): Promise<Dictionary> {
     return utils.post(
       'token',
       {

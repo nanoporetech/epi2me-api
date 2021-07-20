@@ -7,7 +7,6 @@ import type { Logger } from './Logger.type';
 import type { DocumentNode } from 'graphql';
 import type { Dictionary } from 'ts-runtime-typecheck';
 import type { ApolloQueryResult, FetchResult, NormalizedCacheObject, ApolloClient } from '@apollo/client/core';
-import type { EPI2ME_OPTIONS } from './epi2me-options.type';
 import type { InstanceAttribute } from './factory.type';
 import type { Index } from 'ts-runtime-typecheck';
 import type {
@@ -28,6 +27,7 @@ import type {
   ResponseStatus,
   ResponseRegions,
 } from './graphql.type';
+import type { Configuration } from './Configuration.type';
 
 import gql from 'graphql-tag';
 import PageFragment from './fragments/PageFragment';
@@ -53,7 +53,7 @@ export class GraphQL {
   static CACHE_ONLY = 'cache-only';
   static NO_CACHE = 'no-cache';
 
-  constructor(opts: Partial<EPI2ME_OPTIONS>) {
+  constructor(opts: Partial<Configuration['options']>) {
     // IS: WARN most of these options aren't used in this file.
     // They are _maybe_ being used `utils.get` but we need to resolve this.
     // CR: I believe local isn't required, the rest will be used for signing on

@@ -1,4 +1,6 @@
+import type { Duration } from './Duration';
+
 export interface Timer {
   cancel(): void;
-  reset(duration?: number): void;
+  reset(duration?: Duration): void;
 }

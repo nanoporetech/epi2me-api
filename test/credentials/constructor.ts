@@ -1,20 +1,14 @@
 import assert from 'assert';
 import { Epi2meCredentials } from '../../src/credentials';
+import { Duration } from '../../src/Duration';
 
 describe('credentials', () => {
   describe('constructor', () => {
-    it('Requires an fetchTokenHandler argument', () => {
-      try {
-        new Epi2meCredentials();
-        assert.fail(`unexpected success`);
-      } catch (e) {
-        assert.ok(String(e).match(/Promise<InstanceTokenMutation> is a required argument/), String(e));
-      }
-    });
-
     it('should construct', () => {
       try {
-        const credentials = new Epi2meCredentials(() => {});
+        const credentials = new Epi2meCredentials(async () => {
+          throw new Error('should not be called');
+        });
         assert.ok(credentials instanceof Epi2meCredentials, 'Epi2meCredentials instantiated ok');
       } catch (e) {
         assert.fail('Epi2meCredentials failed to instantiate');
@@ -37,7 +31,7 @@ describe('credentials', () => {
         'Default sessionGrace of 0: expiration in == expiration out',
       );
 
-      credentials = new Epi2meCredentials(async () => token, 60);
+      credentials = new Epi2meCredentials(async () => token, Duration.Seconds(60));
       await credentials.refreshPromise();
       assert.strictEqual(
         credentials.expireTime.getTime(),
