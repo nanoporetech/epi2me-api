@@ -10,6 +10,7 @@ import { url as DEFAULT_ENDPOINT } from './default_options.json';
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
+import { Subject } from 'rxjs';
 
 function getDefaultEndpoint() {
   return process.env.METRICHOR || DEFAULT_ENDPOINT;
@@ -39,8 +40,8 @@ export async function instantiateProfileManager({
 }: {
   filepath?: string;
   defaultEndpoint?: string;
-  logger?: Logger;
-} = {}): Promise<ProfileManager> {
+  logger?: Pick<Logger, 'critical'>;
+} = {}): Promise<{ manager: ProfileManager; syncSuccess$: Subject<boolean> }> {
   // NOTe use undefined to ensure these are not placed into the file if not set
   let profiles: Optional<Dictionary<Profile>> = undefined;
   let endpoint: Optional<string> = undefined;
@@ -58,6 +59,7 @@ export async function instantiateProfileManager({
   }
 
   const manager = new ProfileManager(profiles ?? {}, endpoint ?? defaultEndpoint);
+  const syncSuccess$ = new Subject<boolean>();
 
   // Observe any changes to the profiles, and serialize to disc
   manager.profiles$.subscribe((profileList) => {
@@ -71,14 +73,21 @@ export async function instantiateProfileManager({
         profiles,
         endpoint,
       }),
-    ).catch((err) => {
-      if (logger) {
-        logger.critical('PROFILE_PERSIST', 'Failed to serialize profiles to disc ' + err.message);
-      } else {
-        console.error('Failed to serialize profiles to disc', err);
-      }
-    });
+    ).then(
+      () => {
+        syncSuccess$.next(true);
+      },
+      (err) => {
+        syncSuccess$.next(false);
+        if (logger) {
+          logger.critical('PROFILE_PERSIST', 'Failed to serialize profiles to disc ' + err.message);
+        }
+      },
+    );
   });
 
-  return manager;
+  return {
+    manager,
+    syncSuccess$,
+  };
 }
