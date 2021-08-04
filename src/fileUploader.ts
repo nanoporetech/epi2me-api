@@ -10,7 +10,7 @@ import type { InputQueueMessage, UploadConfigurationSubset } from './fileUploade
 import { loadInputFiles } from './inputScanner';
 import { createQueue } from './queue';
 import { sleep } from './timers';
-import { isFastq } from './file_extensions';
+import { getNormalisedFileExtension, isFastq } from './file_extensions';
 import { FileUploadWarnings, UploadWarnings } from './fileUploader.type';
 import { splitter } from './splitters/fastq';
 import { filestats } from './filestats';
@@ -364,17 +364,20 @@ export function openReadStream(location: string, handler: (rs: fs.ReadStream) =>
   });
 }
 
-export function constructUploadParameters(ctx: UploadContext, file: FileStat, rs: fs.ReadStream): S3.PutObjectRequest {
+export function constructUploadParameters(
+  ctx: UploadContext,
+  file: FileStat,
+  rs: S3.PutObjectRequest['Body'],
+): S3.PutObjectRequest {
   const {
     settings: { bucket, sseKeyId, bucketFolder },
   } = ctx;
 
   // MC-8747
   // We previously generated the key from the relative path, but this could cause key collisions between different files
-  // to avoid this we now generate a sha1 hash of the absolute file path instead for the key
-  // const hashed = hashFilepath(file);
-  const ext = path.extname(file.relative);
-  const label = file.id + ext;
+  // to avoid this we now use the file id ( unique for the session ) instead
+  const ext = getNormalisedFileExtension(file.relative);
+  const label = `${file.id}.${ext}`;
   // path is `$ROOT/component-0/$LABEL/$LABEL`
   // each file gets it's own folder so the derived files have somewhere to go, hence the double $LABEL
   const key = [bucketFolder, 'component-0', label, label].join('/').replace(/\/+/g, '/');

@@ -1,4 +1,4 @@
-import { instantiateFileUpload, processFile, readSettings } from '../../src/fileUploader';
+import { constructUploadParameters, instantiateFileUpload, processFile, readSettings } from '../../src/fileUploader';
 import { EPI2ME_FS as EPI2ME, EPI2ME_FS } from '../../src/epi2me-fs';
 import { expect } from 'chai';
 import { DB } from '../../src/db';
@@ -1107,6 +1107,107 @@ describe('file uploader', () => {
       expect(ctx.warnings.filter(({ type }) => type === 'WARNING_FILE_SPLIT').length, 'File split warnings').to.equals(
         1,
       );
+    });
+  });
+
+  describe('constructUploadParameters', () => {
+    it('processes a plain fastq file correctly', () => {
+      expect(
+        constructUploadParameters(
+          uploadContextFactory({
+            bucket: 'a bucket',
+            bucketFolder: '0000-0000-1111',
+          }),
+          {
+            name: 'example.fastq',
+            path: '/source/example.fastq',
+            relative: 'example.fastq',
+            size: 42,
+            id: 'FILE_1',
+          },
+          undefined,
+        ),
+      ).to.deep.equal({
+        Bucket: 'a bucket',
+        Key: `0000-0000-1111/component-0/FILE_1.fastq/FILE_1.fastq`,
+        Body: undefined,
+        ContentLength: 42,
+      });
+    });
+
+    it('deals with gzipped fastq files', () => {
+      expect(
+        constructUploadParameters(
+          uploadContextFactory({
+            bucket: 'bucket ID',
+            bucketFolder: '/bucket/folder',
+          }),
+          {
+            name: 'example.fastq.gz',
+            path: '/source/experiment/pass/example.fastq.gz',
+            relative: 'pass/example.fastq.gz',
+            size: 4096,
+            id: 'FILE_2',
+          },
+          undefined,
+        ),
+      ).to.deep.equal({
+        Bucket: 'bucket ID',
+        Key: `/bucket/folder/component-0/FILE_2.fastq.gz/FILE_2.fastq.gz`,
+        Body: undefined,
+        ContentLength: 4096,
+      });
+    });
+
+    it('encodes sse key', () => {
+      expect(
+        constructUploadParameters(
+          uploadContextFactory({
+            bucket: 'bucket ID',
+            bucketFolder: '/bucket/folder',
+            sseKeyId: 'secret sauce',
+          }),
+          {
+            name: 'example.fastq.gz',
+            path: '/source/experiment/pass/example.fastq.gz',
+            relative: 'pass/example.fastq.gz',
+            size: 4096,
+            id: 'FILE_2',
+          },
+          undefined,
+        ),
+      ).to.deep.equal({
+        Bucket: 'bucket ID',
+        Key: `/bucket/folder/component-0/FILE_2.fastq.gz/FILE_2.fastq.gz`,
+        Body: undefined,
+        ContentLength: 4096,
+        SSEKMSKeyId: 'secret sauce',
+        ServerSideEncryption: 'aws:kms',
+      });
+    });
+
+    it('normalises fq files', () => {
+      expect(
+        constructUploadParameters(
+          uploadContextFactory({
+            bucket: 'bucket ID',
+            bucketFolder: '/bucket/folder',
+          }),
+          {
+            name: 'example.fq',
+            path: '/source/experiment/pass/example.fq',
+            relative: 'pass/example.fq',
+            size: 11,
+            id: 'FILE_3',
+          },
+          undefined,
+        ),
+      ).to.deep.equal({
+        Bucket: 'bucket ID',
+        Key: `/bucket/folder/component-0/FILE_3.fastq/FILE_3.fastq`,
+        Body: undefined,
+        ContentLength: 11,
+      });
     });
   });
 
