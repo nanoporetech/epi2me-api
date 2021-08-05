@@ -10,7 +10,7 @@ let idCounter = 0;
 
 export function createFileID(): string {
   idCounter += 1;
-  return `FILE_${idCounter.toString().padStart(4, '0')}`;
+  return `${idCounter.toString().padStart(4, '0')}`;
 }
 
 export function createExtensionFilter(filetypes: string | string[]): (base: string) => boolean {

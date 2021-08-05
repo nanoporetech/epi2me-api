@@ -10,7 +10,7 @@ import type { InputQueueMessage, UploadConfigurationSubset } from './fileUploade
 import { loadInputFiles } from './inputScanner';
 import { createQueue } from './queue';
 import { sleep } from './timers';
-import { getNormalisedFileExtension, isFastq } from './file_extensions';
+import { getFileName, getNormalisedFileExtension, isFastq } from './file_extensions';
 import { FileUploadWarnings, UploadWarnings } from './fileUploader.type';
 import { splitter } from './splitters/fastq';
 import { filestats } from './filestats';
@@ -242,7 +242,7 @@ export async function processFile(ctx: UploadContext, file: FileStat): Promise<v
 
         const name = path.basename(chunkFile);
         const relative = path.join(directory, name);
-        const id = `${file.id}_CHUNK_${chunkId.toString().padStart(4, '0')}`;
+        const id = `${file.id}-${chunkId.toString().padStart(4, '0')}`;
 
         const chunkFilestat: FileStat = {
           name,
@@ -375,9 +375,18 @@ export function constructUploadParameters(
 
   // MC-8747
   // We previously generated the key from the relative path, but this could cause key collisions between different files
-  // to avoid this we now use the file id ( unique for the session ) instead
+  // to avoid this we now insert the file id ( unique for the session ) into the name
+
+  // get our (normalized) extension
   const ext = getNormalisedFileExtension(file.relative);
-  const label = `${file.id}.${ext}`;
+  const filename = getFileName(file.relative);
+  // special case handling where there is no directory above the file
+  const directoryParts = file.relative === file.name ? [] : path.dirname(file.relative).split(/\/+/g);
+  // extract the parts of the relative path without the extension
+  const parts = [...directoryParts, `${filename}-${file.id}.${ext}`];
+  // rejoin the parts with underscore instead of slash, insert the file.id before the extension
+  const label = parts.join('_');
+
   // path is `$ROOT/component-0/$LABEL/$LABEL`
   // each file gets it's own folder so the derived files have somewhere to go, hence the double $LABEL
   const key = [bucketFolder, 'component-0', label, label].join('/').replace(/\/+/g, '/');
