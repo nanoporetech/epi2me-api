@@ -5,6 +5,7 @@ import path from 'path';
 import tmp from 'tmp';
 import { promises as fs } from 'fs';
 import { sleep } from '../src/timers';
+import { Duration } from '../src/Duration';
 
 async function deleteFile(filepath: string) {
   try {
@@ -75,6 +76,19 @@ describe('ProfileManager', () => {
     manager.create('second', { apikey: 'second' });
     assert.strictEqual([...manager.profileNames()].length, 2);
     assert.deepStrictEqual(manager.get('first'), { apikey: 'first', endpoint: 'endpoint.net' });
+  });
+  it('can rename entries', () => {
+    const manager = new ProfileManager(
+      {
+        example_a: { apikey: 'its a key', apisecret: 'its a secret' },
+      },
+      'endpoint.net',
+    );
+    assert.strictEqual([...manager.profileNames()].length, 1);
+    manager.rename('example_a', 'example_b');
+    assert.strictEqual([...manager.profileNames()].length, 1);
+    assert.deepStrictEqual(manager.get('example_a'), null);
+    assert.deepStrictEqual(manager.get('example_b', true), { apikey: 'its a key', apisecret: 'its a secret' });
   });
   it('returns a unique copy of a profile', () => {
     const manager = new ProfileManager({}, 'endpoint.net');
@@ -183,7 +197,7 @@ describe('ProfileManager', () => {
       await deleteFile(profilePath);
       await instantiateProfileManager({ filepath: profilePath });
       // hopefully long enough...
-      await sleep(50);
+      await sleep(Duration.Milliseconds(10));
       assert.strictEqual(await exists(profilePath), false);
     });
 
@@ -191,10 +205,9 @@ describe('ProfileManager', () => {
       const profilePath = path.join(tmp.dirSync().name, '.epi2me.json');
       // ensure no file at destination
       await deleteFile(profilePath);
-      const manager = await instantiateProfileManager({ filepath: profilePath });
+      const { manager } = await instantiateProfileManager({ filepath: profilePath });
       manager.create('bob', { apikey: 'bobskey' });
-      // hopefully long enough...
-      await sleep(50);
+      await sleep(Duration.Milliseconds(10));
       const contents = JSON.parse(await fs.readFile(profilePath, 'utf8'));
       assert.deepStrictEqual(contents, {
         profiles: {
@@ -234,7 +247,7 @@ describe('ProfileManager', () => {
         },
       };
       await fs.writeFile(profilePath, JSON.stringify(data));
-      const manager = await instantiateProfileManager({ filepath: profilePath, defaultEndpoint: 'endpoint.net' });
+      const { manager } = await instantiateProfileManager({ filepath: profilePath, defaultEndpoint: 'endpoint.net' });
       assert.strictEqual([...manager.profileNames()].length, 1);
       assert.deepStrictEqual(manager.get('bob'), { ...data.profiles.bob, endpoint: 'endpoint.net' });
     });
@@ -251,10 +264,10 @@ describe('ProfileManager', () => {
         },
       };
       await fs.writeFile(profilePath, JSON.stringify(data));
-      const manager = await instantiateProfileManager({ filepath: profilePath, defaultEndpoint: 'endpoint.net' });
+      const { manager } = await instantiateProfileManager({ filepath: profilePath, defaultEndpoint: 'endpoint.net' });
       assert.deepStrictEqual(manager.get('bob'), { ...data.profiles.bob, endpoint: 'special.net' });
       manager.create('alice', { apisecret: 'bobs secret' });
-      await sleep(50);
+      await sleep(Duration.Milliseconds(10));
       assert.deepStrictEqual(JSON.parse(await fs.readFile(profilePath, 'utf8')), {
         endpoint: 'special.net',
         profiles: {
@@ -267,7 +280,7 @@ describe('ProfileManager', () => {
         },
       });
       manager.delete('bob');
-      await sleep(50);
+      await sleep(Duration.Milliseconds(10));
       assert.deepStrictEqual(JSON.parse(await fs.readFile(profilePath, 'utf8')), {
         endpoint: 'special.net',
         profiles: {

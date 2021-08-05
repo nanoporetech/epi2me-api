@@ -66,6 +66,22 @@ export class ProfileManager {
     this.updateProfiles();
   }
 
+  rename(id: string, newName: string): void {
+    if (id === newName) {
+      throw new Error(`Unable to rename profile ${id} to ${newName} because it would have no effect`);
+    }
+    const credentials = this.profiles.get(id);
+    if (!credentials) {
+      throw new Error(`No profile exists with the name ${id}.`);
+    }
+    if (this.profiles.has(newName)) {
+      throw new Error(`A profile already exists with the name ${newName}.`);
+    }
+    this.profiles.delete(id);
+    this.profiles.set(newName, credentials);
+    this.updateProfiles();
+  }
+
   profileNames(): Iterable<string> {
     return this.profiles.keys();
   }
