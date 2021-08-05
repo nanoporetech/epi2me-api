@@ -5,6 +5,7 @@ import fs from 'fs';
 import path from 'path';
 import zlib from 'zlib';
 import { isDefined } from 'ts-runtime-typecheck';
+import { getFileExtension, getFileName } from '../file_extensions';
 
 const LINES_PER_READ = 4;
 
@@ -77,13 +78,12 @@ export async function completeChunk(chunk: Chunk, handler: (location: string) =>
 */
 export function getFilenameParts(location: string): { prefix: string; suffix: string } {
   const dirname = path.dirname(location);
-  const filename = path.basename(location);
-  const basenameMatch = filename.match(/^[^.]+/);
-  const basename = basenameMatch ? basenameMatch[0] : '';
+  const extension = getFileExtension(location);
+  const filename = getFileName(location);
 
   return {
-    prefix: path.join(dirname, basename),
-    suffix: filename.replace(basename, ''),
+    prefix: path.join(dirname, filename),
+    suffix: '.' + extension,
   };
 }
 

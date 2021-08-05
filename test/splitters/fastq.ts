@@ -202,6 +202,22 @@ describe('fastq splitter', () => {
           prefix: 'hello/where/file',
           suffix: '.fq.gz',
         });
+        assert.deepStrictEqual(getFilenameParts('hello/where/file.delta.fq.gz'), {
+          prefix: 'hello/where/file.delta',
+          suffix: '.fq.gz',
+        });
+        assert.deepStrictEqual(getFilenameParts('hello/where/file.delta..fq.gz'), {
+          prefix: 'hello/where/file.delta.',
+          suffix: '.fq.gz',
+        });
+        assert.deepStrictEqual(getFilenameParts('hello/where/file.delta.fq'), {
+          prefix: 'hello/where/file.delta',
+          suffix: '.fq',
+        });
+        assert.deepStrictEqual(getFilenameParts('hello/where/file.fastq'), {
+          prefix: 'hello/where/file',
+          suffix: '.fastq',
+        });
       });
     });
     describe('createChunk', () => {
