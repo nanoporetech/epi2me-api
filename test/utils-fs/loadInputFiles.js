@@ -98,7 +98,7 @@ describe('loadInputFiles', () => {
       relative: '1.fastq',
       size: 0,
       // 5 reads in this test suite, 10 in "fileUploader" = 15
-      id: 'FILE_0015',
+      id: '0015',
     });
   });
 

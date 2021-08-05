@@ -12,6 +12,48 @@ export function listValidExtensions(): string[] {
   return Array.from(VALID_EXTENSIONS);
 }
 
+export function getFileName(filepath: string): string {
+  const filename = basename(filepath);
+  const ext = getFileExtension(filename);
+  return filename.slice(0, -(ext.length + 1));
+}
+
+export function getFileExtension(filepath: string): string {
+  const filename = basename(filepath).toLowerCase();
+  const parts = filename.split('.');
+
+  // correct for private files
+  if (parts[0] === '') {
+    parts.shift();
+  }
+
+  // empty string has no extension
+  if (parts.length < 2) {
+    return '';
+  }
+
+  const last = asString(parts.pop()); // cannot fail
+  const isGzipped = last === 'gz';
+
+  // extract $EXT if in the format `{$FIlE}.{$EXT}.gz`
+  if (parts.length > 1 && isGzipped) {
+    const realExtension = asString(parts.pop()); // cannot fail
+    return `${realExtension}.gz`;
+  }
+
+  return last;
+}
+
+export function normaliseFileExtension(ext: string): string {
+  if (ext.endsWith('.gz')) {
+    const realExtension = ext.startsWith('.') ? ext.slice(1, -3) : ext.slice(0, -3);
+    return `${SHORTHAND_LOOKUP.get(realExtension) ?? realExtension}.gz`;
+  } else {
+    const realExtension = ext.startsWith('.') ? ext.slice(1) : ext;
+    return SHORTHAND_LOOKUP.get(realExtension) ?? realExtension;
+  }
+}
+
 export function getNormalisedFileExtension(filepath: string): string {
   const filename = basename(filepath).toLowerCase();
   const parts = filename.split('.');
