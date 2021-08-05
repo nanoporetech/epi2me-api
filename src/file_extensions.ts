@@ -1,5 +1,4 @@
-import { basename } from 'path';
-import { asString } from 'ts-runtime-typecheck';
+import { basename, parse, extname } from 'path';
 
 const SHORTHAND_LOOKUP = new Map([
   ['fq', 'fastq'],
@@ -19,65 +18,32 @@ export function getFileName(filepath: string): string {
 }
 
 export function getFileExtension(filepath: string): string {
-  const filename = basename(filepath).toLowerCase();
-  const parts = filename.split('.');
+  const { ext: last, name } = parse(filepath);
 
-  // correct for private files
-  if (parts[0] === '') {
-    parts.shift();
+  if (last.toLowerCase() === '.gz' && name.includes('.', 1)) {
+    const ext = extname(name).slice(1);
+    return `${ext}.gz`;
+  } else {
+    return last.toLowerCase().slice(1);
   }
-
-  // empty string has no extension
-  if (parts.length < 2) {
-    return '';
-  }
-
-  const last = asString(parts.pop()); // cannot fail
-  const isGzipped = last === 'gz';
-
-  // extract $EXT if in the format `{$FIlE}.{$EXT}.gz`
-  if (parts.length > 1 && isGzipped) {
-    const realExtension = asString(parts.pop()); // cannot fail
-    return `${realExtension}.gz`;
-  }
-
-  return last;
 }
 
 export function normaliseFileExtension(ext: string): string {
-  if (ext.endsWith('.gz')) {
-    const realExtension = ext.startsWith('.') ? ext.slice(1, -3) : ext.slice(0, -3);
-    return `${SHORTHAND_LOOKUP.get(realExtension) ?? realExtension}.gz`;
-  } else {
-    const realExtension = ext.startsWith('.') ? ext.slice(1) : ext;
-    return SHORTHAND_LOOKUP.get(realExtension) ?? realExtension;
+  let normalised = ext.toLowerCase();
+  if (normalised.startsWith('.')) {
+    normalised = normalised.slice(1);
   }
+  let suffix = '';
+  if (normalised.endsWith('.gz')) {
+    suffix = '.gz';
+    normalised = normalised.slice(0, -3);
+  }
+  normalised = SHORTHAND_LOOKUP.get(normalised) ?? normalised;
+  return normalised + suffix;
 }
 
 export function getNormalisedFileExtension(filepath: string): string {
-  const filename = basename(filepath).toLowerCase();
-  const parts = filename.split('.');
-
-  // correct for private files
-  if (parts[0] === '') {
-    parts.shift();
-  }
-
-  // empty string has no extension
-  if (parts.length < 2) {
-    return '';
-  }
-
-  const last = asString(parts.pop()); // cannot fail
-  const isGzipped = last === 'gz';
-
-  // extract $EXT if in the format `{$FIlE}.{$EXT}.gz`
-  if (parts.length > 1 && isGzipped) {
-    const realExtension = asString(parts.pop()); // cannot fail
-    return `${SHORTHAND_LOOKUP.get(realExtension) ?? realExtension}.gz`;
-  }
-
-  return SHORTHAND_LOOKUP.get(last) ?? last;
+  return normaliseFileExtension(getFileExtension(filepath));
 }
 
 export function isValidExtension(filepath: string): boolean {
