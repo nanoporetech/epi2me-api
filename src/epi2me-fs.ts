@@ -126,7 +126,7 @@ export class EPI2ME_FS extends EPI2ME {
     return new AWS.S3({
       useAccelerateEndpoint: this.config.options.awsAcceleration === 'on',
       ...options,
-      region: this.config.options.region,
+      region: this.config.instance.region,
       credentials,
     });
   }
@@ -135,7 +135,7 @@ export class EPI2ME_FS extends EPI2ME {
     const credentials = new Epi2meCredentials(this.fetchToken, this.config.options.sessionGrace);
     return new AWS.SQS({
       ...options,
-      region: this.config.options.region,
+      region: this.config.instance.region,
       credentials,
     });
   }
@@ -330,15 +330,17 @@ export class EPI2ME_FS extends EPI2ME {
 
   setClassConfigGQL(result: FetchResult<ResponseStartWorkflow>): void {
     const startData = result.data?.startData;
-    const instance = startData?.instance;
-    const workflowImage = instance?.workflowImage;
-    const { bucket, idUser, remoteAddr } = startData ?? {};
-    const { outputqueue, keyId, startDate, idWorkflowInstance, mappedTelemetry, telemetryNames } = instance ?? {};
+    assertDefined(startData, 'Workflow Start Data');
+    const { instance, bucket, idUser, remoteAddr } = startData;
+    assertDefined(instance, 'Workflow Instance');
 
-    const chain = isString(instance?.chain) ? asString(instance?.chain) : asDictionary(instance?.chain);
-    const name = workflowImage?.region.name;
-    const idWorkflow = asOptIndex(workflowImage?.workflow.idWorkflow);
-    const inputqueue = workflowImage?.inputqueue;
+    const { workflowImage, outputqueue, keyId, startDate, idWorkflowInstance, mappedTelemetry, telemetryNames } =
+      instance;
+
+    const chain = isString(instance.chain) ? asString(instance.chain) : asDictionary(instance.chain);
+    const regionName = workflowImage.region.name;
+    const idWorkflow = asOptIndex(workflowImage.workflow.idWorkflow);
+    const inputqueue = workflowImage.inputqueue;
 
     const map = {
       bucket: asOptString(bucket),
@@ -352,7 +354,7 @@ export class EPI2ME_FS extends EPI2ME {
       telemetryNames: asOptDictionaryOf(isDictionaryOf(isString))(telemetryNames),
       inputQueueName: asOptString(inputqueue),
       id_workflow: idWorkflow,
-      region: asString(name, this.config.options.region),
+      region: regionName,
       bucketFolder: `${outputqueue}/${idUser}/${idWorkflowInstance}`,
       chain: utils.convertResponseToObject(chain),
     };
