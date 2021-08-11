@@ -1191,7 +1191,10 @@ export class EPI2ME_FS extends EPI2ME {
         (async (): Promise<JSONObject | null> => {
           let body;
           try {
-            body = (await this.REST.fetchContent(url)) as JSONObject;
+            body = await this.REST.fetchContent(url);
+            if (body === null) {
+              return null;
+            }
             this.log.debug(`fetched telemetry summary ${fn}`);
             this.reportState$.next(true);
           } catch (err) {
