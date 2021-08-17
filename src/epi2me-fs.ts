@@ -432,6 +432,14 @@ export class EPI2ME_FS extends EPI2ME {
     // MC-7108 use common epi2me working folder
     const instancesDir = path.join(rootDir(), 'instances');
     const thisInstanceDir = path.join(instancesDir, makeString(this.config.instance.id_workflow_instance));
+    try {
+      await fs.mkdirp(thisInstanceDir);
+    } catch (err) {
+      if (err.code !== 'EEXIST') {
+        this.log.error('Failed to create instance folder');
+        throw err;
+      }
+    }
     // set up new tracking database
     this.db = new DB(
       thisInstanceDir,
