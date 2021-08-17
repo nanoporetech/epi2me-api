@@ -4,7 +4,7 @@
  */
 import type { Logger } from './Logger.type';
 import type { AxiosResponse } from 'axios';
-import type { Index, Dictionary, UnknownFunction } from 'ts-runtime-typecheck';
+import type { Index, Dictionary, UnknownFunction, JSONObject } from 'ts-runtime-typecheck';
 import type { AsyncCallback } from './rest.type';
 import type { Configuration } from './Configuration.type';
 
@@ -35,7 +35,7 @@ export class REST {
     string,
     {
       etag: string;
-      response: Dictionary;
+      response: JSONObject;
     }
   > = new Map();
 
@@ -430,7 +430,7 @@ export class REST {
     return datasets.find((o) => o.id_dataset === id);
   }
 
-  async fetchContent(url: string): Promise<Dictionary> {
+  async fetchContent(url: string): Promise<JSONObject | null> {
     const options = {
       ...this.options,
       skip_url_mangle: true,
@@ -448,11 +448,23 @@ export class REST {
       if (etag && cachedRes && cachedRes.etag === etag) {
         return cachedRes.response;
       }
-    } catch (headException) {
-      this.log.warn(`Failed to HEAD request ${url}: ${String(headException)}`);
+    } catch (err) {
+      if (err instanceof Error) {
+        const { message } = err;
+        // this is the standard reason for the error, and it's not really an error. Just that the report isn't ready yet
+        // so lets make the error less scary
+        if (message !== 'Network error 404') {
+          this.log.warn(`Failed to HEAD request ${url}: ${message}`);
+        }
+      }
+      // something that isn't an error got thrown, great! try and convert to a string...
+      else {
+        this.log.warn(`Failed to HEAD request ${url}: ${String(err)}`);
+      }
+      return null;
     }
 
-    const response = await utils.get(url, options);
+    const response = (await utils.get(url, options)) as JSONObject;
     // cache only if the URLs endpoint supports HEAD requests with etag in the response
     if (etag) {
       this.cachedResponses.set(url, {
