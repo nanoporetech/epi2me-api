@@ -34,7 +34,7 @@
     "graphql": "^15.5.1",
     "graphql-tag": "^2.12.5",
     "immutable": "^4.0.0-rc.14",
-    "proxy-agent": "^4.0.1",
+    "proxy-agent": "^5.0.0",
     "rxjs": ">=6.6.3",
     "socket.io-client": "^2.4.0",
     "sqlite": "^4.0.23",
@@ -42,7 +42,7 @@
     "ts-runtime-typecheck": "^2.3.0"
   },
   "devDependencies": {
-    "@graphql-codegen/cli": "1.21.7",
+    "@graphql-codegen/cli": "^2.1.1",
     "@graphql-codegen/typescript": "1.23.0",
     "@rollup/plugin-commonjs": "^19.0.0",
     "@rollup/plugin-json": "^4.1.0",
