@@ -14,7 +14,7 @@ export class GraphQLFS extends GraphQL {
   }
 
   initClient = (): ApolloClient<NormalizedCacheObject> => {
-    return createClient(() => {
+    return createClient(this.log, () => {
       return (uri: RequestInfo, init: RequestInit = {}): Promise<Response> => {
         const newInit = {
           ...init,
