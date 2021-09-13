@@ -90,7 +90,7 @@ export class GraphQL {
   }
 
   initClient = (): ApolloClient<NormalizedCacheObject> => {
-    return createClient(() => {
+    return createClient(this.log, () => {
       return (uri: RequestInfo, init: RequestInit = {}): Promise<Response> => {
         const headers = writeCommonHeaders({ headers: new Headers(init.headers) });
         headers.set('Authorization', `Bearer ${this.options.jwt}`);

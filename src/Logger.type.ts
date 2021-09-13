@@ -8,4 +8,4 @@ export interface Logger {
   critical(id: CriticalErrorId, reason: string): void;
 }
 
-export type CriticalErrorId = 'UNKNOWN' | 'FS_FAILURE' | 'PROFILE_PERSIST';
+export type CriticalErrorId = 'UNKNOWN' | 'FS_FAILURE' | 'PROFILE_PERSIST' | 'UNAUTHENTICATED' | 'CLOCK_OFFSET';
