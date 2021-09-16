@@ -33,7 +33,7 @@ export function createClient(logger: Logger, setup: () => typeof fetch): ApolloC
         }
       });
     });
-    return execute(from([httpLink, errorLink]), operation);
+    return execute(from([errorLink, httpLink]), operation);
   });
 
   const cache = new InMemoryCache();
