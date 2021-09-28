@@ -36,7 +36,7 @@ export interface EPI2ME_OPTIONS {
 
   // EPI2ME-FS options
   inputFolder?: string;
-  inputFolders: string[];
+  inputFolders?: string[];
   outputFolder?: string;
   awsAcceleration?: string;
   agent_address?: string;

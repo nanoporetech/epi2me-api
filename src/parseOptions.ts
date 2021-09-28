@@ -17,6 +17,7 @@ import {
   isString,
   asOptIndex,
   asOptFunction,
+  asOptArrayOf,
 } from 'ts-runtime-typecheck';
 import { Duration } from './Duration';
 
@@ -98,7 +99,7 @@ export function parseOptions(opt: Partial<EPI2ME_OPTIONS>): Configuration['optio
     debounceWindow: Duration.Seconds(asNumber(opt.debounceWindow, DEFAULTS.debounceWindow)),
     proxy: asOptString(opt.proxy),
     // EPI2ME-FS options
-    inputFolders: asArrayOf(isString)(opt.inputFolders, []),
+    inputFolders: asOptArrayOf(isString)(opt.inputFolders),
     outputFolder: asOptString(opt.outputFolder),
     awsAcceleration: asOptString(opt.awsAcceleration),
     agent_address: asOptString(opt.agent_address),
@@ -108,6 +109,9 @@ export function parseOptions(opt: Partial<EPI2ME_OPTIONS>): Configuration['optio
   };
 
   if (opt.inputFolder) {
+    if (!options.inputFolders) {
+      options.inputFolders = [];
+    }
     options.inputFolders.push(asString(opt.inputFolder));
   }
 
