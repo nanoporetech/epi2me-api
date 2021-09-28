@@ -53,6 +53,7 @@
     "@types/mocha": "^8.2.3",
     "@types/sinon": "^10.0.2",
     "@types/socket.io-client": "^1.4.36",
+    "@types/tmp": "^0.2.1",
     "@typescript-eslint/eslint-plugin": "^4.28.3",
     "@typescript-eslint/parser": "^4.28.3",
     "bunyan": "^1.8.15",

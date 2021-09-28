@@ -25,7 +25,7 @@ export interface Configuration {
     idWorkflowInstance?: Index;
     idDataset?: Index;
     proxy?: string;
-    inputFolders: string[];
+    inputFolders?: string[];
     outputFolder?: string;
     awsAcceleration?: string;
     agent_address?: string;

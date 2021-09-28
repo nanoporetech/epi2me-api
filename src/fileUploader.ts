@@ -60,6 +60,8 @@ export function instantiateFileUpload(instance: EPI2ME_FS): () => Promise<void> 
     stopped$,
   };
 
+  assertDefined(inputFolders, 'inputFolders');
+
   const scanner = createFileScanner({
     database,
     inputFolders,

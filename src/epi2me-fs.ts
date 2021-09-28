@@ -9,7 +9,7 @@ import type { Readable, Writable } from 'stream';
 import type { PromiseResult } from 'aws-sdk/lib/request';
 import type { FetchResult } from '@apollo/client/core';
 import type { Configuration } from './Configuration.type';
-import type { JSONObject, Dictionary, Index } from 'ts-runtime-typecheck';
+import { JSONObject, Dictionary, Index, isDefined } from 'ts-runtime-typecheck';
 import type { ResponseStartWorkflow } from './graphql.type';
 import type { InstanceAttribute } from './factory.type';
 import type { EPI2ME_OPTIONS } from './epi2me-options.type';
@@ -389,6 +389,12 @@ export class EPI2ME_FS extends EPI2ME {
     }
   }
 
+  // WARN
+  // the purpose of this function is somewhat confused
+  // it is used after the instance is created, but validates
+  // some of the input parameters!
+  // we should replace it with a linear "validate, instantiate, run" flow
+  // when we depreciate and remove REST
   async autoConfigure<T>(instance: T, autoStartCb?: (msg: string) => void): Promise<T> {
     /*
     Ensure
@@ -404,12 +410,28 @@ export class EPI2ME_FS extends EPI2ME {
      * chain
      */
 
-    if (!this.config.options.inputFolders.length) {
-      throw new Error('must set inputFolder');
+    // NOTE these errors check the options
+
+    const { inputFolders, idDataset } = this.config.options;
+    const usingDataset = isDefined(idDataset);
+
+    if (isDefined(inputFolders)) {
+      if (usingDataset) {
+        throw new Error('cannot use a dataset and folders as an input');
+      }
+      if (inputFolders.length === 0) {
+        throw new Error('no input folders specified');
+      }
+    } else if (!usingDataset) {
+      throw new Error('no input folders specified');
     }
+
     if (!this.config.options.outputFolder) {
       throw new Error('must set outputFolder');
     }
+
+    // NOTE these errors check the instance
+
     if (!this.config.instance.bucketFolder) {
       throw new Error('bucketFolder must be set');
     }
@@ -419,6 +441,8 @@ export class EPI2ME_FS extends EPI2ME {
     if (!this.config.instance.outputQueueName) {
       throw new Error('outputQueueName must be set');
     }
+
+    // NOTE now for actual setup
 
     try {
       await fs.mkdirp(this.config.options.outputFolder);
@@ -440,15 +464,19 @@ export class EPI2ME_FS extends EPI2ME {
         throw err;
       }
     }
-    // set up new tracking database
-    this.db = new DB(
-      thisInstanceDir,
-      {
-        idWorkflowInstance: makeString(this.config.instance.id_workflow_instance),
-        inputFolders: this.config.options.inputFolders,
-      },
-      this.log,
-    );
+
+    // NOTE don't need the database if we're running from a dataset
+    if (inputFolders) {
+      // set up new tracking database
+      this.db = new DB(
+        thisInstanceDir,
+        {
+          idWorkflowInstance: makeString(this.config.instance.id_workflow_instance),
+          inputFolders,
+        },
+        this.log,
+      );
+    }
 
     // MC-1828 - include instance id in telemetry file name
     const fileName = this.config.instance.id_workflow_instance
@@ -556,12 +584,16 @@ export class EPI2ME_FS extends EPI2ME {
     });
 
     this.reportProgress();
-    this.uploadState$.next(true);
 
-    const startUpload = instantiateFileUpload(this);
+    // NOTE don't need the uploader if we are running from a dataset
+    if (inputFolders) {
+      this.uploadState$.next(true);
 
-    // WARN this is async, but doesn't exit until the upload has been stopped
-    startUpload();
+      const startUpload = instantiateFileUpload(this);
+
+      // WARN this is async, but doesn't exit until the upload has been stopped
+      startUpload();
+    }
 
     return instance;
   }
