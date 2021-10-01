@@ -27,6 +27,7 @@ import {
   isIndexable,
   isDictionary,
 } from 'ts-runtime-typecheck';
+import { getErrorMessage, wrapAndLogError } from './NodeError';
 
 export class REST {
   options: Configuration['options'];
@@ -226,12 +227,12 @@ export class REST {
         throw new Error(workflow.error + '');
       }
     } catch (err) {
-      this.log.error(`${id}: error fetching workflow ${String(err)}`);
+      const wrappedError = wrapAndLogError(`${id} error fetching workflow`, err, this.log);
       if (cb) {
-        cb(err);
+        cb(wrappedError);
         return;
       }
-      throw err;
+      throw wrappedError;
     }
 
     workflow = {
@@ -249,12 +250,12 @@ export class REST {
         ...workflowConfig,
       };
     } catch (err) {
-      this.log.error(`${id}: error fetching workflow config ${String(err)}`);
+      const wrappedError = wrapAndLogError(`${id} error fetching workflow config`, err, this.log);
       if (cb) {
-        cb(err);
+        cb(wrappedError);
         return;
       }
-      throw err;
+      throw wrappedError;
     }
 
     // NOTE it would appear that params can be either an array or an object, the tests are not consistent
@@ -282,12 +283,13 @@ export class REST {
         try {
           workflowParam = await utils.get(uri, this.options);
         } catch (err) {
-          this.log.error(`failed to fetch ${uri}`);
+          const wrappedError = wrapAndLogError(`failed to fetch ${uri}`, err, this.log);
+
           if (cb) {
-            cb(err);
+            cb(wrappedError);
             return;
           }
-          throw err;
+          throw wrappedError;
         }
         // e.g. {datasets:[...]} from the /dataset.json list response
         // NOTE unclear if data_root is number | string
@@ -313,11 +315,12 @@ export class REST {
         cb(null, workflow);
       }
     } catch (err) {
-      this.log.error(`${id}: error fetching config and parameters ${String(err)}`);
+      const wrappedError = wrapAndLogError(`${id}: error fetching config and parameters`, err, this.log);
+
       if (cb) {
-        cb(err);
+        cb(wrappedError);
       } else {
-        throw err;
+        throw wrappedError;
       }
     }
     return workflow;
@@ -449,17 +452,11 @@ export class REST {
         return cachedRes.response;
       }
     } catch (err) {
-      if (err instanceof Error) {
-        const { message } = err;
-        // this is the standard reason for the error, and it's not really an error. Just that the report isn't ready yet
-        // so lets make the error less scary
-        if (message !== 'Network error 404') {
-          this.log.warn(`Failed to HEAD request ${url}: ${message}`);
-        }
-      }
-      // something that isn't an error got thrown, great! try and convert to a string...
-      else {
-        this.log.warn(`Failed to HEAD request ${url}: ${String(err)}`);
+      const message = getErrorMessage(err);
+      // this is the standard reason for the error, and it's not really an error. Just that the report isn't ready yet
+      // so lets make the error less scary
+      if (message !== 'Network error 404') {
+        this.log.warn(`Failed to HEAD request ${url}: ${message}`);
       }
       return null;
     }

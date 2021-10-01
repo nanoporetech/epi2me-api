@@ -30,7 +30,7 @@ export interface DownloadState {
   progress: ProgressState;
   success: SuccessState;
   fail: number;
-  failure?: Dictionary;
+  failure?: Dictionary<number>;
   //        failure: {}, // failed download count by error message
   types: Dictionary<number>; // completely downloaded file counts by file type {".fastq": 17, ".vcf": 1}
   niceTypes: string; // "17 .fastq, 1.vcf"

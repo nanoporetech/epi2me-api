@@ -33,6 +33,7 @@ import { createUploadState, createDownloadState } from './epi2me-state';
 import { createInterval } from './timers';
 import { parseOptions } from './parseOptions';
 import { filter, mapTo, skipWhile, takeWhile } from 'rxjs/operators';
+import { wrapAndLogError } from './NodeError';
 export class EPI2ME {
   static version = utils.version;
   static utils = utils;
@@ -224,9 +225,8 @@ export class EPI2ME {
           await this.REST.stopWorkflow(idWorkflowInstance);
         }
         this.analyseState$.next(false);
-      } catch (stopException) {
-        this.log.error(`Error stopping instance: ${String(stopException)}`);
-        throw stopException;
+      } catch (err) {
+        throw wrapAndLogError('error stopping instance', err, this.log);
       }
 
       this.log.info(`workflow instance ${idWorkflowInstance} stopped`);
@@ -303,21 +303,21 @@ export class EPI2ME {
     // Prettify new totals
     try {
       state.success.niceReads = niceSize(this.states[direction].success.reads);
-    } catch (ignore) {
+    } catch {
       state.success.niceReads = 0;
     }
 
     try {
       // complete plus in-transit
       state.progress.niceSize = niceSize(state.success.bytes + state.progress.bytes ?? 0);
-    } catch (ignore) {
+    } catch {
       state.progress.niceSize = 0;
     }
 
     try {
       // complete
       state.success.niceSize = niceSize(this.states[direction].success.bytes);
-    } catch (ignore) {
+    } catch {
       state.success.niceSize = 0;
     }
 
@@ -352,21 +352,21 @@ export class EPI2ME {
     // Prettify new totals
     try {
       state.success.niceReads = niceSize(this.states[direction].success.reads);
-    } catch (ignore) {
+    } catch {
       state.success.niceReads = 0;
     }
 
     try {
       // complete plus in-transit
       state.progress.niceSize = niceSize(state.success.bytes + state.progress.bytes ?? 0);
-    } catch (ignore) {
+    } catch {
       state.progress.niceSize = 0;
     }
 
     try {
       // complete
       state.success.niceSize = niceSize(this.states[direction].success.bytes);
-    } catch (ignore) {
+    } catch {
       state.success.niceSize = 0;
     }
 

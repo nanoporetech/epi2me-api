@@ -1,6 +1,6 @@
 {
   "name": "@metrichor/epi2me-api",
-  "version": "5.1.1453",
+  "version": "5.1.1703",
   "license": "MPL-2.0",
   "repository": "git@github.com:nanoporetech/epi2me-api.git",
   "description": "API for communicating with the EPI2ME website(s)",
@@ -79,7 +79,7 @@
     "tmp": "^0.2.1",
     "ts-node": "^10.1.0",
     "ts-protoc-gen": "^0.12.0",
-    "typescript": "^4.3.5"
+    "typescript": "^4.4.3"
   },
   "browserslist": [
     ">0.2%",

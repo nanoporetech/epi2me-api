@@ -11,14 +11,7 @@ import { BehaviorSubject, Subject, merge } from 'rxjs';
 import { withLatestFrom, map, mapTo } from 'rxjs/operators';
 import { Map as ImmutableMap } from 'immutable';
 import { Telemetry } from './telemetry';
-
-function printError(log: Logger, msg: string, err: unknown): void {
-  if (err instanceof Error) {
-    log.error(msg, err.stack);
-  } else {
-    log.error(msg, err);
-  }
-}
+import { wrapAndLogError } from './NodeError';
 
 /*
 Factory seems to be designed with the intention that a version of the EPI2ME
@@ -99,6 +92,7 @@ export class Factory {
   }
 
   getRunningInstance(id: Index): EPI2ME_FS | undefined {
+    // eslint-disable-next-line rxjs/no-subject-value
     return this.runningInstances$.getValue().get(id);
   }
 
@@ -132,12 +126,12 @@ export class Factory {
     try {
       await inst.autoStart(workflowConfig);
       this.manageInstance(inst);
-    } catch (startErr) {
-      printError(this.log, 'Experienced error starting', startErr);
+    } catch (err) {
+      wrapAndLogError('experienced error starting', err, this.log);
       try {
         await inst.stopEverything();
-      } catch (stopErr) {
-        printError(this.log, 'Also experienced error stopping', stopErr);
+      } catch (err) {
+        wrapAndLogError('also experienced error stopping', err, this.log);
       }
     }
     return inst;
@@ -152,12 +146,12 @@ export class Factory {
     try {
       await inst.autoStartGQL(variables);
       this.manageInstance(inst);
-    } catch (startErr) {
-      printError(this.log, 'Experienced error starting', startErr);
+    } catch (err) {
+      wrapAndLogError('experienced error starting', err, this.log);
       try {
         await inst.stopEverything();
-      } catch (stopErr) {
-        printError(this.log, 'Also experienced error stopping', stopErr);
+      } catch (err) {
+        wrapAndLogError('also experienced error stopping', err, this.log);
       }
     }
     return inst;

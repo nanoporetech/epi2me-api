@@ -6,6 +6,7 @@ import path from 'path';
 import zlib from 'zlib';
 import { isDefined } from 'ts-runtime-typecheck';
 import { getFileExtension, getFileName } from '../file_extensions';
+import { asNodeError } from '../NodeError';
 
 const LINES_PER_READ = 4;
 
@@ -58,7 +59,7 @@ export async function completeChunk(chunk: Chunk, handler: (location: string) =>
     try {
       await fs.promises.unlink(chunk.location);
     } catch (err) {
-      if (err.code !== 'ENOENT') {
+      if (asNodeError(err).code !== 'ENOENT') {
         throw err;
       }
     }

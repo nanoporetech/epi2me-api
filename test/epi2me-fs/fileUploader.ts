@@ -367,7 +367,7 @@ describe('file uploader', () => {
     const uploader = await instantiateFileUpload(instance);
     const didComplete = uploader();
 
-    await sleep(Duration.Milliseconds(10));
+    await sleep(Duration.Milliseconds(50));
 
     stop();
     await didComplete;
@@ -700,7 +700,7 @@ describe('file uploader', () => {
     await didComplete;
 
     expect(instance.states.upload.failure).to.deep.equal({
-      'Error: Unexpected chain definition': 1,
+      'Unexpected chain definition': 1,
     });
   });
 

@@ -91,7 +91,7 @@ export class REST_FS extends REST {
         let workflow;
         try {
           workflow = fs.readJsonSync(filename);
-        } catch (ignore) {
+        } catch {
           workflow = {
             id_workflow: '-',
             description: '-',

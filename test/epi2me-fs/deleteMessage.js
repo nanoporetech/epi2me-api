@@ -2,6 +2,8 @@ import assert from 'assert';
 import sinon from 'sinon';
 import { merge } from 'lodash';
 import AWS from 'aws-sdk';
+import { expect } from 'chai';
+import { syncify } from '../../test-helpers/syncify';
 import { EPI2ME_FS as EPI2ME } from '../../src/epi2me-fs';
 
 describe('epi2me.deleteMessage', () => {
@@ -127,19 +129,15 @@ describe('epi2me.deleteMessage', () => {
     sinon.stub(client, 'discoverQueue').resolves('http://my-output-queue.eu-test-1.aws.com');
     sinon.stub(sqs, 'deleteMessage').throws(new Error('deleteMessage failed'));
 
-    try {
-      await client.deleteMessage({
-        message: 'test message',
-        ReceiptHandle: 'abcd-1234',
-      });
-    } catch (error) {
-      assert.ok(String(error).match(/deleteMessage failed/), 'thrown error message');
-    }
+    const testMessage = {
+      message: 'test message',
+      ReceiptHandle: 'abcd-1234',
+    };
 
-    assert.ok(
-      client.log.error.args[0][0].match(/exception.*deleteMessage failed/),
-      `exception message logged. was ${client.log.error.args[0][0]}`,
-    );
+    const syncResult = await syncify(() => client.deleteMessage(testMessage));
+
+    expect(syncResult).to.throw('deleteMessage error\n\tdeleteMessage failed');
+    expect(client.log.error.firstCall.firstArg).equals('deleteMessage error\n\tdeleteMessage failed');
   });
 
   it('should invoke sqs.deleteMessage with discovery failure and counter set', async () => {
@@ -151,20 +149,19 @@ describe('epi2me.deleteMessage', () => {
         sqs,
     );
 
-    sinon.stub(client, 'discoverQueue').rejects('could not connect');
+    sinon.stub(client, 'discoverQueue').rejects(new Error('could not connect'));
     const deleteMessage = sinon.stub();
 
-    try {
-      await client.deleteMessage({
-        message: 'test message',
-        ReceiptHandle: 'abcd-1234',
-      });
-    } catch (error) {
-      assert.ok(String(error).match(/could not connect/), 'thrown error message');
-    }
+    const testMessage = {
+      message: 'test message',
+      ReceiptHandle: 'abcd-1234',
+    };
 
-    assert.ok(deleteMessage.notCalled, 'sqs.deleteMessage is not invoked if queue discovery fails');
-    assert.equal(client.states.download.failure['could not connect'], 1, 'failure type counter set');
+    const syncResult = await syncify(() => client.deleteMessage(testMessage));
+
+    expect(syncResult).to.throw('deleteMessage error\n\tcould not connect');
+    expect(deleteMessage.notCalled).to.be.true;
+    expect(client.states.download.failure['deleteMessage error\n\tcould not connect']).equals(1);
   });
 
   it('should invoke sqs.deleteMessage with discovery failure and counter increment', async () => {
@@ -176,23 +173,22 @@ describe('epi2me.deleteMessage', () => {
         sqs,
     );
 
-    sinon.stub(client, 'discoverQueue').rejects('could not connect');
+    sinon.stub(client, 'discoverQueue').rejects(new Error('could not connect'));
     const deleteMessage = sinon.stub();
 
     client.states.download.failure = {
-      'could not connect': 7,
+      'deleteMessage error\n\tcould not connect': 7,
     };
 
-    try {
-      await client.deleteMessage({
-        message: 'test message',
-        ReceiptHandle: 'abcd-1234',
-      });
-    } catch (error) {
-      assert.ok(String(error).match(/could not connect/), 'thrown error message');
-    }
+    const testMessage = {
+      message: 'test message',
+      ReceiptHandle: 'abcd-1234',
+    };
 
-    assert.ok(deleteMessage.notCalled, 'sqs.deleteMessage is not invoked if queue discovery fails');
-    assert.equal(client.states.download.failure['could not connect'], 8, 'failure type counter incremented');
+    const syncResult = await syncify(() => client.deleteMessage(testMessage));
+
+    expect(syncResult).to.throw('deleteMessage error\n\tcould not connect');
+    expect(deleteMessage.notCalled).to.be.true;
+    expect(client.states.download.failure['deleteMessage error\n\tcould not connect']).equals(8);
   });
 });

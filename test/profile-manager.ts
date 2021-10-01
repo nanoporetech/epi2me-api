@@ -6,12 +6,13 @@ import tmp from 'tmp';
 import { promises as fs } from 'fs';
 import { sleep } from '../src/timers';
 import { Duration } from '../src/Duration';
+import { asNodeError } from '../src/NodeError';
 
 async function deleteFile(filepath: string) {
   try {
     await fs.unlink(filepath);
   } catch (err) {
-    if (err.code !== 'ENOENT') {
+    if (asNodeError(err).code !== 'ENOENT') {
       throw err;
     }
   }
@@ -22,7 +23,7 @@ async function exists(filepath: string) {
     await fs.stat(filepath);
     return true;
   } catch (err) {
-    if (err.code !== 'ENOENT') {
+    if (asNodeError(err).code !== 'ENOENT') {
       throw err;
     }
   }

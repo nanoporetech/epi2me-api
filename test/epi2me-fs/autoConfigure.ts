@@ -40,7 +40,7 @@ describe('epi2me.autoConfigure', () => {
   it('should require inputFolder', async () => {
     const client = clientFactory();
 
-    const syncResult = await syncify(() => client.autoConfigure({}, sinon.fake()));
+    const syncResult = await syncify(() => client.autoConfigure({}));
     expect(syncResult).throws('no input folders specified');
   });
 
@@ -50,7 +50,7 @@ describe('epi2me.autoConfigure', () => {
       outputFolder: path.join(tmpDir.name, 'output'),
     });
 
-    const syncResult = await syncify(() => client.autoConfigure({}, sinon.fake()));
+    const syncResult = await syncify(() => client.autoConfigure({}));
     // this error is our "backstop" that throws
     // when the instance hasn't been set
     expect(syncResult).throws('bucketFolder must be set');
@@ -62,7 +62,7 @@ describe('epi2me.autoConfigure', () => {
       inputFolder: path.join(tmpDir.name, 'input'),
     });
 
-    const syncResult = await syncify(() => client.autoConfigure({}, sinon.fake()));
+    const syncResult = await syncify(() => client.autoConfigure({}));
     expect(syncResult).throws('cannot use a dataset and folders as an input');
   });
 
@@ -71,7 +71,7 @@ describe('epi2me.autoConfigure', () => {
       inputFolder: path.join(tmpDir.name, 'input'),
     });
 
-    const syncResult = await syncify(() => client.autoConfigure({}, sinon.fake()));
+    const syncResult = await syncify(() => client.autoConfigure({}));
     expect(syncResult).throws('must set outputFolder');
   });
 
@@ -81,7 +81,7 @@ describe('epi2me.autoConfigure', () => {
       outputFolder: path.join(tmpDir.name, 'output'),
     });
 
-    const syncResult = await syncify(() => client.autoConfigure({}, sinon.fake()));
+    const syncResult = await syncify(() => client.autoConfigure({}));
     // this error is our "backstop" that throws
     // when the instance hasn't been set
     expect(syncResult).throws('bucketFolder must be set');
