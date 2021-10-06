@@ -6,6 +6,7 @@ import type { Duration } from './Duration';
 import io from 'socket.io-client';
 import { isDictionary } from 'ts-runtime-typecheck';
 import { createTimeout } from './timers';
+import { wrapAndLogError } from './NodeError';
 
 export default class Socket {
   debounces: Set<unknown> = new Set();
@@ -37,7 +38,7 @@ export default class Socket {
         this.log.debug('socket ready');
       });
     } catch (err) {
-      this.log.error('socket connection failed - JWT authentication error');
+      wrapAndLogError('socket connection failed - JWT authentication error', err, this.log);
     }
   }
 

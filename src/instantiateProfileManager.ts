@@ -11,6 +11,7 @@ import { promises as fs } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
 import { Subject } from 'rxjs';
+import { asNodeError } from './NodeError';
 
 function getDefaultEndpoint() {
   return process.env.METRICHOR || DEFAULT_ENDPOINT;
@@ -51,10 +52,10 @@ export async function instantiateProfileManager({
     const contents = await fs.readFile(filepath, 'utf8');
     // Parse and validate the file
     ({ profiles, endpoint } = asProfileFileStructure(JSON.parse(contents)));
-  } catch (error) {
+  } catch (err) {
     // Don't throw if the file doesn't exist
-    if (error.code !== 'ENOENT') {
-      throw error;
+    if (asNodeError(err).code !== 'ENOENT') {
+      throw err;
     }
   }
 

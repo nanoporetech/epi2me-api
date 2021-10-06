@@ -1,11 +1,12 @@
 import assert from 'assert';
+import { expect } from 'chai';
 import sinon from 'sinon';
-import { merge } from 'lodash';
 import { EPI2ME_FS as EPI2ME } from '../../src/epi2me-fs';
 
 describe('epi2me.checkForDownloads', () => {
   let debug;
   let warn;
+  let error;
   let instanceId = 1;
   const clientFactory = (opts) => {
     const newClient = new EPI2ME({
@@ -14,7 +15,7 @@ describe('epi2me.checkForDownloads', () => {
         debug,
         info: sinon.stub(),
         warn,
-        error: sinon.stub(),
+        error,
         critical: sinon.stub(),
       },
       id_workflow_instance: instanceId,
@@ -26,6 +27,7 @@ describe('epi2me.checkForDownloads', () => {
   beforeEach(() => {
     debug = sinon.stub();
     warn = sinon.stub();
+    error = sinon.stub();
   });
 
   it('should bail if already running', async () => {
@@ -118,9 +120,9 @@ describe('epi2me.checkForDownloads', () => {
       assert.fail(e);
     }
 
-    assert(warn.lastCall.args[0].match(/checkForDownloads error/));
+    assert(error.lastCall.args[0].match(/checkForDownloads error/));
     assert.deepEqual(client.states.download.failure, {
-      'Error: discoverQueue failed': 1,
+      'checkForDownloads error\n\tdiscoverQueue failed': 1,
     });
     assert.equal(client.checkForDownloadsRunning, false, 'semaphore unset');
   });
@@ -129,7 +131,7 @@ describe('epi2me.checkForDownloads', () => {
     const client = clientFactory();
     sinon.stub(client, 'discoverQueue').rejects(new Error('discoverQueue failed'));
     client.states.download.failure = {
-      'Error: discoverQueue failed': 1,
+      'checkForDownloads error\n\tdiscoverQueue failed': 1,
     };
 
     try {
@@ -138,9 +140,9 @@ describe('epi2me.checkForDownloads', () => {
       assert.fail(e);
     }
 
-    assert(warn.lastCall.args[0].match(/checkForDownloads error/));
-    assert.deepEqual(client.states.download.failure, {
-      'Error: discoverQueue failed': 2,
+    expect(error.lastCall.firstArg).equals('checkForDownloads error\n\tdiscoverQueue failed');
+    expect(client.states.download.failure).to.deep.equal({
+      'checkForDownloads error\n\tdiscoverQueue failed': 2,
     });
     assert.equal(client.checkForDownloadsRunning, false, 'semaphore unset');
   });

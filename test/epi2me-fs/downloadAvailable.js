@@ -94,7 +94,7 @@ describe('epi2me.downloadAvailable', () => {
   it('should handle subsequent receiveMessage error', async () => {
     const client = clientFactory();
     client.states.download.failure = {
-      'Error: timed out': 1,
+      'receiveMessage error\n\ttimed out': 1,
     };
     delete client.downloadWorkerPool; // force missing
     sinon.stub(client, 'discoverQueue').resolves('http://queue.url/');
@@ -116,7 +116,7 @@ describe('epi2me.downloadAvailable', () => {
     assert(String(err).match(/timed out/));
     assert(client.receiveMessages.notCalled);
     assert.deepEqual(client.states.download.failure, {
-      'Error: timed out': 2,
+      'receiveMessage error\n\ttimed out': 2,
     });
   });
 

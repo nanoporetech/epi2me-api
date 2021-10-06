@@ -1,6 +1,7 @@
 import sinon from 'sinon';
 import assert from 'assert';
 import { EPI2ME_FS as EPI2ME } from '../../src/epi2me-fs';
+import { expect } from 'chai';
 
 describe('epi2me.autoJoin', () => {
   const stubs = [];
@@ -70,9 +71,9 @@ describe('epi2me.autoJoin', () => {
       assert(String(e).match(/Message/));
     }
 
-    assert(client.REST.workflowInstance.calledOnce);
-    assert(client.log.warn.calledOnce);
-    assert(client.log.warn.calledWith('Failed to join workflow instance: Error: Message'));
+    expect(client.REST.workflowInstance.calledOnce).to.be.true;
+    expect(client.log.error.calledOnce).to.be.true;
+    expect(client.log.error.firstCall.firstArg).equals('failed to join workflow instance\n\tMessage');
     assert(client.autoConfigure.notCalled);
   });
 

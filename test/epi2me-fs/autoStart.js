@@ -1,6 +1,8 @@
 import assert from 'assert';
 import sinon from 'sinon';
 import fs from 'fs-extra';
+import { expect } from 'chai';
+import { syncify } from '../../test-helpers/syncify';
 import { EPI2ME_FS as EPI2ME } from '../../src/epi2me-fs';
 
 describe('epi2me.autoStart', () => {
@@ -52,17 +54,10 @@ describe('epi2me.autoStart', () => {
       state: 'stopped',
     });
 
-    let err;
-    try {
-      await client.autoStart(111);
-    } catch (e) {
-      err = e;
-    }
-
-    assert(String(err).match(/Message/), 'thrown error message');
-    assert(client.REST.startWorkflow.calledOnce, 'startWorkflow called once');
-    assert(client.log.warn.calledWith('Failed to start workflow: Error: Message'), 'logged warning');
-    assert(client.autoConfigure.notCalled, 'autoConfigure not called');
+    expect(await syncify(() => client.autoStart(111))).to.throw('Message');
+    expect(client.REST.startWorkflow.calledOnce).to.be.true;
+    expect(client.log.error.firstCall.firstArg).equals('failed to start workflow\n\tMessage');
+    expect(client.autoConfigure.notCalled).to.be.true;
   });
 
   it('puts out telemetry on an observable', async () => {

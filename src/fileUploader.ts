@@ -31,6 +31,7 @@ import { first } from 'rxjs/operators';
 import path from 'path';
 import fs from 'fs';
 import { Duration } from './Duration';
+import { getErrorMessage, NestedError, wrapAndLogError } from './NodeError';
 
 export function instantiateFileUpload(instance: EPI2ME_FS): () => Promise<void> {
   assertDefined(instance.config.workflow, 'Workflow');
@@ -362,7 +363,7 @@ export function openReadStream(location: string, handler: (rs: fs.ReadStream) =>
         reject(err);
       }
     });
-    rs.addListener('error', (err) => reject(`Upload filesystem error ${err}`));
+    rs.addListener('error', (err) => reject(new NestedError('upload filesystem error', err)));
   });
 }
 
@@ -483,7 +484,7 @@ export async function uploadFile(file: FileStat, stats: MappedFileStats, ctx: Up
       [ext]: 1,
     });
   } catch (err) {
-    addFailure(state, err + '');
+    addFailure(state, getErrorMessage(err));
     throw err;
   }
 }
@@ -569,9 +570,8 @@ async function messageInputQueue(ctx: UploadContext, objectId: string, file: Fil
       })
       .promise();
     return MessageId;
-  } catch (sendMessageException) {
-    logger.error(`${file.id} exception sending SQS message: ${String(sendMessageException)}`);
-    throw sendMessageException;
+  } catch (err) {
+    throw wrapAndLogError(`${file.id} exception sending SQS message`, err, logger);
   }
 }
 
@@ -592,8 +592,8 @@ async function uploadComplete(ctx: UploadContext, objectId: string, file: FileSt
       message_id: messageId,
       id_user: workflowInstance.id_user,
     })
-    .catch((e) => {
-      logger.warn(`realtimeFeedback failed: ${String(e)}`);
+    .catch((err) => {
+      logger.warn(NestedError.formatMessage('realtimeFeedback failed', err));
     });
 
   logger.info(`${file.id} SQS message sent. Mark as uploaded`);

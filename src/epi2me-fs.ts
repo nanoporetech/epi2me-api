@@ -7,19 +7,16 @@
  */
 import type { Readable, Writable } from 'stream';
 import type { PromiseResult } from 'aws-sdk/lib/request';
-import type { FetchResult } from '@apollo/client/core';
 import type { Configuration } from './Configuration.type';
 import { JSONObject, Dictionary, Index, isDefined } from 'ts-runtime-typecheck';
-import type { ResponseStartWorkflow } from './graphql.type';
 import type { InstanceAttribute } from './factory.type';
 import type { EPI2ME_OPTIONS } from './epi2me-options.type';
-import type { InstanceTokenMutation } from './generated/graphql.type';
+import type { InstanceTokenMutation, WorkflowInstanceMutation } from './generated/graphql.type';
 import type { JSONValue } from 'ts-runtime-typecheck';
 
 import {
   asOptString,
   asString,
-  asNumber,
   asDictionary,
   asOptIndex,
   asOptDictionary,
@@ -56,6 +53,7 @@ import { createQueue } from './queue';
 import { filestats } from './filestats';
 import { instantiateFileUpload } from './fileUploader';
 import { Duration } from './Duration';
+import { asNodeError, isNodeError, NestedError, wrapAndLogError } from './NodeError';
 
 const networkStreamErrors: WeakSet<Writable> = new WeakSet();
 
@@ -164,15 +162,8 @@ export class EPI2ME_FS extends EPI2ME {
           ReceiptHandle: asString(message.ReceiptHandle),
         })
         .promise();
-    } catch (error) {
-      this.log.error(`deleteMessage exception: ${String(error)}`);
-      if (!this.states.download.failure) {
-        this.states.download.failure = {};
-      }
-      this.states.download.failure[error] = this.states.download.failure[error]
-        ? asNumber(this.states.download.failure[error]) + 1
-        : 1;
-      throw error;
+    } catch (err) {
+      throw this.incrementDownloadFailure('deleteMessage error', err);
     }
   }
 
@@ -192,8 +183,7 @@ export class EPI2ME_FS extends EPI2ME {
         })
         .promise();
     } catch (err) {
-      this.log.error(`Error: failed to find queue for ${queueName}: ${String(err)}`);
-      throw err;
+      throw wrapAndLogError(`failed to find queue for ${queueName}`, err, this.log);
     }
 
     const queueURL = asString(getQueue.QueueUrl);
@@ -225,32 +215,37 @@ export class EPI2ME_FS extends EPI2ME {
         return parseInt(len, 10);
       }
     } catch (err) {
-      this.log.error(`error in getQueueAttributes ${String(err)}`);
-      throw err;
+      throw wrapAndLogError('error in getQueueAttributes', err, this.log);
     }
-    throw new Error('unexpected response');
+    throw new Error('unexpected response from getQueueAttributes');
   }
 
-  async autoStart(workflowConfig: Dictionary, cb?: (msg: string) => void): Promise<Dictionary> {
-    const instance = await this.autoStartGeneric(workflowConfig, () => this.REST.startWorkflow(workflowConfig), cb);
+  async autoStart(workflowConfig: Dictionary): Promise<Dictionary> {
+    this.stopped = false;
+
+    let instance;
+    try {
+      instance = await this.REST.startWorkflow(workflowConfig);
+    } catch (err) {
+      throw wrapAndLogError('failed to start workflow', err, this.log);
+    }
+
+    await this.autoStartGeneric(workflowConfig, instance);
     this.setClassConfigREST(instance);
-    return this.autoConfigure(instance, cb);
+    return this.autoConfigure(instance);
   }
 
-  async autoStartGQL(
-    variables: {
-      idWorkflow: Index;
-      computeAccountId: Index;
-      storageAccountId?: Index;
-      isConsentedHuman?: boolean;
-      idDataset?: Index;
-      storeResults?: boolean;
-      region?: string;
-      userDefined?: Dictionary<Dictionary>;
-      instanceAttributes?: InstanceAttribute[];
-    },
-    cb?: (msg: string) => void,
-  ): Promise<Configuration['instance']> {
+  async autoStartGQL(variables: {
+    idWorkflow: Index;
+    computeAccountId: Index;
+    storageAccountId?: Index;
+    isConsentedHuman?: boolean;
+    idDataset?: Index;
+    storeResults?: boolean;
+    region?: string;
+    userDefined?: Dictionary<Dictionary>;
+    instanceAttributes?: InstanceAttribute[];
+  }): Promise<Configuration['instance']> {
     /*
     variables: {
       idWorkflow: ID!
@@ -261,75 +256,53 @@ export class EPI2ME_FS extends EPI2ME {
       instanceAttributes: [GenericScalar]
     }
     */
-    const instance = await this.autoStartGeneric(
-      variables,
-      () =>
-        this.graphQL.startWorkflow({
-          variables,
-        }),
-      cb,
-    );
+
+    this.stopped = false;
+
+    let instance;
+    try {
+      const response = await this.graphQL.startWorkflow({ variables });
+      instance = asDefined(response.data?.startData);
+    } catch (err) {
+      throw wrapAndLogError('failed to start workflow', err, this.log);
+    }
+
+    await this.autoStartGeneric(variables, instance);
     this.setClassConfigGQL(instance);
     // Pass this.config.instance because we need the old format
     // This can be improved
-    return this.autoConfigure(this.config.instance, cb);
+    return this.autoConfigure(this.config.instance);
   }
 
-  async autoStartGeneric<T>(
-    workflowConfig: unknown,
-    startFn: () => Promise<T>,
-    // cb doesn't appear to be used by CLI, and isn't used by agent
-    cb?: (msg: string) => void,
-  ): Promise<T> {
-    this.stopped = false;
-    let instance;
-    try {
-      instance = await startFn();
-      this.analyseState$.next(true);
-    } catch (startError) {
-      const msg = `Failed to start workflow: ${String(startError)}`;
-      this.log.warn(msg);
-      if (cb) {
-        cb(msg);
-      }
-      throw startError;
-    }
-
+  // TODO improves the parameter types
+  autoStartGeneric(workflowConfig: unknown, instance: unknown): void {
+    this.analyseState$.next(true);
     this.config.workflow = JSON.parse(JSON.stringify(workflowConfig)); // object copy
     this.log.info(`instance ${JSON.stringify(instance)}`);
     this.log.info(`workflow config ${JSON.stringify(this.config.workflow)}`);
-    return instance;
   }
 
-  async autoJoin(id: Index, cb?: (msg: string) => void): Promise<unknown> {
+  async autoJoin(id: Index): Promise<unknown> {
     this.stopped = false;
     this.config.instance.id_workflow_instance = id;
     let instance;
     try {
       // Theoretically this can work with GQL using the same setClassConfigGQL
       instance = await this.REST.workflowInstance(id);
-    } catch (joinError) {
-      const msg = `Failed to join workflow instance: ${String(joinError)}`;
-      this.log.warn(msg);
-      return cb ? cb(msg) : Promise.reject(joinError);
+    } catch (err) {
+      throw wrapAndLogError('failed to join workflow instance', err, this.log);
     }
 
     if (instance.state === 'stopped') {
-      this.log.warn(`workflow ${id} is already stopped`);
-      return cb ? cb('could not join workflow') : Promise.reject(new Error('could not join workflow'));
+      throw new Error('could not join workflow');
     }
 
-    /* it could be useful to populate this as autoStart does */
-    this.config.workflow = this.config.workflow || {};
-    this.log.debug(`instance ${JSON.stringify(instance)}`);
-    this.log.debug(`workflow config ${JSON.stringify(this.config.workflow)}`);
-
+    this.autoStartGeneric(this.config.workflow ?? {}, instance);
     this.setClassConfigREST(instance);
-    return this.autoConfigure(instance, cb);
+    return this.autoConfigure(instance);
   }
 
-  setClassConfigGQL(result: FetchResult<ResponseStartWorkflow>): void {
-    const startData = result.data?.startData;
+  setClassConfigGQL(startData: WorkflowInstanceMutation): void {
     assertDefined(startData, 'Workflow Start Data');
     const { instance, bucket, idUser, remoteAddr } = startData;
     assertDefined(instance, 'Workflow Instance');
@@ -395,7 +368,7 @@ export class EPI2ME_FS extends EPI2ME {
   // some of the input parameters!
   // we should replace it with a linear "validate, instantiate, run" flow
   // when we depreciate and remove REST
-  async autoConfigure<T>(instance: T, autoStartCb?: (msg: string) => void): Promise<T> {
+  async autoConfigure<T>(instance: T): Promise<T> {
     /*
     Ensure
     this.setClassConfigREST is called on REST responses to set fields as below:
@@ -447,9 +420,8 @@ export class EPI2ME_FS extends EPI2ME {
     try {
       await fs.mkdirp(this.config.options.outputFolder);
     } catch (err) {
-      if (err.code !== 'EEXIST') {
-        this.log.error('Failed to create output folder');
-        throw err;
+      if (asNodeError(err).code !== 'EEXIST') {
+        throw wrapAndLogError('failed to create output folder', err, this.log);
       }
     }
 
@@ -459,9 +431,8 @@ export class EPI2ME_FS extends EPI2ME {
     try {
       await fs.mkdirp(thisInstanceDir);
     } catch (err) {
-      if (err.code !== 'EEXIST') {
-        this.log.error('Failed to create instance folder');
-        throw err;
+      if (asNodeError(err).code !== 'EEXIST') {
+        throw wrapAndLogError('failed to create instance folder', err, this.log);
       }
     }
 
@@ -488,9 +459,12 @@ export class EPI2ME_FS extends EPI2ME {
     try {
       await fs.mkdirp(telemetryLogFolder);
     } catch (err) {
-      if (err.code !== 'EEXIST') {
-        this.log.error(`error opening telemetry log stream: mkdirpException:${String(err)}`);
-        throw err;
+      if (isNodeError(err) && err.code !== 'EEXIST') {
+        throw wrapAndLogError(
+          'error opening telemetry log stream, failed to create telemetry log folder',
+          err,
+          this.log,
+        );
       }
     }
 
@@ -503,12 +477,7 @@ export class EPI2ME_FS extends EPI2ME {
       });
       this.log.info(`logging telemetry to ${telemetryLogPath}`);
     } catch (err) {
-      this.log.error(`error opening telemetry log stream: ${String(err)}`);
-      throw err;
-    }
-
-    if (autoStartCb) {
-      autoStartCb(''); // WARN this used to pass (null, instance) except the callback doesn't appear to accept this anywhere it is defined
+      throw wrapAndLogError('error opening telemetry log stream', asNodeError(err), this.log);
     }
 
     if (this.config.options.useGraphQL) {
@@ -527,6 +496,7 @@ export class EPI2ME_FS extends EPI2ME {
       );
     }
 
+    // TODO this comment appears to clash with the implementation... figure out why
     // MC-2068 - Don't use an interval.
     this.timers.downloadCheckInterval = createInterval(this.config.options.downloadCheckInterval, () => {
       if (this.stopped) {
@@ -574,12 +544,12 @@ export class EPI2ME_FS extends EPI2ME {
             if (remoteShutdownCb) {
               remoteShutdownCb(`instance was stopped remotely at ${instanceObj.stop_date}`);
             }
-          } catch (stopError) {
-            this.log.error(`Error whilst stopping: ${String(stopError)}`);
+          } catch (err) {
+            wrapAndLogError('Error whilst stopping', err, this.log);
           }
         }
-      } catch (instanceError) {
-        this.log.warn(`failed to check instance state: ${instanceError?.error ? instanceError.error : instanceError}`);
+      } catch (err) {
+        this.log.warn(NestedError.formatMessage('failed to check instance state', err));
       }
     });
 
@@ -634,13 +604,7 @@ export class EPI2ME_FS extends EPI2ME {
         await this.downloadAvailable();
       }
     } catch (err) {
-      this.log.warn(`checkForDownloads error ${String(err)}`);
-      if (!this.states.download.failure) {
-        this.states.download.failure = {};
-      }
-      this.states.download.failure[err] = this.states.download.failure[err]
-        ? asNumber(this.states.download.failure[err]) + 1
-        : 1;
+      this.incrementDownloadFailure('checkForDownloads error', err);
     }
 
     this.checkForDownloadsRunning = false;
@@ -671,17 +635,24 @@ export class EPI2ME_FS extends EPI2ME {
         })
         .promise();
     } catch (err) {
-      const msg = err.toString();
-      this.log.error(`receiveMessage exception: ${msg}`);
-      const failures = this.states.download.failure;
-      if (failures) {
-        const existing = failures[msg];
-        failures[msg] = asNumber(existing, 0) + 1;
-      }
-      throw err;
+      throw this.incrementDownloadFailure('receiveMessage error', err);
     }
 
     return this.receiveMessages(receiveMessageSet);
+  }
+
+  incrementDownloadFailure(msg: string, err: unknown): NestedError {
+    const downloadState = this.states.download;
+    let failures = downloadState.failure;
+    if (!failures) {
+      failures = {};
+      downloadState.failure = failures;
+    }
+    const wrappedError = new NestedError(msg, err);
+    this.log.error(wrappedError.message);
+    const existing = failures[wrappedError.message] ?? 0;
+    failures[wrappedError.message] = existing + 1;
+    return wrappedError;
   }
 
   async receiveMessages(receiveMessages?: PromiseResult<AWS.SQS.ReceiveMessageResult, AWS.AWSError>): Promise<void> {
@@ -714,7 +685,7 @@ export class EPI2ME_FS extends EPI2ME {
 
       this.processMessage(message)
         .catch((err) => {
-          this.log.error(`processMessage ${String(err)}`);
+          this.log.error(NestedError.formatMessage('processMessage', err));
         })
         .finally(() => {
           timeoutHandle();
@@ -745,12 +716,12 @@ export class EPI2ME_FS extends EPI2ME {
 
     try {
       messageBody = JSON.parse(asString(message.Body));
-    } catch (jsonError) {
-      this.log.error(`error parsing JSON message.Body from message: ${JSON.stringify(message)} ${String(jsonError)}`);
+    } catch (err) {
+      this.log.error(NestedError.formatMessage('error parsing JSON message.Body from message', err));
       try {
         await this.deleteMessage(message);
-      } catch (e) {
-        this.log.error(`Exception deleting message: ${String(e)}`);
+      } catch (err) {
+        this.log.error(NestedError.formatMessage('error deleting message', err));
       }
       return;
     }
@@ -785,13 +756,13 @@ export class EPI2ME_FS extends EPI2ME {
             .map((row) => {
               try {
                 return JSON.parse(row);
-              } catch (e) {
-                this.log.error(`Telemetry Batch JSON Parse error: ${String(e)}`);
+              } catch (err) {
+                this.log.error(NestedError.formatMessage('telemetry batch JSON parse error', err));
                 return row;
               }
             });
         } catch (err) {
-          this.log.error(`Could not fetch telemetry JSON: ${String(err)}`);
+          this.log.error(NestedError.formatMessage('could not fetch telemetry JSON', err));
         }
       }
 
@@ -800,8 +771,8 @@ export class EPI2ME_FS extends EPI2ME {
           throw new Error('Telemetry log stream is not initialized');
         }
         this.telemetryLogStream.write(JSON.stringify(telemetry) + EOL);
-      } catch (telemetryWriteErr) {
-        this.log.error(`error writing telemetry: ${telemetryWriteErr}`);
+      } catch (err) {
+        this.log.error(NestedError.formatMessage('error writing telemtry', err));
       }
       if (this.config.options.telemetryCb) {
         this.config.options.telemetryCb(telemetry);
@@ -836,7 +807,7 @@ export class EPI2ME_FS extends EPI2ME {
     try {
       await fs.mkdirp(folder);
     } catch (err) {
-      this.log.critical('FS_FAILURE', `Failed to create instance output folder :${err.message}`);
+      this.log.critical('FS_FAILURE', NestedError.formatMessage('failed to create instance output folder', err));
     }
 
     if (downloadMode.includes('data')) {
@@ -860,8 +831,8 @@ export class EPI2ME_FS extends EPI2ME {
               message,
               destination,
             );
-          } catch (e) {
-            this.log.error(`Exception fetching file batch: ${String(e)}`);
+          } catch (err) {
+            this.log.error(NestedError.formatMessage('exception fetching file batch', err));
           }
         }),
       );
@@ -880,8 +851,8 @@ export class EPI2ME_FS extends EPI2ME {
     /* skip download - only interested in telemetry */
     try {
       await this.deleteMessage(message);
-    } catch (e) {
-      this.log.error(`Exception deleting message: ${String(e)}`);
+    } catch (err) {
+      this.log.error(NestedError.formatMessage('exception deleting message', err));
     }
 
     this.realtimeFeedback(`workflow_instance:state`, {
@@ -891,8 +862,8 @@ export class EPI2ME_FS extends EPI2ME {
       component_id: '0',
       message_id: message.MessageId,
       id_user: this.config.instance.id_user,
-    }).catch((e) => {
-      this.log.warn(`realtimeFeedback failed: ${String(e)}`);
+    }).catch((err) => {
+      this.log.warn(NestedError.formatMessage('realtimeFeedback failed', err));
     });
 
     /* must signal completion */
@@ -903,18 +874,13 @@ export class EPI2ME_FS extends EPI2ME {
     message: AWS.SQS.Message,
     outputFile: string,
   ): Promise<void> {
-    return new Promise<void>(async (resolve, reject) => {
-      let s3;
-      try {
-        s3 = this.getS3SessionedService();
-      } catch (e) {
-        reject(e);
-      }
+    const s3 = this.getS3SessionedService();
 
+    return new Promise<void>(async (resolve, reject) => {
       let file: fs.WriteStream;
       let rs: Readable;
 
-      const onStreamError = (err: unknown): void => {
+      const onStreamError = async (err: unknown) => {
         this.log.error(
           `Error during stream of bucket=${s3Item.bucket} path=${s3Item.path} to file=${outputFile} ${String(err)}`,
         );
@@ -932,21 +898,22 @@ export class EPI2ME_FS extends EPI2ME {
           ); /* MC-1953 - signal the file end of the pipe this the network end of the pipe failed */
           file.close();
 
-          fs.remove(outputFile)
-            .then(() => {
-              this.log.warn(`removed failed download ${outputFile}`);
-            })
-            .catch((unlinkException) => {
-              this.log.warn(`failed to remove ${outputFile}. unlinkException: ${String(unlinkException)}`);
-            });
-
-          if (rs instanceof fs.ReadStream && rs.destroy) {
-            // && !rs.destroyed) {
-            this.log.error(`destroying read stream for ${outputFile}`);
-            rs.destroy();
+          try {
+            await fs.remove(outputFile);
+            this.log.warn(`removed failed download ${outputFile}`);
+          } catch (err) {
+            if (isNodeError(err) && err.code !== 'EEXIST') {
+              throw new NestedError(`failed to delete ${outputFile}`, err);
+            }
           }
-        } catch (e) {
-          this.log.error(`error handling stream error: ${String(e)}`);
+        } catch (err) {
+          this.log.error(NestedError.formatMessage('error while trying to recover from download stream error', err));
+        }
+
+        if (rs instanceof fs.ReadStream && rs.destroy) {
+          // && !rs.destroyed) {
+          this.log.error(`destroying read stream for ${outputFile}`);
+          rs.destroy();
         }
       };
 
@@ -973,10 +940,8 @@ export class EPI2ME_FS extends EPI2ME {
         });
 
         rs = req.createReadStream();
-      } catch (getObjectException) {
-        this.log.error(`getObject/createReadStream exception: ${String(getObjectException)}`);
-
-        reject(getObjectException);
+      } catch (err) {
+        reject(wrapAndLogError('getObject/createReadStream error', err, this.log));
         return;
       }
 
@@ -1009,7 +974,7 @@ export class EPI2ME_FS extends EPI2ME {
             bytes,
           }); // reset in-flight counters
         } catch (err) {
-          this.log.warn(`failed to stat ${outputFile}: ${String(err)}`);
+          this.log.warn(NestedError.formatMessage(`failed to stat ${outputFile}`, err));
         }
         this.reportProgress();
       });
@@ -1080,14 +1045,7 @@ export class EPI2ME_FS extends EPI2ME {
             })
             .promise();
         } catch (err) {
-          this.log.error(
-            {
-              message_id: message.MessageId,
-              queue: queueUrl,
-              error: err,
-            },
-            'Error setting visibility',
-          );
+          wrapAndLogError(`error setting visibility ID: ${message.MessageId} queue: ${queueUrl}`, err, this.log);
           const interval = this.timers.visibilityIntervals[outputFile];
           if (interval) {
             interval.cancel();
@@ -1137,7 +1095,7 @@ export class EPI2ME_FS extends EPI2ME {
         try {
           await fs.writeJSON(filePath, content);
         } catch (err) {
-          this.log.critical('FS_FAILURE', `Failed to write report telemetry to disk :${err.message}`);
+          this.log.critical('FS_FAILURE', NestedError.formatMessage('failed to write report telemetry to disk', err));
         }
       },
     );
@@ -1238,7 +1196,7 @@ export class EPI2ME_FS extends EPI2ME {
             this.log.debug(`fetched telemetry summary ${fn}`);
             this.reportState$.next(true);
           } catch (err) {
-            this.log.debug(`Error fetching telemetry`, err);
+            this.log.debug(NestedError.formatMessage('error fetching telemetry', err));
             return null;
           }
 
@@ -1246,7 +1204,7 @@ export class EPI2ME_FS extends EPI2ME {
             // NOTE sadly this needs to be sync atm
             fs.writeJSONSync(fn, body);
           } catch (err) {
-            this.log.critical('FS_FAILURE', `Failed to write report telemetry to disk :${err.message}`);
+            this.log.critical('FS_FAILURE', NestedError.formatMessage('failed to write report telemetry to disk', err));
           }
           return body;
         })(),
@@ -1257,7 +1215,7 @@ export class EPI2ME_FS extends EPI2ME {
       const allTelemetryPayloads = await Promise.all(toFetch);
       this.instanceTelemetry$.next(allTelemetryPayloads);
     } catch (err) {
-      this.log.warn('summary telemetry incomplete', err);
+      this.log.warn(NestedError.formatMessage('summary telemetry incomplete', err));
     }
   }
 }

@@ -12,6 +12,7 @@ import { isDictionary } from 'ts-runtime-typecheck';
 import ProxyAgent from 'proxy-agent';
 import { version as VERSION } from '../package.json';
 import { NoopLogger } from './Logger';
+import { NestedError } from './NodeError';
 
 axios.defaults.validateStatus = (status: number): boolean => status <= 504; // Reject only if the status code is greater than or equal to 500
 
@@ -313,8 +314,8 @@ export const utils: Utility = (function magic(): Utility {
       } else {
         try {
           return JSON.parse(data);
-        } catch (jsonException) {
-          throw new Error(`exception parsing chain JSON ${String(jsonException)}`);
+        } catch (err) {
+          throw new NestedError('exception parsing chain JSON', err);
         }
       }
     },

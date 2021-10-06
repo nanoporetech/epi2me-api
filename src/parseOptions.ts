@@ -20,6 +20,7 @@ import {
   asOptArrayOf,
 } from 'ts-runtime-typecheck';
 import { Duration } from './Duration';
+import { NestedError } from './NodeError';
 
 function resolveLogger(log: unknown): Logger {
   if (isDictionary(log)) {
@@ -31,8 +32,8 @@ function resolveLogger(log: unknown): Logger {
         error: asFunction(log.error) as LogMethod,
         critical: asFunction(log.critical) as Logger['critical'],
       };
-    } catch (e) {
-      throw new Error('expected log object to have error, debug, info and warn methods');
+    } catch (err) {
+      throw new NestedError('expected log object to have error, warn, debug, info and critical methods', err);
     }
   } else {
     return FallbackLogger;
