@@ -67,7 +67,6 @@ export class GraphQL {
       signing,
       url: originalUrl,
       agent_version: agentVersion,
-      user_agent: userAgent,
     } = parseCoreOptions(opts);
 
     // https://epi2me-dev.bla => https://graphql.epi2me-dev.bla
@@ -78,7 +77,6 @@ export class GraphQL {
       base_url: url, // New networking wants base_url
       agent_version: agentVersion,
       local,
-      user_agent: userAgent,
       signing,
       apikey,
       apisecret,

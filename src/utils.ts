@@ -10,14 +10,14 @@ import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 import crypto from 'crypto';
 import { isDictionary } from 'ts-runtime-typecheck';
 import ProxyAgent from 'proxy-agent';
-import { version as VERSION } from '../package.json';
 import { NoopLogger } from './Logger';
 import { NestedError } from './NodeError';
+import { DEFAULT_OPTIONS } from './default_options';
+import { USER_AGENT } from './UserAgent.constants';
 
 axios.defaults.validateStatus = (status: number): boolean => status <= 504; // Reject only if the status code is greater than or equal to 500
 
 export interface Utility {
-  version: string;
   headers(request: AxiosRequestConfig, options: UtilityOptions): void;
   head(uri: string, options: UtilityOptions): Promise<AxiosResponse>;
   get(uri: string, options: UtilityOptions): Promise<Dictionary>;
@@ -35,7 +35,6 @@ export interface Utility {
 export interface UtilityOptions {
   url: string;
   skip_url_mangle?: boolean;
-  user_agent?: string;
   agent_version?: string;
   headers?: Dictionary;
   signing?: boolean;
@@ -127,14 +126,13 @@ export const utils: Utility = (function magic(): Utility {
   };
 
   return {
-    version: VERSION,
     headers(req: AxiosRequestConfig, options: UtilityOptions): void {
       // common headers required for everything
       req.headers = {
         Accept: 'application/json',
         'Content-Type': 'application/json',
-        'X-EPI2ME-Client': options.user_agent || 'api', // new world order
-        'X-EPI2ME-Version': options.agent_version || utils.version, // new world order
+        'X-EPI2ME-Client': USER_AGENT, // new world order
+        'X-EPI2ME-Version': options.agent_version ?? DEFAULT_OPTIONS.agent_version, // new world order
         ...req.headers,
         ...options.headers,
       };

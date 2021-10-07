@@ -4,8 +4,9 @@ import type { Body } from './Body.type';
 import type { NetworkInterface } from './NetworkInterface.type';
 
 import { fetch, Request, Headers } from './fetch';
-import { version as API_VERSION } from '../../package.json';
 import { isDictionary, isString, isStruct } from 'ts-runtime-typecheck';
+import { DEFAULT_OPTIONS } from '../default_options';
+import { USER_AGENT } from '../UserAgent.constants';
 
 let fetchMethod = fetch;
 
@@ -52,8 +53,8 @@ export function writeCommonHeaders(options: ExtendedRequestOptions = {}): Header
 
   headers.set('Accept', 'application/json');
   headers.set('Content-Type', 'application/json');
-  headers.set('X-EPI2ME-Client', options.user_agent ?? 'api');
-  headers.set('X-EPI2ME-Version', options.agent_version ?? API_VERSION);
+  headers.set('X-EPI2ME-Client', USER_AGENT);
+  headers.set('X-EPI2ME-Version', options.agent_version ?? DEFAULT_OPTIONS.agent_version);
 
   if (options.headers) {
     for (const [key, value] of Object.entries(options.headers)) {

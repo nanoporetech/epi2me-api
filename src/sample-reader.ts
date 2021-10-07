@@ -2,7 +2,7 @@ import type { Experiments } from './sample.type';
 
 import { fdir } from 'fdir';
 import path from 'path';
-import DEFAULTS from './default_options.json';
+import { DEFAULT_OPTIONS } from './default_options';
 
 export class SampleReader {
   /*
@@ -26,13 +26,13 @@ export class SampleReader {
   */
   experiments: Experiments = {};
 
-  async getExperiments({ sourceDir = DEFAULTS.sampleDirectory, refresh = false }): Promise<Experiments> {
-    if (!Object.keys(this.experiments).length || refresh) {
-      await this.updateExperiments(sourceDir);
+  async getExperiments({ sourceDir, refresh }: { sourceDir?: string; refresh?: boolean }): Promise<Experiments> {
+    if (Object.keys(this.experiments).length === 0 || refresh) {
+      await this.updateExperiments(sourceDir ?? DEFAULT_OPTIONS.sampleDirectory);
     }
     return this.experiments;
   }
-  async updateExperiments(sourceDir = DEFAULTS.sampleDirectory): Promise<void> {
+  async updateExperiments(sourceDir = DEFAULT_OPTIONS.sampleDirectory): Promise<void> {
     const fileToCheck = 'fastq_pass'; // Actually a dir now
     const crawler = new fdir()
       .withBasePath()

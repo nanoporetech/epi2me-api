@@ -8,6 +8,5 @@ export interface CoreOptions {
   jwt?: string;
   local: boolean;
   log: Logger;
-  user_agent: string;
   signing: boolean;
 }

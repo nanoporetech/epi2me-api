@@ -34,8 +34,9 @@ import { createInterval } from './timers';
 import { parseOptions } from './parseOptions';
 import { filter, mapTo, skipWhile, takeWhile } from 'rxjs/operators';
 import { wrapAndLogError } from './NodeError';
+import { DEFAULT_OPTIONS } from './default_options';
 export class EPI2ME {
-  static version = utils.version;
+  static version = DEFAULT_OPTIONS.agent_version;
   static utils = utils;
 
   readonly log: Logger;

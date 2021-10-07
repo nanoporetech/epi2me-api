@@ -71,7 +71,6 @@ const rootDir = (): string => {
 };
 
 export class EPI2ME_FS extends EPI2ME {
-  static version = utils.version;
   static REST = REST_FS;
   static utils = utils;
   static EPI2ME_HOME = rootDir();

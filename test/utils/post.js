@@ -2,19 +2,11 @@ import assert from 'assert';
 import sinon from 'sinon';
 import axios from 'axios';
 import { utils } from '../../src/utils';
+import { USER_AGENT } from '../../src/UserAgent.constants';
 
 describe('utils.post', () => {
   let stubs = [];
   let log;
-  const versionBackup = `${utils.version}`;
-
-  before(() => {
-    utils.version = '3.0.0';
-  });
-
-  after(() => {
-    utils.version = versionBackup;
-  });
 
   beforeEach(() => {
     stubs = [];
@@ -50,6 +42,7 @@ describe('utils.post', () => {
       {
         apikey: 'foo',
         url: 'http://epi2me.test',
+        agent_version: '3.0.0',
         log,
       },
     );
@@ -70,7 +63,7 @@ describe('utils.post', () => {
           Accept: 'application/json',
           'Content-Type': 'application/json',
           'X-EPI2ME-ApiKey': 'foo',
-          'X-EPI2ME-Client': 'api',
+          'X-EPI2ME-Client': USER_AGENT,
           'X-EPI2ME-Version': '3.0.0',
         },
       },
@@ -94,6 +87,7 @@ describe('utils.post', () => {
       {
         apikey: 'foo',
         url: 'http://epi2me.test',
+        agent_version: '3.0.0',
         legacy_form: true,
         log,
       },
@@ -112,7 +106,7 @@ describe('utils.post', () => {
           Accept: 'application/json',
           'Content-Type': 'application/x-www-form-urlencoded',
           'X-EPI2ME-ApiKey': 'foo',
-          'X-EPI2ME-Client': 'api',
+          'X-EPI2ME-Client': USER_AGENT,
           'X-EPI2ME-Version': '3.0.0',
         },
       },
@@ -136,6 +130,7 @@ describe('utils.post', () => {
       {
         apikey: 'foo',
         url: 'http://epi2me.test',
+        agent_version: '3.0.0',
         proxy: 'http://proxy.internal:3128/',
         log,
       },
@@ -159,7 +154,7 @@ describe('utils.post', () => {
           Accept: 'application/json',
           'Content-Type': 'application/json',
           'X-EPI2ME-ApiKey': 'foo',
-          'X-EPI2ME-Client': 'api',
+          'X-EPI2ME-Client': USER_AGENT,
           'X-EPI2ME-Version': '3.0.0',
         },
       },
@@ -178,6 +173,7 @@ describe('utils.post', () => {
         },
         {
           apikey: 'foo',
+          agent_version: '3.0.0',
           url: 'http://epi2me.test',
           log,
         },
