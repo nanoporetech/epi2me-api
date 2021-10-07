@@ -311,9 +311,6 @@ describe('epi2me-api.processMessage', () => {
               ],
               cwl: 's3://metrichor-prod-cwl-eu-west-1/bioinformatics-workflows/telemap-workflow/amd64-v1.3.5-release/telemap_map_epi2me_directive.yml',
             },
-            agent_address: {
-              remote_addr: '193.240.53.18, 10.132.3.56',
-            },
             version: '2.55.6',
             itype: 'r3.8xlarge',
             ec2_instance: 'i-09d960a7e4b2d2411',
@@ -352,9 +349,6 @@ describe('epi2me-api.processMessage', () => {
               '0F95872C-D6D2-11E8-9DBC-0371A22B323C/2185/182103/component-1/PASS/fastq_runid_738d663ef9214e590fb4806bf5aed784b941fd48_1.fastq/',
             tgt_prefix: '0F95872C-D6D2-11E8-9DBC-0371A22B323C/2185/182103/component-2/PASS/',
             id_user: '2185',
-          },
-          agent_address: {
-            remote_addr: '193.240.53.18, 10.132.3.56',
           },
           id_master: '1694',
         }),

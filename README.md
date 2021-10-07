@@ -36,7 +36,6 @@ See also the examples/ folder
 ```
 {
     agent_version
-    agent_address                           // Geo location and ip
     apikey
     apisecret
     proxy
