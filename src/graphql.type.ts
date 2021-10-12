@@ -73,7 +73,6 @@ export interface GraphQLConfiguration {
   agent_version: string;
   jwt?: string;
   local: boolean;
-  user_agent: string;
   signing: boolean;
 }
 

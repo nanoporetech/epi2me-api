@@ -4,8 +4,7 @@ import type { EPI2ME_OPTIONS } from './epi2me-options.type';
 import type { Configuration } from './Configuration.type';
 
 import { FallbackLogger } from './Logger';
-import { version as VERSION } from '../package.json';
-import DEFAULTS from './default_options.json';
+import { DEFAULT_OPTIONS } from './default_options';
 import {
   isDictionary,
   asFunction,
@@ -45,17 +44,15 @@ export function trimTrailingSlash(url: string): string {
 }
 
 export function parseCoreOptions(opt: Partial<CoreOptions> & { endpoint?: string }): CoreOptions {
-  const url = opt.endpoint ?? opt.url ?? DEFAULTS.url;
+  const url = opt.endpoint ?? opt.url ?? DEFAULT_OPTIONS.url;
 
   return {
     url: url.endsWith('/') ? url.slice(0, -1) : url,
-    // Return to calling utils.version when utils no longer signs
-    agent_version: asString(opt.agent_version, VERSION),
+    agent_version: asString(opt.agent_version, DEFAULT_OPTIONS.agent_version),
     log: resolveLogger(opt.log),
-    local: asBoolean(opt.local, DEFAULTS.local),
+    local: asBoolean(opt.local, DEFAULT_OPTIONS.local),
 
-    user_agent: asString(opt.user_agent, DEFAULTS.user_agent),
-    signing: asBoolean(opt.signing, DEFAULTS.signing),
+    signing: asBoolean(opt.signing, DEFAULT_OPTIONS.signing),
     // Optional Values
     apikey: asOptString(opt.apikey),
     apisecret: asOptString(opt.apisecret),
@@ -64,7 +61,7 @@ export function parseCoreOptions(opt: Partial<CoreOptions> & { endpoint?: string
 }
 
 export function parseOptions(opt: Partial<EPI2ME_OPTIONS>): Configuration['options'] {
-  const downloadMode = asString(opt.downloadMode, DEFAULTS.downloadMode);
+  const downloadMode = asString(opt.downloadMode, DEFAULT_OPTIONS.downloadMode);
 
   switch (downloadMode) {
     case 'data':
@@ -78,26 +75,26 @@ export function parseOptions(opt: Partial<EPI2ME_OPTIONS>): Configuration['optio
 
   const options = {
     ...parseCoreOptions(opt),
-    region: asString(opt.region, DEFAULTS.region),
-    sessionGrace: Duration.Seconds(asNumber(opt.sessionGrace, DEFAULTS.sessionGrace)),
-    uploadTimeout: Duration.Seconds(asNumber(opt.uploadTimeout, DEFAULTS.uploadTimeout)),
-    uploadRetries: asNumber(opt.uploadRetries, DEFAULTS.uploadRetries),
-    downloadTimeout: Duration.Seconds(asNumber(opt.downloadTimeout, DEFAULTS.downloadTimeout)),
-    fileCheckInterval: Duration.Seconds(asNumber(opt.fileCheckInterval, DEFAULTS.fileCheckInterval)),
-    downloadCheckInterval: Duration.Seconds(asNumber(opt.downloadCheckInterval, DEFAULTS.downloadCheckInterval)),
-    stateCheckInterval: Duration.Seconds(asNumber(opt.stateCheckInterval, DEFAULTS.stateCheckInterval)),
-    inFlightDelay: Duration.Seconds(asNumber(opt.inFlightDelay, DEFAULTS.inFlightDelay)),
-    waitTimeSeconds: Duration.Seconds(asNumber(opt.waitTimeSeconds, DEFAULTS.waitTimeSeconds)),
-    waitTokenError: asNumber(opt.waitTokenError, DEFAULTS.waitTokenError),
-    transferPoolSize: asNumber(opt.transferPoolSize, DEFAULTS.transferPoolSize),
+    region: asString(opt.region, DEFAULT_OPTIONS.region),
+    sessionGrace: Duration.Seconds(asNumber(opt.sessionGrace, DEFAULT_OPTIONS.sessionGrace)),
+    uploadTimeout: Duration.Seconds(asNumber(opt.uploadTimeout, DEFAULT_OPTIONS.uploadTimeout)),
+    uploadRetries: asNumber(opt.uploadRetries, DEFAULT_OPTIONS.uploadRetries),
+    downloadTimeout: Duration.Seconds(asNumber(opt.downloadTimeout, DEFAULT_OPTIONS.downloadTimeout)),
+    fileCheckInterval: Duration.Seconds(asNumber(opt.fileCheckInterval, DEFAULT_OPTIONS.fileCheckInterval)),
+    downloadCheckInterval: Duration.Seconds(asNumber(opt.downloadCheckInterval, DEFAULT_OPTIONS.downloadCheckInterval)),
+    stateCheckInterval: Duration.Seconds(asNumber(opt.stateCheckInterval, DEFAULT_OPTIONS.stateCheckInterval)),
+    inFlightDelay: Duration.Seconds(asNumber(opt.inFlightDelay, DEFAULT_OPTIONS.inFlightDelay)),
+    waitTimeSeconds: Duration.Seconds(asNumber(opt.waitTimeSeconds, DEFAULT_OPTIONS.waitTimeSeconds)),
+    waitTokenError: asNumber(opt.waitTokenError, DEFAULT_OPTIONS.waitTokenError),
+    transferPoolSize: asNumber(opt.transferPoolSize, DEFAULT_OPTIONS.transferPoolSize),
     downloadMode,
-    filetype: asArrayOf(isString)(opt.filetype, DEFAULTS.filetype),
-    sampleDirectory: asString(opt.sampleDirectory, DEFAULTS.sampleDirectory),
+    filetype: asArrayOf(isString)(opt.filetype, DEFAULT_OPTIONS.filetype),
+    sampleDirectory: asString(opt.sampleDirectory, DEFAULT_OPTIONS.sampleDirectory),
     // optional values
     useGraphQL: asBoolean(opt.useGraphQL, false),
     idWorkflowInstance: asOptIndex(opt.id_workflow_instance),
     idDataset: asOptIndex(opt.id_dataset),
-    debounceWindow: Duration.Seconds(asNumber(opt.debounceWindow, DEFAULTS.debounceWindow)),
+    debounceWindow: Duration.Seconds(asNumber(opt.debounceWindow, DEFAULT_OPTIONS.debounceWindow)),
     proxy: asOptString(opt.proxy),
     // EPI2ME-FS options
     inputFolders: asOptArrayOf(isString)(opt.inputFolders),

@@ -2,14 +2,13 @@ import assert from 'assert';
 import sinon from 'sinon';
 import axios from 'axios';
 import { utils } from '../../src/utils';
+import { USER_AGENT } from '../../src/UserAgent.constants';
 
 describe('utils.get', () => {
   let stubs = [];
   let log;
-  const versionBackup = `${utils.version}`;
 
   before(() => {
-    utils.version = '3.0.0';
     log = {
       info: sinon.stub(),
       debug: sinon.stub(),
@@ -17,10 +16,6 @@ describe('utils.get', () => {
       error: sinon.stub(),
       critical: sinon.stub(),
     };
-  });
-
-  after(() => {
-    utils.version = versionBackup;
   });
 
   beforeEach(() => {
@@ -38,6 +33,7 @@ describe('utils.get', () => {
     const data = await utils.get('entity/123', {
       apikey: 'foo',
       url: 'http://epi2me.test',
+      agent_version: '3.0.0',
       log,
     });
 
@@ -51,7 +47,7 @@ describe('utils.get', () => {
           Accept: 'application/json',
           'Content-Type': 'application/json',
           'X-EPI2ME-ApiKey': 'foo',
-          'X-EPI2ME-Client': 'api',
+          'X-EPI2ME-Client': USER_AGENT,
           'X-EPI2ME-Version': '3.0.0',
         },
       },
@@ -64,6 +60,7 @@ describe('utils.get', () => {
       skip_url_mangle: true,
       apikey: 'foo',
       url: 'http://epi2me.test',
+      agent_version: '3.0.0',
       log,
     });
 
@@ -77,7 +74,7 @@ describe('utils.get', () => {
           Accept: 'application/json',
           'Content-Type': 'application/json',
           'X-EPI2ME-ApiKey': 'foo',
-          'X-EPI2ME-Client': 'api',
+          'X-EPI2ME-Client': USER_AGENT,
           'X-EPI2ME-Version': '3.0.0',
         },
       },
@@ -90,6 +87,7 @@ describe('utils.get', () => {
       proxy: 'http://proxy.internal:3128/',
       apikey: 'foo',
       url: 'http://epi2me.test',
+      agent_version: '3.0.0',
       log,
     });
 
@@ -105,7 +103,7 @@ describe('utils.get', () => {
           Accept: 'application/json',
           'Content-Type': 'application/json',
           'X-EPI2ME-ApiKey': 'foo',
-          'X-EPI2ME-Client': 'api',
+          'X-EPI2ME-Client': USER_AGENT,
           'X-EPI2ME-Version': '3.0.0',
         },
       },

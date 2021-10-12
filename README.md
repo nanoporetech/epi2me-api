@@ -11,7 +11,6 @@ const EPI2ME = new API({
   inputFolder: '<folder path for files to upload>',
   outputFolder: '<folder path for files to download>',
 });
-// list of all options: ./lib/default_options.json
 
 // list all workflows
 const workflows = await EPI2ME.REST.workflows();
@@ -41,7 +40,6 @@ See also the examples/ folder
     apisecret
     proxy
     url
-    user_agent
     region
     retention
     telemetryCb

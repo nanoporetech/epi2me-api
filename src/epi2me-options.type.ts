@@ -1,5 +1,7 @@
 import type { Logger } from './Logger.type';
 import type { Index, UnknownFunction } from 'ts-runtime-typecheck';
+
+export type DownloadMode = 'data' | 'telemetry' | 'none' | 'data+telemetry';
 export interface EPI2ME_OPTIONS {
   agent_version: string;
   log: Logger;
@@ -7,7 +9,6 @@ export interface EPI2ME_OPTIONS {
   endpoint?: string;
   url: string;
   region: string;
-  user_agent: string;
   sessionGrace: number;
   uploadTimeout: number;
   uploadRetries: number;
@@ -19,7 +20,7 @@ export interface EPI2ME_OPTIONS {
   waitTimeSeconds: number;
   waitTokenError: number;
   transferPoolSize: number;
-  downloadMode: 'data' | 'telemetry' | 'none' | 'data+telemetry';
+  downloadMode: DownloadMode;
   filetype: string[];
   signing: boolean;
   sampleDirectory: string;

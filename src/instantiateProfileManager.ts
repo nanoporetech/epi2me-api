@@ -4,7 +4,7 @@ import type { Dictionary, Optional } from 'ts-runtime-typecheck';
 
 import { asStruct, isOptDictionaryOf, isOptIndex, isOptString, isStruct } from 'ts-runtime-typecheck';
 import { ProfileManager } from './ProfileManager';
-import { url as DEFAULT_ENDPOINT } from './default_options.json';
+import { DEFAULT_OPTIONS } from './default_options';
 
 // WARN uses Node.js stuff here
 import { promises as fs } from 'fs';
@@ -14,7 +14,7 @@ import { Subject } from 'rxjs';
 import { asNodeError } from './NodeError';
 
 function getDefaultEndpoint() {
-  return process.env.METRICHOR || DEFAULT_ENDPOINT;
+  return process.env.METRICHOR || DEFAULT_OPTIONS.url;
 }
 
 function getDefaultProfilePath() {

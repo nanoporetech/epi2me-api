@@ -5,7 +5,6 @@ import type { Body } from './Body.type';
 
 export interface RequestOptions {
   base_url?: string;
-  user_agent?: string;
   agent_version?: string;
   method?: 'head' | 'get' | 'put' | 'post';
   headers?: Headers | Record<string, string>;
