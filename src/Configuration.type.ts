@@ -28,7 +28,6 @@ export interface Configuration {
     inputFolders?: string[];
     outputFolder?: string;
     awsAcceleration?: string;
-    agent_address?: string;
     telemetryCb?: UnknownFunction;
     dataCb?: UnknownFunction;
     remoteShutdownCb?: UnknownFunction;

@@ -100,7 +100,6 @@ export function parseOptions(opt: Partial<EPI2ME_OPTIONS>): Configuration['optio
     inputFolders: asOptArrayOf(isString)(opt.inputFolders),
     outputFolder: asOptString(opt.outputFolder),
     awsAcceleration: asOptString(opt.awsAcceleration),
-    agent_address: asOptString(opt.agent_address),
     telemetryCb: asOptFunction(opt.telemetryCb),
     dataCb: asOptFunction(opt.dataCb),
     remoteShutdownCb: asOptFunction(opt.remoteShutdownCb),

@@ -60,7 +60,6 @@ export interface InputQueueMessage {
   utc: string;
   path: string;
   prefix: string;
-  agent_address?: Dictionary;
 }
 
 export interface UploadConfigurationSubset {
