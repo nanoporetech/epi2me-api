@@ -1,34 +1,16 @@
-import type { ProtobufMessage } from '@improbable-eng/grpc-web/dist/typings/message';
-import type { Message } from 'google-protobuf';
-import type { Observer } from 'rxjs';
-import type { RequestConfig, Tokens } from './utils.type';
+import type { RequestContext, ServiceContext, Tokens } from './utils.type';
+import type { Message, Method, UnaryMethod } from './grpc.type';
 
 import { grpc } from '@improbable-eng/grpc-web';
-import { Observable } from 'rxjs';
+import { map, Observable, takeUntil } from 'rxjs';
+import { checkError } from './checkError';
+import { asDefined } from 'ts-runtime-typecheck';
 
-const Code = grpc.Code;
+/**
+ * Globally set the default Transport
+ * See: https://github.com/improbable-eng/grpc-web/blob/master/client/grpc-web/docs/transport.md
+ */
 grpc.setDefaultTransport(grpc.FetchReadableStreamTransport({ credentials: 'omit' }));
-
-function checkError(
-  observer: Observer<Message>,
-  code: grpc.Code,
-  message: ProtobufMessage | string,
-  requestConfig: RequestConfig,
-): void {
-  const { grpcUrl, request, service } = requestConfig;
-
-  if (code !== Code.OK && code !== Code.Aborted) {
-    observer.error({
-      code,
-      code_text: Code[code],
-      host: grpcUrl,
-      message,
-      request,
-      service: service.service.serviceName,
-      method: service.methodName,
-    });
-  }
-}
 
 function getMetadata({ tokens }: { tokens: Tokens }): grpc.Metadata {
   const metadata = new grpc.Metadata();
@@ -36,70 +18,112 @@ function getMetadata({ tokens }: { tokens: Tokens }): grpc.Metadata {
   return metadata;
 }
 
-function unaryRequest(observer: Observer<Message>, requestConfig: RequestConfig): grpc.Request {
-  const { grpcUrl, request, service, tokens, transport } = requestConfig;
+function isUnaryMethod<Req extends Message, Res extends Message>(
+  method: Method<Req, Res>,
+): method is UnaryMethod<Req, Res> {
+  return !(method.requestStream || method.responseStream);
+}
 
-  return grpc.unary(service, {
-    transport,
-    host: grpcUrl,
-    metadata: getMetadata({ tokens }),
-    onEnd: ({ status, message }) => {
-      if (message) {
-        observer.next(message as Message);
-      }
-
-      checkError(observer, status, message as Message, requestConfig);
-      observer.complete();
-    },
+// unary RPCs (1 request 1 response)
+function unaryRequest$<Req extends Message, Res extends Message>(
+  requestConfig: RequestContext<Req, Res, UnaryMethod<Req, Res>>,
+): Observable<Res> {
+  const {
     request,
+    method,
+    serviceContext: { host, tokens, transport },
+  } = requestConfig;
+
+  return new Observable((observer) => {
+    const req = grpc.unary(method, {
+      transport,
+      host,
+      metadata: getMetadata({ tokens }),
+      onEnd: ({ status, message }) => {
+        if (message) {
+          observer.next(message as Res);
+        }
+
+        const error = checkError(status, asDefined(message), requestConfig);
+        if (error) {
+          observer.error(error);
+        }
+        observer.complete();
+      },
+      request,
+    });
+
+    return req.close.bind(req);
   });
 }
 
-function invokeRequest(observer: Observer<Message>, requestConfig: RequestConfig): grpc.Request {
-  const { grpcUrl, request, service, tokens, transport } = requestConfig;
-
-  return grpc.invoke(service, {
-    transport,
-    host: grpcUrl,
-    metadata: getMetadata({ tokens }),
-    onEnd: (code, message) => {
-      checkError(observer, code, message, requestConfig);
-      observer.complete();
-    },
-    onMessage: (message) => {
-      if (message) {
-        observer.next(message as Message);
-      }
-    },
+// server-side streaming RPCs (1 request N responses)
+function invokeRequest$<Req extends Message, Res extends Message>(
+  requestConfig: RequestContext<Req, Res>,
+): Observable<Res> {
+  const {
     request,
+    method,
+    serviceContext: { host, tokens, transport },
+  } = requestConfig;
+
+  return new Observable((observer) => {
+    const req = grpc.invoke(method, {
+      transport,
+      host: host,
+      metadata: getMetadata({ tokens }),
+      onEnd: (code, message) => {
+        const error = checkError(code, message, requestConfig);
+        if (error) {
+          observer.error(error);
+        }
+        observer.complete();
+      },
+      onMessage: (message: Res) => {
+        if (message) {
+          observer.next(message);
+        }
+      },
+      request,
+    });
+
+    return req.close.bind(req);
   });
 }
 
-export function createGrpcRequest$<TRequest extends Message, TResponse extends Message>(
-  grpcUrl: string,
-  tokens: Tokens,
-  service: any,
-  request: TRequest,
-  isStream = false,
+export function createGrpcRequest$<Req extends Message, Res extends Message>(
+  serviceContext: ServiceContext,
+  method: Method<Req, Res>,
+  request: Req,
+): Observable<ReturnType<Res['toObject']>> {
+  const { host, destroy$ } = serviceContext;
+
+  if (!host) {
+    throw new Error('No gRPC URL provided');
+  }
+
+  const request$ = isUnaryMethod(method)
+    ? unaryRequest$({ request, serviceContext, method })
+    : invokeRequest$({ request, serviceContext, method });
+
+  return request$.pipe(
+    map((response) => response.toObject() as ReturnType<Res['toObject']>),
+    takeUntil(destroy$),
+  );
+}
+
+export function createServiceContext(
+  host: string,
+  jwt: string,
+  destroy$: Observable<void>,
   transport?: grpc.TransportFactory,
-): Observable<TResponse> {
-  const requestConfig = { grpcUrl, tokens, service, request, transport };
-
-  return new Observable((observer: Observer<TResponse>) => {
-    if (!grpcUrl) {
-      observer.error({
-        message: 'No grpc URL provided',
-      });
-      return;
-    }
-
-    const req = isStream
-      ? invokeRequest(observer as unknown as Observer<Message>, requestConfig)
-      : unaryRequest(observer as unknown as Observer<Message>, requestConfig);
-
-    return (): void => {
-      req.close();
-      observer.complete();
-    };
-  });
+): ServiceContext {
+  return {
+    host,
+    tokens: {
+      jwt,
+    },
+    destroy$,
+    transport,
+  };
 }
