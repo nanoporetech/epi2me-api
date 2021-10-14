@@ -19,12 +19,12 @@ axios.defaults.validateStatus = (status: number): boolean => status <= 504; // R
 
 export interface Utility {
   headers(request: AxiosRequestConfig, options: UtilityOptions): void;
-  head(uri: string, options: UtilityOptions): Promise<AxiosResponse>;
+  head(uri: string, options: UtilityOptions): Promise<AxiosResponse<unknown>>;
   get(uri: string, options: UtilityOptions): Promise<Dictionary>;
   post<T = Dictionary>(
     uriIn: string,
     obj: Dictionary,
-    options: UtilityOptions & { handler?: (res: AxiosResponse) => Promise<T> },
+    options: UtilityOptions & { handler?: (res: AxiosResponse<unknown>) => Promise<T> },
   ): Promise<T | Dictionary>;
   put(uri: string, id: string, obj: Dictionary, options: UtilityOptions): Promise<Dictionary>;
   mangleURL(uri: string, options: UtilityOptions): string;
@@ -82,13 +82,19 @@ export const utils: Utility = (function magic(): Utility {
         req.url = req.url.replace(/:80/, '');
       }
 
+      let headers = req.headers;
+      if (!headers) {
+        headers = {};
+        req.headers = headers;
+      }
+
       const message = [
         req.url,
 
-        Object.keys(req.headers)
+        Object.keys(headers)
           .sort()
           .filter((o) => o.match(/^x-epi2me/i))
-          .map((o) => `${o}:${req.headers[o]}`)
+          .map((o) => `${o}:${headers[o]}`)
           .join('\n'),
       ].join('\n');
 
@@ -152,7 +158,7 @@ export const utils: Utility = (function magic(): Utility {
       }
     },
 
-    async head(uriIn: string, options: UtilityOptions): Promise<AxiosResponse> {
+    async head(uriIn: string, options: UtilityOptions): Promise<AxiosResponse<unknown>> {
       // do something to get/set data in epi2me
       const call = this.mangleURL(uriIn, options);
       const req: AxiosRequestConfig = { url: call };
@@ -204,7 +210,7 @@ export const utils: Utility = (function magic(): Utility {
     async post<T = Dictionary>(
       uriIn: string,
       obj: Dictionary,
-      options: UtilityOptions & { handler?: (res: AxiosResponse) => Promise<T> },
+      options: UtilityOptions & { handler?: (res: AxiosResponse<unknown>) => Promise<T> },
     ): Promise<T | Dictionary> {
       let srv = options.url;
       srv = srv.replace(/\/+$/, ''); // clip trailing slashes
@@ -302,6 +308,9 @@ export const utils: Utility = (function magic(): Utility {
           params.push(`${attr}=${escape(form[attr] + '')}`);
         });
       req.data = params.join('&');
+      if (!req.headers) {
+        req.headers = {};
+      }
       req.headers['Content-Type'] = 'application/x-www-form-urlencoded';
     },
 

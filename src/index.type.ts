@@ -1,6 +1,5 @@
 export * from './index-web.type';
 
-export type { Tokens, RequestConfig, Message, TransportFactory } from './grpc/utils.type';
 export type { Credentials } from './network/Credentials.type';
 export type { DBOptions } from './db.type';
 export type {

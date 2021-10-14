@@ -95,7 +95,7 @@ export class REST {
   }
 
   async jwt(): Promise<string> {
-    const customJWTHandler = async (res: AxiosResponse): Promise<string> => {
+    const customJWTHandler = async (res: AxiosResponse<unknown>): Promise<string> => {
       if (res.headers['x-epi2me-jwt']) {
         return res.headers['x-epi2me-jwt'];
       }

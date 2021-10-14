@@ -5,6 +5,7 @@ import { DEFAULT_OPTIONS } from './default_options';
 import { EPI2ME_FS as EPI2ME } from './epi2me-fs';
 import { utilsFS as utils } from './utils-fs';
 
+export { EPI2ME_RPC } from './grpc';
 export { REST_FS as REST } from './rest-fs';
 export { Factory } from './factory';
 export { GraphQLFS } from './graphql-fs';
