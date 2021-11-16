@@ -67,6 +67,7 @@ export class GraphQL {
       signing,
       url: originalUrl,
       agent_version: agentVersion,
+      proxy,
     } = parseCoreOptions(opts);
 
     // https://epi2me-dev.bla => https://graphql.epi2me-dev.bla
@@ -81,6 +82,7 @@ export class GraphQL {
       apikey,
       apisecret,
       jwt,
+      proxy,
     };
     this.log = log;
 

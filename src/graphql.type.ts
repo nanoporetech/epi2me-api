@@ -72,6 +72,7 @@ export interface GraphQLConfiguration {
   apisecret?: string;
   agent_version: string;
   jwt?: string;
+  proxy?: string;
   local: boolean;
   signing: boolean;
 }

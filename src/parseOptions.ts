@@ -54,6 +54,7 @@ export function parseCoreOptions(opt: Partial<CoreOptions> & { endpoint?: string
 
     signing: asBoolean(opt.signing, DEFAULT_OPTIONS.signing),
     // Optional Values
+    proxy: asOptString(opt.proxy),
     apikey: asOptString(opt.apikey),
     apisecret: asOptString(opt.apisecret),
     jwt: asOptString(opt.jwt),
@@ -95,7 +96,6 @@ export function parseOptions(opt: Partial<EPI2ME_OPTIONS>): Configuration['optio
     idWorkflowInstance: asOptIndex(opt.id_workflow_instance),
     idDataset: asOptIndex(opt.id_dataset),
     debounceWindow: Duration.Seconds(asNumber(opt.debounceWindow, DEFAULT_OPTIONS.debounceWindow)),
-    proxy: asOptString(opt.proxy),
     // EPI2ME-FS options
     inputFolders: asOptArrayOf(isString)(opt.inputFolders),
     outputFolder: asOptString(opt.outputFolder),
