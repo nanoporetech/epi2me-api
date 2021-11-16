@@ -6,6 +6,7 @@ export interface CoreOptions {
   apisecret?: string;
   agent_version: string;
   jwt?: string;
+  proxy?: string;
   local: boolean;
   log: Logger;
   signing: boolean;

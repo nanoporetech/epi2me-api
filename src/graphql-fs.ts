@@ -19,10 +19,8 @@ export class GraphQLFS extends GraphQL {
         const newInit = {
           ...init,
           headers: writeCommonHeaders({ headers: new Headers(init.headers) }),
-          agent: null,
+          agent: this.options.proxy,
         };
-
-        // init.agent = proxy;
 
         const { apikey, apisecret } = this.options;
         if (apikey && apisecret) {
