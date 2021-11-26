@@ -35,6 +35,7 @@ test:
   script:
     - *common
     - npm ci
+    - npm run build:graphql
     - npm run lint
     - npm run cover
   variables:
