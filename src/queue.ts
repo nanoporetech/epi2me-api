@@ -1,10 +1,10 @@
 import type { Optional } from 'ts-runtime-typecheck';
 import type { Queue } from './queue.type';
 
-import { Subject } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
 
 export function createQueue<T>(
-  { concurrency = 1, signal$ }: { concurrency?: number; signal$?: Subject<void> },
+  { concurrency = 1, signal$ }: { concurrency?: number; signal$?: Observable<unknown> },
   fn: (value: T) => Promise<void>,
 ): Queue<T> {
   const waiting: Array<T> = [];

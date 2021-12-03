@@ -11,7 +11,6 @@ import crypto from 'crypto';
 import { isDictionary } from 'ts-runtime-typecheck';
 import ProxyAgent from 'proxy-agent';
 import { NoopLogger } from './Logger';
-import { NestedError } from './NodeError';
 import { DEFAULT_OPTIONS } from './default_options';
 import { USER_AGENT } from './UserAgent.constants';
 
@@ -29,7 +28,6 @@ export interface Utility {
   put(uri: string, id: string, obj: Dictionary, options: UtilityOptions): Promise<Dictionary>;
   mangleURL(uri: string, options: UtilityOptions): string;
   processLegacyForm(req: AxiosRequestConfig, data: Dictionary): void;
-  convertResponseToObject(data: string | Dictionary): Dictionary;
 }
 
 export interface UtilityOptions {
@@ -312,19 +310,6 @@ export const utils: Utility = (function magic(): Utility {
         req.headers = {};
       }
       req.headers['Content-Type'] = 'application/x-www-form-urlencoded';
-    },
-
-    convertResponseToObject(data: Dictionary | string): Dictionary {
-      if (typeof data === 'object') {
-        // already parsed
-        return data;
-      } else {
-        try {
-          return JSON.parse(data);
-        } catch (err) {
-          throw new NestedError('exception parsing chain JSON', err);
-        }
-      }
     },
   };
 })();

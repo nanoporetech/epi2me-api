@@ -47,7 +47,10 @@ export interface Configuration {
     region?: string;
     summaryTelemetry?: Dictionary;
     telemetryNames?: Dictionary<Dictionary<string>>;
-    chain?: Dictionary;
+    chain?: {
+      components: Dictionary<Dictionary>;
+      targetComponentId: Index;
+    };
     key_id?: string;
     awssettings: {
       region: string;

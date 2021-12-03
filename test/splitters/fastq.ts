@@ -158,8 +158,9 @@ describe('fastq splitter', () => {
 
       it('closes chunk, calls handler and deletes chunk', async () => {
         const id = ++counter;
-        const chunk = createChunk(prefix, suffix, id, false);
-        await completeChunk(chunk, async (location) => {
+        const splitIndex = new Set<string>();
+        const chunk = createChunk(prefix, suffix, splitIndex, id, false);
+        await completeChunk(chunk, splitIndex, async (location) => {
           assert.strictEqual(constructChunkLocation(prefix, suffix, id), location);
           const { size } = await fs.promises.stat(location);
           assert.strictEqual(size, 0);
@@ -175,9 +176,10 @@ describe('fastq splitter', () => {
       });
       it('deletes chunk even if handler fails', async () => {
         const id = ++counter;
-        const chunk = createChunk(prefix, suffix, id, false);
+        const splitIndex = new Set<string>();
+        const chunk = createChunk(prefix, suffix, splitIndex, id, false);
         try {
-          await completeChunk(chunk, async () => {
+          await completeChunk(chunk, splitIndex, async () => {
             throw new Error('Expect this to fail');
           });
         } catch (err) {
@@ -226,8 +228,9 @@ describe('fastq splitter', () => {
         const prefix = path.join(dir.name, 'sample');
         const id = 42;
         const suffix = '.fq.gz';
+        const index = new Set<string>();
 
-        const chunk = createChunk(prefix, suffix, id, false);
+        const chunk = createChunk(prefix, suffix, index, id, false);
 
         assert.strictEqual(chunk.bytes, 0);
         assert.strictEqual(chunk.reads, 0);
@@ -251,11 +254,13 @@ describe('fastq splitter', () => {
     const raw = generateRandomFastQ(4, 8);
     const dir = tmp.dirSync({});
     const source = path.join(dir.name, 'sample.fastq');
+    const splitIndex = new Set<string>();
     await fs.promises.writeFile(source, raw);
     let called = 0;
     await splitter(
       source,
       {},
+      splitIndex,
       async () => {
         called += 1;
       },
@@ -268,11 +273,13 @@ describe('fastq splitter', () => {
     const bytes = raw.length;
     const dir = tmp.dirSync({});
     const source = path.join(dir.name, 'sample.fastq');
+    const splitIndex = new Set<string>();
     await fs.promises.writeFile(source, raw);
     let called = 0;
     await splitter(
       source,
       { maxChunkBytes: bytes },
+      splitIndex,
       async () => {
         called += 1;
       },
@@ -284,11 +291,13 @@ describe('fastq splitter', () => {
     const raw = generateRandomFastQ(4, 9);
     const dir = tmp.dirSync({});
     const source = path.join(dir.name, 'sample.fastq');
+    const splitIndex = new Set<string>();
     await fs.promises.writeFile(source, raw);
     let called = 0;
     await splitter(
       source,
       { maxChunkReads: 4 },
+      splitIndex,
       async () => {
         called += 1;
       },
@@ -300,11 +309,13 @@ describe('fastq splitter', () => {
     const raw = generateRandomFastQ(22, 9);
     const dir = tmp.dirSync({});
     const source = path.join(dir.name, 'sample.fastq');
+    const splitIndex = new Set<string>();
     await fs.promises.writeFile(source, raw);
     let called = 0;
     await splitter(
       source,
       { maxChunkReads: 4 },
+      splitIndex,
       async () => {
         called += 1;
       },
@@ -316,11 +327,14 @@ describe('fastq splitter', () => {
     const raw = generateRandomFastQ(10, 20);
     const dir = tmp.dirSync({});
     const source = path.join(dir.name, 'sample.fastq');
+    const splitIndex = new Set<string>();
+
     await fs.promises.writeFile(source, raw);
     let called = 0;
     await splitter(
       source,
       { maxChunkBytes: 100 },
+      splitIndex,
       async () => {
         called += 1;
       },
@@ -332,9 +346,11 @@ describe('fastq splitter', () => {
     const raw = generateRandomFastQ(3, 8) + '\nbaddata!';
     const dir = tmp.dirSync({});
     const source = path.join(dir.name, 'sample.fastq');
+    const splitIndex = new Set<string>();
+
     await fs.promises.writeFile(source, raw);
     try {
-      await splitter(source, { maxChunkReads: 2 }, async () => {}, false);
+      await splitter(source, { maxChunkReads: 2 }, splitIndex, async () => {}, false);
       throw new Error('Expected this to fail');
     } catch (err) {
       if (err?.message !== 'File was not multiple of 4 lines long.') {
@@ -346,19 +362,24 @@ describe('fastq splitter', () => {
     const raw = '\n  \n' + generateRandomFastQ(3, 8) + '\n   ';
     const dir = tmp.dirSync({});
     const source = path.join(dir.name, 'sample.fastq');
+    const splitIndex = new Set<string>();
+
     await fs.promises.writeFile(source, raw);
-    await splitter(source, { maxChunkReads: 2 }, async () => {}, false);
+    await splitter(source, { maxChunkReads: 2 }, splitIndex, async () => {}, false);
   });
   describe('splits compressed data', () => {
     it('splits a file if its over maxChunkReads', async () => {
       const raw = generateRandomFastQ(22, 9);
       const dir = tmp.dirSync({});
       const source = path.join(dir.name, 'sample.fastq.gz');
+      const splitIndex = new Set<string>();
+
       await fs.promises.writeFile(source, zlib.gzipSync(raw));
       let called = 0;
       await splitter(
         source,
         { maxChunkReads: 4 },
+        splitIndex,
         async () => {
           called += 1;
         },
@@ -370,11 +391,14 @@ describe('fastq splitter', () => {
       const raw = generateRandomFastQ(10, 20);
       const dir = tmp.dirSync({});
       const source = path.join(dir.name, 'sample.fastq.gq');
+      const splitIndex = new Set<string>();
+
       await fs.promises.writeFile(source, zlib.gzipSync(raw));
       let called = 0;
       await splitter(
         source,
         { maxChunkBytes: 100 },
+        splitIndex,
         async () => {
           called += 1;
         },

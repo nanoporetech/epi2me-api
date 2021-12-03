@@ -1,10 +1,9 @@
 import { constructUploadParameters, instantiateFileUpload, processFile, readSettings } from '../../src/fileUploader';
 import { EPI2ME_FS as EPI2ME, EPI2ME_FS } from '../../src/epi2me-fs';
 import { expect } from 'chai';
-import { DB } from '../../src/db';
 import { UploadContext, UploadSettings } from '../../src/fileUploader.type';
 import { ProgressState, States, SuccessState, UploadState } from '../../src/epi2me-state.type';
-import { stub, SinonStub } from 'sinon';
+import { stub, spy, SinonStub } from 'sinon';
 import { FileStat } from '../../src/inputScanner.type';
 import path from 'path';
 import tmp from 'tmp';
@@ -14,6 +13,7 @@ import { Subject } from 'rxjs';
 import { sleep } from '../../src/timers';
 import { NoopLogger } from '../../src/Logger';
 import { Duration } from '../../src/Duration';
+import { FileIndex } from '../../src/FileIndex';
 
 function generateRandomFastQ(readCount: number, perRead: number) {
   /*
@@ -46,6 +46,8 @@ function uploadContextFactory(settings: Partial<UploadSettings> = {}, state: Par
       requiresStorage: false,
       ...settings,
     },
+    splitFiles: new Set(),
+    fileIndex: new FileIndex(),
     hasStopped: false,
     stopped$: new Subject(),
     state: {
@@ -57,20 +59,11 @@ function uploadContextFactory(settings: Partial<UploadSettings> = {}, state: Par
       progress: {} as ProgressState, // TODO this is left absent as it's not needed right now, but should be done
       ...state,
     },
-    database: {
-      log: NoopLogger,
-      uploadFile: stub(),
-      splitFile: stub(),
-      splitDone: stub(),
-      splitClean: stub(),
-      seenUpload: stub(),
-      skipFile: stub(),
-    } as unknown as DB,
     warnings: [],
     logger: NoopLogger,
     instance: {
       discoverQueue: stub().resolves(''),
-      realtimeFeedback: stub().resolves(),
+      realtimeFeedback: stub().returns(undefined),
       sessionedS3: stub().callsFake(() => {
         return {
           upload: stub().callsFake(() => {
@@ -123,6 +116,7 @@ function uploadContextFactory(settings: Partial<UploadSettings> = {}, state: Par
               '100': { inputQueueName: 'uploadMessageQueue' },
               '200': { inputQueueName: 'downloadMessageQueue' },
             },
+            targetComponentId: '100',
           },
         } as Partial<Configuration['instance']>,
       } as Partial<Configuration>,
@@ -133,13 +127,11 @@ function uploadContextFactory(settings: Partial<UploadSettings> = {}, state: Par
 }
 
 function epi2meInstanceFactory(split_size: number, input: string[], types: string[]): EPI2ME_FS {
-  const seenFiles = new Set();
-
   return {
     log: NoopLogger,
     uploadStopped$: new Subject<boolean>(),
     discoverQueue: stub().resolves(''),
-    realtimeFeedback: stub().resolves(),
+    realtimeFeedback: stub().returns(undefined),
     sessionedS3: stub().callsFake(() => {
       return {
         upload: stub().callsFake(() => {
@@ -201,24 +193,10 @@ function epi2meInstanceFactory(split_size: number, input: string[], types: strin
             '100': { inputQueueName: 'uploadMessageQueue' },
             '200': { inputQueueName: 'downloadMessageQueue' },
           },
+          targetComponentId: '100',
         },
       } as Partial<Configuration['instance']>,
     } as Partial<Configuration>,
-    db: {
-      log: NoopLogger,
-      uploadFile: stub(),
-      splitFile: stub(),
-      splitDone: stub(),
-      splitClean: stub(),
-      seenUpload: stub().callsFake((str) => {
-        if (seenFiles.has(str)) {
-          return true;
-        }
-        seenFiles.add(str);
-        return false;
-      }),
-      skipFile: stub(),
-    } as unknown as DB,
     states: {
       upload: {
         filesCount: 0,
@@ -287,12 +265,6 @@ describe('file uploader', () => {
     expect(() => instantiateFileUpload(instance)).throws('Workflow is not defined');
   });
 
-  it('requires a database', () => {
-    const instance = new EPI2ME({});
-    instance.config.workflow = {};
-    expect(() => instantiateFileUpload(instance)).throws('Database is not defined');
-  });
-
   it('requires a storage account if the workflow needs storage', () => {
     const instance = new EPI2ME({});
     instance.config.workflow = {
@@ -302,7 +274,6 @@ describe('file uploader', () => {
     };
     instance.config.instance.bucket = 'bucket ID';
     instance.config.instance.bucketFolder = '/bucket/folder';
-    instance.db = {} as DB; // WARN this assumes the test will not continue past the expected error
     expect(() => instantiateFileUpload(instance)).throws(
       'Workflow requires storage enabled. Please provide a valid storage account',
     );
@@ -343,6 +314,7 @@ describe('file uploader', () => {
       await fs.promises.writeFile(location, data);
     };
 
+    instance.config.options.fileCheckInterval = Duration.Milliseconds(500); // we don't want to scan twice, so make slowish
     (instance.sessionedS3 as SinonStub).callsFake((conf: AWS.S3.ClientConfiguration) => {
       return {
         upload: simulatedUpload(conf, () => {
@@ -422,7 +394,7 @@ describe('file uploader', () => {
     const didComplete = uploader();
     const { warnings } = instance.states;
 
-    await sleep(Duration.Milliseconds(5));
+    await sleep(Duration.Milliseconds(50));
     // shouldn't have failed yet, check the warnings then stop it while the upload is pending
     expect(warnings.length).to.equals(0);
 
@@ -664,44 +636,6 @@ describe('file uploader', () => {
     expect(calls[3][1]).to.equals('decr');
     expect(calls[3][2].bytes).to.closeTo(0.6 * fileSize, 0.0001);
     expect(calls[3][2].total).to.equals(fileSize);
-  });
-
-  it('handles malformed workflow chains', async () => {
-    const dir = tmp.dirSync().name;
-    const instance = epi2meInstanceFactory(100, [dir], ['fastq', 'fasta']);
-
-    instance.config.instance.chain = { WRONG: [] };
-    instance.config.options.uploadRetries = 0;
-
-    const addFile = async (name, reads) => {
-      const data = generateRandomFastQ(reads, 30);
-      const location = path.join(dir, name);
-      await fs.promises.writeFile(location, data);
-    };
-
-    const stop$ = instance.uploadStopped$ as Subject<boolean>;
-    const stop = () => {
-      stop$.next(true);
-      stop$.complete();
-    };
-
-    // ensure we try to stop even after a failure
-    after(stop);
-
-    await addFile('reference.fasta', 10);
-
-    const uploader = await instantiateFileUpload(instance);
-
-    const didComplete = uploader();
-
-    await sleep(Duration.Milliseconds(5));
-
-    stop();
-    await didComplete;
-
-    expect(instance.states.upload.failure).to.deep.equal({
-      'Unexpected chain definition': 1,
-    });
   });
 
   describe('read settings', () => {
@@ -1014,32 +948,35 @@ describe('file uploader', () => {
   describe('process file', () => {
     it('skips if there are too many files', async () => {
       const ctx = uploadContextFactory({ maxFiles: 10 }, { filesCount: 10 });
+      const fileIndexAdd = spy(ctx.fileIndex, 'add');
       await processFile(ctx, fileStatFactory({ relative: 'my/file.eg' }));
       expect(ctx.warnings).to.deep.include({
         type: 'WARNING_FILE_TOO_MANY',
         msg: `Maximum 10 file(s) already uploaded. Marking my/file.eg as skipped.`,
       });
-      expect((ctx.database.skipFile as SinonStub).callCount).to.equal(1);
+      expect(fileIndexAdd.callCount).to.equal(1);
     });
 
     it('skips if the file is empty', async () => {
       const ctx = uploadContextFactory();
+      const fileIndexAdd = spy(ctx.fileIndex, 'add');
       await processFile(ctx, fileStatFactory({ size: 0, relative: 'my/file.eg' }));
       expect(ctx.warnings).to.deep.include({
         type: 'WARNING_FILE_EMPTY',
         msg: `The file my/file.eg is empty. It will be skipped.`,
       });
-      expect((ctx.database.skipFile as SinonStub).callCount).to.equal(1);
+      expect(fileIndexAdd.callCount).to.equal(1);
     });
 
     it('skips if the file is empty', async () => {
       const ctx = uploadContextFactory({ maxFileSize: 1024 });
+      const fileIndexAdd = spy(ctx.fileIndex, 'add');
       await processFile(ctx, fileStatFactory({ size: 2000, relative: 'my/file.eg' }));
       expect(ctx.warnings).to.deep.include({
         type: 'WARNING_FILE_TOO_BIG',
         msg: `The file my/file.eg is bigger than the maximum size limit (1.0KB). It will be skipped.`,
       });
-      expect((ctx.database.skipFile as SinonStub).callCount).to.equal(1);
+      expect(fileIndexAdd.callCount).to.equal(1);
     });
 
     it('does not split non fastq files', async () => {
@@ -1238,7 +1175,7 @@ describe('file uploader', () => {
 
     const didComplete = uploader();
 
-    await sleep(Duration.Milliseconds(50));
+    await sleep(Duration.Milliseconds(100));
 
     const { warnings, upload } = instance.states;
     expect((instance.sessionedS3 as SinonStub).callCount, 'Uploads jobs').to.equals(2);
@@ -1247,7 +1184,7 @@ describe('file uploader', () => {
 
     await addFile('another.fastq', 10);
 
-    await sleep(Duration.Milliseconds(50));
+    await sleep(Duration.Milliseconds(100));
 
     expect((instance.sessionedS3 as SinonStub).callCount, 'Uploads jobs').to.equals(7);
     expect(upload.filesCount, 'File count').to.equals(3);
