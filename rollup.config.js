@@ -71,12 +71,9 @@ const epi2meFull = {
     ...pluginsCommon,
     copy({
       targets: [
-        { src: './src/migrations/*', dest: 'dist/core/migrations' },
         { src: './build/types/src/*', dest: 'dist/core/types' },
         { src: './build/esm/src/*', dest: 'dist/core/esm' },
         { src: './build/cjs/src/*', dest: 'dist/core/cjs' },
-        { src: './src/migrations/*', dest: 'dist/core/cjs/migrations' },
-        { src: './src/migrations/*', dest: 'dist/core/esm/migrations' },
         { src: './protos', dest: 'dist/core' },
         { src: './LICENCE', dest: 'dist/core' },
         { src: './README.md', dest: 'dist/core' },

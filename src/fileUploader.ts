@@ -23,8 +23,6 @@ import {
   assertDefined,
   isArray,
   isDefined,
-  isDictionary,
-  isDictionaryOf,
   makeNumber,
 } from 'ts-runtime-typecheck';
 import { first } from 'rxjs/operators';
@@ -32,10 +30,13 @@ import path from 'path';
 import fs from 'fs';
 import { Duration } from './Duration';
 import { getErrorMessage, NestedError, wrapAndLogError } from './NodeError';
+import { FileIndex } from './FileIndex';
 
 export function instantiateFileUpload(instance: EPI2ME_FS): () => Promise<void> {
   assertDefined(instance.config.workflow, 'Workflow');
-  assertDefined(instance.db, 'Database');
+
+  const fileIndex = new FileIndex();
+  const splitFiles = new Set<string>();
 
   const workflow = instance.config.workflow;
   const settings = readSettings(instance.config);
@@ -45,7 +46,6 @@ export function instantiateFileUpload(instance: EPI2ME_FS): () => Promise<void> 
     throw new Error('Workflow requires storage enabled. Please provide a valid storage account');
   }
 
-  const { log: logger, db: database } = instance;
   const { inputFolders, outputFolder, filetype: filetypes } = instance.config.options;
   const { warnings, upload: state } = instance.states;
   const stopped$ = instance.uploadStopped$;
@@ -53,10 +53,11 @@ export function instantiateFileUpload(instance: EPI2ME_FS): () => Promise<void> 
   const context: UploadContext = {
     settings,
     warnings,
-    database,
+    fileIndex,
+    splitFiles,
     instance,
     state,
-    logger,
+    logger: instance.log,
     hasStopped: false,
     stopped$,
   };
@@ -64,7 +65,7 @@ export function instantiateFileUpload(instance: EPI2ME_FS): () => Promise<void> 
   assertDefined(inputFolders, 'inputFolders');
 
   const scanner = createFileScanner({
-    database,
+    fileIndex,
     inputFolders,
     filetypes,
     outputFolder,
@@ -106,14 +107,14 @@ export function instantiateFileUpload(instance: EPI2ME_FS): () => Promise<void> 
 }
 
 export function createFileScanner({
-  database,
+  fileIndex,
   inputFolders,
   outputFolder,
   filetypes,
   context,
 }: FileScannerOptions): () => Promise<FileStat[]> {
-  const filter = async (location: string): Promise<boolean> => {
-    const exists = await database.seenUpload(location);
+  const filter = (location: string) => {
+    const exists = context.splitFiles.has(location) || fileIndex.has(location);
     return !exists;
   };
 
@@ -205,15 +206,15 @@ export function readSettings({
 }
 
 export async function processFile(ctx: UploadContext, file: FileStat): Promise<void> {
-  const { settings, state, database } = ctx;
+  const { settings, state, splitFiles, fileIndex } = ctx;
 
   if (settings.maxFiles <= state.filesCount) {
-    await skipFile(file, ctx, FileUploadWarnings.TOO_MANY);
+    skipFile(file, ctx, FileUploadWarnings.TOO_MANY);
     return;
   }
 
   if (file.size === 0) {
-    await skipFile(file, ctx, FileUploadWarnings.EMPTY);
+    skipFile(file, ctx, FileUploadWarnings.EMPTY);
     return;
   }
 
@@ -233,13 +234,12 @@ export async function processFile(ctx: UploadContext, file: FileStat): Promise<v
     await splitter(
       file.path,
       split,
+      splitFiles,
       async (chunkFile: string): Promise<void> => {
         if (ctx.hasStopped) {
           // NOTE should be caught by the queue and discarded
           throw new Error('File upload aborted');
         }
-
-        await database.splitFile(chunkFile, file.path);
 
         chunkId += 1;
 
@@ -256,7 +256,6 @@ export async function processFile(ctx: UploadContext, file: FileStat): Promise<v
         };
 
         await uploadJob(ctx, chunkFilestat);
-        await database.splitDone(chunkFile);
       },
       isCompressed,
     );
@@ -264,24 +263,25 @@ export async function processFile(ctx: UploadContext, file: FileStat): Promise<v
     state.filesCount += 1;
 
     // mark the original file as done
-    await database.uploadFile(file.path);
+    fileIndex.add(file.path);
     return;
   }
 
   // check if the file exceeds our size limit
   if (file.size > settings.maxFileSize) {
-    await skipFile(file, ctx, FileUploadWarnings.TOO_BIG);
+    skipFile(file, ctx, FileUploadWarnings.TOO_BIG);
     return;
   }
 
   await uploadJob(ctx, file);
+  fileIndex.add(file.path);
 
   state.filesCount += 1;
 }
 
-export async function skipFile(file: FileStat, ctx: UploadContext, warn: FileUploadWarnings): Promise<void> {
+export function skipFile(file: FileStat, ctx: UploadContext, warn: FileUploadWarnings): void {
   addFileWarning(file, ctx, warn);
-  await ctx.database.skipFile(file.path);
+  ctx.fileIndex.add(file.path);
 }
 
 export function addWarning(ctx: UploadContext, warn: UploadWarnings, msg: string): void {
@@ -508,10 +508,6 @@ function createMessage(instance: EPI2ME_FS, objectId: string): InputQueueMessage
   if (workflowInstance.chain) {
     let components: Dictionary<Dictionary>;
 
-    if (!isDictionaryOf(isDictionary)(workflowInstance.chain.components)) {
-      throw new Error('Unexpected chain definition');
-    }
-
     try {
       components = JSON.parse(JSON.stringify(workflowInstance.chain.components)); // low-frills object clone
     } catch {
@@ -576,27 +572,21 @@ async function messageInputQueue(ctx: UploadContext, objectId: string, file: Fil
 }
 
 async function uploadComplete(ctx: UploadContext, objectId: string, file: FileStat): Promise<void> {
-  const { instance, database, logger } = ctx;
+  const { instance, logger } = ctx;
 
   logger.info(`${file.id} uploaded to S3: ${objectId}`);
 
   const messageId = await messageInputQueue(ctx, objectId, file);
   const workflowInstance = instance.config.instance;
 
-  instance
-    .realtimeFeedback(`workflow_instance:state`, {
-      type: 'start',
-      id_workflow_instance: workflowInstance.id_workflow_instance,
-      id_workflow: workflowInstance.id_workflow,
-      component_id: '0',
-      message_id: messageId,
-      id_user: workflowInstance.id_user,
-    })
-    .catch((err) => {
-      logger.warn(NestedError.formatMessage('realtimeFeedback failed', err));
-    });
+  instance.realtimeFeedback(`workflow_instance:state`, {
+    type: 'start',
+    id_workflow_instance: workflowInstance.id_workflow_instance,
+    id_workflow: workflowInstance.id_workflow,
+    component_id: '0',
+    message_id: messageId,
+    id_user: workflowInstance.id_user,
+  });
 
   logger.info(`${file.id} SQS message sent. Mark as uploaded`);
-
-  await database.uploadFile(file.path);
 }

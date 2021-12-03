@@ -24,7 +24,7 @@ describe('epi2me-api.processMessage', () => {
         opts,
       ),
     );
-    sinon.stub(client, 'socket').resolves({
+    sinon.stub(client, 'getSocket').returns({
       emit: () => {},
     });
     return client;

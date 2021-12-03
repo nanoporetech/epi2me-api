@@ -20,15 +20,7 @@ import { niceSize } from './niceSize';
 import { REST } from './rest';
 import Socket from './socket';
 import { utils } from './utils';
-import {
-  asDictionary,
-  asString,
-  asNumber,
-  asIndexable,
-  asIndex,
-  asOptDictionary,
-  asDefined,
-} from 'ts-runtime-typecheck';
+import { asDictionary, asString, asNumber, asIndexable, asIndex, asDefined } from 'ts-runtime-typecheck';
 import { createUploadState, createDownloadState } from './epi2me-state';
 import { createInterval } from './timers';
 import { parseOptions } from './parseOptions';
@@ -102,7 +94,7 @@ export class EPI2ME {
   config: Configuration;
   REST: REST | REST_FS;
   graphQL: GraphQL;
-  mySocket?: Socket;
+  socket?: Socket;
 
   constructor(optstring: Partial<EPI2ME_OPTIONS> = {}) {
     const options = parseOptions(optstring);
@@ -127,53 +119,62 @@ export class EPI2ME {
     return asIndex(this.config.instance.id_workflow_instance);
   }
 
-  async socket(): Promise<Socket> {
-    if (this.mySocket) {
-      return this.mySocket;
+  getSocket(): Socket {
+    if (this.socket) {
+      return this.socket;
     }
 
-    this.mySocket = new Socket(this.REST, this.config.options);
-    const { id_workflow_instance: idWorkflowInstance } = this.config.instance;
-    if (idWorkflowInstance) {
-      this.mySocket.watch(`workflow_instance:state:${idWorkflowInstance}`, (newWorkerStatus) => {
-        const { instance: instanceConfig } = this.config;
-        const components = asOptDictionary(instanceConfig.chain?.components);
-        if (components) {
-          const summaryTelemetry = asDictionary(instanceConfig.summaryTelemetry);
-          const workerStatus = Object.entries(components).sort((a, b) => parseInt(a[0], 10) - parseInt(b[0], 10));
-          const indexableNewWorkerStatus = asIndexable(newWorkerStatus);
-          const results = [];
-          for (const [key, value] of workerStatus) {
-            if (key in indexableNewWorkerStatus) {
-              const step = +key;
-              let name = 'ROOT';
-              if (step !== 0) {
-                const wid = asIndex(asDictionary(value).wid);
-                name = Object.keys(asDictionary(summaryTelemetry[wid]))[0] ?? 'ROOT';
-              }
-              const [running, complete, error] = asString(indexableNewWorkerStatus[key])
-                .split(',')
-                .map((componentID) => Math.max(0, +componentID)); // It's dodgy but assuming the componentID is a number happens all over the place
+    const socket = new Socket(this.REST, this.config.options);
+    const { id_workflow_instance: id } = this.config.instance;
 
-              results.push({
-                running,
-                complete,
-                error,
-                step,
-                name,
-              });
-            }
-          }
-          this.experimentalWorkerStatus$.next(results);
-        }
-      });
+    if (id) {
+      socket.watch(`workflow_instance:state:${id}`, this.updateWorkerStatus);
     }
-    return this.mySocket;
+
+    this.socket = socket;
+    return socket;
   }
 
-  async realtimeFeedback(channel: string, object: unknown): Promise<void> {
-    const socket = await this.socket();
-    socket.emit(channel, object);
+  updateWorkerStatus = (newWorkerStatus: unknown): void => {
+    const { instance: instanceConfig } = this.config;
+    const components = instanceConfig.chain?.components;
+
+    if (!components) {
+      return;
+    }
+
+    const summaryTelemetry = asDictionary(instanceConfig.summaryTelemetry);
+    const workerStatus = Object.entries(components).sort((a, b) => parseInt(a[0], 10) - parseInt(b[0], 10));
+    const indexableNewWorkerStatus = asIndexable(newWorkerStatus);
+    const results = [];
+
+    for (const [key, value] of workerStatus) {
+      if (key in indexableNewWorkerStatus) {
+        const step = +key;
+        let name = 'ROOT';
+        if (step !== 0) {
+          const wid = asIndex(asDictionary(value).wid);
+          name = Object.keys(asDictionary(summaryTelemetry[wid]))[0] ?? 'ROOT';
+        }
+        const [running, complete, error] = asString(indexableNewWorkerStatus[key])
+          .split(',')
+          .map((componentID) => Math.max(0, +componentID)); // It's dodgy but assuming the componentID is a number happens all over the place
+
+        results.push({
+          running,
+          complete,
+          error,
+          step,
+          name,
+        });
+      }
+    }
+
+    this.experimentalWorkerStatus$.next(results);
+  };
+
+  realtimeFeedback(channel: string, object: unknown): void {
+    this.getSocket().emit(channel, object);
   }
 
   setTimer(
@@ -210,6 +211,21 @@ export class EPI2ME {
     }
   }
 
+  async stopEverything(): Promise<void> {
+    await this.stopAnalysis();
+
+    this.stopTransferTimers();
+    this.stopVisibilityTimers();
+    this.stopDownloadWorkers();
+
+    if (this.socket) {
+      this.socket.destroy();
+    }
+
+    this.stopTimer('summaryTelemetryInterval');
+    this.stopTimer('downloadCheckInterval');
+  }
+
   async stopAnalysis(): Promise<void> {
     // If we stop the cloud, there's no point uploading anymore
     this.stopUpload();
@@ -217,21 +233,24 @@ export class EPI2ME {
     this.stopped = true;
 
     const { id_workflow_instance: idWorkflowInstance } = this.config.instance;
-    if (idWorkflowInstance) {
-      try {
-        // TODO: Convert to GQL and switch on class-wide flag
-        if (this.config.options.useGraphQL) {
-          await this.graphQL.stopWorkflow({ variables: { idWorkflowInstance } });
-        } else {
-          await this.REST.stopWorkflow(idWorkflowInstance);
-        }
-        this.analyseState$.next(false);
-      } catch (err) {
-        throw wrapAndLogError('error stopping instance', err, this.log);
-      }
 
-      this.log.info(`workflow instance ${idWorkflowInstance} stopped`);
+    if (!idWorkflowInstance) {
+      return;
     }
+
+    try {
+      if (this.config.options.useGraphQL) {
+        await this.graphQL.stopWorkflow({ variables: { idWorkflowInstance } });
+      } else {
+        await this.REST.stopWorkflow(idWorkflowInstance);
+      }
+      this.analyseState$.next(false);
+      this.analyseState$.complete();
+    } catch (err) {
+      throw wrapAndLogError('error stopping instance', err, this.log);
+    }
+
+    this.log.info(`workflow instance ${idWorkflowInstance} stopped`);
   }
 
   stopUpload(): void {
@@ -241,13 +260,10 @@ export class EPI2ME {
     this.stopTimer('fileCheckInterval');
 
     this.uploadState$.next(false);
+    this.uploadState$.complete();
   }
 
-  async stopEverything(): Promise<void> {
-    this.stopAnalysis();
-    // Moved this out of the main stopUpload because we don't want to stop it when we stop uploading
-    // This is really 'stop fetching reports'
-
+  private stopTransferTimers(): void {
     for (const key in this.timers.transferTimeouts) {
       this.log.debug(`clearing transferTimeout for ${key}`);
       const timer = this.timers.transferTimeouts[key];
@@ -257,7 +273,9 @@ export class EPI2ME {
       }
       delete this.timers.transferTimeouts[key];
     }
+  }
 
+  private stopVisibilityTimers(): void {
     for (const key in this.timers.visibilityIntervals) {
       this.log.debug(`clearing visibilityInterval for ${key}`);
       const timer = this.timers.visibilityIntervals[key];
@@ -266,15 +284,14 @@ export class EPI2ME {
       }
       delete this.timers.visibilityIntervals[key];
     }
+  }
 
+  private async stopDownloadWorkers(): Promise<void> {
     if (this.downloadWorkerPool) {
       this.log.debug('clearing downloadWorkerPool');
       await Promise.all(Object.values(this.downloadWorkerPool));
       delete this.downloadWorkerPool;
     }
-
-    this.stopTimer('summaryTelemetryInterval');
-    this.stopTimer('downloadCheckInterval');
   }
 
   reportProgress(): void {

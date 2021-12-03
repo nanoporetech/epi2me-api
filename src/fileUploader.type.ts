@@ -1,14 +1,13 @@
 import type { Dictionary, Index } from 'ts-runtime-typecheck';
-import type { DB } from './db';
 import type { EPI2ME_FS } from './epi2me-fs';
 import type { UploadState, Warning } from './epi2me-state.type';
 import type { Logger } from './Logger.type';
 import type { SplitStyle } from './splitters/splitter.type';
 import type { Observable } from 'rxjs';
 import type { Configuration } from './Configuration.type';
+import type { FileIndex } from './FileIndex';
 
 export interface UploaderOptions {
-  database: DB;
   inputFolders: string[];
   filetypes?: string | string[];
   outputFolder?: string;
@@ -18,7 +17,7 @@ export interface UploaderOptions {
 }
 
 export interface FileScannerOptions {
-  database: DB;
+  fileIndex: FileIndex;
   inputFolders: string[];
   filetypes?: string | string[];
   outputFolder?: string;
@@ -40,7 +39,8 @@ export interface UploadContext {
   settings: UploadSettings;
   state: UploadState;
   warnings: Warning[];
-  database: DB;
+  fileIndex: FileIndex;
+  splitFiles: Set<string>;
   instance: EPI2ME_FS;
   logger: Logger;
   hasStopped: boolean;
@@ -49,7 +49,7 @@ export interface UploadContext {
 
 export interface InputQueueMessage {
   components?: unknown;
-  targetComponentId?: unknown;
+  targetComponentId?: Index;
   key_id?: unknown;
   bucket?: string;
   outputQueue?: string;

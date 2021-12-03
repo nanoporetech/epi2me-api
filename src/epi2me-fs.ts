@@ -8,7 +8,7 @@
 import type { Readable, Writable } from 'stream';
 import type { PromiseResult } from 'aws-sdk/lib/request';
 import type { Configuration } from './Configuration.type';
-import { JSONObject, Dictionary, Index, isDefined } from 'ts-runtime-typecheck';
+import { JSONObject, Dictionary, Index, isIndex } from 'ts-runtime-typecheck';
 import type { InstanceAttribute } from './factory.type';
 import type { EPI2ME_OPTIONS } from './epi2me-options.type';
 import type { InstanceTokenMutation, WorkflowInstanceMutation } from './generated/graphql.type';
@@ -23,6 +23,9 @@ import {
   asDefined,
   asOptFunction,
   asOptNumber,
+  isDefined,
+  isDictionary,
+  asOptStruct,
   makeString,
   isString,
   isUndefined,
@@ -35,7 +38,6 @@ import AWS from 'aws-sdk';
 import fs from 'fs-extra'; /* MC-565 handle EMFILE & EXDIR gracefully; use Promises */
 import { EOL, homedir } from 'os';
 import path from 'path';
-import { DB } from './db';
 import { EPI2ME } from './epi2me';
 import { Factory } from './factory';
 import { REST_FS } from './rest-fs';
@@ -48,7 +50,7 @@ import { Telemetry } from './telemetry';
 import { resolve } from 'url';
 import { filter, first, map, takeUntil, withLatestFrom } from 'rxjs/operators';
 import { GraphQLFS } from './graphql-fs';
-import { BehaviorSubject, Subject } from 'rxjs';
+import { BehaviorSubject } from 'rxjs';
 import { createQueue } from './queue';
 import { filestats } from './filestats';
 import { instantiateFileUpload } from './fileUploader';
@@ -70,6 +72,11 @@ const rootDir = (): string => {
   return process.env.EPI2ME_HOME ?? path.join(appData, process.platform === 'linux' ? '.epi2me' : 'EPI2ME');
 };
 
+const asChain = asOptStruct({
+  components: isDictionaryOf(isDictionary),
+  targetComponentId: isIndex,
+});
+
 export class EPI2ME_FS extends EPI2ME {
   static REST = REST_FS;
   static utils = utils;
@@ -77,9 +84,8 @@ export class EPI2ME_FS extends EPI2ME {
   static Factory = Factory;
   static GraphQL = GraphQLFS;
 
-  SampleReader: SampleReader;
+  SampleReader = new SampleReader();
   telemetryLogStream?: fs.WriteStream;
-  db?: DB;
   checkForDownloadsRunning?: boolean;
   dirScanInProgress?: boolean;
   uploadMessageQueue?: unknown;
@@ -88,7 +94,6 @@ export class EPI2ME_FS extends EPI2ME {
   REST: REST_FS;
 
   private telemetry?: Telemetry;
-  private telemetryDestroySignal$?: Subject<void>;
   private sqs?: AWS.SQS;
   private s3?: AWS.S3;
 
@@ -98,7 +103,6 @@ export class EPI2ME_FS extends EPI2ME {
     // overwrite non-fs REST and GQL object
     this.REST = new REST_FS(this.config.options);
     this.graphQL = new GraphQLFS(this.config.options);
-    this.SampleReader = new SampleReader();
   }
 
   private fetchToken = async (): Promise<InstanceTokenMutation> => {
@@ -301,6 +305,10 @@ export class EPI2ME_FS extends EPI2ME {
     return this.autoConfigure(instance);
   }
 
+  validateChain(chain: unknown): ReturnType<typeof asChain> {
+    return asChain(isString(chain) ? JSON.parse(chain) : chain);
+  }
+
   setClassConfigGQL(startData: WorkflowInstanceMutation): void {
     assertDefined(startData, 'Workflow Start Data');
     const { instance, bucket, idUser, remoteAddr } = startData;
@@ -309,7 +317,6 @@ export class EPI2ME_FS extends EPI2ME {
     const { workflowImage, outputqueue, keyId, startDate, idWorkflowInstance, mappedTelemetry, telemetryNames } =
       instance;
 
-    const chain = isString(instance.chain) ? asString(instance.chain) : asDictionary(instance.chain);
     const regionName = workflowImage.region.name;
     const idWorkflow = asOptIndex(workflowImage.workflow.idWorkflow);
     const inputqueue = workflowImage.inputqueue;
@@ -328,7 +335,7 @@ export class EPI2ME_FS extends EPI2ME {
       id_workflow: idWorkflow,
       region: regionName,
       bucketFolder: `${outputqueue}/${idUser}/${idWorkflowInstance}`,
-      chain: utils.convertResponseToObject(chain),
+      chain: this.validateChain(instance.chain),
     };
 
     this.config.instance = {
@@ -355,10 +362,7 @@ export class EPI2ME_FS extends EPI2ME {
     conf.bucketFolder = `${instance.outputqueue}/${instance.id_user}/${instance.id_workflow_instance}`;
     conf.summaryTelemetry = asOptDictionary(instance.telemetry); // MC-7056 for fetchTelemetry (summary) telemetry periodically
 
-    // WARN this assumes chain is an object, but could it be a string?
-    if (instance.chain) {
-      conf.chain = utils.convertResponseToObject(asDictionary(instance.chain));
-    }
+    conf.chain = this.validateChain(instance.chain);
   }
 
   // WARN
@@ -433,19 +437,6 @@ export class EPI2ME_FS extends EPI2ME {
       if (asNodeError(err).code !== 'EEXIST') {
         throw wrapAndLogError('failed to create instance folder', err, this.log);
       }
-    }
-
-    // NOTE don't need the database if we're running from a dataset
-    if (inputFolders) {
-      // set up new tracking database
-      this.db = new DB(
-        thisInstanceDir,
-        {
-          idWorkflowInstance: makeString(this.config.instance.id_workflow_instance),
-          inputFolders,
-        },
-        this.log,
-      );
     }
 
     // MC-1828 - include instance id in telemetry file name
@@ -565,25 +556,6 @@ export class EPI2ME_FS extends EPI2ME {
     }
 
     return instance;
-  }
-
-  async stopUpload(): Promise<void> {
-    super.stopUpload();
-
-    this.log.debug('clearing split files');
-    if (this.db) {
-      await this.db.splitClean(); // remove any split files whose transfers were disrupted and which didn't self-clean
-    }
-  }
-
-  async stopAnalysis(): Promise<void> {
-    await super.stopAnalysis();
-    this.telemetryDestroySignal$?.next();
-    this.telemetryDestroySignal$?.complete();
-  }
-
-  async stopEverything(): Promise<void> {
-    await super.stopEverything();
   }
 
   async checkForDownloads(): Promise<void> {
@@ -861,8 +833,6 @@ export class EPI2ME_FS extends EPI2ME {
       component_id: '0',
       message_id: message.MessageId,
       id_user: this.config.instance.id_user,
-    }).catch((err) => {
-      this.log.warn(NestedError.formatMessage('realtimeFeedback failed', err));
     });
 
     /* must signal completion */
@@ -1087,9 +1057,8 @@ export class EPI2ME_FS extends EPI2ME {
 
     // const reports$ = this.telemetry.telemetryReports$().pipe(filter(isDefined));
 
-    const destroySignal$ = new Subject<void>();
     const { add: writeQueue } = createQueue(
-      { signal$: destroySignal$ },
+      { signal$: this.analysisStopped$ },
       async ([filePath, content]: [string, JSONValue]) => {
         try {
           await fs.writeJSON(filePath, content);
@@ -1104,7 +1073,7 @@ export class EPI2ME_FS extends EPI2ME {
       .pipe(
         filter((isReady) => isReady),
         first(),
-        takeUntil(destroySignal$),
+        takeUntil(this.analysisStopped$),
       )
       .subscribe(() => this.reportState$.next(true));
 
@@ -1114,7 +1083,7 @@ export class EPI2ME_FS extends EPI2ME {
         map((reports) => {
           return reports.map(({ report }) => report);
         }),
-        takeUntil(destroySignal$),
+        takeUntil(this.analysisStopped$),
       )
       .subscribe((reports) => this.instanceTelemetry$.next(reports));
 
@@ -1151,8 +1120,6 @@ export class EPI2ME_FS extends EPI2ME {
           writeQueue([path.join(instanceDir, `${id}.json`), report]);
         }
       });
-
-    this.telemetryDestroySignal$ = destroySignal$;
   }
 
   async fetchTelemetry(): Promise<void> {

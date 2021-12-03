@@ -49,7 +49,11 @@ export function writeToChunk(chunk: Chunk, lines: string[]): void {
   When a chunk is complete we ensure it's completely written to disk, then
   pass it to the handler to process it and finally we delete it
 */
-export async function completeChunk(chunk: Chunk, handler: (location: string) => Promise<void>): Promise<void> {
+export async function completeChunk(
+  chunk: Chunk,
+  index: Set<string>,
+  handler: (location: string) => Promise<void>,
+): Promise<void> {
   chunk.writer.end();
   await chunk.closed;
   try {
@@ -58,6 +62,7 @@ export async function completeChunk(chunk: Chunk, handler: (location: string) =>
     // NOTE ensure that if the file does not exist, we don't throw about not being able to delete it
     try {
       await fs.promises.unlink(chunk.location);
+      index.delete(chunk.location);
     } catch (err) {
       if (asNodeError(err).code !== 'ENOENT') {
         throw err;
@@ -92,8 +97,15 @@ export function constructChunkLocation(prefix: string, suffix: string, id: numbe
   return `${prefix}_${id}${suffix}`;
 }
 
-export function createChunk(prefix: string, suffix: string, id: number, isCompressed: boolean): Chunk {
+export function createChunk(
+  prefix: string,
+  suffix: string,
+  index: Set<string>,
+  id: number,
+  isCompressed: boolean,
+): Chunk {
   const location = constructChunkLocation(prefix, suffix, id);
+  index.add(location);
   const { writer, closed } = createWriteStream(location, isCompressed);
   const chunk: Chunk = {
     bytes: 0,
@@ -113,6 +125,7 @@ export function createChunk(prefix: string, suffix: string, id: number, isCompre
 export async function splitter(
   filePath: string,
   opts: SplitStyle,
+  index: Set<string>,
   handler: (location: string) => Promise<void>,
   isCompressed: boolean, // would it be advantageous to offer compression on output even if the input isn't?
 ): Promise<void> {
@@ -156,7 +169,7 @@ export async function splitter(
     // initialise a chunk if one doesn't exist
     if (!chunk) {
       chunkCounter += 1;
-      chunk = createChunk(prefix, suffix, chunkCounter, isCompressed);
+      chunk = createChunk(prefix, suffix, index, chunkCounter, isCompressed);
     }
 
     writeToChunk(chunk, lineBuffer);
@@ -167,7 +180,7 @@ export async function splitter(
 
     // this chunk is full, so close and process it
     if (exceedsBytes || exceedsReads) {
-      await completeChunk(chunk, handler);
+      await completeChunk(chunk, index, handler);
       chunk = null;
     }
   }
@@ -179,6 +192,6 @@ export async function splitter(
 
   // close the last chunk, if one exists
   if (chunk) {
-    await completeChunk(chunk, handler);
+    await completeChunk(chunk, index, handler);
   }
 }

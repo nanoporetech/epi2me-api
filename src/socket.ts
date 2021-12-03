@@ -20,6 +20,10 @@ export default class Socket {
     this.initialise(rest, opts.url);
   }
 
+  destroy() {
+    this.socket?.disconnect();
+  }
+
   private async initialise(rest: REST, url: string): Promise<void> {
     try {
       const jwt = await rest.jwt();
