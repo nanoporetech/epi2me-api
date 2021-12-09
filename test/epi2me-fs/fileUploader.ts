@@ -1,14 +1,14 @@
 import { constructUploadParameters, instantiateFileUpload, processFile, readSettings } from '../../src/fileUploader';
 import { EPI2ME_FS as EPI2ME, EPI2ME_FS } from '../../src/epi2me-fs';
 import { expect } from 'chai';
-import { UploadContext, UploadSettings } from '../../src/fileUploader.type';
-import { ProgressState, States, SuccessState, UploadState } from '../../src/epi2me-state.type';
+import type { UploadContext, UploadSettings } from '../../src/fileUploader.type';
+import type { ProgressState, States, SuccessState, UploadState } from '../../src/epi2me-state.type';
 import { stub, spy, SinonStub } from 'sinon';
-import { FileStat } from '../../src/inputScanner.type';
+import type { FileStat } from '../../src/inputScanner.type';
 import path from 'path';
 import tmp from 'tmp';
 import fs from 'fs';
-import { Configuration } from '../../src/Configuration.type';
+import type { Configuration } from '../../src/Configuration.type';
 import { Subject } from 'rxjs';
 import { sleep } from '../../src/timers';
 import { NoopLogger } from '../../src/Logger';
@@ -206,6 +206,14 @@ function epi2meInstanceFactory(split_size: number, input: string[], types: strin
         niceTypes: '',
         progress: {} as ProgressState, // TODO this is left absent as it's not needed right now, but should be done
       },
+      download: {
+        filesCount: 0,
+        success: {} as SuccessState, // TODO this is left absent as it's not needed right now, but should be done
+        types: {},
+        fail: 0,
+        niceTypes: '',
+        progress: {} as ProgressState, // TODO this is left absent as it's not needed right now, but should be done
+      },
       warnings: [],
     } as States,
     uploadJob: stub(),
@@ -236,18 +244,19 @@ function simulatedUpload(
   fakeUpload: (attempt: number, progress: Subject<{ loaded: number }>) => void | Promise<void>,
 ) {
   let retry = 1;
-  const progress = new Subject<{ loaded: number }>();
+  const progress$ = new Subject<{ loaded: number }>();
   return () => ({
     on(_, handler) {
-      progress.subscribe((p) => handler(p));
+      progress$.subscribe((p) => handler(p));
     },
     abort: stub(),
     async promise() {
+      // eslint-disable-next-line no-constant-condition
       while (true) {
         try {
-          return await fakeUpload(retry, progress);
+          return await fakeUpload(retry, progress$);
         } catch (err) {
-          const delay = retryDelayOptions.customBackoff(retry, err);
+          const delay = retryDelayOptions?.customBackoff?.(retry, err) ?? -1;
           if (delay < 0) {
             throw err;
           }
@@ -471,17 +480,17 @@ describe('file uploader', () => {
       await fs.promises.writeFile(location, data);
     };
 
-    const progress = new Subject();
+    const progress$ = new Subject();
     (instance.sessionedS3 as SinonStub).callsFake(() => ({
       upload() {
         return {
           on(_, handler) {
-            progress.subscribe((p) => handler(p));
+            progress$.subscribe((p) => handler(p));
           },
           abort: stub(),
           promise: stub().callsFake(async () => {
             for (let i = 1; i < 6; i += 1) {
-              progress.next({ loaded: i });
+              progress$.next({ loaded: i });
             }
           }),
         };
@@ -571,9 +580,9 @@ describe('file uploader', () => {
 
     (instance.sessionedS3 as SinonStub).callsFake((conf: AWS.S3.ClientConfiguration) => {
       return {
-        upload: simulatedUpload(conf, async (_, progress) => {
-          progress.next({ loaded: fileSize * 0.2 });
-          progress.next({ loaded: fileSize * 0.6 });
+        upload: simulatedUpload(conf, async (_, progress$) => {
+          progress$.next({ loaded: fileSize * 0.2 });
+          progress$.next({ loaded: fileSize * 0.6 });
           await sleep(Duration.Milliseconds(5));
           throw new Error('simulated failure');
         }),
@@ -952,7 +961,7 @@ describe('file uploader', () => {
       await processFile(ctx, fileStatFactory({ relative: 'my/file.eg' }));
       expect(ctx.warnings).to.deep.include({
         type: 'WARNING_FILE_TOO_MANY',
-        msg: `Maximum 10 file(s) already uploaded. Marking my/file.eg as skipped.`,
+        msg: 'Maximum 10 file(s) already uploaded. Marking my/file.eg as skipped.',
       });
       expect(fileIndexAdd.callCount).to.equal(1);
     });
@@ -963,7 +972,7 @@ describe('file uploader', () => {
       await processFile(ctx, fileStatFactory({ size: 0, relative: 'my/file.eg' }));
       expect(ctx.warnings).to.deep.include({
         type: 'WARNING_FILE_EMPTY',
-        msg: `The file my/file.eg is empty. It will be skipped.`,
+        msg: 'The file my/file.eg is empty. It will be skipped.',
       });
       expect(fileIndexAdd.callCount).to.equal(1);
     });
@@ -974,7 +983,7 @@ describe('file uploader', () => {
       await processFile(ctx, fileStatFactory({ size: 2000, relative: 'my/file.eg' }));
       expect(ctx.warnings).to.deep.include({
         type: 'WARNING_FILE_TOO_BIG',
-        msg: `The file my/file.eg is bigger than the maximum size limit (1.0KB). It will be skipped.`,
+        msg: 'The file my/file.eg is bigger than the maximum size limit (1.0KB). It will be skipped.',
       });
       expect(fileIndexAdd.callCount).to.equal(1);
     });
@@ -1066,7 +1075,7 @@ describe('file uploader', () => {
         ),
       ).to.deep.equal({
         Bucket: 'a bucket',
-        Key: `0000-0000-1111/component-0/example-0001.fastq/example-0001.fastq`,
+        Key: '0000-0000-1111/component-0/example-0001.fastq/example-0001.fastq',
         Body: undefined,
         ContentLength: 42,
       });
@@ -1090,7 +1099,7 @@ describe('file uploader', () => {
         ),
       ).to.deep.equal({
         Bucket: 'bucket ID',
-        Key: `/bucket/folder/component-0/pass_example-0002-0006.fastq.gz/pass_example-0002-0006.fastq.gz`,
+        Key: '/bucket/folder/component-0/pass_example-0002-0006.fastq.gz/pass_example-0002-0006.fastq.gz',
         Body: undefined,
         ContentLength: 4096,
       });
@@ -1115,7 +1124,7 @@ describe('file uploader', () => {
         ),
       ).to.deep.equal({
         Bucket: 'bucket ID',
-        Key: `/bucket/folder/component-0/pass_example-0042.fastq.gz/pass_example-0042.fastq.gz`,
+        Key: '/bucket/folder/component-0/pass_example-0042.fastq.gz/pass_example-0042.fastq.gz',
         Body: undefined,
         ContentLength: 4096,
         SSEKMSKeyId: 'secret sauce',
@@ -1141,7 +1150,7 @@ describe('file uploader', () => {
         ),
       ).to.deep.equal({
         Bucket: 'bucket ID',
-        Key: `/bucket/folder/component-0/pass_example-9999.fastq/pass_example-9999.fastq`,
+        Key: '/bucket/folder/component-0/pass_example-9999.fastq/pass_example-9999.fastq',
         Body: undefined,
         ContentLength: 11,
       });

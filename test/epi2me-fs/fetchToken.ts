@@ -1,9 +1,9 @@
 import assert from 'assert';
 import { SinonStub, stub } from 'sinon';
-import { Epi2meCredentials } from '../../src/credentials';
+import type { Epi2meCredentials } from '../../src/credentials';
 import { EPI2ME_FS as EPI2ME } from '../../src/epi2me-fs';
-import { GraphQL } from '../../src/graphql';
-import { REST_FS } from '../../src/rest-fs';
+import type { GraphQL } from '../../src/graphql';
+import type { REST_FS } from '../../src/rest-fs';
 
 describe('epi2me-fs', () => {
   let instanceID = 0;
@@ -30,13 +30,11 @@ describe('epi2me-fs', () => {
     } as unknown as REST_FS;
     API.graphQL = {
       instanceToken: stub().resolves({
-        data: {
-          token: {
-            accessKeyId: 'KEY::GRAPHQL',
-            secretAccessKey: 'SECRET_KEY::GRAPHQL',
-            sessionToken: 'TOKEN::GRAPHQL',
-            expiration: '',
-          },
+        token: {
+          accessKeyId: 'KEY::GRAPHQL',
+          secretAccessKey: 'SECRET_KEY::GRAPHQL',
+          sessionToken: 'TOKEN::GRAPHQL',
+          expiration: '',
         },
       }),
     } as unknown as GraphQL;

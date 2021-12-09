@@ -18,3 +18,4 @@ dist
 protoc*zip
 protos/*
 !protos/.gitkeep
+src/generated/*

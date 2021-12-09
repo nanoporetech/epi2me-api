@@ -8,10 +8,8 @@
 import type { Readable, Writable } from 'stream';
 import type { PromiseResult } from 'aws-sdk/lib/request';
 import type { Configuration } from './Configuration.type';
-import { JSONObject, Dictionary, Index, isIndex } from 'ts-runtime-typecheck';
-import type { InstanceAttribute } from './factory.type';
+import type { JSONObject, Dictionary, Index } from 'ts-runtime-typecheck';
 import type { EPI2ME_OPTIONS } from './epi2me-options.type';
-import type { InstanceTokenMutation, WorkflowInstanceMutation } from './generated/graphql.type';
 import type { JSONValue } from 'ts-runtime-typecheck';
 
 import {
@@ -33,6 +31,7 @@ import {
   isDictionaryOf,
   isArrayOf,
   assertDefined,
+  isIndex,
 } from 'ts-runtime-typecheck';
 import AWS from 'aws-sdk';
 import fs from 'fs-extra'; /* MC-565 handle EMFILE & EXDIR gracefully; use Promises */
@@ -44,7 +43,6 @@ import { REST_FS } from './rest-fs';
 import { SampleReader } from './sample-reader';
 import { Epi2meCredentials } from './credentials';
 import { utilsFS as utils } from './utils-fs';
-import { gql } from '@apollo/client/core';
 import { createInterval, createTimeout } from './timers';
 import { Telemetry } from './telemetry';
 import { resolve } from 'url';
@@ -56,6 +54,8 @@ import { filestats } from './filestats';
 import { instantiateFileUpload } from './fileUploader';
 import { Duration } from './Duration';
 import { asNodeError, isNodeError, NestedError, wrapAndLogError } from './NodeError';
+import type { InstanceTokenMutation, StartWorkflowMutation, StartWorkflowMutationVariables } from './generated/graphql';
+import { DEFAULT_OPTIONS } from './default_options';
 
 const networkStreamErrors: WeakSet<Writable> = new WeakSet();
 
@@ -107,16 +107,14 @@ export class EPI2ME_FS extends EPI2ME {
 
   private fetchToken = async (): Promise<InstanceTokenMutation> => {
     let token: InstanceTokenMutation;
-    assertDefined(this.config.instance.id_workflow_instance);
+    const id = this.id.toString();
+
     if (this.config.options.useGraphQL) {
-      const instanceTokenOptions = {
-        variables: { idWorkflowInstance: this.config.instance.id_workflow_instance },
-      };
-      const result = await this.graphQL.instanceToken(instanceTokenOptions);
-      token = asDefined(result.data?.token);
+      const result = await this.graphQL.instanceToken({ instance: id });
+      token = asDefined(result.token);
     } else {
       const opts = { id_dataset: this.config.options.idDataset };
-      token = await this.REST.instanceToken(this.config.instance.id_workflow_instance, opts);
+      token = await this.REST.instanceToken(id, opts);
     }
     return token;
   };
@@ -238,34 +236,13 @@ export class EPI2ME_FS extends EPI2ME {
     return this.autoConfigure(instance);
   }
 
-  async autoStartGQL(variables: {
-    idWorkflow: Index;
-    computeAccountId: Index;
-    storageAccountId?: Index;
-    isConsentedHuman?: boolean;
-    idDataset?: Index;
-    storeResults?: boolean;
-    region?: string;
-    userDefined?: Dictionary<Dictionary>;
-    instanceAttributes?: InstanceAttribute[];
-  }): Promise<Configuration['instance']> {
-    /*
-    variables: {
-      idWorkflow: ID!
-      computeAccountId: Int!
-      storageAccountId: Int
-      isConsentedHuman: Int = 0
-      userDefined: GenericScalar
-      instanceAttributes: [GenericScalar]
-    }
-    */
-
+  async autoStartGQL(variables: StartWorkflowMutationVariables): Promise<Configuration['instance']> {
     this.stopped = false;
 
     let instance;
     try {
-      const response = await this.graphQL.startWorkflow({ variables });
-      instance = asDefined(response.data?.startData);
+      const response = await this.graphQL.startWorkflow(variables);
+      instance = asDefined(response?.startData);
     } catch (err) {
       throw wrapAndLogError('failed to start workflow', err, this.log);
     }
@@ -309,7 +286,7 @@ export class EPI2ME_FS extends EPI2ME {
     return asChain(isString(chain) ? JSON.parse(chain) : chain);
   }
 
-  setClassConfigGQL(startData: WorkflowInstanceMutation): void {
+  setClassConfigGQL(startData: StartWorkflowMutation['startData']): void {
     assertDefined(startData, 'Workflow Start Data');
     const { instance, bucket, idUser, remoteAddr } = startData;
     assertDefined(instance, 'Workflow Instance');
@@ -358,7 +335,7 @@ export class EPI2ME_FS extends EPI2ME {
     // copy tuples with different names / structures
     conf.inputQueueName = asOptString(instance.inputqueue);
     conf.outputQueueName = asOptString(instance.outputqueue);
-    conf.region = asString(instance.region, this.config.options.region);
+    conf.region = asOptString(instance.region) ?? this.config.options.region ?? DEFAULT_OPTIONS.region;
     conf.bucketFolder = `${instance.outputqueue}/${instance.id_user}/${instance.id_workflow_instance}`;
     conf.summaryTelemetry = asOptDictionary(instance.telemetry); // MC-7056 for fetchTelemetry (summary) telemetry periodically
 
@@ -504,35 +481,26 @@ export class EPI2ME_FS extends EPI2ME {
       }
 
       try {
-        let instanceObj: Dictionary;
+        const id = this.id.toString();
+
+        let state, stopDate;
         if (this.config.options.useGraphQL) {
-          const query = this.graphQL.query<{ workflowInstance: { stop_date: unknown; state: string } }>(
-            gql`
-              query workflowInstance($idWorkflowInstance: ID!) {
-                workflowInstance(idWorkflowInstance: $idWorkflowInstance) {
-                  stop_date: stopDate
-                  state
-                }
-              }
-            `,
-          );
-          const response = await query({
-            variables: {
-              idWorkflowInstance: this.config.instance.id_workflow_instance,
-            },
-          });
-          instanceObj = asDefined(response.data).workflowInstance;
+          const response = await this.graphQL.workflowInstance({ instance: id });
+          state = asDefined(response.workflowInstance?.state);
+          stopDate = asDefined(response.workflowInstance?.stopDate);
         } else {
-          instanceObj = await this.REST.workflowInstance(asDefined(this.config.instance.id_workflow_instance));
+          const response = await this.REST.workflowInstance(id);
+          state = response.state;
+          stopDate = response.stop_date;
         }
-        if (instanceObj.state === 'stopped') {
-          this.log.warn(`instance was stopped remotely at ${instanceObj.stop_date}. shutting down the workflow.`);
+        if (state === 'stopped') {
+          this.log.warn(`instance was stopped remotely at ${stopDate}. shutting down the workflow.`);
           try {
             await this.stopEverything();
 
             const remoteShutdownCb = asOptFunction(this.config.options.remoteShutdownCb);
             if (remoteShutdownCb) {
-              remoteShutdownCb(`instance was stopped remotely at ${instanceObj.stop_date}`);
+              remoteShutdownCb(`instance was stopped remotely at ${stopDate}`);
             }
           } catch (err) {
             wrapAndLogError('Error whilst stopping', err, this.log);
@@ -845,7 +813,7 @@ export class EPI2ME_FS extends EPI2ME {
   ): Promise<void> {
     const s3 = this.getS3SessionedService();
 
-    return new Promise<void>(async (resolve, reject) => {
+    return new Promise<void>((resolve, reject) => {
       let file: fs.WriteStream;
       let rs: Readable;
 

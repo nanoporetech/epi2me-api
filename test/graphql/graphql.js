@@ -1,5 +1,4 @@
 import assert from 'assert';
-import gql from 'graphql-tag';
 import sinon from 'sinon';
 import { GraphQL } from '../../src/graphql';
 import { Network } from '../../src/network';
@@ -87,38 +86,6 @@ describe('stubbed tests', () => {
       assert.equal(calledArgs[0], 'convert-ont');
       assert.equal(calledArgs[1], reqData);
       assert.deepEqual(calledArgs[2].headers, { 'X-ONT-JWT': JWT_STRING });
-    });
-  });
-
-  describe('graphql.register', () => {
-    it('retrieves creds', async () => {
-      const graphqlObj = makeGQL();
-      // This needs to be retrieved from /reg first
-      const code = '21b1d3';
-      const response = {
-        apikey: 'bd2e57b8cbaffe1c957616c4afca0f6734ae9012',
-        apisecret: 'a527f9aa0713a5f9cfd99af9a174b73d4df34dcbb3be13b97ccd108314ab0f17',
-        description: 'user@localmachine',
-      };
-      stubs.push(sinon.stub(graphqlObj.client, 'mutate').resolves(response));
-      await graphqlObj.register(code, (_, creds) => {
-        assert.strictEqual(creds, response);
-      });
-    });
-
-    it('retrieves creds and sets description', async () => {
-      const graphqlObj = makeGQL();
-      // This needs to be retrieved from /reg first
-      const code = '21b1d3';
-      const response = {
-        apikey: 'bd2e57b8cbaffe1c957616c4afca0f6734ae9012',
-        apisecret: 'a527f9aa0713a5f9cfd99af9a174b73d4df34dcbb3be13b97ccd108314ab0f17',
-        description: 'description',
-      };
-      stubs.push(sinon.stub(graphqlObj.client, 'mutate').resolves(response));
-      await graphqlObj.register(code, 'description', (_, creds) => {
-        assert.strictEqual(creds, response);
-      });
     });
   });
 
@@ -219,7 +186,7 @@ describe('stubbed tests', () => {
         .workflowInstance({
           idWorkflowInstance: 121,
         })
-        .then(({ data }) => assert.strictEqual(data, response.data));
+        .then((data) => assert.strictEqual(data, response.data));
       // .catch(err => console.log(err));
     });
   });
@@ -250,155 +217,6 @@ describe('stubbed tests', () => {
     });
   });
 
-  describe('graphql.query', () => {
-    it('converts func to gql', async () => {
-      const graphqlObj = makeRegisteredGQL();
-      const response = {
-        data: {
-          allWorkflows: [
-            {
-              idWorkflow: 1,
-            },
-          ],
-        },
-      };
-      const stub = sinon.stub(graphqlObj.client, 'query').resolves(response);
-      stubs.push(stub);
-      graphqlObj.query(
-        (pageFragment) => `query aWorkflow {
-        allWorkflows {
-          ${pageFragment}
-            results {
-              config
-              idWorkflow
-            }
-          }
-        }
-        `,
-      )();
-      sinon.assert.calledWith(
-        stub,
-        sinon.match({
-          query: gql`
-            query aWorkflow {
-              allWorkflows {
-                page
-                pages
-                hasNext
-                hasPrevious
-                totalCount
-                results {
-                  config
-                  idWorkflow
-                }
-              }
-            }
-          `,
-        }),
-      );
-    });
-    it('converts string to gql', async () => {
-      const graphqlObj = makeRegisteredGQL();
-      const response = {
-        data: {
-          allWorkflows: [
-            {
-              idWorkflow: 1,
-            },
-          ],
-        },
-      };
-      const stub = sinon.stub(graphqlObj.client, 'query').resolves(response);
-      stubs.push(stub);
-      graphqlObj.query(
-        `query aWorkflow {
-          allWorkflows {
-            page
-            pages
-            hasNext
-            hasPrevious
-            totalCount
-            results {
-              config
-              idWorkflow
-            }
-          }
-        }
-        `,
-      )();
-      sinon.assert.calledWith(
-        stub,
-        sinon.match({
-          query: gql`
-            query aWorkflow {
-              allWorkflows {
-                page
-                pages
-                hasNext
-                hasPrevious
-                totalCount
-                results {
-                  config
-                  idWorkflow
-                }
-              }
-            }
-          `,
-        }),
-      );
-    });
-    it('leaves gql tagged string in place', async () => {
-      const graphqlObj = makeRegisteredGQL();
-      const response = {
-        data: {
-          allWorkflows: [
-            {
-              idWorkflow: 1,
-            },
-          ],
-        },
-      };
-      const stub = sinon.stub(graphqlObj.client, 'query').resolves(response);
-      stubs.push(stub);
-      graphqlObj.query(
-        gql`
-          query aWorkflow {
-            allWorkflows {
-              page
-              pages
-              hasNext
-              hasPrevious
-              totalCount
-              results {
-                config
-                idWorkflow
-              }
-            }
-          }
-        `,
-      )();
-      sinon.assert.calledWith(
-        stub,
-        sinon.match({
-          query: gql`
-            query aWorkflow {
-              allWorkflows {
-                page
-                pages
-                hasNext
-                hasPrevious
-                totalCount
-                results {
-                  config
-                  idWorkflow
-                }
-              }
-            }
-          `,
-        }),
-      );
-    });
-  });
 });
 
 /*

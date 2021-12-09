@@ -91,7 +91,7 @@ export const utils: Utility = (function magic(): Utility {
 
         Object.keys(headers)
           .sort()
-          .filter((o) => o.match(/^x-epi2me/i))
+          .filter((o) => /^x-epi2me/i.test(o))
           .map((o) => `${o}:${headers[o]}`)
           .join('\n'),
       ].join('\n');
@@ -150,7 +150,7 @@ export const utils: Utility = (function magic(): Utility {
       if (options.proxy) {
         const proxy = ProxyAgent(options.proxy);
         const log = options.log ?? NoopLogger;
-        log.debug(`Using proxy for request`);
+        log.debug('Using proxy for request');
         req.httpsAgent = proxy;
         req.proxy = false; // do not double-interpret proxy settings
       }

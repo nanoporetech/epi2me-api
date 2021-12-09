@@ -6,7 +6,7 @@ import path from 'path';
 import zlib from 'zlib';
 import { isDefined } from 'ts-runtime-typecheck';
 import { getFileExtension, getFileName } from '../file_extensions';
-import { asNodeError } from '../NodeError';
+import { isNodeError } from '../NodeError';
 
 const LINES_PER_READ = 4;
 
@@ -56,18 +56,27 @@ export async function completeChunk(
 ): Promise<void> {
   chunk.writer.end();
   await chunk.closed;
+
+  let failure;
   try {
     await handler(chunk.location);
-  } finally {
+  } catch (err) {
+    failure = err;
+  }
+
+  try {
+    await fs.promises.unlink(chunk.location);
+    index.delete(chunk.location);
+  } catch (deleteErr) {
     // NOTE ensure that if the file does not exist, we don't throw about not being able to delete it
-    try {
-      await fs.promises.unlink(chunk.location);
-      index.delete(chunk.location);
-    } catch (err) {
-      if (asNodeError(err).code !== 'ENOENT') {
-        throw err;
-      }
+    // NOTE prefer to throw the handler error over the deletion error
+    if (isNodeError(deleteErr) && deleteErr.code !== 'ENOENT' && !failure) {
+      failure = deleteErr;
     }
+  }
+
+  if (failure) {
+    throw failure;
   }
 }
 

@@ -23,7 +23,9 @@ export function createQueue<T>(
     while ((next = waiting.shift())) {
       try {
         await fn(next);
-      } catch {}
+      } catch {
+        // ignore error
+      }
       if (stopped) {
         break;
       }

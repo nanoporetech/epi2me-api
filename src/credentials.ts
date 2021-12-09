@@ -1,5 +1,5 @@
 import type { AWSError } from 'aws-sdk';
-import type { InstanceTokenMutation } from './generated/graphql.type';
+import type { InstanceTokenMutation } from './generated/graphql';
 
 import { asString, assertDefined } from 'ts-runtime-typecheck';
 import { Credentials } from 'aws-sdk';
