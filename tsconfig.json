@@ -1,29 +1,5 @@
 {
-  "compilerOptions": {
-    "allowJs": true,
-    "allowSyntheticDefaultImports": true,
-    "lib": ["dom", "es2017"],
-    "moduleResolution": "node",
-    "skipLibCheck": true,
-    "sourceMap": true,
-    "esModuleInterop": true,
-    "resolveJsonModule": true,
-    "strict": true,
-    "strictNullChecks": true,
-    "noImplicitAny": true,
-    "noImplicitReturns": true,
-    "noImplicitThis": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "target": "es2017",
-    "importsNotUsedAsValues": "error"
-  },
-  "include": ["src", "src/.eslintrc.js"],
-  "exclude": ["dist", "node_modules"],
-  "ts-node": {
-    "transpileOnly": true,
-    "compilerOptions": {
-      "module": "commonJS"
-    }
-  }
+  "extends": "./tsconfig.main.json",
+  "include": ["**/*.ts"],
+  "exclude": ["./dist", "./node_modules", "./test"]
 }

@@ -3,34 +3,34 @@ import { Duration } from '../src/Duration';
 import sinon from 'sinon';
 import { TemporalUnit } from '../src/Duration.type';
 
-function random_integer(n) {
+function randomInteger(n: number) {
   return Math.floor(n * Math.random());
 }
 
 describe('duration', () => {
   it('Duration.Hours', () => {
-    const value = random_integer(1000);
+    const value = randomInteger(1000);
     expect(Duration.Hours(value)).to.deep.equal({
       value,
       units: 3,
     });
   });
   it('Duration.Minutes', () => {
-    const value = random_integer(1000);
+    const value = randomInteger(1000);
     expect(Duration.Minutes(value)).to.deep.equal({
       value,
       units: 2,
     });
   });
   it('Duration.Seconds', () => {
-    const value = random_integer(1000);
+    const value = randomInteger(1000);
     expect(Duration.Seconds(value)).to.deep.equal({
       value,
       units: 1,
     });
   });
   it('Duration.Milliseconds', () => {
-    const value = random_integer(1000);
+    const value = randomInteger(1000);
     expect(Duration.Milliseconds(value)).to.deep.equal({
       value,
       units: 0,

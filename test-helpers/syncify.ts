@@ -1,6 +1,8 @@
+import { asDefined } from "ts-runtime-typecheck";
+
 export async function syncify<T>(fn: () => Promise<T>): Promise<() => T> {
-  let value;
-  let error;
+  let value: T;
+  let error: unknown;
   try {
     value = await fn();
   } catch (err) {
@@ -10,8 +12,6 @@ export async function syncify<T>(fn: () => Promise<T>): Promise<() => T> {
     if (error) {
       throw error;
     }
-    if (value) {
-      return value;
-    }
+    return asDefined(value);
   };
 }

@@ -1,4 +1,4 @@
-import type { Dictionary, JSONObject, Optional } from 'ts-runtime-typecheck';
+import { asStruct, isNumber, isString, JSONObject, Optional } from 'ts-runtime-typecheck';
 import type { ExtendedTelemetrySource, ReportID, TelemetryNames, TelemetrySource } from './telemetry.type';
 import type { Observable } from 'rxjs';
 
@@ -9,14 +9,14 @@ import {
   distinctUntilChanged,
   filter,
   map,
-  multicast,
-  refCount,
   retryWhen,
+  share,
   switchMap,
   withLatestFrom,
 } from 'rxjs/operators';
 import { isDefined } from 'ts-runtime-typecheck';
-import { GraphQL } from './graphql';
+import type { GraphQL } from './graphql';
+import { GetTelemetrySourceDocument } from './generated/graphql';
 
 const TELEMETRY_INTERVAL = 30 * 1000;
 const EXPIRY_GRACE_PERIOD = 5000;
@@ -25,6 +25,12 @@ const TELEMETRY_INSTANCES: Map<string, Telemetry> = new Map();
 function cacheSubject$<T>(): BehaviorSubject<T | null> {
   return new BehaviorSubject<T | null>(null);
 }
+
+const asInstanceTelemetrySource = asStruct({
+  getUrl: isString,
+  headUrl: isString,
+  expiresIn: isNumber,
+});
 
 export class Telemetry {
   private readonly sources: () => Promise<TelemetrySource[]>;
@@ -55,7 +61,7 @@ export class Telemetry {
     this.sources = this.getSources$(graphql, id, telemetryNames);
 
     // for updates to actually trigger on the first interval the timer MUST be a BehaviourSubject
-    const intervalSubject$ = interval(TELEMETRY_INTERVAL).pipe(multicast(new BehaviorSubject(0)), refCount());
+    const intervalSubject$ = interval(TELEMETRY_INTERVAL).pipe(share({ connector: () => new BehaviorSubject(0) }));
 
     // poll the sources to see if any have changed, emits all the sources if any have
     this.updates$ = intervalSubject$.pipe(
@@ -83,8 +89,9 @@ export class Telemetry {
       distinctUntilChanged((previousSources, sources) =>
         previousSources.every((previous, index) => previous.etag === sources[index].etag),
       ),
-      multicast(cacheSubject$<ExtendedTelemetrySource[]>()),
-      refCount(),
+      share({
+        connector: () => cacheSubject$(),
+      }),
       filter(isDefined),
     );
 
@@ -154,40 +161,32 @@ export class Telemetry {
       }),
       // after recieving an error from the network request above retry after 5 seconds ( note: error is not logged )
       retryWhen((errors$) => errors$.pipe(delayWhen(() => timer(5000)))),
-      multicast(cacheSubject$<{ report: JSONObject | null; id: string }[]>()),
-      refCount(),
+      share({
+        connector: () => cacheSubject$(),
+      }),
       filter(isDefined),
     );
   }
 
   private async getTelemetrySources(graphql: GraphQL, id: string, reportNames: ReportID[]): Promise<TelemetrySource[]> {
-    const createFragment = (report: string, index: number) => {
-      return `_${index}: workflowInstanceTelemetry(idWorkflowInstance:${id}, report:"${report}") {
-        getUrl
-        headUrl
-        expiresIn
-      }`;
-    };
-    const response = await graphql.query<Dictionary<TelemetrySource>>(`query {
-      ${reportNames.map(({ reportName }, index) => createFragment(reportName, index))}
-    }`)({
-      options: {
-        fetchPolicy: GraphQL.NETWORK_ONLY,
-      },
-    });
+    return await Promise.all(
+      reportNames.map(async (report) => {
+        const response = await graphql.query(
+          GetTelemetrySourceDocument,
+          {
+            report: report.reportName,
+            instance: id,
+          },
+          { fetchPolicy: 'no-cache' },
+        );
 
-    // WARN is this the correct behavior??
-    if (response.error) {
-      throw new Error(response.error.message);
-    }
-
-    return Object.values(response.data).map(({ getUrl, headUrl, expiresIn }, index) => ({
-      getUrl,
-      headUrl,
-      instanceId: id,
-      expiresIn,
-      reportId: reportNames[index],
-    }));
+        return {
+          ...asInstanceTelemetrySource(response.workflowInstanceTelemetry),
+          instanceId: id,
+          reportId: report,
+        };
+      }),
+    );
   }
 
   private getSources$(graphql: GraphQL, id: string, telemetryNames: TelemetryNames): () => Promise<TelemetrySource[]> {

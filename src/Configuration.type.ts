@@ -4,7 +4,7 @@ import type { Duration } from './Duration';
 
 export interface Configuration {
   options: CoreOptions & {
-    region: string;
+    region?: string;
     sessionGrace: Duration;
     uploadTimeout: Duration;
     uploadRetries: number;
@@ -52,9 +52,6 @@ export interface Configuration {
       targetComponentId: Index;
     };
     key_id?: string;
-    awssettings: {
-      region: string;
-    };
   };
   workflow?: Dictionary;
 }

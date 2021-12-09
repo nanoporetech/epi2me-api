@@ -11,11 +11,11 @@ import type {
   RegionType,
   WorkflowType,
   StatusType,
-} from './generated/graphql.type';
+} from './generated/graphql';
 import type { ApolloQueryResult } from '@apollo/client/core';
 import type { Dictionary } from 'ts-runtime-typecheck';
 
-export * from './generated/graphql.type';
+export * from './generated/graphql';
 
 export interface ResponseAllWorkflows {
   allWorkflows: PaginatedWorkflowType;

@@ -32,13 +32,7 @@ import { getErrorMessage, wrapAndLogError } from './NodeError';
 export class REST {
   options: Configuration['options'];
   log: Logger;
-  cachedResponses: Map<
-    string,
-    {
-      etag: string;
-      response: JSONObject;
-    }
-  > = new Map();
+  cachedResponses = new Map<string, { etag: string; response: JSONObject }>();
 
   constructor(options: Configuration['options']) {
     this.options = options;
@@ -46,9 +40,9 @@ export class REST {
   }
 
   async list(entity: string): Promise<unknown[]> {
-    const entityName = entity.match(/^[a-z_]+/i); // dataset?foo=bar => dataset
+    const entityName = /^[a-z_]+/i.exec(entity); // dataset?foo=bar => dataset
     if (!entityName) {
-      throw new Error(`Failed to parse entity identifier`);
+      throw new Error('Failed to parse entity identifier');
     }
     const json = await utils.get(entity, this.options);
     return asArray(json[`${entityName[0]}s`]);

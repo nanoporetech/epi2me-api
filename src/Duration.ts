@@ -58,8 +58,10 @@ export class Duration<T extends TemporalUnit = TemporalUnit> {
   }
 
   get milliseconds(): number {
-    const { value, units } = this;
-    switch (units as TemporalUnit) {
+    const { value } = this;
+    const units: TemporalUnit = this.units;
+
+    switch (units) {
       case TemporalUnit.MILLISECONDS:
         return value;
       case TemporalUnit.SECONDS:
@@ -72,8 +74,10 @@ export class Duration<T extends TemporalUnit = TemporalUnit> {
   }
 
   get seconds(): number {
-    const { value, units } = this;
-    switch (units as TemporalUnit) {
+    const { value } = this;
+    const units: TemporalUnit = this.units;
+
+    switch (units) {
       case TemporalUnit.MILLISECONDS:
         return value / 1000;
       case TemporalUnit.SECONDS:
@@ -86,8 +90,10 @@ export class Duration<T extends TemporalUnit = TemporalUnit> {
   }
 
   get minutes(): number {
-    const { value, units } = this;
-    switch (units as TemporalUnit) {
+    const { value } = this;
+    const units: TemporalUnit = this.units;
+
+    switch (units) {
       case TemporalUnit.MILLISECONDS:
         return value / 60000;
       case TemporalUnit.SECONDS:
@@ -100,8 +106,10 @@ export class Duration<T extends TemporalUnit = TemporalUnit> {
   }
 
   get hours(): number {
-    const { value, units } = this;
-    switch (units as TemporalUnit) {
+    const { value } = this;
+    const units: TemporalUnit = this.units;
+
+    switch (units) {
       case TemporalUnit.MILLISECONDS:
         return value / 3600000;
       case TemporalUnit.SECONDS:

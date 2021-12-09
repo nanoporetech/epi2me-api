@@ -4,7 +4,6 @@ import type { Logger } from './Logger.type';
 import type { SampleReader } from './sample-reader';
 import type { Index, Dictionary } from 'ts-runtime-typecheck';
 import type { EPI2ME_OPTIONS } from './epi2me-options.type';
-import type { GQLWorkflowConfig } from './factory.type';
 import type { EPI2ME_FS } from './epi2me-fs';
 
 import { BehaviorSubject, Subject, merge } from 'rxjs';
@@ -12,6 +11,7 @@ import { withLatestFrom, map, mapTo } from 'rxjs/operators';
 import { Map as ImmutableMap } from 'immutable';
 import { Telemetry } from './telemetry';
 import { wrapAndLogError } from './NodeError';
+import type { StartWorkflowMutationVariables } from './generated/graphql';
 
 /*
 Factory seems to be designed with the intention that a version of the EPI2ME
@@ -141,7 +141,7 @@ export class Factory {
    * @param {Object<string, any>} options
    * @param {GQLRunVariables} variables { userDefined: { [componentID]: { [paramOverride]: any } } }
    */
-  async startGQLRun(options: Partial<EPI2ME_OPTIONS>, variables: GQLWorkflowConfig): Promise<EPI2ME_FS> {
+  async startGQLRun(options: Partial<EPI2ME_OPTIONS>, variables: StartWorkflowMutationVariables): Promise<EPI2ME_FS> {
     const inst = this.instantiate({ ...options, useGraphQL: true });
     try {
       await inst.autoStartGQL(variables);

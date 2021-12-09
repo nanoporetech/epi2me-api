@@ -20,7 +20,7 @@ export default class Socket {
     this.initialise(rest, opts.url);
   }
 
-  destroy() {
+  destroy(): void {
     this.socket?.disconnect();
   }
 

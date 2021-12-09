@@ -12,7 +12,7 @@ export type { Queue } from './queue.type';
 export type { Sample, Experiment, Experiments } from './sample.type';
 export type { TelemetrySource, ExtendedTelemetrySource, ReportID, TelemetryNames } from './telemetry.type';
 export type { Timer } from './timer.type';
-export * from './grpc/index.type';
+// export * from './grpc/index.type';
 
 // NOTE there's a lot of exports here, and includes programmatically generated types from the schema
 export * as graphQLSchema from './graphql.type';

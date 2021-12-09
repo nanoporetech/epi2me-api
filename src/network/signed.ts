@@ -11,7 +11,6 @@ import type { NetworkInterface } from './NetworkInterface.type';
 
 import { Network } from './index';
 import crypto from 'crypto';
-import { asString } from 'ts-runtime-typecheck';
 
 export function signMessage(
   headers: Headers,
@@ -22,9 +21,15 @@ export function signMessage(
   headers.set('X-EPI2ME-ApiKey', apikey);
   headers.set('X-EPI2ME-SignatureDate', new Date().toISOString());
 
-  const keys = Array.from<string>((headers as any).keys())
-    .sort()
-    .filter((o) => asString(o).match(/^x-epi2me/i));
+  let keys: string[] = [];
+
+  headers.forEach((_value, key) => {
+    if (key.match(/^x-epi2me/i)) {
+      keys.push(key);
+    }
+  });
+
+  keys = keys.sort();
 
   // Case matters. Uppercase for gql. Else for portal.
   const message = createMessage(

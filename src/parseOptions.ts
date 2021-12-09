@@ -76,7 +76,6 @@ export function parseOptions(opt: Partial<EPI2ME_OPTIONS>): Configuration['optio
 
   const options = {
     ...parseCoreOptions(opt),
-    region: asString(opt.region, DEFAULT_OPTIONS.region),
     sessionGrace: Duration.Seconds(asNumber(opt.sessionGrace, DEFAULT_OPTIONS.sessionGrace)),
     uploadTimeout: Duration.Seconds(asNumber(opt.uploadTimeout, DEFAULT_OPTIONS.uploadTimeout)),
     uploadRetries: asNumber(opt.uploadRetries, DEFAULT_OPTIONS.uploadRetries),
@@ -92,6 +91,7 @@ export function parseOptions(opt: Partial<EPI2ME_OPTIONS>): Configuration['optio
     filetype: asArrayOf(isString)(opt.filetype, DEFAULT_OPTIONS.filetype),
     sampleDirectory: asString(opt.sampleDirectory, DEFAULT_OPTIONS.sampleDirectory),
     // optional values
+    region: asOptString(opt.region),
     useGraphQL: asBoolean(opt.useGraphQL, false),
     idWorkflowInstance: asOptIndex(opt.id_workflow_instance),
     idDataset: asOptIndex(opt.id_dataset),

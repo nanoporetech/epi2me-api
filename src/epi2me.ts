@@ -98,15 +98,12 @@ export class EPI2ME {
 
   constructor(optstring: Partial<EPI2ME_OPTIONS> = {}) {
     const options = parseOptions(optstring);
-    const { idWorkflowInstance, log, region } = options;
+    const { idWorkflowInstance, log } = options;
     this.config = {
       options: options,
       instance: {
         id_workflow_instance: idWorkflowInstance,
         discoverQueueCache: {},
-        awssettings: {
-          region,
-        },
       },
     };
 
@@ -232,17 +229,17 @@ export class EPI2ME {
     // This will stop all the intervals on their next call
     this.stopped = true;
 
-    const { id_workflow_instance: idWorkflowInstance } = this.config.instance;
+    const { id_workflow_instance: id } = this.config.instance;
 
-    if (!idWorkflowInstance) {
+    if (!id) {
       return;
     }
 
     try {
       if (this.config.options.useGraphQL) {
-        await this.graphQL.stopWorkflow({ variables: { idWorkflowInstance } });
+        await this.graphQL.stopWorkflow({ instance: id.toString() });
       } else {
-        await this.REST.stopWorkflow(idWorkflowInstance);
+        await this.REST.stopWorkflow(id);
       }
       this.analyseState$.next(false);
       this.analyseState$.complete();
@@ -250,7 +247,7 @@ export class EPI2ME {
       throw wrapAndLogError('error stopping instance', err, this.log);
     }
 
-    this.log.info(`workflow instance ${idWorkflowInstance} stopped`);
+    this.log.info(`workflow instance ${id} stopped`);
   }
 
   stopUpload(): void {

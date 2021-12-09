@@ -1,6 +1,7 @@
 {
   "name": "@metrichor/epi2me-api",
-  "version": "5.1.1127",
+  "private": "true",
+  "version": "6.0.0",
   "license": "MPL-2.0",
   "repository": "git@github.com:nanoporetech/epi2me-api.git",
   "description": "API for communicating with the EPI2ME website(s)",
@@ -8,16 +9,6 @@
     "name": "Oxford Nanopore Technologies",
     "email": "support@nanoporetech.com",
     "url": "https://nanoporetech.com"
-  },
-  "components": {
-    "core": {
-      "main": "dist/core/epi2me-api.js",
-      "module": "dist/core/epi2me-api.esm.js"
-    },
-    "web": {
-      "main": "dist/web/epi2me-web.js",
-      "module": "dist/web/epi2me-web.esm.js"
-    }
   },
   "dependencies": {
     "@apollo/client": "^3.4.16",
@@ -40,8 +31,12 @@
     "ts-runtime-typecheck": "^2.4.2"
   },
   "devDependencies": {
-    "@graphql-codegen/cli": "^2.2.0",
-    "@graphql-codegen/typescript": "^2.2.2",
+    "@graphql-codegen/cli": "2.2.2",
+    "@graphql-codegen/typed-document-node": "2.2.0",
+    "@graphql-codegen/typescript": "2.3.1",
+    "@graphql-codegen/typescript-generic-sdk": "2.2.0",
+    "@graphql-codegen/typescript-operations": "2.2.0",
+    "@graphql-typed-document-node/core": "3.1.0",
     "@rollup/plugin-commonjs": "^21.0.0",
     "@rollup/plugin-json": "^4.1.0",
     "@rollup/plugin-node-resolve": "^13.0.5",
@@ -96,32 +91,18 @@
     ]
   },
   "scripts": {
-    "postinstall": "npm run build:protos || echo \"\\033[33m** Remember to install the protobufs submodule and rebuild them locally **\"",
-    "build:version": "jq \".version=\\\"$(jq -r .version package.json | cut -d . -f 1-2).${PATCH:-$(date +%-H%M)}\\\"\" < package.json > package.json.tmp && mv package.json.tmp package.json",
-    "lint:source": "eslint '*/**/*.{js,ts,tsx}' --ignore-path .eslintignore --ignore-pattern \"!**/.*\"",
-    "lint:quiet": "npm run lint:source -- --quiet",
-    "lint:warn": "npm run lint:source",
+    "postinstall": "npm run graphql && npm run protos || echo \"\\033[33m** Remember to install the protobufs submodule and rebuild them locally **\"",
+    "lint": "eslint 'src/**/*.{ts,tsx}'",
     "lint:fix": "npm run lint:quiet -- --fix",
-    "lint": "npm run lint:quiet",
-    "deps": "npm ci",
-    "clean:dist": "rm -rf dist",
-    "clean:build": "rm -rf build && rm -rf dist/lib",
-    "clean": "npm run clean:build && npm run clean:dist",
     "test": "mocha --recursive --require ts-node/register --extension ts --extension js test/",
-    "test:single": "mocha --require ts-node/register ",
     "cover": "npx nyc --reporter=html --reporter=text mocha --recursive --require ts-node/register --extension ts --extension js test/",
-    "build": "npm run deps && npm run build:dist",
-    "rollup:build": "npx rollup -c",
-    "rollup:watch": "npx rollup -cw",
-    "build:light": "npm run clean && npm run build:protos && npm run package:compile && npm run rollup:build",
-    "build:dist": "npm run build:version && npm run build:light",
-    "ts:defs": "tsc --outDir dist --declarationDir dist/types --emitDeclarationOnly",
-    "build:protos": "rm -rf ./protos/* && ./build_protos.sh",
-    "compile:esm": "tsc --outDir build/esm -d --module esnext --declarationDir build/types --sourceMap false",
-    "compile:esm:web": "tsc --p ./tsconfig-web.json --outDir build/temp -d --module esnext --declarationDir build/web/types --sourceMap false",
-    "compile:cjs": "tsc --outDir build/cjs --module commonjs --sourceMap false",
-    "package:compile": "npm run compile:esm && npm run compile:cjs && npm run compile:esm:web",
-    "build:graphql": "graphql-codegen --config .gql-codegen.yml && eslint ./src/generated/graphql.type.ts --fix",
+    "clean": "rm -rf dist",
+    "pregraphql": "rm -f ./src/generated/*",
+    "graphql": "graphql-codegen --config .gql-codegen.yml",
+    "preprotos": "rm -rf ./protos/*",
+    "protos": "sh ./build_protos.sh",
+    "prebuild": "npm run clean && npm run graphql && npm run protos",
+    "build": "rollup -c",
     "typecheck": "tsc --noEmit --watch",
     "prepare": "husky install"
   }
