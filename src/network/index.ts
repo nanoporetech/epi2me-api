@@ -1,3 +1,5 @@
+/// <reference lib="dom" />
+
 import type { Dictionary } from 'ts-runtime-typecheck';
 import type { RequestOptions, ExtendedRequestOptions } from './RequestOptions.type';
 import type { Body } from './Body.type';

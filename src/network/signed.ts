@@ -1,3 +1,5 @@
+/// <reference lib="dom" />
+
 /*
   WARN signed network relies on the node crypto library, and hence cannot be used in the web export.
 
