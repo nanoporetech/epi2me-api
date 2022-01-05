@@ -1,3 +1,5 @@
+/// <reference lib="dom" />
+
 import type { Credentials } from './Credentials.type';
 import type { Agent } from 'http';
 import type { LogMethod } from '../Logger.type';

@@ -12,7 +12,7 @@ export default class Socket {
   debounces: Set<unknown> = new Set();
   log: Logger;
   debounceWindow: Duration;
-  socket?: SocketIOClient.Socket;
+  socket?: ReturnType<typeof io>;
 
   constructor(rest: REST, opts: SocketOptions) {
     this.debounceWindow = opts.debounceWindow;

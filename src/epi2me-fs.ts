@@ -33,7 +33,7 @@ import {
   assertDefined,
   isIndex,
 } from 'ts-runtime-typecheck';
-import AWS from 'aws-sdk';
+import * as AWS from 'aws-sdk';
 import fs from 'fs-extra'; /* MC-565 handle EMFILE & EXDIR gracefully; use Promises */
 import { EOL, homedir } from 'os';
 import path from 'path';
