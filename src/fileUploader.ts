@@ -384,7 +384,7 @@ export function constructUploadParameters(
   const ext = getNormalisedFileExtension(file.relative);
   const filename = getFileName(file.relative);
   // special case handling where there is no directory above the file
-  const directoryParts = file.relative === file.name ? [] : path.dirname(file.relative).split(/\/+/g);
+  const directoryParts = file.relative === file.name ? [] : path.dirname(file.relative).split(/[\\/]+/g);
   // extract the parts of the relative path without the extension
   const parts = [...directoryParts, `${filename}-${file.id}.${ext}`];
   // rejoin the parts with underscore instead of slash, insert the file.id before the extension
