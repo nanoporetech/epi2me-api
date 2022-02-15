@@ -20,7 +20,6 @@ export interface Configuration {
     transferPoolSize: number;
     downloadMode: 'data' | 'telemetry' | 'none' | 'data+telemetry';
     filetype: string[];
-    sampleDirectory: string;
 
     idWorkflowInstance?: Index;
     idDataset?: Index;

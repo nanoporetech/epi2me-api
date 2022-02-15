@@ -1,174 +1,173 @@
-<a href="http://metrichor.com"><img src="https://epi2me.nanoporetech.com/gfx/logo_print.png" height="74" align="right"></a>
+# EPI2ME API
 
-### Getting Started
+<a href="http://metrichor.com"><img src="https://epi2me.nanoporetech.com/gfx/logo_print.png" height="74" alt="A stylised letter E made of 3 coloured horizontal bars followed by the word EPI2ME. The colours are turquoise, yellow and blue." align="right"></a>
 
-```js
-const API = require('@metrichor/epi2me-api');
-const EPI2ME = new API({
-  url: 'custom EPI2ME host' || 'https://epi2me.nanoporetech.com',
-  apikey: '<your api key>',
-  apisecret: '<your api secret>',
-  inputFolder: '<folder path for files to upload>',
-  outputFolder: '<folder path for files to download>',
+This API provides utilities for communicating with the EPI2ME Platform for the analysis of nanopore data. It is used by the EPI2ME Agent & CLI. It is intended to be used with Node.js. More information on the EPI2ME platform can be found at [metrichor.com](https://metrichor.com/).
+
+## Installation
+
+```sh
+npm i @metrichor/epi2me-api
+```
+
+In addition to the main module a "web" variant exists which can work in a browser. It is limited to the GraphQL API, and does not expose any methods for reading files from disk. Additionally the GraphQL client is limited to JWT based authentication.
+
+```sh
+npm i @metrichor/epi2me-web
+```
+
+## GraphQL API
+
+The EPI2ME service is implemented as a GraphQL API. This provides a great amount of flexibility with what data you want to request, and as a bonus provides amazing TypeScript support via graphql-codegen.
+
+Normally GraphQL is intended to be used with situation specific queries, not generalized ones. However, we do provide some general purpose version of standard queries. You may find that you can get more relevant information by writing your own query, or that a custom query takes less time to complete. So it's advised to consider what fields you actually want and write your own query. But the inbuilt queries offer convenience during the prototyping stage of a project.
+
+### Authentication, GraphQL clients and context
+
+Our GraphQL service requires authentication. This can be provided either by using a JWT or a API key/secret pair.
+
+To create an authenticated connection using an API key/secret pair instantiate a GraphQLFS instance.
+
+```ts
+import { GraphQLFS } from '@metrichor/epi2me-api';
+
+const client = new GraphQLFS({
+  apikey,
+  apisecret,
 });
-
-// list all workflows
-const workflows = await EPI2ME.REST.workflows();
-
-// list all workflows
-const workflow = await EPI2ME.REST.workflow(workflow_id);
-
-// start a new EPI2ME instance
-const instance = await EPI2ME.startWorkflow({...});
-
-// stop a running instance
-const response = await EPI2ME.stopEverything();
-
-// stop all current uploads / downloads:
-await EPI2ME.stop_everything();
 ```
 
-See also the examples/ folder
+The constructor accepts some other options, such as the `url` of the environment and a `proxy` configuration string. But `apikey`/`apisecret` are the only required ones. The new client instance encapsulates the authenticated connection to the GraphQL server, allowing you to perform queries and mutations.
 
-### Constructor options:
+This client object exposes `query` and `mutate` methods that accept a document and variables and perform the request. It is advised to generate documents ahead of time using graphql-codegen, as when used in conjunction with the schema it will validate your queries. However, you can also generate documents at runtime using the graphql tag library. In addition to `query` and `mutate` the client also defines `wrapQuery` and `wrapMutation` methods which allow for partial application of a document to `query` and `mutate` respectively. A number of inbuilt queries and mutations are also defined for common operations.
+
+- `workflows` list available workflows in the current region; this query is paginated.
+- `workflow` get details for a specific workflow using a workflow ID.
+- `workflowInstance` get details for a specific workflow instance using a workflow instance ID.
+- `workflowInstances` list workflow instances in the current region; this query is paginated.
+- `startWorkflow` instantiate a workflow in the current region with workflow ID and a set of parameters. Will return details of the workflow instance.
+- `stopWorkflow` stop a workflow instance with a given workflow instance ID.
+- `instanceToken` create an instance token for accessing the S3 bucket and SQS queue belonging to a workflow instance.
+- `user` get details about the current user.
+- `updateUser` change the preferred region of the current user.
+- `regions` list available regions.
+
+## Running a workflow
+
+The primary use for the EPI2ME API is to run workflows. In the case you are starting a workflow from an existing dataset, and only wish to view the resulting report then it should be sufficient to construct a GraphQL client and make a startWorkflow mutation. This will not allow you to upload files or (easily) monitor the state of the workflow instance.
+
+```ts
+import { GraphQLFS } from '@metrichor/epi2me-api';
+
+async function main (profile: Profile, isConsentedHuman: boolean) {
+  const { apikey, apisecret, compute_account: computeAccountId } = profile;
+
+  const client = new GraphQLFS({ apikey, apisecret });
+
+  const { instance } = await client.startWorkflow({
+    computeAccountId,
+    isConsentedHuman,
+    idWorkflow: '<ID of the workflow to run>',
+    idDataset: '<ID of source dataset>'
+  });
+
+  console.log(`Started workflow instance ${instance.idWorkflowInstance}`)
+}
 
 ```
-{
-    agent_version
-    apikey
-    apisecret
-    proxy
-    url
-    region
-    retention
-    telemetryCb
-    dataCb
-    sessionGrace
-    remoteShutdownCb                        // callback for remote shutdown of
 
-    awsAcceleration                         // Use AWS Acceleration - boosts download / upload speeds
-    inputFolder
-    inputFormat
-    sortInputFiles                          // MC-2535 - sort files to be uploaded
-    uploadPoolSize                          // Parallelism of upload queue
-    uploadTimeout                           // upload stream timeout after 300s
-    uploadBatchSize                         // Size of each batch upload
-    fileCheckInterval                       // Seconds between loadUploadFiles()
-    downloadCheckInterval                   // Seconds between loadAvailableMessages()
-    stateCheckInterval                      // Seconds between instance state is checked in EPI2ME
-    initDelay                               // Seconds between loadAvailableMessages()
+A more comprehensive option is instantiate an `EPI2ME` instance. This will encapsulate a GraphQL client, file scanner/uploader, telemetry monitoring and observe the status of the attached workflow instance.
 
-    outputFolder
-    uploadedFolder                          // folder where files are placed once uploaded
-    inFlightDelay                           // wait 5 mins before resub
-    waitTimeSeconds                         // long-poll wait 20 seconds for messages
-    waitTokenError                          // wait 30 seconds if token fetch threw an error
-    downloadTimeout                         // download stream timeout after 300s
-    downloadPoolSize                        // MC-505 how many things to download at once
-    downloadMode
-    deleteOnComplete                        // MC-212
+```ts
+
+import { EPI2ME, Profile } from '@metrichor/epi2me-api'
+
+async function main (profile: Profile, isConsentedHuman: boolean) {
+  const { apikey, apisecret, compute_account: computeAccountId } = profile;
+
+  const epi2me = new EPI2ME({
+    apikey,
+    apisecret,
+    inputFolders: [
+      '<folder path for files to upload>'
+    ],
+    outputFolder: '<folder path for files to download>'
+    useGraphQL: true, // for compatibility the instance currently defaults to REST mode, but we are in the process of deprecating our REST backend
+  });
+
+  // autoStartGQL accepts the same parameters as GraphQL.prototype.startWorkflow
+  await epi2me.autoStartGQL({
+    isConsentedHuman,
+    computeAccountId,
+    idWorkflow: '<ID of the workflow you want to run>',
+  });
+
+  console.log(`Started workflow instance ${epi2me.id}`)
+
+  // observe the report state and signal when the report is ready
+  epi2me.reportState$.subscribe(isReady => {
+    if (isReady) {
+      console.log('Report is ready!')
+    }
+  })
+}
+
+```
+
+## Profiles
+
+When using EPI2ME applications they can register a profile for a given user. This stores the authentication required to utilise that user on the device. You can read and modify profiles on the current device using the profile manager.
+
+```ts
+import { instantiateProfileManager } from '@metrichor/epi2me-api'
+
+async function main () {
+  const { manager } = await instantiateProfileManager();
+
+  const names = Array.from(manager.profileNames());
+  
+  const firstProfile = manager.get(names[0]);
+
+  console.log(`The apikey for the profile ${names[0]} is ${firstProfile.apikey}`)
 }
 ```
 
-### File management
+Profiles can also hold an `endpoint` as well as `compute_account` value. The account value in particular can be very helpful as it means you don't have to query a list of accounts for a user and pick one. It is however worth noting that all of the field of a profile are _optional_ so you should check they exist before attempting to utilise the profile.
 
-Dealing with the large number of read files is a considerable challenge:
+EPI2ME applications do not monitor profiles for changes on disk, so if you change any profiles any active application will have to be restarted before it will observe any changes. Any changes made to profiles by EPI2ME applications will be immediately be written to disk, so it's best to avoid modifying the profile list in multiple processes at once otherwise you risk race conditions.
 
-##### Step 1: Input:
+## Instance lifecycle
 
-MinKNOW batches files into files of 4000 reads by default. The epi2me-api object will scan the input-folder (including any sub-directories) for .fastq or .fast5 files. Because of the potential strain the fs.readdir operation puts on the system, it's run as infrequently as possible.
+Once an EPI2ME instance has been created it triggers several services that run for the duration of the instance.
 
-```js
-// trigger fs.readdir
-EPI2ME_api.loadUploadFiles();
-// once done, it pushes a list of new files into uploadWorkerPool
-```
+### File Uploader
 
-Batched folder structure:
+The specified input folders are scanned on an interval for new files. If the files fulfil the criteria of the uploader ( not yet uploaded and correct file type ) then they are concurrently uploaded. After each file is uploaded a message is send to the backend to indicate that there is new data available.
 
-```
-├── inputFolder
-|   ├──  MinKNOW batch1
-|   |   ├── *.fast5
-|   ├──  ...
-|   ├──  MinKNOW batch-n
-```
+If you are running off static data you will probably not want to continue scanning for new files once all your files have been uploaded. You can monitor the status of the file uploads using `liveStates$` which is an observable that contains statistics about uploaded and downloaded files.
 
-Flat folder structure:
+To stop the file uploaded call `stopUpload()`. This will not stop the analysis of the data, or the download of results.
 
-```
-├── inputFolder
-|   ├── *.fast5
-```
+### Telemetry
 
-The EPI2ME api supports both folder structures as input. If the uploadedFolder or the outputFolder are subdirectories of the input folder, the .fast5 files they contain will be excluded.
+You can process the telemetry of the workflow in real time by utilizing `instanceTelemetry$` which is an observable containing the JSON blobs from each workflow component in the chain. Changes in this data are received through polling, updated telemetry is only pulled down if a change has occurred though.
 
-##### Step 2: Uploaded
+### Output Data
 
-Once a file has been successfully uploaded, it will be moved to the uploadedFolder. The batched folder structure is maintained:
+Once data has passed through the workflow the client is notified of result data, which can then optionally be downloaded to the client. Setting the `downloadMode` to `data` or `data+telemetry` will cause the output to be downloaded and written to disk. The progress of downloads can be observed using `liveStates$` which is an observable that contains statistics about uploaded and downloaded files.
 
-```
-├── uploadedFolder
-|   ├──  MinKNOW batch1
-|   |   ├── *.fast5
-|   ├──  ...
-|   ├──  MinKNOW batch-n
-```
+### Stopping an Analysis
 
-##### Step 3: Download
+As analyses are designed to receive new data as it's being generated they do not have a classical "complete" state. They rather have a "analyzing" and "idle" state, once all the uploaded data has been processed they will sit idle waiting for more data. Once you are happy that all of your data has been processed you need to notify the system that you have finished and stop the analysis. You can remotely stop any running workflow from the EPI2ME agent and portal easily. Through the API you can either use the `stopWorkflow` mutation to stop your workflow, or if you have instantiated an EPI2ME instance you can call `stopAnalysis`.
 
-Once the read has been succesfully processed in the EPI2ME Workflow, a message will appear on the SQS output queue, which is monitored by the epi2me-api. The output file is downloaded to the downloads folder. These files will also be batched into sub-folders whose names are completely arbitrary (and set by the metchor-api). Note that these names are not linked to the batch names created by MinKNOW
+## Datasets
 
-```
-├── outputFolder
-|   ├── fail
-|   |   ├──  EPI2ME batch1
-|   |   ├──  ...
-|   |   ├──  EPI2ME batch-n
-|   └── pass
-|   |   ├──  EPI2ME batch1
-|   |   ├──  ...
-|   |   ├──  EPI2ME batch-n
-```
+Each component in a workflow instance creates it's own "dataset". By default datasets are deleted within 24 hours of an analysis being stopped, but if you pass in the `storeResults` flag when starting the workflow they will be persisted. Alternatively you can view the dataset on the EPI2ME portal while the analysis is being run and set specific datasets to be persisted.
 
-###### Notes on EPI2ME Worker Folder Hint
+Datasets give you the means to run a workflow from data which you have already uploaded and/or processed. EPI2ME will also keep track of the relationship between your datasets, so that you can easily track the source of particular data. You can also download a dataset at a later date.
 
-The EPI2ME Worker may pass a specific folder hint in each SQS message (SQS.messageBody.telemetry.hints). If this flag exists, output files will be split according to exit-status into either "pass" or "fail" folders.
+You can start workflows from dataset using the start workflow mutation by specifying a dataset ID in it's parameters. It's also possible to start a workflow from a dataset using the EPI2ME portal and CLI.
 
-There's also the "telemetry.hints.folder" flag, which is used by the Barcoding workflow to split files by barcode:
+## Development
 
-```
-├── outputFolder
-|   ├── BC01
-|   |   ├── fail
-|   |   |   ├──  EPI2ME batch1
-|   |   |   ├──  ...
-|   |   |   ├──  EPI2ME batch-n
-|   |   └── pass
-|   |   |   ├──  EPI2ME batch1
-|   |   |   ├──  ...
-|   |   |   ├──  EPI2ME batch-n
-|   ├── BC02
-|   ...
-```
-
-### File-backed api
-
-You may give a file url instead of a portal url, in which case the api acts in read-only mode drawing protocol workflows based on the url given. (This is determined by the url having http at the start or not)
-
-You may give the full path to one protocol workflow file, or a directory.
-
-If one is given, then workflows returns an array of one, and workflow does not need an id provided
-
-If a directory is given, then workflows returns all files in that directory, and then one of these can be selected for the id to workflow
-
-As this is readonly, if workflow receives and object, it immediately returns the cb with that object;
-
-If any other methods are called, then they populate the error argument to the callback with a message.
-
-
-### Development
-
-#### Updating the GraphQL type definitions
-
-The majority of the the GraphQL types in the project are generated directly from the schema file. To update them replace the `./schema.graphql` file with the revised schema, then run `npm run build:graphql` to update the generated types. 
+The EPI2ME API is under constant refinement based on the requirements and capabilities of the system. We are currently in the process of migrating from a REST based backend to a newer GraphQL one. For compatibility we are supporting both for the time being, but once internal projects have migrated away from the old REST API those components will be removed facilitating further simplification and improvement to this library.

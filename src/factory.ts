@@ -4,7 +4,7 @@ import type { Logger } from './Logger.type';
 import type { SampleReader } from './sample-reader';
 import type { Index, Dictionary } from 'ts-runtime-typecheck';
 import type { EPI2ME_OPTIONS } from './epi2me-options.type';
-import type { EPI2ME_FS } from './epi2me-fs';
+import { EPI2ME_FS } from './epi2me-fs';
 
 import { BehaviorSubject, Subject, merge } from 'rxjs';
 import { withLatestFrom, map, mapTo } from 'rxjs/operators';
@@ -28,7 +28,7 @@ export class Factory {
   private readonly addRunningInstance$ = new Subject<EPI2ME_FS>();
   private readonly removeRunningInstanceById$ = new Subject<Index>();
 
-  constructor(api: typeof EPI2ME_FS, opts: Partial<EPI2ME_OPTIONS> = {}) {
+  constructor(api: typeof EPI2ME_FS = EPI2ME_FS, opts: Partial<EPI2ME_OPTIONS> = {}) {
     this.EPI2ME = api;
     this.options = opts;
     this.primary = this.instantiate();

@@ -42,7 +42,7 @@ export class GraphQL {
   readonly context: RequestContext;
   client: ApolloClient<NormalizedCacheObject>;
 
-  constructor(opts: Partial<Configuration['options']>) {
+  constructor(opts: Partial<Configuration['options']> = {}) {
     // IS: WARN most of these options aren't used in this file.
     // They are _maybe_ being used `utils.get` but we need to resolve this.
     // CR: I believe local isn't required, the rest will be used for signing on
