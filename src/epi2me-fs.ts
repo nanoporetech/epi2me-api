@@ -486,8 +486,9 @@ export class EPI2ME_FS extends EPI2ME {
         let state, stopDate;
         if (this.config.options.useGraphQL) {
           const response = await this.graphQL.workflowInstance({ instance: id });
-          state = asDefined(response.workflowInstance?.state);
-          stopDate = asDefined(response.workflowInstance?.stopDate);
+          // state should always be defined, but stop date won't exist until it's been stopped
+          state = response.workflowInstance?.state;
+          stopDate = response.workflowInstance?.stopDate;
         } else {
           const response = await this.REST.workflowInstance(id);
           state = response.state;
