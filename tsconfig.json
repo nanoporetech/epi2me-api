@@ -1,5 +1,12 @@
 {
   "extends": "./tsconfig.main.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@metrichor/epi2me-api": ["./src/index.ts"],
+      "@metrichor/epi2me-web": ["./src/index-web.ts"]
+    }
+  },
   "include": ["**/*.ts"],
   "exclude": ["./dist", "./node_modules", "./test"]
 }

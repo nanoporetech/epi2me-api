@@ -23,7 +23,6 @@ export interface EPI2ME_OPTIONS {
   downloadMode: DownloadMode;
   filetype: string[];
   signing: boolean;
-  sampleDirectory: string;
 
   // optional values
   useGraphQL?: boolean;

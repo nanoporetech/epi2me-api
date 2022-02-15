@@ -21,7 +21,6 @@ export const DEFAULT_OPTIONS: EPI2ME_OPTIONS = {
   downloadMode: 'data+telemetry',
   filetype: ['.fastq', '.fq', '.fastq.gz', '.fq.gz'],
   signing: true,
-  sampleDirectory: '/data',
   log: FallbackLogger,
   agent_version: VERSION,
 };

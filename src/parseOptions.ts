@@ -89,7 +89,6 @@ export function parseOptions(opt: Partial<EPI2ME_OPTIONS>): Configuration['optio
     transferPoolSize: asNumber(opt.transferPoolSize, DEFAULT_OPTIONS.transferPoolSize),
     downloadMode,
     filetype: asArrayOf(isString)(opt.filetype, DEFAULT_OPTIONS.filetype),
-    sampleDirectory: asString(opt.sampleDirectory, DEFAULT_OPTIONS.sampleDirectory),
     // optional values
     region: asOptString(opt.region),
     useGraphQL: asBoolean(opt.useGraphQL, false),
