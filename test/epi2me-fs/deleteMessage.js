@@ -7,22 +7,21 @@ import { syncify } from '../../test-helpers/syncify';
 import { EPI2ME_FS as EPI2ME } from '../../src/epi2me-fs';
 
 describe('epi2me.deleteMessage', () => {
-  const clientFactory = (opts) =>
-    new EPI2ME(
-      merge(
-        {
-          url: 'https://epi2me-test.local',
-          log: {
-            debug: sinon.stub(),
-            info: sinon.stub(),
-            warn: sinon.stub(),
-            error: sinon.stub(),
-            critical: sinon.stub(),
-          },
-        },
-        opts,
-      ),
-    );
+  const clientFactory = (opts) => {
+    const client = new EPI2ME({
+      url: 'https://epi2me-test.local',
+      log: {
+        debug: sinon.stub(),
+        info: sinon.stub(),
+        warn: sinon.stub(),
+        error: sinon.stub(),
+        critical: sinon.stub(),
+      },
+      ...opts,
+    });
+    client.config.instance.outputQueueName = "example output queue";
+    return client;
+  }
 
   let clock;
 

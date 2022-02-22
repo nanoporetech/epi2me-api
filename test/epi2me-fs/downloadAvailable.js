@@ -10,22 +10,21 @@ describe('epi2me.downloadAvailable', () => {
   let error;
   let critical;
 
-  const clientFactory = (opts) =>
-    new EPI2ME(
-      merge(
-        {
-          url: 'https://epi2me-test.local',
-          log: {
-            debug,
-            info,
-            warn,
-            error,
-            critical,
-          },
-        },
-        opts,
-      ),
-    );
+  const clientFactory = (opts) => {
+    const client = new EPI2ME({
+      url: 'https://epi2me-test.local',
+      log: {
+        debug,
+        info,
+        warn,
+        error,
+        critical,
+      },
+      ...opts,
+    });
+    client.config.instance.outputQueueName = "example output queue";
+    return client;
+  }
 
   beforeEach(() => {
     debug = sinon.stub();

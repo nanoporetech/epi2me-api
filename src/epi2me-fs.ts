@@ -155,7 +155,9 @@ export class EPI2ME_FS extends EPI2ME {
 
   async deleteMessage(message: { ReceiptHandle?: string }): Promise<unknown> {
     try {
-      const queueURL = await this.discoverQueue(asOptString(this.config.instance.outputQueueName));
+      assertDefined(this.config.instance.outputQueueName, 'Output Queue Name');
+
+      const queueURL = await this.discoverQueue(this.config.instance.outputQueueName);
       const sqs = this.getSQSSessionedService();
       return sqs
         .deleteMessage({
@@ -168,7 +170,7 @@ export class EPI2ME_FS extends EPI2ME {
     }
   }
 
-  async discoverQueue(queueName = ''): Promise<string> {
+  async discoverQueue(queueName: string): Promise<string> {
     if (this.config.instance.discoverQueueCache[queueName]) {
       return asString(this.config.instance.discoverQueueCache[queueName]);
     }
@@ -535,7 +537,9 @@ export class EPI2ME_FS extends EPI2ME {
     // this.log.debug('checkForDownloads checking for downloads');
 
     try {
-      const queueURL = await this.discoverQueue(asOptString(this.config.instance.outputQueueName));
+      assertDefined(this.config.instance.outputQueueName, 'Output Queue Name');
+
+      const queueURL = await this.discoverQueue(this.config.instance.outputQueueName);
       const len = await this.queueLength(queueURL);
 
       if (len) {
@@ -561,7 +565,9 @@ export class EPI2ME_FS extends EPI2ME {
 
     let receiveMessageSet;
     try {
-      const queueURL = await this.discoverQueue(asOptString(this.config.instance.outputQueueName));
+      assertDefined(this.config.instance.outputQueueName, 'Output Queue Name');
+
+      const queueURL = await this.discoverQueue(this.config.instance.outputQueueName);
       this.log.debug('fetching messages');
 
       const sqs = this.getSQSSessionedService();
@@ -963,7 +969,9 @@ export class EPI2ME_FS extends EPI2ME {
           }
         }
 
-        const queueUrl = this.config.instance.outputQueueURL;
+        assertDefined(this.config.instance.outputQueueName, 'Output Queue Name');
+
+        const queueUrl = await this.discoverQueue(this.config.instance.outputQueueName);
         const receiptHandle = message.ReceiptHandle;
 
         this.log.debug(
@@ -977,7 +985,7 @@ export class EPI2ME_FS extends EPI2ME {
           const sqs = this.getSQSSessionedService();
           await sqs
             .changeMessageVisibility({
-              QueueUrl: asString(queueUrl),
+              QueueUrl: queueUrl,
               ReceiptHandle: asString(receiptHandle),
               VisibilityTimeout: this.config.options.inFlightDelay.seconds,
             })
