@@ -19,7 +19,6 @@ import {
   asNumber,
   asOptDictionary,
   asOptDictionaryOf,
-  asOptString,
   assertDefined,
   isArray,
   isDefined,
@@ -543,7 +542,9 @@ async function messageInputQueue(ctx: UploadContext, objectId: string, file: Fil
   const message = createMessage(instance, objectId);
 
   try {
-    const inputQueueURL = await instance.discoverQueue(asOptString(instance.config.instance.inputQueueName));
+    assertDefined(instance.config.instance.inputQueueName, 'Input Queue Name');
+
+    const inputQueueURL = await instance.discoverQueue(instance.config.instance.inputQueueName);
     const sqs = instance.sessionedSQS({
       retryDelayOptions: {
         customBackoff(count: number, err?: Error): number {

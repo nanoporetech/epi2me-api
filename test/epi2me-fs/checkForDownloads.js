@@ -21,6 +21,7 @@ describe('epi2me.checkForDownloads', () => {
       id_workflow_instance: instanceId,
       ...opts,
     });
+    newClient.config.instance.outputQueueName = "example output queue";
     instanceId += 1;
     return newClient;
   };

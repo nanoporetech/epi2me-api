@@ -110,6 +110,7 @@ function uploadContextFactory(settings: Partial<UploadSettings> = {}, state: Par
         instance: {
           bucket: 'bucket ID',
           bucketFolder: '/bucket/folder',
+          inputQueueName: 'example input queue',
           key_id: 'fake key id',
           chain: {
             components: {
@@ -187,6 +188,7 @@ function epi2meInstanceFactory(split_size: number, input: string[], types: strin
       instance: {
         bucket: 'bucket ID',
         bucketFolder: '/bucket/folder',
+        inputQueueName: 'example input queue',
         key_id: 'fake key id',
         chain: {
           components: {

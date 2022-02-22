@@ -36,7 +36,6 @@ export interface Configuration {
     id_workflow?: Index;
     inputQueueName?: string;
     outputQueueName?: string;
-    outputQueueURL?: string;
     discoverQueueCache: Dictionary;
     bucket?: string;
     start_date?: string;
