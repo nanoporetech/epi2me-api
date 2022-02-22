@@ -3,46 +3,43 @@
  * Authors: rpettett, ahurst, gvanginkel
  * Created: 2016-05-17
  */
+import type { Dictionary } from 'ts-runtime-typecheck';
+import type { Logger } from './Logger.type';
 
 import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 import crypto from 'crypto';
-import * as tunnel from 'tunnel';
-import { version as VERSION } from '../package.json';
-import { NoopLogger, LogMethod } from './Logger';
-import { ObjectDict } from './ObjectDict';
-import { isRecord } from './runtime-typecast';
+import { isDictionary } from 'ts-runtime-typecheck';
+import ProxyAgent from 'proxy-agent';
+import { NoopLogger } from './Logger';
+import { DEFAULT_OPTIONS } from './default_options';
+import { USER_AGENT } from './UserAgent.constants';
 
 axios.defaults.validateStatus = (status: number): boolean => status <= 504; // Reject only if the status code is greater than or equal to 500
 
 export interface Utility {
-  version: string;
   headers(request: AxiosRequestConfig, options: UtilityOptions): void;
-  head(uri: string, options: UtilityOptions): Promise<AxiosResponse>;
-  get(uri: string, options: UtilityOptions): Promise<ObjectDict>;
-  post<T = ObjectDict>(
+  head(uri: string, options: UtilityOptions): Promise<AxiosResponse<unknown>>;
+  get(uri: string, options: UtilityOptions): Promise<Dictionary>;
+  post<T = Dictionary>(
     uriIn: string,
-    obj: ObjectDict,
-    options: UtilityOptions & { handler?: (res: AxiosResponse) => Promise<T> },
-  ): Promise<T | ObjectDict>;
-  put(uri: string, id: string, obj: ObjectDict, options: UtilityOptions): Promise<ObjectDict>;
+    obj: Dictionary,
+    options: UtilityOptions & { handler?: (res: AxiosResponse<unknown>) => Promise<T> },
+  ): Promise<T | Dictionary>;
+  put(uri: string, id: string, obj: Dictionary, options: UtilityOptions): Promise<Dictionary>;
   mangleURL(uri: string, options: UtilityOptions): string;
-  processLegacyForm(req: AxiosRequestConfig, data: ObjectDict): void;
-  convertResponseToObject(data: string | ObjectDict): ObjectDict;
+  processLegacyForm(req: AxiosRequestConfig, data: Dictionary): void;
 }
 
 export interface UtilityOptions {
   url: string;
   skip_url_mangle?: boolean;
-  user_agent?: string;
   agent_version?: string;
-  headers?: ObjectDict;
+  headers?: Dictionary;
   signing?: boolean;
   proxy?: string;
   apisecret?: string;
   apikey?: string;
-  log?: {
-    debug: LogMethod;
-  };
+  log?: Logger;
   legacy_form?: boolean;
 }
 
@@ -83,13 +80,19 @@ export const utils: Utility = (function magic(): Utility {
         req.url = req.url.replace(/:80/, '');
       }
 
+      let headers = req.headers;
+      if (!headers) {
+        headers = {};
+        req.headers = headers;
+      }
+
       const message = [
         req.url,
 
-        Object.keys(req.headers)
+        Object.keys(headers)
           .sort()
-          .filter((o) => o.match(/^x-epi2me/i))
-          .map((o) => `${o}:${req.headers[o]}`)
+          .filter((o) => /^x-epi2me/i.test(o))
+          .map((o) => `${o}:${headers[o]}`)
           .join('\n'),
       ].join('\n');
 
@@ -97,8 +100,8 @@ export const utils: Utility = (function magic(): Utility {
       req.headers['X-EPI2ME-SignatureV0'] = digest;
     },
 
-    responseHandler(r: AxiosResponse<unknown>): ObjectDict {
-      const json = r && isRecord(r.data) ? r.data : null;
+    responseHandler(r: AxiosResponse<unknown>): Dictionary {
+      const json = r && isDictionary(r.data) ? r.data : null;
 
       if (r && r.status >= 400) {
         let msg = `Network error ${r.status}`;
@@ -127,14 +130,13 @@ export const utils: Utility = (function magic(): Utility {
   };
 
   return {
-    version: VERSION,
     headers(req: AxiosRequestConfig, options: UtilityOptions): void {
       // common headers required for everything
       req.headers = {
         Accept: 'application/json',
         'Content-Type': 'application/json',
-        'X-EPI2ME-Client': options.user_agent || 'api', // new world order
-        'X-EPI2ME-Version': options.agent_version || utils.version, // new world order
+        'X-EPI2ME-Client': USER_AGENT, // new world order
+        'X-EPI2ME-Version': options.agent_version ?? DEFAULT_OPTIONS.agent_version, // new world order
         ...req.headers,
         ...options.headers,
       };
@@ -146,41 +148,15 @@ export const utils: Utility = (function magic(): Utility {
       }
 
       if (options.proxy) {
-        const matches = options.proxy.match(/https?:\/\/((\S+):(\S+)@)?(\S+):(\d+)/);
-        if (!matches) {
-          throw new Error(`Failed to parse Proxy URL`);
-        }
-        const user = matches[2];
-        const pass = matches[3];
-        const host = matches[4];
-        const port = parseInt(matches[5], 10);
-        const proxy: tunnel.ProxyOptions = {
-          host,
-          port,
-        };
-
-        if (user && pass) {
-          proxy.proxyAuth = `${user}:${pass}`;
-        }
-
+        const proxy = ProxyAgent(options.proxy);
         const log = options.log ?? NoopLogger;
-
-        if (options.proxy.match(/^https/)) {
-          log.debug(`using HTTPS over HTTPS proxy`, JSON.stringify(proxy)); // nb. there's no CA/cert handling for self-signed certs
-          req.httpsAgent = tunnel.httpsOverHttps({
-            proxy,
-          });
-        } else {
-          log.debug(`using HTTPS over HTTP proxy`, JSON.stringify(proxy));
-          req.httpsAgent = tunnel.httpsOverHttp({
-            proxy,
-          });
-        }
+        log.debug('Using proxy for request');
+        req.httpsAgent = proxy;
         req.proxy = false; // do not double-interpret proxy settings
       }
     },
 
-    async head(uriIn: string, options: UtilityOptions): Promise<AxiosResponse> {
+    async head(uriIn: string, options: UtilityOptions): Promise<AxiosResponse<unknown>> {
       // do something to get/set data in epi2me
       const call = this.mangleURL(uriIn, options);
       const req: AxiosRequestConfig = { url: call };
@@ -208,7 +184,7 @@ export const utils: Utility = (function magic(): Utility {
       return res;
     },
 
-    async get(uriIn: string, options: UtilityOptions): Promise<ObjectDict> {
+    async get(uriIn: string, options: UtilityOptions): Promise<Dictionary> {
       // do something to get/set data in epi2me
       const call = this.mangleURL(uriIn, options);
       const req: AxiosRequestConfig = { url: call };
@@ -229,11 +205,11 @@ export const utils: Utility = (function magic(): Utility {
       return internal.responseHandler(res);
     },
 
-    async post<T = ObjectDict>(
+    async post<T = Dictionary>(
       uriIn: string,
-      obj: ObjectDict,
-      options: UtilityOptions & { handler?: (res: AxiosResponse) => Promise<T> },
-    ): Promise<T | ObjectDict> {
+      obj: Dictionary,
+      options: UtilityOptions & { handler?: (res: AxiosResponse<unknown>) => Promise<T> },
+    ): Promise<T | Dictionary> {
       let srv = options.url;
       srv = srv.replace(/\/+$/, ''); // clip trailing slashes
       const uri = uriIn.replace(/\/+/g, '/'); // clip multiple slashes
@@ -270,7 +246,7 @@ export const utils: Utility = (function magic(): Utility {
       return internal.responseHandler(res);
     },
 
-    async put(uriIn: string, id: string, obj: ObjectDict, options: UtilityOptions): Promise<ObjectDict> {
+    async put(uriIn: string, id: string, obj: Dictionary, options: UtilityOptions): Promise<Dictionary> {
       let srv = options.url;
       srv = srv.replace(/\/+$/, ''); // clip trailing slashes
       const uri = uriIn.replace(/\/+/g, '/'); // clip multiple slashes
@@ -316,11 +292,11 @@ export const utils: Utility = (function magic(): Utility {
       }
     },
 
-    processLegacyForm(req: AxiosRequestConfig, data: ObjectDict): void {
+    processLegacyForm(req: AxiosRequestConfig, data: Dictionary): void {
       // include legacy form parameters
       const params: string[] = [];
       // WARN this behavior seems suspicious, the backend for this should be inspected
-      const form: ObjectDict = {
+      const form: Dictionary = {
         json: JSON.stringify(data),
         ...data,
       };
@@ -330,20 +306,10 @@ export const utils: Utility = (function magic(): Utility {
           params.push(`${attr}=${escape(form[attr] + '')}`);
         });
       req.data = params.join('&');
-      req.headers['Content-Type'] = 'application/x-www-form-urlencoded';
-    },
-
-    convertResponseToObject(data: ObjectDict | string): ObjectDict {
-      if (typeof data === 'object') {
-        // already parsed
-        return data;
-      } else {
-        try {
-          return JSON.parse(data);
-        } catch (jsonException) {
-          throw new Error(`exception parsing chain JSON ${String(jsonException)}`);
-        }
+      if (!req.headers) {
+        req.headers = {};
       }
+      req.headers['Content-Type'] = 'application/x-www-form-urlencoded';
     },
   };
 })();

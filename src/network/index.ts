@@ -1,11 +1,14 @@
-import { fetch, Request, Headers } from './fetch';
-import { version as API_VERSION } from '../../package.json';
-import { isRecord, isString } from '../runtime-typecast';
+/// <reference lib="dom" />
 
-import type { ObjectDict } from '../ObjectDict';
-import type { RequestOptions, ExtendedRequestOptions } from './RequestOptions';
-import type { Body } from './Body';
-import type { NetworkInterface } from './NetworkInterface';
+import type { Dictionary } from 'ts-runtime-typecheck';
+import type { RequestOptions, ExtendedRequestOptions } from './RequestOptions.type';
+import type { Body } from './Body.type';
+import type { NetworkInterface } from './NetworkInterface.type';
+
+import { fetch, Request, Headers } from './fetch';
+import { isDictionary, isString, isStruct } from 'ts-runtime-typecheck';
+import { DEFAULT_OPTIONS } from '../default_options';
+import { USER_AGENT } from '../UserAgent.constants';
 
 let fetchMethod = fetch;
 
@@ -25,9 +28,13 @@ async function tryReadAsJson(response: Response): Promise<unknown> {
   }
 }
 
+const isErrorResponse = isStruct({
+  error: isString,
+});
+
 async function checkJsonResponseForError(response: Response, allowNull = false): Promise<unknown> {
   const jsonResponse = await (allowNull ? tryReadAsJson(response) : response.json());
-  if (isRecord(jsonResponse) && isString(jsonResponse.error)) {
+  if (isErrorResponse(jsonResponse)) {
     throw new Error(jsonResponse.error);
   }
   return jsonResponse;
@@ -48,8 +55,8 @@ export function writeCommonHeaders(options: ExtendedRequestOptions = {}): Header
 
   headers.set('Accept', 'application/json');
   headers.set('Content-Type', 'application/json');
-  headers.set('X-EPI2ME-Client', options.user_agent ?? 'api');
-  headers.set('X-EPI2ME-Version', options.agent_version ?? API_VERSION);
+  headers.set('X-EPI2ME-Client', USER_AGENT);
+  headers.set('X-EPI2ME-Version', options.agent_version ?? DEFAULT_OPTIONS.agent_version);
 
   if (options.headers) {
     for (const [key, value] of Object.entries(options.headers)) {
@@ -89,8 +96,8 @@ async function makeRequest(uri: string, options: ExtendedRequestOptions): Promis
   return response;
 }
 
-function encodeBody(rawBody: Body | ObjectDict, encoding: 'json' | 'url'): Body {
-  if (isRecord(rawBody)) {
+function encodeBody(rawBody: Body | Dictionary, encoding: 'json' | 'url'): Body {
+  if (isDictionary(rawBody)) {
     if (encoding === 'json') {
       return JSON.stringify(rawBody);
     } else if (encoding === 'url') {
@@ -119,13 +126,13 @@ export const Network: NetworkInterface = {
     return checkJsonResponseForError(response);
   },
 
-  async post(uri: string, rawBody: Body | ObjectDict, options: RequestOptions = {}): Promise<unknown> {
+  async post(uri: string, rawBody: Body | Dictionary, options: RequestOptions = {}): Promise<unknown> {
     const body = encodeBody(rawBody, options.encode_method ?? 'json');
     const response = await makeRequest(uri, { ...options, body, method: 'post' });
     return checkJsonResponseForError(response);
   },
 
-  async put(uri: string, rawBody: Body | ObjectDict, options: RequestOptions = {}): Promise<unknown> {
+  async put(uri: string, rawBody: Body | Dictionary, options: RequestOptions = {}): Promise<unknown> {
     const body = encodeBody(rawBody, options.encode_method ?? 'json');
     const response = await makeRequest(uri, { ...options, body, method: 'put' });
     return checkJsonResponseForError(response);

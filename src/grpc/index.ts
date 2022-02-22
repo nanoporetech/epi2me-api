@@ -1,9 +1,9 @@
-import { grpc } from '@improbable-eng/grpc-web';
+import type { grpc } from '@improbable-eng/grpc-web';
 import { WorkflowApi } from './api/workflow';
 import { SampleReaderApi } from './api/samples';
 import { StatusApi } from './api/status';
 
-export default class EPI2ME_RPC {
+export class EPI2ME_RPC {
   public workflowApi: WorkflowApi;
   public samplesApi: SampleReaderApi;
   public statusApi: StatusApi;
@@ -20,3 +20,5 @@ export default class EPI2ME_RPC {
     this.statusApi.close();
   }
 }
+
+export default EPI2ME_RPC;

@@ -1,17 +1,18 @@
+/// <reference lib="dom" />
+
 /*
   WARN signed network relies on the node crypto library, and hence cannot be used in the web export.
 
   If we need it we could potentially replace the signing behavior with web crypto, but it's problematic
   to test.
 */
+import type { RequestOptions } from './RequestOptions.type';
+import type { Body } from './Body.type';
+import type { Credentials } from './Credentials.type';
+import type { NetworkInterface } from './NetworkInterface.type';
+
 import { Network } from './index';
 import crypto from 'crypto';
-
-import type { RequestOptions } from './RequestOptions';
-import type { Body } from './Body';
-import type { Credentials } from './Credentials';
-import type { NetworkInterface } from './NetworkInterface';
-import { asString } from '../runtime-typecast';
 
 export function signMessage(
   headers: Headers,
@@ -22,9 +23,15 @@ export function signMessage(
   headers.set('X-EPI2ME-ApiKey', apikey);
   headers.set('X-EPI2ME-SignatureDate', new Date().toISOString());
 
-  const keys = Array.from<string>((headers as any).keys())
-    .sort()
-    .filter((o) => asString(o).match(/^x-epi2me/i));
+  let keys: string[] = [];
+
+  headers.forEach((_value, key) => {
+    if (key.match(/^x-epi2me/i)) {
+      keys.push(key);
+    }
+  });
+
+  keys = keys.sort();
 
   // Case matters. Uppercase for gql. Else for portal.
   const message = createMessage(

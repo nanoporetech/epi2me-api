@@ -3,7 +3,7 @@ import assert from 'assert';
 import os from 'os';
 import { REST } from '../../src/rest';
 import { utils } from '../../src/utils';
-import { EPI2ME } from '../../src/epi2me';
+import { parseOptions } from '../../src/parseOptions';
 
 describe('rest.register', () => {
   let stubs;
@@ -27,7 +27,7 @@ describe('rest.register', () => {
       })),
     );
     stubs.push(sinon.stub(os, 'hostname').callsFake(() => 'testhost'));
-    const options = EPI2ME.parseOptObject({
+    const options = parseOptions({
       agent_version: '3.0.0',
     });
     const rest = new REST(options);

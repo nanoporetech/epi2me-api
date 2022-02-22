@@ -2,11 +2,11 @@ import sinon from 'sinon';
 import assert from 'assert';
 import { REST } from '../../src/rest';
 import { utils } from '../../src/utils';
-import { EPI2ME } from '../../src/epi2me';
+import { parseOptions } from '../../src/parseOptions';
 
 describe('rest.workflowConfig', () => {
   it('must invoke get with options', async () => {
-    const options = EPI2ME.parseOptObject({
+    const options = parseOptions({
       agent_version: '3.0.0',
     });
     const rest = new REST(options);

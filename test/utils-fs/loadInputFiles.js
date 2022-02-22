@@ -3,19 +3,25 @@ import fs from 'fs-extra';
 import mock from 'mock-fs';
 import path from 'path';
 import tmp from 'tmp';
-import { utilsFS as utils } from '../../src/utils-fs';
 
-describe('utils-fs.loadInputFiles', () => {
+import { loadInputFiles } from '../../src/inputScanner';
+
+describe('loadInputFiles', () => {
   let tmpInputDir;
   let batch1;
   let batch2;
+  let batch3;
 
   beforeEach(() => {
     tmpInputDir = tmp.dirSync({
       unsafeCleanup: true,
     });
+
     batch1 = path.join(tmpInputDir.name, 'batch_1');
     batch2 = path.join(tmpInputDir.name, 'batch_2');
+    batch3 = path.join(tmpInputDir.name, 'batch_3');
+
+    fs.mkdirpSync(batch3);
     fs.mkdirpSync(batch2);
     fs.mkdirpSync(batch1);
   });
@@ -28,7 +34,7 @@ describe('utils-fs.loadInputFiles', () => {
     }
   });
 
-  it('should only load files in batches', async () => {
+  it('should only load valid files', async () => {
     const outputFolder = path.join(tmpInputDir.name, 'downloaded');
     const uploadedFolder = path.join(tmpInputDir.name, 'uploaded');
     fs.mkdirpSync(outputFolder);
@@ -37,10 +43,22 @@ describe('utils-fs.loadInputFiles', () => {
     /**
      * Test folder structure:
      * downloaded/downloaded.fastq  should be ignored
-     * uploaded/uploaded.fastq      should be ignored
+     * uploaded/uploaded.fastq      should be picked up
      * batch_1/1.fastq              should be picked up
      * batch_2/2.fastq              should be picked up
+     * batch_2/._2.fastq            should be ignored
      */
+
+    const found = new Set();
+    const foundFilter = async (filepath) => {
+      if (found.has(filepath)) {
+        return false;
+      }
+      found.add(filepath);
+      return true;
+    };
+    // NOTE "uploadedFolder" is a legacy thing, it used to be ignored but now we treat it like any
+    // normal folder
     fs.writeFileSync(path.join(batch1, '1.fastq'), '');
     fs.writeFileSync(path.join(batch2, '2.fastq'), '');
     fs.writeFileSync(path.join(batch2, '._2.fastq'), ''); // MC-6941 junk file
@@ -50,28 +68,37 @@ describe('utils-fs.loadInputFiles', () => {
     const opts = {
       inputFolders: [tmpInputDir.name],
       outputFolder,
-      uploadedFolder,
-      filetype: '.fastq',
+      filetypes: '.fastq',
+      filter: foundFilter,
     };
 
-    // stepping through the file system as this is intented to work:
-    // first load one batch, then the next, then once all files are gone, return null
-    await utils.loadInputFiles(opts).then(async (files) => {
-      assert.equal(files.length, 3, 'files1 should find the one valid file');
-      assert.equal(files[0].name, '1.fastq', 'should load the folders in alphabetical order');
-      fs.unlinkSync(files[0].path);
+    const files1 = await loadInputFiles(opts);
+    assert.strictEqual(files1.length, 3, 'should find 3 valid files');
+
+    const files2 = await loadInputFiles(opts);
+    assert.strictEqual(files2.length, 0, 'should find no files');
+
+    fs.writeFileSync(path.join(batch3, '3.fastq'), '');
+
+    const files3 = await loadInputFiles(opts);
+    assert.strictEqual(files3.length, 1, 'should find 1 new file');
+  });
+
+  it('generates a sane file description', async () => {
+    fs.writeFileSync(path.join(batch1, '1.fastq'), '');
+
+    const [description] = await loadInputFiles({
+      inputFolders: [batch1],
+      filetypes: '.fastq',
     });
 
-    await utils.loadInputFiles(opts).then(async (files2) => {
-      assert.equal(files2.length, 2, 'files2 should find the one valid file');
-      assert.equal(files2[0].name, '2.fastq', 'should load the folders in alphabetical order');
-      fs.unlinkSync(files2[0].path);
-    });
-
-    fs.unlinkSync(path.join(uploadedFolder, 'uploaded.fastq')); // remove uploaded file
-
-    await utils.loadInputFiles(opts).then((files3) => {
-      assert.deepEqual(files3, [], 'should find no files');
+    assert.deepStrictEqual(description, {
+      name: '1.fastq',
+      path: path.join(batch1, '1.fastq'),
+      relative: '1.fastq',
+      size: 0,
+      // 5 reads in this test suite, 9 in "fileUploader" = 14
+      id: '0014',
     });
   });
 
@@ -100,29 +127,15 @@ describe('utils-fs.loadInputFiles', () => {
     const opts = {
       inputFolders: [inputFolder],
       outputFolder: path.join(inputFolder, 'output'),
-      filetype: '.fastq',
+      filetypes: '.fastq',
     };
 
-    await utils.loadInputFiles(opts).then(async (files) => {
-      assert.deepEqual(files, [
-        {
-          name: '1.fastq',
-          path: path.join(inputFolder, '1.fastq'),
-          relative: '/1.fastq',
-          size: 0,
-          id: 'FILE_6',
-        },
-        {
-          name: '1.fastq',
-          path: path.join(inputFolder, 'pass', '1.fastq'),
-          relative: '/pass/1.fastq',
-          size: 0,
-          id: 'FILE_7',
-        },
-      ]);
-    });
+    const files = await loadInputFiles(opts);
 
-    await fs.remove(inputFolder);
+    assert.deepStrictEqual(
+      new Set(files.map((file) => file.path)),
+      new Set([path.join(inputFolder, '1.fastq'), path.join(inputFolder, 'pass', '1.fastq')]),
+    );
   });
 
   it('MC-7214 should skip both fail and fastq_fail', async () => {
@@ -150,29 +163,15 @@ describe('utils-fs.loadInputFiles', () => {
     const opts = {
       inputFolders: [inputFolder],
       outputFolder: path.join(inputFolder, 'output'),
-      filetype: '.fastq',
+      filetypes: '.fastq',
     };
 
-    await utils.loadInputFiles(opts).then(async (files) => {
-      assert.deepEqual(files, [
-        {
-          name: '1.fastq',
-          path: path.join(inputFolder, '1.fastq'),
-          relative: '/1.fastq',
-          size: 0,
-          id: 'FILE_8',
-        },
-        {
-          name: '1.fastq',
-          path: path.join(inputFolder, 'pass', '1.fastq'),
-          relative: '/pass/1.fastq',
-          size: 0,
-          id: 'FILE_9',
-        },
-      ]);
-    });
+    const files = await loadInputFiles(opts);
 
-    await fs.remove(inputFolder);
+    assert.deepStrictEqual(
+      new Set(files.map((file) => file.path)),
+      new Set([path.join(inputFolder, '1.fastq'), path.join(inputFolder, 'pass', '1.fastq')]),
+    );
   });
 
   it('MC-6727 should support array of desirable types (and "." addition)', async () => {
@@ -202,43 +201,20 @@ describe('utils-fs.loadInputFiles', () => {
     const opts = {
       inputFolders: [inputFolder],
       outputFolder: path.join(inputFolder, 'output'),
-      filetype: ['.fastq', '.fastq.gz', 'fq', 'fq.gz'],
+      filetypes: ['.fastq', '.fastq.gz', 'fq', 'fq.gz'],
     };
 
-    await utils.loadInputFiles(opts).then(async (files) => {
-      assert.deepEqual(files, [
-        {
-          name: '1.fastq',
-          path: path.join(inputFolder, '1.fastq'),
-          relative: '/1.fastq',
-          size: 0,
-          id: 'FILE_10',
-        },
-        {
-          name: '1.fastq.gz',
-          path: path.join(inputFolder, '1.fastq.gz'),
-          relative: '/1.fastq.gz',
-          size: 0,
-          id: 'FILE_11',
-        },
-        {
-          name: '1.fq',
-          path: path.join(inputFolder, 'pass', '1.fq'),
-          relative: '/pass/1.fq',
-          size: 0,
-          id: 'FILE_12',
-        },
-        {
-          name: '1.fq.gz',
-          path: path.join(inputFolder, 'pass', '1.fq.gz'),
-          relative: '/pass/1.fq.gz',
-          size: 0,
-          id: 'FILE_13',
-        },
-      ]);
-    });
+    const files = await loadInputFiles(opts);
 
-    await fs.remove(inputFolder);
+    assert.deepStrictEqual(
+      new Set(files.map((file) => file.path)),
+      new Set([
+        path.join(inputFolder, '1.fastq'),
+        path.join(inputFolder, '1.fastq.gz'),
+        path.join(inputFolder, 'pass', '1.fq'),
+        path.join(inputFolder, 'pass', '1.fq.gz'),
+      ]),
+    );
   });
 
   it('MC-6788 should support recursive find through a file', async () => {
@@ -250,22 +226,15 @@ describe('utils-fs.loadInputFiles', () => {
     const opts = {
       inputFolders: [inputFile],
       outputFolder: path.join(inputFolder, 'output'),
-      filetype: ['.fasta', '.fasta.gz', 'fa', 'fa.gz'],
+      filetypes: ['.fasta', '.fasta.gz', 'fa', 'fa.gz'],
     };
 
-    await utils.loadInputFiles(opts).then(async (files) => {
-      assert.deepEqual(files, [
-        {
-          name: 'SeqLenti fasta reformat.fasta',
-          path: path.join(inputFolder, 'SeqLenti fasta reformat.fasta'),
-          relative: '/SeqLenti fasta reformat.fasta',
-          size: 0,
-          id: 'FILE_14',
-        },
-      ]);
-    });
+    const files = await loadInputFiles(opts);
 
-    await fs.remove(inputFolder);
+    assert.deepStrictEqual(
+      new Set(files.map((file) => file.path)),
+      new Set([path.join(inputFolder, 'SeqLenti fasta reformat.fasta')]),
+    );
   });
   describe('MC-7480', () => {
     let root;
@@ -296,44 +265,26 @@ describe('utils-fs.loadInputFiles', () => {
       const opts = {
         inputFolders: [experiment1Path, experiment2Path],
         outputFolder,
-        filetype: '.fastq',
+        filetypes: '.fastq',
       };
-      await utils.loadInputFiles(opts).then(async (files) => {
-        assert.deepEqual(files, [
-          {
-            name: '1.fastq',
-            path: path.join(experiment1Path, '1.fastq'),
-            relative: '/1.fastq',
-            size: 17,
-            id: 'FILE_15',
-          },
-          {
-            name: '1.fastq',
-            path: path.join(experiment2Path, '1.fastq'),
-            relative: '/1.fastq',
-            size: 17,
-            id: 'FILE_16',
-          },
-        ]);
-      });
+
+      const files = await loadInputFiles(opts);
+
+      assert.deepStrictEqual(
+        new Set(files.map((file) => file.path)),
+        new Set([path.join(experiment1Path, '1.fastq'), path.join(experiment2Path, '1.fastq')]),
+      );
     });
     it('should accept a single file', async () => {
       const opts = {
         inputFolders: [`${experiment1Path}/1.fastq`],
         outputFolder,
-        filetype: '.fastq',
+        filetypes: '.fastq',
       };
-      await utils.loadInputFiles(opts).then(async (files) => {
-        assert.deepEqual(files, [
-          {
-            name: '1.fastq',
-            path: path.join(experiment1Path, '1.fastq'),
-            relative: '/1.fastq',
-            size: 17,
-            id: 'FILE_17',
-          },
-        ]);
-      });
+
+      const files = await loadInputFiles(opts);
+
+      assert.deepStrictEqual(new Set(files.map((file) => file.path)), new Set([path.join(experiment1Path, '1.fastq')]));
     });
   });
   describe('MC-7698', () => {
@@ -355,23 +306,17 @@ describe('utils-fs.loadInputFiles', () => {
     afterEach(() => {
       mock.restore();
     });
+
     it('should identify a fasta file', async () => {
       const opts = {
         inputFolders: [`${experiment1Path}/1.fasta`],
         outputFolder,
-        filetype: ['fasta'],
+        filetypes: ['fasta'],
       };
-      await utils.loadInputFiles(opts).then(async (files) => {
-        assert.deepEqual(files, [
-          {
-            name: '1.fasta',
-            path: path.join(experiment1Path, '1.fasta'),
-            relative: '/1.fasta',
-            size: 17,
-            id: 'FILE_18',
-          },
-        ]);
-      });
+
+      const files = await loadInputFiles(opts);
+
+      assert.deepStrictEqual(new Set(files.map((file) => file.path)), new Set([path.join(experiment1Path, '1.fasta')]));
     });
   });
 });

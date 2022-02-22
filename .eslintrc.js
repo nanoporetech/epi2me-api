@@ -1,15 +1,18 @@
 module.exports = {
-  root: true,
   parser: '@typescript-eslint/parser',
   parserOptions: {
     sourceType: 'module',
     ecmaVersion: 2020,
+    tsconfigRootDir: __dirname,
+    project: ['./tsconfig.json'],
   },
-  plugins: ['@typescript-eslint', 'prettier'],
+  plugins: ['@typescript-eslint', 'rxjs', 'prettier'],
   extends: [
+    'eslint:recommended',
     'plugin:@typescript-eslint/recommended',
-    'prettier/@typescript-eslint', // Uses eslint-config-prettier to disable ESLint rules from @typescript-eslint/eslint-plugin that would conflict with prettier
-    'plugin:prettier/recommended', // Enables eslint-plugin-prettier and eslint-config-prettier. This will display prettier errors as ESLint errors. Make sure this is always the last configuration in the extends array.
+    // 'plugin:@typescript-eslint/recommended-requiring-type-checking',
+    'plugin:rxjs/recommended',
+    'plugin:prettier/recommended'
   ],
   env: {
     browser: true,
@@ -19,9 +22,16 @@ module.exports = {
     es6: true,
   },
   rules: {
-    camelcase: 'off',
     curly: 'error',
-    '@typescript-eslint/camelcase': ['error', { properties: 'never' }],
+    'rxjs/finnish': 'error',
+    'rxjs/no-subject-value': 'warn', // demote to warn, as we use it
+    '@typescript-eslint/naming-convention': [
+      'error',
+      { selector: 'variable', format: ['camelCase', 'UPPER_CASE', 'PascalCase'] },
+    ],
+    'linebreak-style': ['error', 'unix'],
+    semi: ['error', 'always'],
+    '@typescript-eslint/no-unused-vars': ['error', { varsIgnorePattern: '^_', argsIgnorePattern: '^_' }],
     '@typescript-eslint/class-name-casing': 'off',
     '@typescript-eslint/no-empty-function': 'off',
     'prettier/prettier': 'error',

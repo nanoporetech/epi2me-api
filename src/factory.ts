@@ -1,41 +1,17 @@
-import { EPI2ME_FS } from './epi2me-fs';
-import { BehaviorSubject, Subject, merge } from 'rxjs';
-import { withLatestFrom, map } from 'rxjs/operators';
-import { Map as ImmutableMap } from 'immutable';
-
 import type { REST_FS } from './rest-fs';
 import type { GraphQL } from './graphql';
-import type { Logger } from './Logger';
-import type { ObjectDict } from './ObjectDict';
+import type { Logger } from './Logger.type';
 import type { SampleReader } from './sample-reader';
-import type { UtilityFS } from './utils-fs';
-import type { Index } from './runtime-typecast';
-import type { EPI2ME_OPTIONS } from './epi2me-options';
+import type { Index, Dictionary } from 'ts-runtime-typecheck';
+import type { EPI2ME_OPTIONS } from './epi2me-options.type';
+import { EPI2ME_FS } from './epi2me-fs';
 
-export interface InstanceAttribute {
-  id_attribute: Index;
-  value: string;
-}
-
-export interface GQLWorkflowConfig {
-  idWorkflow: Index;
-  computeAccountId: Index;
-  storageAccountId?: Index;
-  isConsentedHuman?: boolean;
-  idDataset?: Index;
-  storeResults?: boolean;
-  region?: string;
-  userDefined?: ObjectDict<ObjectDict>;
-  instanceAttributes?: InstanceAttribute[];
-}
-
-function printError(log: Logger, msg: string, err: unknown): void {
-  if (err instanceof Error) {
-    log.error(msg, err.stack);
-  } else {
-    log.error(msg, err);
-  }
-}
+import { BehaviorSubject, Subject, merge } from 'rxjs';
+import { withLatestFrom, map, mapTo } from 'rxjs/operators';
+import { Map as ImmutableMap } from 'immutable';
+import { Telemetry } from './telemetry';
+import { wrapAndLogError } from './NodeError';
+import type { StartWorkflowMutationVariables } from './generated/graphql';
 
 /*
 Factory seems to be designed with the intention that a version of the EPI2ME
@@ -47,12 +23,12 @@ export class Factory {
   private options: Partial<EPI2ME_OPTIONS>;
   private primary: EPI2ME_FS;
 
-  readonly runningInstances$: BehaviorSubject<ImmutableMap<Index, EPI2ME_FS>> = new BehaviorSubject(ImmutableMap());
+  readonly runningInstances$ = new BehaviorSubject(ImmutableMap<Index, EPI2ME_FS>());
 
-  private readonly addRunningInstance$: Subject<EPI2ME_FS> = new Subject();
-  private readonly removeRunningInstanceById$: Subject<string> = new Subject();
+  private readonly addRunningInstance$ = new Subject<EPI2ME_FS>();
+  private readonly removeRunningInstanceById$ = new Subject<Index>();
 
-  constructor(api: typeof EPI2ME_FS, opts: Partial<EPI2ME_OPTIONS> = {}) {
+  constructor(api: typeof EPI2ME_FS = EPI2ME_FS, opts: Partial<EPI2ME_OPTIONS> = {}) {
     this.EPI2ME = api;
     this.options = opts;
     this.primary = this.instantiate();
@@ -76,7 +52,7 @@ export class Factory {
     });
   }
 
-  get utils(): UtilityFS {
+  get utils(): typeof EPI2ME_FS.utils {
     return this.EPI2ME.utils;
   }
 
@@ -92,6 +68,10 @@ export class Factory {
     return this.primary.REST;
   }
 
+  get url(): string {
+    return this.primary.url();
+  }
+
   get graphQL(): GraphQL {
     return this.primary.graphQL;
   }
@@ -100,14 +80,19 @@ export class Factory {
     return this.primary.SampleReader;
   }
 
+  telemetry(id: string, telemetryNames: Dictionary<Dictionary<string>>): Telemetry {
+    return Telemetry.connect(id, this.graphQL, telemetryNames);
+  }
+
   reset(options: Partial<EPI2ME_OPTIONS> = {}): void {
     this.options = options;
     // WARN what happens to the running instances here?
-    this.runningInstances$.next(ImmutableMap());
+    this.runningInstances$.next(ImmutableMap<Index, EPI2ME_FS>());
     this.primary = this.instantiate();
   }
 
   getRunningInstance(id: Index): EPI2ME_FS | undefined {
+    // eslint-disable-next-line rxjs/no-subject-value
     return this.runningInstances$.getValue().get(id);
   }
 
@@ -118,6 +103,12 @@ export class Factory {
     });
   }
 
+  private manageInstance(inst: EPI2ME_FS): void {
+    this.addRunningInstance$.next(inst);
+    // NOTE ensure the 'complete' message from uploadStopped$ is not passed to removeRunningInstanceById$
+    inst.analysisStopped$.pipe(mapTo(inst.id)).subscribe((id: Index) => this.removeRunningInstanceById$.next(id));
+  }
+
   async startRun(
     options: Partial<EPI2ME_OPTIONS>,
     workflowConfig: {
@@ -125,21 +116,22 @@ export class Factory {
       is_consented_human: 0 | 1;
       user_defined: unknown;
       instance_attributes: unknown;
-      compute_account?: string;
-      storage_account?: string;
+      compute_account?: Index;
+      storage_account?: Index;
       store_results?: boolean;
+      workflowAttributes?: Dictionary<string | number | boolean>;
     },
   ): Promise<EPI2ME_FS> {
     const inst = this.instantiate(options);
     try {
       await inst.autoStart(workflowConfig);
-      this.addRunningInstance$.next(inst);
-    } catch (startErr) {
-      printError(this.log, 'Experienced error starting', startErr);
+      this.manageInstance(inst);
+    } catch (err) {
+      wrapAndLogError('experienced error starting', err, this.log);
       try {
         await inst.stopEverything();
-      } catch (stopErr) {
-        printError(this.log, 'Also experienced error stopping', stopErr);
+      } catch (err) {
+        wrapAndLogError('also experienced error stopping', err, this.log);
       }
     }
     return inst;
@@ -149,17 +141,17 @@ export class Factory {
    * @param {Object<string, any>} options
    * @param {GQLRunVariables} variables { userDefined: { [componentID]: { [paramOverride]: any } } }
    */
-  async startGQLRun(options: ObjectDict, variables: GQLWorkflowConfig): Promise<EPI2ME_FS> {
+  async startGQLRun(options: Partial<EPI2ME_OPTIONS>, variables: StartWorkflowMutationVariables): Promise<EPI2ME_FS> {
     const inst = this.instantiate({ ...options, useGraphQL: true });
     try {
       await inst.autoStartGQL(variables);
-      this.addRunningInstance$.next(inst);
-    } catch (startErr) {
-      printError(this.log, 'Experienced error starting', startErr);
+      this.manageInstance(inst);
+    } catch (err) {
+      wrapAndLogError('experienced error starting', err, this.log);
       try {
         await inst.stopEverything();
-      } catch (stopErr) {
-        printError(this.log, 'Also experienced error stopping', stopErr);
+      } catch (err) {
+        wrapAndLogError('also experienced error stopping', err, this.log);
       }
     }
     return inst;

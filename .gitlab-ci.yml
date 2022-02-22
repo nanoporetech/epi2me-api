@@ -1,42 +1,44 @@
-image: ubuntu:18.04
-
-variables:
-  GIT_SUBMODULE_STRATEGY: recursive
+image: docker-registry.oxfordnanolabs.local:5000/metrichor/ubuntu:20.04
 
 stages:
-  - versiontrack
   - test
   - triggers
   - publish
 
-versiontrack:
-  stage: versiontrack
-  script:
-    - echo "export PATCH=$CI_BUILD_ID" > PATCH_VERSION
-  artifacts:
-    paths:
-      - ./PATCH_VERSION
+variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+    NODEVER: 16
+    DEBIAN_FRONTEND: noninteractive
+    PATCH: $CI_BUILD_ID
 
 .common: &common |
-    sed -i 's|deb http://deb-repo.oxfordnanolabs.local/apt|#deb http://deb-repo.oxfordnanolabs.local/apt|g' /etc/apt/sources.list /etc/apt/sources.list.d/*.list || true
     apt-get clean
     apt-get update
     apt-get install -y curl git wget lsb-release gnupg build-essential openssl unzip jq
-    wget -O- http://deb-repo.oxfordnanolabs.local/apt/roger.pettett@nanoporetech.com.key | apt-key add -
-    echo "deb http://deb-repo.oxfordnanolabs.local/apt $(lsb_release -cs) non-free" > /etc/apt/sources.list.d/deb-repo.list
-    curl -sL https://deb.nodesource.com/setup_12.x > nodejs-repo
+    echo "Installing protoc"
+    export PROTOC_ZIP=protoc-$PROTOC_VERSION-linux-x86_64.zip
+    echo "Fetching https://github.com/protocolbuffers/protobuf/releases/download/v$PROTOC_VERSION/$PROTOC_ZIP"
+    curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v$PROTOC_VERSION/$PROTOC_ZIP
+    unzip -o $PROTOC_ZIP -d /usr/local bin/protoc
+    unzip -o $PROTOC_ZIP -d /usr/local 'include/*'
+    rm -f $PROTOC_ZIP
+    echo "Installing node.js"
+    curl -sL https://deb.nodesource.com/setup_${NODEVER}.x > nodejs-repo
     chmod +x nodejs-repo
     ./nodejs-repo
     rm nodejs-repo
-    make deps
+    apt-get update
+    apt-get install -y nodejs
+    node --version
+    npm --version
+    npm ci
 
 test:
   stage: test
   script:
     - *common
-    - make cover
-  variables:
-    PATCH: $CI_BUILD_ID
+    - npm run lint
+    - npm run cover
 
 .install-protobuf-compiler: &install_protobuf_compiler |
     export PROTOC_ZIP=protoc-$PROTOC_VERSION-linux-x86_64.zip
@@ -50,13 +52,12 @@ test:
   stage: publish
   script:
     - *common
-    - *install_protobuf_compiler
-    - npm ci
-    - source ./PATCH_VERSION
-    - make dist
-    - echo "//registry.npmjs.org/:_authToken=\${NPM_TOKEN}" >> ./.npmrc
-    - npm publish --verbose --access public --tag ${TAG} dist/core
-    - npm publish --verbose --access public --tag ${TAG} dist/web
+    - npm run build
+    - echo "//registry.npmjs.org/:_authToken=\${NPM_TOKEN}" >> ~/.npmrc
+    - cd ./dist/core
+    - npm publish --verbose --access public --tag ${TAG}
+    - cd ../web
+    - npm publish --verbose --access public --tag ${TAG}
 
 publish_experimental:
   <<: *npm_publish_external
@@ -67,7 +68,6 @@ publish_experimental:
       when: never
     - if: '$CI_PIPELINE_SOURCE == "push"'
       when: manual
-      allow_failure: false
   variables:
     TAG: 'experimental'
 
@@ -104,7 +104,7 @@ pages:
   script:
     - *common
     - mkdir -p public
-    - (make cover | tee coverage.txt) && mv coverage/* public/
+    - (npm run cover | tee coverage.txt) && mv coverage/* public/
     - (echo -n "Coverage "; grep "All files" coverage.txt | awk '{print $6}')
     - rm coverage.txt
   coverage: '/Coverage \d+\.\d+/'

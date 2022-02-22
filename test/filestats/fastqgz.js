@@ -3,7 +3,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import tmp from 'tmp';
 import { gzipSync } from 'zlib';
-import filestats from '../../src/filestats';
+import { filestats } from '../../src/filestats';
 
 describe('epi2me.filestats.fastqgz', () => {
   it('should pass', async () => {

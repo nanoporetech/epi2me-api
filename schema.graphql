@@ -1,0 +1,638 @@
+# Exposes a URL that specifies the behaviour of this scalar.
+directive @specifiedBy(
+  # The URL that specifies the behaviour of this scalar.
+  url: String!
+) on SCALAR
+type AccountObjectType {
+  created: DateTime!
+  lastModified: DateTime!
+  idAccount: ID!
+  sfId: String
+  number: String!
+  name: String
+  isDeleted: Int!
+  isShared: Boolean
+  useraccountSet: [UserAccountObjectType!]!
+  leaders: [MemberObjectType]
+  members: [MemberObjectType]
+}
+
+type ApiAccessObjectType {
+  created: DateTime!
+  lastModified: DateTime!
+  idApiAccess: ID!
+  description: String!
+  apikey: String!
+  apisecret: String!
+  user: RestrictedUserObjectType!
+  isActive: Int!
+  isDownloadable: Boolean
+}
+
+input AttributeParams {
+  name: String!
+  value: String!
+}
+
+type AttributeType {
+  idAttribute: ID!
+  name: String!
+  description: String!
+  type: String!
+  format: String!
+  errorMessage: String
+  idUserOwner: Float!
+  created: DateTime
+  lastModified: DateTime
+  isMutable: Int!
+  attributevalueSet: [AttributeValueType!]!
+}
+
+type AttributeValueType {
+  idAttributeValue: ID!
+  attribute: AttributeType!
+  value: String
+  idUserOwner: Float!
+  created: DateTime
+  lastModified: DateTime
+  datasetSet: [DatasetType!]!
+  workflowSet: [WorkflowType!]!
+  workflowinstanceSet: [WorkflowInstanceType!]!
+}
+
+type CreateApiAccessMutation {
+  apiAccess: ApiAccessObjectType
+}
+
+type CreateProductMutation {
+  product: ProductType
+}
+
+type CreateWorkflowInstanceReportShareMutation {
+  idWorkflowInstance: ID
+  token: String
+  expiry: DateTime
+}
+
+type CreateWorkflowInstanceTagsMutation {
+  workflowInstance: WorkflowInstanceType
+  created: [TagDataType!]
+  errors: [ValidationErrorListType]
+}
+
+type DatasetStatusType {
+  idDatasetStatus: ID!
+  value: String!
+  label: String
+  created: DateTime
+  lastModified: DateTime!
+  datasetSet: [DatasetType!]!
+}
+
+type DatasetType {
+  idDataset: ID!
+  uuid: String!
+  idAccount: Float!
+  prefix: String!
+  name: String
+  idUser: Float!
+  size: Float!
+  summary: String
+  source: String
+  componentId: String!
+  isConsentedHuman: Int
+  registrationParams: GenericScalar
+  datasetStatus: DatasetStatusType!
+  created: DateTime!
+  lastModified: DateTime!
+  attributes: [AttributeValueType!]!
+  workflowinstanceSet: [WorkflowInstanceType!]!
+}
+
+scalar DateTime
+
+type DeactivateApiAccessMutation {
+  apiAccess: LimitedApiAccessObjectType
+}
+
+type DeleteWorkflowInstanceTagsMutation {
+  workflowInstance: WorkflowInstanceType
+  deleted: [TagDataOutputType]
+  errors: [ValidationErrorListType]
+}
+
+input DocumentationSectionInputType {
+  title: String
+  section: String
+  format: String
+  content: String
+}
+
+type DocumentationType {
+  published: DateTime
+  languageCode: String
+  title: String
+  section: String
+  format: String
+  content: String
+}
+
+type EditWorkflowInstanceTagsMutation {
+  workflowInstance: WorkflowInstanceType
+  edited: [TagDataType!]
+  errors: [ValidationErrorListType]
+}
+
+type ErrorType {
+  field: String!
+  messages: [String!]!
+}
+
+type GenerateRegTokenMutation {
+  code: String
+  expires: DateTime
+}
+
+scalar GenericScalar
+
+type InstanceTokenMutation {
+  idWorkflowInstance: ID
+  accessKeyId: String
+  secretAccessKey: String
+  sessionToken: String
+  expiration: DateTime
+  region: String
+}
+
+type LimitedApiAccessObjectType {
+  created: DateTime!
+  lastModified: DateTime!
+  idApiAccess: ID!
+  description: String!
+  apikey: String!
+  user: RestrictedUserObjectType!
+  isActive: Int!
+}
+
+type LinkWorkflowToProductMutation {
+  workflowProduct: WorkflowProductType
+}
+
+type MemberObjectType {
+  user: RestrictedUserObjectType
+  role: String
+}
+
+type Mutation {
+  startWorkflowInstance(
+    computeAccountId: ID!
+    idDataset: ID
+    idWorkflow: ID!
+    instanceAttributes: [GenericScalar]
+    isConsentedHuman: Boolean
+    region: String
+    storageAccountId: ID
+    storeResults: Boolean
+    userDefined: GenericScalar
+  ): WorkflowInstanceMutation
+  stopWorkflowInstance(idWorkflowInstance: ID!): StopWorkflowInstanceMutation
+  createWorkflowInstanceReportShare(
+    idWorkflowInstance: ID!
+  ): CreateWorkflowInstanceReportShareMutation
+  getInstanceToken(
+    idWorkflowInstance: ID!
+    readOnly: Boolean
+  ): InstanceTokenMutation
+  setUserFavouriteWorkflow(
+    idRegion: ID
+    idWorkflow: ID!
+    isFavourite: Boolean!
+  ): UpdateUserFavouriteWorkflowMutation
+  setWorkflowInstanceIsArchived(
+    idWorkflowInstance: ID!
+    isArchived: Boolean
+  ): SetWorkflowInstanceIsArchivedMutation
+  createWorkflowInstanceTags(
+    createList: [TagDataCreateInputType!]
+    idWorkflowInstance: ID!
+  ): CreateWorkflowInstanceTagsMutation
+  editWorkflowInstanceTags(
+    editList: [TagDataEditInputType!]
+    idWorkflowInstance: ID!
+  ): EditWorkflowInstanceTagsMutation
+  deleteWorkflowInstanceTags(
+    deleteList: [ID!]
+    idWorkflowInstance: ID!
+  ): DeleteWorkflowInstanceTagsMutation
+  createProduct(
+    isPublic: Boolean
+    name: String!
+    orgContactEmail: String
+    orgContactName: String
+    orgName: String
+    orgUrl: String
+    tagline: String
+  ): CreateProductMutation
+  linkWorkflowToProduct(
+    exampleUrl: String
+    idProduct: ID
+    idWorkflow: ID!
+    productName: ID
+  ): LinkWorkflowToProductMutation
+  publishProductDocumentation(
+    idWorkflow: ID!
+    languageCode: String
+    sections: [DocumentationSectionInputType]!
+  ): PublishProductDocumentationMutation
+  registerToken(code: String!, description: String): RegisterTokenMutation
+  generateRegToken: GenerateRegTokenMutation
+  updateUser(idRegionPreferred: ID, realname: String): UpdateUserMutation
+  deactivateApiKey(idApiAccess: ID): DeactivateApiAccessMutation
+  createApiKey(description: String): CreateApiAccessMutation
+  updateAccountShared(
+    idAccount: ID!
+    isShared: Boolean!
+  ): UpdateAccountSharedMutation
+}
+
+type PaginatedDatasetType implements PaginatedInterface {
+  page: Int
+  pages: Int
+  hasNext: Boolean
+  hasPrevious: Boolean
+  totalCount: Int
+  results: [DatasetType]
+}
+
+interface PaginatedInterface {
+  page: Int
+  pages: Int
+  hasNext: Boolean
+  hasPrevious: Boolean
+  totalCount: Int
+}
+
+type PaginatedProductType implements PaginatedInterface {
+  page: Int
+  pages: Int
+  hasNext: Boolean
+  hasPrevious: Boolean
+  totalCount: Int
+  results: [ProductType]
+}
+
+type PaginatedWorkflowInstanceType implements PaginatedInterface {
+  page: Int
+  pages: Int
+  hasNext: Boolean
+  hasPrevious: Boolean
+  totalCount: Int
+  results: [WorkflowInstanceType]
+}
+
+type PaginatedWorkflowType implements PaginatedInterface {
+  page: Int
+  pages: Int
+  hasNext: Boolean
+  hasPrevious: Boolean
+  totalCount: Int
+  results: [WorkflowType]
+}
+
+type ProductType {
+  idProduct: ID!
+  name: String!
+  tagline: String
+  orgName: String
+  orgContactName: String
+  orgContactEmail: String
+  orgUrl: String
+  isPublic: Boolean!
+  created: DateTime!
+  lastModified: DateTime!
+  workflows: [WorkflowType!]!
+  workflowProducts: [WorkflowProductType!]!
+}
+
+type PublishProductDocumentationMutation {
+  success: Boolean
+}
+
+type Query {
+  allProducts(
+    search: String
+    page: Int
+    pageSize: Int
+    orderBy: String
+  ): PaginatedProductType
+  product(idProduct: ID!): ProductType
+  allWorkflowInstances(
+    idUser: ID
+    shared: Boolean
+    search: String
+    searchField: WorkflowInstanceSearchField
+    isRunning: Boolean
+    archived: Boolean
+    owned: Boolean
+    attrsFilter: [AttributeParams]
+    page: Int
+    pageSize: Int
+    orderBy: String
+  ): PaginatedWorkflowInstanceType
+  workflowInstance(idWorkflowInstance: ID!): WorkflowInstanceType
+  workflowInstanceTelemetry(
+    idWorkflowInstance: ID!
+    report: String!
+  ): WorkflowInstanceTelemetry
+  workflowInstanceRawCsvUrlData(
+    idWorkflowInstance: ID!
+    filename: String!
+  ): WorkflowCSVPresignedUrlsType
+  allWorkflows(
+    isActive: Int
+    region: String
+    attrsFilter: AttributeParams
+    attrFilters: [AttributeParams]
+    search: String
+    searchField: WorkflowSearchField
+    page: Int
+    pageSize: Int
+    orderBy: String
+  ): PaginatedWorkflowType
+  allDatasets(
+    onlyReferences: Boolean
+    page: Int
+    pageSize: Int
+    orderBy: String
+  ): PaginatedDatasetType
+  workflow(idWorkflow: ID!): WorkflowType
+  status: StatusType
+  regions: [RegionType]
+  attributes: [AttributeType]
+  allUsers: [UserObjectType]
+  allUserAccounts: [UserAccountObjectType]
+  me: UserObjectType
+  allApiKeys(isActive: Boolean): [LimitedApiAccessObjectType]
+  account(idAccount: ID!): AccountObjectType
+  userServiceStatus: ServiceStatusType
+}
+
+type RegionType {
+  idRegion: ID!
+  provider: String
+  name: String!
+  description: String!
+  workflowimageSet: [WorkflowImageType!]!
+  userfavouriteworkflowSet: [UserFavouriteWorkflowType!]!
+}
+
+type RegisterTokenMutation {
+  apikey: String
+  apisecret: String
+  description: String
+}
+
+type ReportType {
+  idReport: ID!
+  name: String!
+  idOwner: Float!
+  url: String!
+  revision: String!
+  created: DateTime
+  lastModified: DateTime!
+  workflowSet: [WorkflowType!]!
+}
+
+type RestrictedUserObjectType {
+  created: DateTime!
+  lastModified: DateTime!
+  idUser: ID!
+  username: String!
+  realname: String!
+  isActive: Int!
+  idRegionPreferred: Int!
+  apiaccessSet: [LimitedApiAccessObjectType!]!
+}
+
+type ServiceStatusType {
+  serviceVersion: String
+  dbVersion: String
+  minimumAgent: String
+  remoteAddr: String
+  serverTime: DateTime
+}
+
+type SetWorkflowInstanceIsArchivedMutation {
+  workflowInstance: WorkflowInstanceType
+}
+
+type StatusType {
+  minimumAgent: String
+  dbVersion: String
+  portalVersion: String
+  remoteAddr: String
+  serverTime: DateTime
+}
+
+type StopWorkflowInstanceMutation {
+  success: Boolean
+  message: String
+}
+
+input TagDataCreateInputType {
+  idAttribute: ID
+  attributeName: String
+  value: String!
+}
+
+input TagDataEditInputType {
+  idAttributeValue: ID!
+  value: String!
+}
+
+type TagDataOutputType {
+  idAttributeValue: ID!
+  value: String!
+}
+
+type TagDataType {
+  idAttributeValue: ID!
+  value: String
+}
+
+type UpdateAccountSharedMutation {
+  account: AccountObjectType
+}
+
+type UpdateUserFavouriteWorkflowMutation {
+  wasChanged: Boolean
+  idRegion: ID
+  idUser: ID
+  idWorkflow: ID
+}
+
+type UpdateUserMutation {
+  idRegionPreferred: ID
+  user: UserObjectType
+}
+
+type UserAccountObjectType {
+  created: DateTime!
+  lastModified: DateTime!
+  idUserAccount: ID!
+  user: RestrictedUserObjectType!
+  account: AccountObjectType!
+  role: UserAccountRole!
+  agreementNumber: String
+  isActive: Int!
+}
+
+enum UserAccountRole {
+  L
+  P
+}
+
+type UserFavouriteWorkflowType {
+  idUserFavouriteWorkflow: ID!
+  idUser: Float!
+  workflow: WorkflowType!
+  region: RegionType!
+  created: DateTime!
+  lastModified: DateTime!
+}
+
+type UserObjectType {
+  created: DateTime!
+  lastModified: DateTime!
+  idUser: ID!
+  username: String!
+  realname: String!
+  isActive: Int!
+  idRegionPreferred: Int!
+  useraccountSet: [UserAccountObjectType!]!
+  apiaccessSet: [LimitedApiAccessObjectType!]!
+}
+
+type ValidationErrorListType {
+  input: GenericScalar
+  errors: [ErrorType]
+}
+
+type WorkflowCSVFilenameType {
+  idWorkflow: ID
+  filename: String
+}
+
+type WorkflowCSVPresignedUrlsType {
+  getUrl: String
+  headUrl: String
+  expiresIn: Int
+}
+
+type WorkflowImageType {
+  idWorkflowImage: ID!
+  region: RegionType!
+  workflow: WorkflowType!
+  inputqueue: String
+  userdataCommand: String
+  userdateScript: String
+  dockerImage: String
+  workflowinstanceSet: [WorkflowInstanceType!]!
+}
+
+type WorkflowInstanceMutation {
+  bucket: String
+  idUser: Int
+  instance: WorkflowInstanceType
+  remoteAddr: String
+}
+
+enum WorkflowInstanceSearchField {
+  INSTANCE_ID
+  WORKFLOW_ID
+  WORKFLOW_NAME
+  WORKFLOW_REV
+  RUN_ID
+  ATTRIBUTE
+}
+
+type WorkflowInstanceTelemetry {
+  getUrl: String
+  headUrl: String
+  expiresIn: Int
+}
+
+type WorkflowInstanceType {
+  idWorkflowInstance: ID!
+  idUser: Float!
+  startDate: DateTime!
+  stopDate: DateTime
+  workflowImage: WorkflowImageType!
+  outputqueue: String
+  chain: GenericScalar
+  isConsentedHuman: Int
+  lastModified: DateTime
+  isArchived: Boolean
+  attributes: [AttributeValueType!]!
+  dataset: [DatasetType!]!
+  telemetry: GenericScalar
+  mappedTelemetry: GenericScalar
+  telemetryNames: GenericScalar
+  mappedRawCsvFilenames: [WorkflowCSVFilenameType]
+  keyId: String
+  state: String
+}
+
+type WorkflowProductType {
+  idWorkflowProduct: ID!
+  product: ProductType!
+  workflow: WorkflowType!
+  exampleUrl: String!
+  created: DateTime!
+  lastModified: DateTime!
+}
+
+type WorkflowRelationshipType {
+  idWorkflowTree: ID!
+  workflow: WorkflowType!
+  workflowParent: WorkflowType!
+}
+
+enum WorkflowSearchField {
+  WORKFLOW_ID
+  WORKFLOW_NAME
+  WORKFLOW_REV
+  ATTRIBUTE
+}
+
+type WorkflowType {
+  idWorkflow: ID!
+  idUserOwner: Float!
+  description: String!
+  rev: String!
+  isActive: Int!
+  chain: GenericScalar
+  config: GenericScalar
+  dataFields: String
+  created: DateTime
+  lastModified: DateTime
+  name: String
+  summary: String
+  doc: String
+  docs: GenericScalar
+  aggregationConfig: GenericScalar
+  reports: [ReportType!]!
+  attributes: [AttributeValueType!]!
+  workflowImages: [WorkflowImageType!]!
+  workflowRelationshipParent: [WorkflowRelationshipType!]!
+  workflowRelationshipChildren: [WorkflowRelationshipType!]!
+  productSet: [ProductType!]!
+  workflowproduct: WorkflowProductType
+  isNested: Boolean
+  params: GenericScalar
+  mappedAttributes: GenericScalar
+  isUserFavourite: Boolean
+  documentation: [DocumentationType]
+  documentationUrl: String
+}
+

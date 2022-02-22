@@ -1,25 +1,27 @@
+import type { Logger } from './Logger.type';
+import type { REST } from './rest';
+import type { SocketOptions } from './socket.type';
+import type { Duration } from './Duration';
+
 import io from 'socket.io-client';
-import { merge } from 'lodash';
-
-import type { Logger } from './Logger';
-import { REST } from './rest';
-
-interface SocketOptions {
-  log: Logger;
-  debounceWindow?: number;
-  url: string;
-}
+import { isDictionary } from 'ts-runtime-typecheck';
+import { createTimeout } from './timers';
+import { wrapAndLogError } from './NodeError';
 
 export default class Socket {
   debounces: Set<unknown> = new Set();
   log: Logger;
-  debounceWindow: number;
-  socket?: SocketIOClient.Socket;
+  debounceWindow: Duration;
+  socket?: ReturnType<typeof io>;
 
   constructor(rest: REST, opts: SocketOptions) {
-    this.debounceWindow = opts.debounceWindow ?? 2000;
+    this.debounceWindow = opts.debounceWindow;
     this.log = opts.log;
     this.initialise(rest, opts.url);
+  }
+
+  destroy(): void {
+    this.socket?.disconnect();
   }
 
   private async initialise(rest: REST, url: string): Promise<void> {
@@ -40,23 +42,20 @@ export default class Socket {
         this.log.debug('socket ready');
       });
     } catch (err) {
-      this.log.error('socket connection failed - JWT authentication error');
+      wrapAndLogError('socket connection failed - JWT authentication error', err, this.log);
     }
   }
 
   debounce(data: unknown, func: (data: unknown) => void): void {
-    // NOTE is this actually required? why is no explanation given for this?
-    const uuid = merge(data)._uuid; // eslint-disable-line
+    if (isDictionary(data) && '_uuid' in data) {
+      const { _uuid: uuid } = data;
 
-    if (uuid) {
       if (this.debounces.has(uuid)) {
         return;
       }
 
       this.debounces.add(uuid);
-      setTimeout(() => {
-        this.debounces.delete(uuid);
-      }, this.debounceWindow);
+      createTimeout(this.debounceWindow, () => this.debounces.delete(uuid));
     }
 
     if (func) {

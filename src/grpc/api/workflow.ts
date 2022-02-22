@@ -1,63 +1,32 @@
-import { grpc } from '@improbable-eng/grpc-web';
+import type { GQLWorkflowConfig } from '../../factory.type';
+import type { Observable } from 'rxjs';
+
 import { Empty } from 'google-protobuf/google/protobuf/empty_pb';
 import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
-import { Observable, Subject } from 'rxjs';
-import { map, takeUntil } from 'rxjs/operators';
-import {
-  RunningInstancesReply,
-  RunningInstanceStateReply,
-  StartRequest,
-  StopReply,
-  WorkflowInstanceByIdRequest,
-} from '../../../protos/workflow_pb';
+import { StartRequest, WorkflowInstanceByIdRequest } from '../../../protos/workflow_pb';
 import { Workflow } from '../../../protos/workflow_pb_service';
-import { EPI2ME_OPTIONS } from '../../epi2me-options';
-import { GQLWorkflowConfig } from '../../factory';
-import { asNumber, asString } from '../../runtime-typecast';
+import { asNumber, asString } from 'ts-runtime-typecheck';
 import { createGrpcRequest$ } from '../utils';
+import { ServiceBase } from '../ServiceBase';
+import type {
+  WorkflowGetRunningResponse,
+  WorkflowOptions,
+  WorkflowStartResponse,
+  WorkflowStateResponse,
+  WorkflowStopResponse,
+} from './workflow.type';
 
-export class WorkflowApi {
-  private readonly _destroySubs$ = new Subject();
-
-  constructor(
-    private readonly _url: string,
-    private readonly _jwt: string,
-    private readonly _transport?: grpc.TransportFactory,
-  ) {}
-
-  public close(): void {
-    this._destroySubs$.next();
-  }
-
-  public getRunning$(): Observable<RunningInstancesReply.AsObject> {
-    const request = new Empty();
-
-    return createGrpcRequest$<Empty, RunningInstancesReply>(
-      this._url,
-      { jwt: this._jwt },
-      Workflow.running,
-      request,
-      true,
-      this._transport,
-    ).pipe(
-      map((response) => response.toObject()),
-      takeUntil(this._destroySubs$),
-    );
-  }
-
-  public start$(
-    options: Partial<EPI2ME_OPTIONS> & { apikey: string; apisecret: string; inputFolders: string[] },
-    workflowConfig: GQLWorkflowConfig & { computeAccountId: string },
-  ): Observable<RunningInstancesReply.AsObject> {
+export class WorkflowApi extends ServiceBase {
+  private configureWorkflow(options: WorkflowOptions, workflowConfig: GQLWorkflowConfig): StartRequest {
     const request = new StartRequest();
-
-    const { apikey, apisecret, url, inputFolders, outputFolder } = options;
+    const { apikey, apisecret, url, inputFolders, outputFolder, filetype } = options;
 
     request.setApikey(apikey);
     request.setApisecret(apisecret);
     request.setInputfoldersList(inputFolders);
     url && request.setUrl(url);
     outputFolder && request.setOutputfolder(outputFolder);
+    filetype && request.setFiletypesList(filetype);
 
     const {
       idWorkflow,
@@ -79,71 +48,47 @@ export class WorkflowApi {
     storeResults && request.setStoreresults(storeResults);
     region && request.setRegion(region);
 
-    request.setUserdefined(
-      Struct.fromJavaScript(
-        // TODO: Improve typing
-        userDefined as Record<string, null | number | string | boolean | Array<unknown> | {}>,
-      ),
-    );
+    request.setUserdefined(Struct.fromJavaScript(userDefined));
+
     for (const attr of instanceAttributes) {
       const newInstanceAttr = new StartRequest.InstanceAttribute();
       newInstanceAttr.setIdAttribute(asNumber(attr.id_attribute));
       newInstanceAttr.setValue(attr.value);
       request.addInstanceattributes(newInstanceAttr);
     }
-
-    return createGrpcRequest$<Empty, RunningInstancesReply>(
-      this._url,
-      { jwt: this._jwt },
-      Workflow.running,
-      request,
-      false,
-      this._transport,
-    ).pipe(
-      map((response) => response.toObject()),
-      takeUntil(this._destroySubs$),
-    );
+    return request;
   }
 
-  private stop(id: string, service: any): Observable<StopReply.AsObject> {
+  start$(options: WorkflowOptions, workflowConfig: GQLWorkflowConfig): Observable<WorkflowStartResponse> {
+    const request = this.configureWorkflow(options, workflowConfig);
+
+    return createGrpcRequest$(this.context, Workflow.start, request);
+  }
+
+  stopUpload$(id: string): Observable<WorkflowStopResponse> {
     const request = new WorkflowInstanceByIdRequest();
     request.setIdworkflowinstance(id);
 
-    return createGrpcRequest$<WorkflowInstanceByIdRequest, StopReply>(
-      this._url,
-      { jwt: this._jwt },
-      service,
-      request,
-      false,
-      this._transport,
-    ).pipe(
-      map((response) => response.toObject()),
-      takeUntil(this._destroySubs$),
-    );
+    return createGrpcRequest$(this.context, Workflow.stopUpload, request);
   }
 
-  public stopUpload(id: string): Observable<StopReply.AsObject> {
-    return this.stop(id, Workflow.stopUpload);
-  }
-
-  public stopAnalysis(id: string): Observable<StopReply.AsObject> {
-    return this.stop(id, Workflow.stopUpload);
-  }
-
-  public state(id: string): Observable<RunningInstanceStateReply.AsObject> {
+  stopAnalysis$(id: string): Observable<WorkflowStopResponse> {
     const request = new WorkflowInstanceByIdRequest();
     request.setIdworkflowinstance(id);
 
-    return createGrpcRequest$<WorkflowInstanceByIdRequest, RunningInstanceStateReply>(
-      this._url,
-      { jwt: this._jwt },
-      Workflow.instanceRunningState,
-      request,
-      true,
-      this._transport,
-    ).pipe(
-      map((response) => response.toObject()),
-      takeUntil(this._destroySubs$),
-    );
+    return createGrpcRequest$(this.context, Workflow.stopAnalysis, request);
+  }
+
+  state$(id: string): Observable<WorkflowStateResponse> {
+    const request = new WorkflowInstanceByIdRequest();
+    request.setIdworkflowinstance(id);
+
+    return createGrpcRequest$(this.context, Workflow.instanceRunningState, request);
+  }
+
+  getRunning$(): Observable<WorkflowGetRunningResponse> {
+    const request = new Empty();
+
+    return createGrpcRequest$(this.context, Workflow.running, request);
   }
 }

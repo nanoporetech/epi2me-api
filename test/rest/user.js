@@ -2,11 +2,11 @@ import assert from 'assert';
 import sinon from 'sinon';
 import { REST } from '../../src/rest';
 import { utils } from '../../src/utils';
-import { EPI2ME } from '../../src/epi2me';
+import { parseOptions } from '../../src/parseOptions';
 
 describe('rest.user', () => {
   it('must invoke get with options', async () => {
-    const options = EPI2ME.parseOptObject({});
+    const options = parseOptions({});
     const rest = new REST(options);
     const stub = sinon.stub(utils, 'get');
 
@@ -22,7 +22,7 @@ describe('rest.user', () => {
   });
 
   it('must yield fake local user', async () => {
-    const options = EPI2ME.parseOptObject({
+    const options = parseOptions({
       local: true,
     });
     const rest = new REST(options);

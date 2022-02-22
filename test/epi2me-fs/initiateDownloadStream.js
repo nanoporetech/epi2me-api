@@ -5,6 +5,8 @@ import tmp from 'tmp';
 import fs from 'fs-extra';
 import { merge } from 'lodash';
 import AWS from 'aws-sdk';
+import { expect } from 'chai';
+import { syncify } from '../../test-helpers/syncify';
 import { EPI2ME_FS as EPI2ME } from '../../src/epi2me-fs';
 
 // MC-1304 - test download streams
@@ -23,7 +25,7 @@ describe('epi2me.initiateDownloadStream', () => {
             warn: sinon.stub(),
             error: sinon.stub(),
             debug: sinon.stub(),
-            json: sinon.stub(),
+            critical: sinon.stub(),
           },
         },
         opts,
@@ -59,13 +61,7 @@ describe('epi2me.initiateDownloadStream', () => {
     const client = clientFactory({});
     sinon.stub(client, 'sessionedS3').throws(new Error('S3 Error'));
 
-    try {
-      await client.initiateDownloadStream({}, {}, tmpfile.name);
-    } catch (e) {
-      assert(String(e).match(/S3 Error/));
-    }
-
-    assert(client.log.error.calledOnce, 'should log error message');
+    expect(await syncify(() => client.initiateDownloadStream({}, {}, tmpfile.name))).to.throw('S3 Error');
   });
 
   /*

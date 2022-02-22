@@ -14,7 +14,7 @@ describe('epi2me.setClassConfigREST', () => {
             info: sinon.stub(),
             warn: sinon.stub(),
             error: sinon.stub(),
-            json: sinon.stub(),
+            critical: sinon.stub(),
           },
         },
         opts,
@@ -105,50 +105,46 @@ describe('epi2me.setClassConfigREST', () => {
   it('sets gql instance config as expected', async () => {
     const client = clientFactory();
     client.setClassConfigGQL({
-      data: {
-        startData: {
-          bucket: 'eu-west-1-metrichor-local',
-          idUser: '5089',
-          remoteAddr: '127.0.0.1',
-          instance: {
-            idWorkflowInstance: '134235',
-            chain: {
-              components: {
-                0: {
-                  inputQueueName: 'e07592d4-fae8-4212-94d7-74ffbc7fae58',
-                },
-                1: {
-                  wid: '540',
-                  next: {
-                    PASS: 0,
-                  },
-                  params: {
-                    cwl: '',
-                    ports: [],
-                    cutoff: 324,
-                    user_defined: {},
-                  },
-                  command:
-                    'cgd --working_directory %inputfolder -o %outputfolder -d %cwl workflow.data.fastq.path=%inputfolder',
-                  dockerImage: null,
-                  inputQueueName: '6551d65b-0441-c9ab-81aa-ba33ed62c39e',
-                },
-              },
-              targetComponentId: 1,
+      bucket: 'eu-west-1-metrichor-local',
+      idUser: '5089',
+      remoteAddr: '127.0.0.1',
+      instance: {
+        idWorkflowInstance: '134235',
+        chain: {
+          components: {
+            0: {
+              inputQueueName: 'e07592d4-fae8-4212-94d7-74ffbc7fae58',
             },
-            keyId: '82eae478-cf86-4d48-907c-ceda2342037e',
-            outputqueue: 'fe7aed1e-97b5-45bb-a011-64918306acc0',
-            mappedTelemetry: { 1964: { 'CTC Basecalling': '/workflow_instance/134235/classficiation_basecalling' } },
-            startDate: '2020-04-30T15:20:30+00:00',
-            workflowImage: {
-              inputqueue: '6551d65b-0441-c9ab-81aa-ba33ed62c39e',
-              workflow: {
-                idWorkflow: '540',
+            1: {
+              wid: '540',
+              next: {
+                PASS: 0,
               },
-              region: {
-                name: 'eu-west-1',
+              params: {
+                cwl: '',
+                ports: [],
+                cutoff: 324,
+                user_defined: {},
               },
+              command:
+                'cgd --working_directory %inputfolder -o %outputfolder -d %cwl workflow.data.fastq.path=%inputfolder',
+              dockerImage: null,
+              inputQueueName: '6551d65b-0441-c9ab-81aa-ba33ed62c39e',
             },
+          },
+          targetComponentId: 1,
+        },
+        keyId: '82eae478-cf86-4d48-907c-ceda2342037e',
+        outputqueue: 'fe7aed1e-97b5-45bb-a011-64918306acc0',
+        mappedTelemetry: { 1964: { 'CTC Basecalling': '/workflow_instance/134235/classficiation_basecalling' } },
+        startDate: '2020-04-30T15:20:30+00:00',
+        workflowImage: {
+          inputqueue: '6551d65b-0441-c9ab-81aa-ba33ed62c39e',
+          workflow: {
+            idWorkflow: '540',
+          },
+          region: {
+            name: 'eu-west-1',
           },
         },
       },

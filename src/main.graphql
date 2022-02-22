@@ -1,0 +1,171 @@
+fragment BasicWorkflowInstance on WorkflowInstanceType {
+  idWorkflowInstance
+  startDate
+  stopDate
+  state
+  workflowImage{
+    workflow
+    {
+      rev
+      name
+    }
+  }
+}
+
+fragment BasicWorkflow on WorkflowType {
+  idWorkflow
+  name
+  description
+  summary
+  rev
+}
+
+query listWorkflows($page: Int, $pageSize: Int, $isActive: Int, $orderBy: String, $region: String) {
+  allWorkflows(page: $page, pageSize: $pageSize, isActive: $isActive, orderBy: $orderBy, region: $region) {
+    page
+    pages
+    hasNext
+    hasPrevious
+    totalCount
+    results {
+      ...BasicWorkflow
+    }
+  }
+}
+
+query getWorkflow ($workflow: ID!) {
+  workflow(idWorkflow: $workflow) {
+    ...BasicWorkflow
+  }
+}
+
+query listWorkflowInstance (
+  $page: Int,
+  $pageSize: Int,
+  $shared: Boolean,
+  $idUser: ID,
+  $orderBy: String
+) {
+  allWorkflowInstances(page: $page, pageSize: $pageSize, shared: $shared, idUser: $idUser, orderBy: $orderBy) {
+    page
+    pages
+    hasNext
+    hasPrevious
+    totalCount
+    results {
+      ...BasicWorkflowInstance
+    }
+  }
+}
+
+query getWorkflowInstance ($instance: ID!) {
+  workflowInstance(idWorkflowInstance: $instance) {
+    ...BasicWorkflowInstance
+  }
+}
+
+mutation startWorkflow (
+  $idWorkflow: ID!
+  $computeAccountId: ID!
+  $storageAccountId: ID
+  $isConsentedHuman: Boolean = false
+  $idDataset: ID
+  $storeResults: Boolean = false
+  $userDefined: GenericScalar
+  $instanceAttributes: [GenericScalar]
+  $region: String
+) {
+  startData: startWorkflowInstance(
+    idWorkflow: $idWorkflow
+    computeAccountId: $computeAccountId
+    storageAccountId: $storageAccountId
+    isConsentedHuman: $isConsentedHuman
+    idDataset: $idDataset
+    storeResults: $storeResults
+    userDefined: $userDefined
+    instanceAttributes: $instanceAttributes
+    region: $region
+  ) {
+    bucket
+    idUser
+    remoteAddr
+    instance {
+      idWorkflowInstance
+      chain
+      keyId
+      outputqueue
+      mappedTelemetry
+      telemetryNames
+      startDate
+      workflowImage {
+        inputqueue
+        workflow {
+          idWorkflow
+        }
+        region {
+          name
+        }
+      }
+    }
+  }
+}
+
+mutation stopWorkflow ($instance: ID!) {
+  stopData: stopWorkflowInstance(idWorkflowInstance: $instance) {
+    success
+    message
+  }
+}
+
+mutation createInstanceToken ($instance: ID!) {
+  token: getInstanceToken(idWorkflowInstance: $instance) {
+    id_workflow_instance: idWorkflowInstance
+    accessKeyId
+    secretAccessKey
+    sessionToken
+    expiration
+    region
+  }
+}
+
+query getUser {
+  me {
+    username
+    realname
+    useraccountSet {
+      idUserAccount
+    }
+  }
+}
+
+mutation setRegion ($region: ID!) {
+  updateUser(idRegionPreferred: $region) {
+    idRegionPreferred
+  }
+}
+
+query getStatus {
+  status {
+    portalVersion
+    remoteAddr
+    serverTime
+    minimumAgent
+    dbVersion
+  }
+}
+
+query getRegions {
+  regions {
+    idRegion
+    description
+    name
+  }
+}
+
+query getTelemetrySource ($instance: ID!, $report: String!) {
+  workflowInstanceTelemetry (idWorkflowInstance: $instance, report: $report) {
+    getUrl
+    headUrl
+    expiresIn
+  }
+}

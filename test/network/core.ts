@@ -1,7 +1,8 @@
 import { Network, stubFetch } from '../../src/network';
 import { Request, Response } from '../../src/network/fetch';
 import assert from 'assert';
-import { asRecord } from '../../src/runtime-typecast';
+import { asDictionary } from 'ts-runtime-typecheck';
+import { USER_AGENT } from '../../src/UserAgent.constants';
 
 const BASE_OPTS = { base_url: 'https://test.example.com', agent_version: '3.1.4' };
 
@@ -60,7 +61,7 @@ describe('Network', () => {
         headers: [
           ['accept', 'application/json'],
           ['content-type', 'application/json'],
-          ['x-epi2me-client', 'api'],
+          ['x-epi2me-client', USER_AGENT],
           ['x-epi2me-version', BASE_OPTS.agent_version],
         ],
         body: '',
@@ -115,7 +116,7 @@ describe('Network', () => {
         headers: [
           ['accept', 'application/json'],
           ['content-type', 'application/json'],
-          ['x-epi2me-client', 'api'],
+          ['x-epi2me-client', USER_AGENT],
           ['x-epi2me-version', BASE_OPTS.agent_version],
         ],
         body: '',
@@ -164,7 +165,7 @@ describe('Network', () => {
         headers: [
           ['accept', 'application/json'],
           ['content-type', 'application/json'],
-          ['x-epi2me-client', 'api'],
+          ['x-epi2me-client', USER_AGENT],
           ['x-epi2me-version', BASE_OPTS.agent_version],
         ],
         body: '{"data":"example"}',
@@ -181,7 +182,7 @@ describe('Network', () => {
         { ...BASE_OPTS, encode_method: 'url' },
       );
       assert.deepStrictEqual(
-        asRecord(res).body,
+        asDictionary(res).body,
         'id_entity=123&json=%7B%22name%22%3A%22test+entity%22%2C%22id_entity%22%3A123%7D&name=test+entity',
       );
     });
@@ -234,7 +235,7 @@ describe('Network', () => {
         headers: [
           ['accept', 'application/json'],
           ['content-type', 'application/json'],
-          ['x-epi2me-client', 'api'],
+          ['x-epi2me-client', USER_AGENT],
           ['x-epi2me-version', BASE_OPTS.agent_version],
         ],
         body: '{"data":"example"}',
@@ -251,7 +252,7 @@ describe('Network', () => {
         { ...BASE_OPTS, encode_method: 'url' },
       );
       assert.deepStrictEqual(
-        asRecord(res).body,
+        asDictionary(res).body,
         'id_entity=123&json=%7B%22name%22%3A%22test+entity%22%2C%22id_entity%22%3A123%7D&name=test+entity',
       );
     });

@@ -1,4 +1,4 @@
-const niceSize = (sizeIn: number, unitIndexIn?: number): string => {
+export function niceSize(sizeIn: number, unitIndexIn?: number): string {
   const UNITS = ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z'];
   const DIV = 1000;
   let unitIndex = unitIndexIn || 0;
@@ -15,6 +15,4 @@ const niceSize = (sizeIn: number, unitIndexIn?: number): string => {
     return `${size}${UNITS[unitIndex]}`;
   }
   return `${size.toFixed(1)}${UNITS[unitIndex]}`;
-};
-
-export default niceSize;
+}

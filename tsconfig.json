@@ -1,31 +1,12 @@
 {
+  "extends": "./tsconfig.main.json",
   "compilerOptions": {
-    "allowJs": true,
-    "allowSyntheticDefaultImports": true,
-    "lib": [
-      "dom",
-      "es2017"
-    ],
-    "moduleResolution": "node",
-    "skipLibCheck": true,
-    "sourceMap": true,
-    "esModuleInterop": true,
-    "resolveJsonModule": true,
-    "strict": true,
-    "strictNullChecks": true,
-    "noImplicitAny": true,
-    "noImplicitReturns": true,
-    "noImplicitThis": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "target": "es2017"
-  },
-  "include": ["src"],
-  "exclude": ["dist", "node_modules"],
-  "ts-node": {
-    "transpileOnly": true,
-    "compilerOptions": {
-      "module": "commonJS"
+    "baseUrl": ".",
+    "paths": {
+      "@metrichor/epi2me-api": ["./src/index.ts"],
+      "@metrichor/epi2me-web": ["./src/index-web.ts"]
     }
-  }
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["./dist", "./node_modules", "./test"]
 }

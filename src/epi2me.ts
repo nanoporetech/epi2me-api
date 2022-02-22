@@ -5,66 +5,58 @@
  * When: A long time ago, in a galaxy far, far away
  *
  */
+import type { Logger } from './Logger.type';
+import type { EPI2ME_OPTIONS } from './epi2me-options.type';
+import type { Configuration } from './Configuration.type';
+import type { Timer } from './timer.type';
+import type { REST_FS } from './rest-fs';
+import type { Index, Dictionary, Optional, JSONObject, UnknownFunction } from 'ts-runtime-typecheck';
+import type { States, UploadState, DownloadState, Warning, SuccessState, ProgressState } from './epi2me-state.type';
+import type { Duration } from './Duration';
 
 import { BehaviorSubject, combineLatest } from 'rxjs';
-import DEFAULTS from './default_options.json';
 import { GraphQL } from './graphql';
-import niceSize from './niceSize';
-import { Profile, AllProfileData } from './profile';
+import { niceSize } from './niceSize';
 import { REST } from './rest';
 import Socket from './socket';
 import { utils } from './utils';
-import { ObjectDict } from './ObjectDict';
-import { Logger } from './Logger';
-import { EPI2ME_OPTIONS } from './epi2me-options';
-import {
-  asRecord,
-  asOptString,
-  asOptBoolean,
-  asString,
-  asNumber,
-  asArrayRecursive,
-  asBoolean,
-  asOptNumber,
-  asIndexable,
-  asIndex,
-  asOptFunction,
-  asOptRecord,
-  asOptIndex,
-  Index,
-} from './runtime-typecast';
-import {
-  createUploadState,
-  createDownloadState,
-  States,
-  UploadState,
-  DownloadState,
-  WarningState,
-  SuccessState,
-  ProgressState,
-} from './epi2me-state';
-import { Configuration } from './Configuration';
-import { DisposeTimer, createInterval } from './timers';
-
-import type { REST_FS } from './rest-fs';
-import type { ProfileFS } from './profile-fs';
-import { parseCoreOpts } from './parseCoreOpts';
-
+import { asDictionary, asString, asNumber, asIndexable, asIndex, asDefined } from 'ts-runtime-typecheck';
+import { createUploadState, createDownloadState } from './epi2me-state';
+import { createInterval } from './timers';
+import { parseOptions } from './parseOptions';
+import { filter, mapTo, skipWhile, takeWhile } from 'rxjs/operators';
+import { wrapAndLogError } from './NodeError';
+import { DEFAULT_OPTIONS } from './default_options';
 export class EPI2ME {
-  static version = utils.version;
-  static Profile: { new (o: AllProfileData): Profile } | { new (s?: string, r?: boolean): ProfileFS } = Profile;
-  static REST: { new (o: EPI2ME_OPTIONS): REST | REST_FS } = REST; // to allow import { REST } from '@metrichor/epi2me-api'
+  static version = DEFAULT_OPTIONS.agent_version;
   static utils = utils;
 
   readonly log: Logger;
+  // TODO this is only used in FS, it should be moved
   stopped = true;
 
   uploadState$ = new BehaviorSubject(false);
   analyseState$ = new BehaviorSubject(false);
   reportState$ = new BehaviorSubject(false);
-  runningStates$ = combineLatest(this.uploadState$, this.analyseState$, this.reportState$);
+  runningStates$ = combineLatest([this.uploadState$, this.analyseState$, this.reportState$]);
 
-  instanceTelemetry$ = new BehaviorSubject<unknown[]>([]);
+  // NOTE emits a signal exactly once, after uploadState changes from true, to false
+  uploadStopped$ = this.uploadState$.pipe(
+    skipWhile((state) => !state),
+    takeWhile((state) => state, true),
+    filter((state) => !state),
+    mapTo(true),
+  );
+
+  // NOTE emits a signal exactly once, after analyseState changes from true, to false
+  analysisStopped$ = this.analyseState$.pipe(
+    skipWhile((state) => !state),
+    takeWhile((state) => state, true),
+    filter((state) => !state),
+    mapTo(true),
+  );
+
+  instanceTelemetry$ = new BehaviorSubject<(JSONObject | null)[]>([]);
   experimentalWorkerStatus$ = new BehaviorSubject<
     {
       running: number;
@@ -84,12 +76,12 @@ export class EPI2ME {
   // placeholders for all the timers we might want to cancel if forcing a stop
 
   timers: {
-    downloadCheckInterval?: DisposeTimer;
-    stateCheckInterval?: DisposeTimer;
-    fileCheckInterval?: DisposeTimer;
-    transferTimeouts: ObjectDict<DisposeTimer>;
-    visibilityIntervals: ObjectDict<DisposeTimer>;
-    summaryTelemetryInterval?: DisposeTimer;
+    downloadCheckInterval?: Timer;
+    stateCheckInterval?: Timer;
+    fileCheckInterval?: Timer;
+    transferTimeouts: Dictionary<Timer>;
+    visibilityIntervals: Dictionary<Timer>;
+    summaryTelemetryInterval?: Timer;
   } = {
     transferTimeouts: {},
     visibilityIntervals: {},
@@ -97,37 +89,25 @@ export class EPI2ME {
 
   stateReportTime?: number;
   liveStates$ = new BehaviorSubject(this.states);
-  downloadWorkerPool?: ObjectDict;
+  downloadWorkerPool?: Dictionary;
 
   config: Configuration;
   REST: REST | REST_FS;
   graphQL: GraphQL;
-  mySocket?: Socket;
+  socket?: Socket;
 
-  constructor(optstring: Partial<EPI2ME_OPTIONS> | string = {}) {
-    let options: EPI2ME_OPTIONS;
-    if (typeof optstring === 'string') {
-      const json = asRecord(JSON.parse(optstring));
-      // WARN maybe we should put a depreciation warning here
-      // it's not particularly useful accepting a json string
-      // and increases the required validation code
-      options = EPI2ME.parseOptObject(json);
-    } else {
-      options = EPI2ME.parseOptObject(optstring);
-    }
-
+  constructor(optstring: Partial<EPI2ME_OPTIONS> = {}) {
+    const options = parseOptions(optstring);
+    const { idWorkflowInstance, log } = options;
     this.config = {
       options: options,
       instance: {
-        id_workflow_instance: options.id_workflow_instance,
+        id_workflow_instance: idWorkflowInstance,
         discoverQueueCache: {},
-        awssettings: {
-          region: options.region,
-        },
       },
     };
 
-    this.log = options.log;
+    this.log = log;
     this.REST = new REST(options);
     this.graphQL = new GraphQL(options);
   }
@@ -136,103 +116,68 @@ export class EPI2ME {
     return asIndex(this.config.instance.id_workflow_instance);
   }
 
-  // apikey?: string;
-  // apisecret?: string;
-
-  // jwt?: string;
-
-  static parseOptObject(opt: ObjectDict | Partial<EPI2ME_OPTIONS>): EPI2ME_OPTIONS {
-    const options = {
-      ...parseCoreOpts(opt),
-      region: asString(opt.region, DEFAULTS.region),
-      sessionGrace: asNumber(opt.sessionGrace, DEFAULTS.sessionGrace),
-      uploadTimeout: asNumber(opt.uploadTimeout, DEFAULTS.uploadTimeout),
-      downloadTimeout: asNumber(opt.downloadTimeout, DEFAULTS.downloadTimeout),
-      fileCheckInterval: asNumber(opt.fileCheckInterval, DEFAULTS.fileCheckInterval),
-      downloadCheckInterval: asNumber(opt.downloadCheckInterval, DEFAULTS.downloadCheckInterval),
-      stateCheckInterval: asNumber(opt.stateCheckInterval, DEFAULTS.stateCheckInterval),
-      inFlightDelay: asNumber(opt.inFlightDelay, DEFAULTS.inFlightDelay),
-      waitTimeSeconds: asNumber(opt.waitTimeSeconds, DEFAULTS.waitTimeSeconds),
-      waitTokenError: asNumber(opt.waitTokenError, DEFAULTS.waitTokenError),
-      transferPoolSize: asNumber(opt.transferPoolSize, DEFAULTS.transferPoolSize),
-      downloadMode: asString(opt.downloadMode, DEFAULTS.downloadMode),
-      filetype: asArrayRecursive(opt.filetype, asString, DEFAULTS.filetype),
-      sampleDirectory: asString(opt.sampleDirectory, DEFAULTS.sampleDirectory),
-      // optional values
-      useGraphQL: asOptBoolean(opt.useGraphQL),
-      id_workflow_instance: asOptIndex(opt.id_workflow_instance),
-      debounceWindow: asOptNumber(opt.debounceWindow),
-      proxy: asOptString(opt.proxy),
-      // EPI2ME-FS options
-      inputFolders: asArrayRecursive(opt.inputFolders, asString, []),
-      outputFolder: asOptString(opt.outputFolder),
-      awsAcceleration: asOptString(opt.awsAcceleration),
-      agent_address: asOptString(opt.agent_address),
-      telemetryCb: asOptFunction(opt.telemetryCb),
-      dataCb: asOptFunction(opt.dataCb),
-      remoteShutdownCb: asOptFunction(opt.remoteShutdownCb),
-    };
-
-    if (opt.inputFolder) {
-      options.inputFolders.push(asString(opt.inputFolder));
+  getSocket(): Socket {
+    if (this.socket) {
+      return this.socket;
     }
 
-    return options;
+    const socket = new Socket(this.REST, this.config.options);
+    const { id_workflow_instance: id } = this.config.instance;
+
+    if (id) {
+      socket.watch(`workflow_instance:state:${id}`, this.updateWorkerStatus);
+    }
+
+    this.socket = socket;
+    return socket;
   }
 
-  async socket(): Promise<Socket> {
-    if (this.mySocket) {
-      return this.mySocket;
+  updateWorkerStatus = (newWorkerStatus: unknown): void => {
+    const { instance: instanceConfig } = this.config;
+    const components = instanceConfig.chain?.components;
+
+    if (!components) {
+      return;
     }
 
-    this.mySocket = new Socket(this.REST, this.config.options);
-    const { id_workflow_instance: idWorkflowInstance } = this.config.instance;
-    if (idWorkflowInstance) {
-      this.mySocket.watch(`workflow_instance:state:${idWorkflowInstance}`, (newWorkerStatus) => {
-        const { instance: instanceConfig } = this.config;
-        const components = asOptRecord(instanceConfig.chain?.components);
-        if (components) {
-          const summaryTelemetry = asRecord(instanceConfig.summaryTelemetry);
-          const workerStatus = Object.entries(components).sort((a, b) => parseInt(a[0], 10) - parseInt(b[0], 10));
-          const indexableNewWorkerStatus = asIndexable(newWorkerStatus);
-          const results = [];
-          for (const [key, value] of workerStatus) {
-            if (key in indexableNewWorkerStatus) {
-              const step = +key;
-              let name = 'ROOT';
-              if (step !== 0) {
-                const wid = asIndex(asRecord(value).wid);
-                name = Object.keys(asRecord(summaryTelemetry[wid]))[0] ?? 'ROOT';
-              }
-              const [running, complete, error] = asString(indexableNewWorkerStatus[key])
-                .split(',')
-                .map((componentID) => Math.max(0, +componentID)); // It's dodgy but assuming the componentID is a number happens all over the place
+    const summaryTelemetry = asDictionary(instanceConfig.summaryTelemetry);
+    const workerStatus = Object.entries(components).sort((a, b) => parseInt(a[0], 10) - parseInt(b[0], 10));
+    const indexableNewWorkerStatus = asIndexable(newWorkerStatus);
+    const results = [];
 
-              results.push({
-                running,
-                complete,
-                error,
-                step,
-                name,
-              });
-            }
-          }
-          this.experimentalWorkerStatus$.next(results);
+    for (const [key, value] of workerStatus) {
+      if (key in indexableNewWorkerStatus) {
+        const step = +key;
+        let name = 'ROOT';
+        if (step !== 0) {
+          const wid = asIndex(asDictionary(value).wid);
+          name = Object.keys(asDictionary(summaryTelemetry[wid]))[0] ?? 'ROOT';
         }
-      });
-    }
-    return this.mySocket;
-  }
+        const [running, complete, error] = asString(indexableNewWorkerStatus[key])
+          .split(',')
+          .map((componentID) => Math.max(0, +componentID)); // It's dodgy but assuming the componentID is a number happens all over the place
 
-  async realtimeFeedback(channel: string, object: unknown): Promise<void> {
-    const socket = await this.socket();
-    socket.emit(channel, object);
+        results.push({
+          running,
+          complete,
+          error,
+          step,
+          name,
+        });
+      }
+    }
+
+    this.experimentalWorkerStatus$.next(results);
+  };
+
+  realtimeFeedback(channel: string, object: unknown): void {
+    this.getSocket().emit(channel, object);
   }
 
   setTimer(
     intervalName: 'downloadCheckInterval' | 'stateCheckInterval' | 'fileCheckInterval' | 'summaryTelemetryInterval',
-    intervalDuration: number,
-    cb: Function,
+    intervalDuration: Duration,
+    cb: UnknownFunction,
   ): void {
     if (this.timers[intervalName]) {
       throw new Error(`An interval with the name ${intervalName} has already been created`);
@@ -250,7 +195,7 @@ export class EPI2ME {
     const timer = this.timers[intervalGroupName];
     if (timer) {
       this.log.debug(`clearing ${intervalGroupName} interval`);
-      timer();
+      timer.cancel();
       delete this.timers[intervalGroupName];
     }
   }
@@ -258,9 +203,24 @@ export class EPI2ME {
   stopTimeout(timerGroupName: 'transferTimeouts', timerName: string): void {
     const timeout = this.timers[timerGroupName][timerName];
     if (timeout) {
-      timeout();
+      timeout.cancel();
       delete this.timers[timerGroupName][timerName];
     }
+  }
+
+  async stopEverything(): Promise<void> {
+    await this.stopAnalysis();
+
+    this.stopTransferTimers();
+    this.stopVisibilityTimers();
+    this.stopDownloadWorkers();
+
+    if (this.socket) {
+      this.socket.destroy();
+    }
+
+    this.stopTimer('summaryTelemetryInterval');
+    this.stopTimer('downloadCheckInterval');
   }
 
   async stopAnalysis(): Promise<void> {
@@ -269,23 +229,25 @@ export class EPI2ME {
     // This will stop all the intervals on their next call
     this.stopped = true;
 
-    const { id_workflow_instance: idWorkflowInstance } = this.config.instance;
-    if (idWorkflowInstance) {
-      try {
-        // TODO: Convert to GQL and switch on class-wide flag
-        if (this.config.options.useGraphQL) {
-          await this.graphQL.stopWorkflow({ variables: { idWorkflowInstance } });
-        } else {
-          await this.REST.stopWorkflow(idWorkflowInstance);
-        }
-        this.analyseState$.next(false);
-      } catch (stopException) {
-        this.log.error(`Error stopping instance: ${String(stopException)}`);
-        throw stopException;
-      }
+    const { id_workflow_instance: id } = this.config.instance;
 
-      this.log.info(`workflow instance ${idWorkflowInstance} stopped`);
+    if (!id) {
+      return;
     }
+
+    try {
+      if (this.config.options.useGraphQL) {
+        await this.graphQL.stopWorkflow({ instance: id.toString() });
+      } else {
+        await this.REST.stopWorkflow(id);
+      }
+      this.analyseState$.next(false);
+      this.analyseState$.complete();
+    } catch (err) {
+      throw wrapAndLogError('error stopping instance', err, this.log);
+    }
+
+    this.log.info(`workflow instance ${id} stopped`);
   }
 
   stopUpload(): void {
@@ -295,53 +257,53 @@ export class EPI2ME {
     this.stopTimer('fileCheckInterval');
 
     this.uploadState$.next(false);
+    this.uploadState$.complete();
   }
 
-  async stopEverything(): Promise<void> {
-    this.stopAnalysis();
-    // Moved this out of the main stopUpload because we don't want to stop it when we stop uploading
-    // This is really 'stop fetching reports'
-
+  private stopTransferTimers(): void {
     for (const key in this.timers.transferTimeouts) {
       this.log.debug(`clearing transferTimeout for ${key}`);
       const timer = this.timers.transferTimeouts[key];
       // NOTE id should always be defined here, this is purely for type checking
       if (timer) {
-        timer();
+        timer.cancel();
       }
       delete this.timers.transferTimeouts[key];
     }
+  }
 
+  private stopVisibilityTimers(): void {
     for (const key in this.timers.visibilityIntervals) {
       this.log.debug(`clearing visibilityInterval for ${key}`);
       const timer = this.timers.visibilityIntervals[key];
       if (timer) {
-        timer();
+        timer.cancel();
       }
       delete this.timers.visibilityIntervals[key];
     }
+  }
 
+  private async stopDownloadWorkers(): Promise<void> {
     if (this.downloadWorkerPool) {
       this.log.debug('clearing downloadWorkerPool');
       await Promise.all(Object.values(this.downloadWorkerPool));
       delete this.downloadWorkerPool;
     }
-
-    this.stopTimer('summaryTelemetryInterval');
-    this.stopTimer('downloadCheckInterval');
   }
 
   reportProgress(): void {
     const { upload, download } = this.states;
-    this.log.debug({
-      progress: {
-        download,
-        upload,
-      },
-    });
+    this.log.debug(
+      JSON.stringify({
+        progress: {
+          download,
+          upload,
+        },
+      }),
+    );
   }
 
-  uploadState(table: 'success' | 'types' | 'progress', op: string, newData: ObjectDict<number>): void {
+  uploadState(table: 'success' | 'types' | 'progress', op: string, newData: Dictionary<number>): void {
     const direction = 'upload';
     const state: UploadState = this.states.upload ?? createUploadState();
 
@@ -356,21 +318,21 @@ export class EPI2ME {
     // Prettify new totals
     try {
       state.success.niceReads = niceSize(this.states[direction].success.reads);
-    } catch (ignore) {
+    } catch {
       state.success.niceReads = 0;
     }
 
     try {
       // complete plus in-transit
       state.progress.niceSize = niceSize(state.success.bytes + state.progress.bytes ?? 0);
-    } catch (ignore) {
+    } catch {
       state.progress.niceSize = 0;
     }
 
     try {
       // complete
       state.success.niceSize = niceSize(this.states[direction].success.bytes);
-    } catch (ignore) {
+    } catch {
       state.success.niceSize = 0;
     }
 
@@ -390,7 +352,7 @@ export class EPI2ME {
     this.liveStates$.next({ ...this.states });
   }
 
-  downloadState(table: 'success' | 'types' | 'progress', op: string, newData: ObjectDict<number>): void {
+  downloadState(table: 'success' | 'types' | 'progress', op: string, newData: Dictionary<Optional<number>>): void {
     const direction = 'upload';
     const state: DownloadState = this.states.download ?? createDownloadState();
 
@@ -405,21 +367,21 @@ export class EPI2ME {
     // Prettify new totals
     try {
       state.success.niceReads = niceSize(this.states[direction].success.reads);
-    } catch (ignore) {
+    } catch {
       state.success.niceReads = 0;
     }
 
     try {
       // complete plus in-transit
       state.progress.niceSize = niceSize(state.success.bytes + state.progress.bytes ?? 0);
-    } catch (ignore) {
+    } catch {
       state.progress.niceSize = 0;
     }
 
     try {
       // complete
       state.success.niceSize = niceSize(this.states[direction].success.bytes);
-    } catch (ignore) {
+    } catch {
       state.success.niceSize = 0;
     }
 
@@ -439,7 +401,7 @@ export class EPI2ME {
     this.liveStates$.next({ ...this.states });
   }
 
-  updateSuccessState(state: SuccessState, op: string, newData: ObjectDict<number>): void {
+  updateSuccessState(state: SuccessState, op: string, newData: Dictionary<Optional<number>>): void {
     const safeKeys = new Set(['files', 'bytes', 'reads']);
     for (const key of Object.keys(newData)) {
       // Increment or decrement
@@ -452,7 +414,7 @@ export class EPI2ME {
     }
   }
 
-  updateTypesState(state: ObjectDict, op: string, newData: ObjectDict<number>): void {
+  updateTypesState(state: Dictionary, op: string, newData: Dictionary<Optional<number>>): void {
     for (const key of Object.keys(newData)) {
       // Increment or decrement
       const sign = op === 'incr' ? 1 : -1;
@@ -461,7 +423,7 @@ export class EPI2ME {
     }
   }
 
-  updateProgressState(state: ProgressState, op: string, newData: ObjectDict<number>): void {
+  updateProgressState(state: ProgressState, op: string, newData: Dictionary<Optional<number>>): void {
     const safeKeys = new Set(['bytes', 'total']);
     for (const key of Object.keys(newData)) {
       // Increment or decrement
@@ -474,65 +436,15 @@ export class EPI2ME {
     }
   }
 
-  url(): string | undefined {
-    return this.config.options.url;
+  url(): string {
+    return asDefined(this.config.options.url);
   }
 
   apikey(): string | undefined {
     return this.config.options.apikey;
   }
 
-  /**
-   * @deprecated attr() breaks type guarantees for the configuration options
-   * and hence is depreciated.
-   */
-  attr(
-    key: keyof EPI2ME_OPTIONS,
-    value: EPI2ME_OPTIONS[keyof EPI2ME_OPTIONS],
-  ): EPI2ME_OPTIONS[keyof EPI2ME_OPTIONS] | this {
-    if (value) {
-      switch (key) {
-        case 'url':
-        case 'region':
-        case 'user_agent':
-        case 'downloadMode':
-        case 'sampleDirectory':
-        case 'apikey':
-        case 'apisecret':
-          this.config.options[key] = asString(value);
-          break;
-        case 'id_workflow_instance':
-        case 'sessionGrace':
-        case 'uploadTimeout':
-        case 'fileCheckInterval':
-        case 'downloadCheckInterval':
-        case 'stateCheckInterval':
-        case 'inFlightDelay':
-        case 'waitTimeSeconds':
-        case 'waitTokenError':
-        case 'transferPoolSize':
-        case 'debounceWindow':
-          this.config.options[key] = asNumber(value);
-          break;
-        case 'signing':
-        case 'useGraphQL':
-        case 'local':
-          this.config.options[key] = asBoolean(value);
-          break;
-        case 'filetype':
-          this.config.options[key] = asArrayRecursive(value, asString);
-          break;
-        default:
-          throw new Error('Cannot modify the "log" attribute');
-      }
-    } else {
-      return this.config.options[key];
-    }
-
-    return this;
-  }
-
-  stats(key: keyof States): UploadState | DownloadState | WarningState {
+  stats(key: keyof States): UploadState | DownloadState | Warning[] {
     return this.states[key];
   }
 }

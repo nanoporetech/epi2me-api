@@ -1,5 +1,5 @@
 dist:
-	npm run build:dist
+	npm run build
 
 test:
 	npm run test
@@ -10,7 +10,4 @@ lint:
 cover:
 	npm run cover
 
-deps:
-	apt-get install -y --force-yes nodejs jq
-
-.PHONY: dist test lint cover test_integration
+.PHONY: dist lint cover

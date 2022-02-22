@@ -2,12 +2,14 @@
  * Copyright (c) 2019 Metrichor Ltd.
  * Authors: rpettett,gvanginkel
  */
+import type { Dictionary, UnknownFunction } from 'ts-runtime-typecheck';
+import type { AsyncCallback } from './rest.type';
+
 import fs from 'fs-extra';
 import path from 'path';
-import { AsyncCallback, REST } from './rest';
+import { asOptDictionary, asOptFunction, asFunction, asDictionary, isFunction } from 'ts-runtime-typecheck';
+import { REST } from './rest';
 import { utilsFS as utils } from './utils-fs';
-import { isFunction, asFunction, asRecord, asOptFunction, asOptRecord } from './runtime-typecast';
-import { ObjectDict } from './ObjectDict';
 
 export class REST_FS extends REST {
   async workflows(cb?: AsyncCallback): Promise<unknown> {
@@ -33,7 +35,7 @@ export class REST_FS extends REST {
     }
   }
 
-  async workflow(id: string | ObjectDict, obj?: ObjectDict | Function, cb?: Function): Promise<unknown> {
+  async workflow(id: string | Dictionary, obj?: Dictionary | UnknownFunction, cb?: UnknownFunction): Promise<unknown> {
     if (!this.options.local || !id || typeof id === 'object' || cb) {
       // yuck. probably wrong.
       return super.workflow(id, obj, cb);
@@ -56,12 +58,12 @@ export class REST_FS extends REST {
     return fs.readJSON(filename);
   }
 
-  async workflowInstances(first?: ObjectDict | AsyncCallback, second?: ObjectDict): Promise<unknown> {
+  async workflowInstances(first?: Dictionary | AsyncCallback, second?: Dictionary): Promise<unknown> {
     if (!this.options.local) {
       if (isFunction(first) || second) {
         throw new Error('Local workflows cannot accept a callback');
       }
-      return super.workflowInstances(asOptRecord(first));
+      return super.workflowInstances(asOptDictionary(first));
     }
     let cb;
     let query;
@@ -89,7 +91,7 @@ export class REST_FS extends REST {
         let workflow;
         try {
           workflow = fs.readJsonSync(filename);
-        } catch (ignore) {
+        } catch {
           workflow = {
             id_workflow: '-',
             description: '-',
@@ -127,7 +129,7 @@ export class REST_FS extends REST {
       if (cb) {
         throw new Error('Callback is not supported in local mode');
       }
-      return super.datasets(asRecord(first));
+      return super.datasets(asDictionary(first));
     }
 
     if (query.show !== 'mine') {

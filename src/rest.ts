@@ -2,64 +2,57 @@
  * Copyright (c) 2019 Metrichor Ltd.
  * Authors: rpettett, gvanginkel
  */
+import type { Logger } from './Logger.type';
+import type { AxiosResponse } from 'axios';
+import type { Index, Dictionary, UnknownFunction, JSONObject } from 'ts-runtime-typecheck';
+import type { AsyncCallback } from './rest.type';
+import type { Configuration } from './Configuration.type';
 
-import { assign, merge } from 'lodash';
 import os from 'os';
 import { utils } from './utils';
-import { Logger } from './Logger';
-import { EPI2ME_OPTIONS } from './epi2me-options';
-import { AxiosResponse } from 'axios';
 import {
   asArray,
-  asRecord,
-  asString,
-  asArrayRecursive,
-  isUndefined,
-  isFunction,
-  isArray,
+  asArrayOf,
   asIndex,
-  asIndexable,
-  asOptArrayRecursive,
-  asOptIndex,
-  Index,
-  asOptString,
+  asOptArrayOf,
   asOptFunction,
-} from './runtime-typecast';
-
-import { ObjectDict } from './ObjectDict';
-
-export type AsyncCallback = (err: unknown, data: unknown) => void;
+  asOptIndex,
+  asOptString,
+  asDictionary,
+  asString,
+  isArray,
+  isFunction,
+  isUndefined,
+  isDefined,
+  isIndexable,
+  isDictionary,
+} from 'ts-runtime-typecheck';
+import { getErrorMessage, wrapAndLogError } from './NodeError';
 
 export class REST {
-  options: EPI2ME_OPTIONS;
+  options: Configuration['options'];
   log: Logger;
-  cachedResponses: Map<
-    string,
-    {
-      etag: string;
-      response: ObjectDict;
-    }
-  > = new Map();
+  cachedResponses = new Map<string, { etag: string; response: JSONObject }>();
 
-  constructor(options: EPI2ME_OPTIONS) {
+  constructor(options: Configuration['options']) {
     this.options = options;
     this.log = this.options.log;
   }
 
   async list(entity: string): Promise<unknown[]> {
-    const entityName = entity.match(/^[a-z_]+/i); // dataset?foo=bar => dataset
+    const entityName = /^[a-z_]+/i.exec(entity); // dataset?foo=bar => dataset
     if (!entityName) {
-      throw new Error(`Failed to parse entity identifier`);
+      throw new Error('Failed to parse entity identifier');
     }
     const json = await utils.get(entity, this.options);
     return asArray(json[`${entityName[0]}s`]);
   }
 
-  read(entity: string, id: string): Promise<ObjectDict> {
+  read(entity: string, id: string): Promise<Dictionary> {
     return utils.get(`${entity}/${id}`, this.options);
   }
 
-  async user(): Promise<ObjectDict> {
+  async user(): Promise<Dictionary> {
     if (this.options.local) {
       return {
         accounts: [
@@ -96,7 +89,7 @@ export class REST {
   }
 
   async jwt(): Promise<string> {
-    const customJWTHandler = async (res: AxiosResponse): Promise<string> => {
+    const customJWTHandler = async (res: AxiosResponse<unknown>): Promise<string> => {
       if (res.headers['x-epi2me-jwt']) {
         return res.headers['x-epi2me-jwt'];
       }
@@ -106,27 +99,31 @@ export class REST {
     return asString(result);
   }
 
-  async instanceToken(id: unknown, opts: {}): Promise<ObjectDict> {
+  // id_dataset appears to be used within
+  async instanceToken(id: Index, opts: { id_dataset?: Index } = {}): Promise<Dictionary> {
     return utils.post(
       'token',
-      merge(opts, {
+      {
+        ...opts,
         id_workflow_instance: id,
-      }),
-      assign({}, this.options, {
+      },
+      {
+        ...this.options,
         legacy_form: true,
-      }),
+      },
     );
   }
 
-  async installToken(id: unknown): Promise<ObjectDict> {
+  async installToken(id: unknown): Promise<Dictionary> {
     return utils.post(
       'token/install',
       {
         id_workflow: id,
       },
-      assign({}, this.options, {
+      {
+        ...this.options,
         legacy_form: true,
-      }),
+      },
     );
   }
 
@@ -162,44 +159,48 @@ export class REST {
    * @deprecated
    * Use the more specific updateAmiImage/createAmiImage/readAmiImage calls
    */
-  amiImage(first: string | ObjectDict, second?: ObjectDict): Promise<ObjectDict> {
+  amiImage(first: string | Dictionary, second?: Dictionary): Promise<Dictionary> {
     if (this.options.local) {
       throw new Error('ami_image unsupported in local mode');
     }
 
     // if we have 2 arguments then preform update
     if (second instanceof Object) {
-      return this.updateAmiImage(asString(first), asRecord(second));
+      return this.updateAmiImage(asString(first), asDictionary(second));
       // if we have 1 object argument then perform create
     } else if (first instanceof Object) {
-      return utils.post('ami_image', asRecord(first), this.options);
+      return utils.post('ami_image', asDictionary(first), this.options);
       // otherwise we should have 1 string argument
     } else {
       return this.read('ami_image', asString(first));
     }
   }
 
-  updateAmiImage(id: string, obj: ObjectDict): Promise<ObjectDict> {
+  updateAmiImage(id: string, obj: Dictionary): Promise<Dictionary> {
     return utils.put('ami_image', id, obj, this.options);
   }
 
-  createAmiImage(obj: ObjectDict): Promise<ObjectDict> {
+  createAmiImage(obj: Dictionary): Promise<Dictionary> {
     return utils.post('ami_image', obj, this.options);
   }
 
-  readAmiImage(id: string): Promise<ObjectDict> {
+  readAmiImage(id: string): Promise<Dictionary> {
     return this.read('ami_image', id);
   }
 
-  async workflow(first: string | ObjectDict, second?: ObjectDict | Function, third?: Function): Promise<unknown> {
+  async workflow(
+    first: string | Dictionary,
+    second?: Dictionary | UnknownFunction,
+    third?: UnknownFunction,
+  ): Promise<unknown> {
     if (first && second && third instanceof Function) {
-      return this.updateWorkflow(asString(first), asRecord(second), third);
+      return this.updateWorkflow(asString(first), asDictionary(second), third);
     } else if (first && second instanceof Object && !(second instanceof Function)) {
-      return this.updateWorkflow(asString(first), asRecord(second));
+      return this.updateWorkflow(asString(first), asDictionary(second));
     } else if (first instanceof Object && second instanceof Function) {
-      return this.createWorkflow(asRecord(first), second);
+      return this.createWorkflow(asDictionary(first), second);
     } else if (first instanceof Object && !second) {
-      return this.createWorkflow(asRecord(first));
+      return this.createWorkflow(asDictionary(first));
     }
 
     // read with callback or promise
@@ -213,80 +214,83 @@ export class REST {
       return cb ? cb(err) : Promise.reject(err);
     }
 
-    const workflow: ObjectDict = {};
+    let workflow: Dictionary;
     try {
-      const struct = await this.read('workflow', id);
-      if (struct.error) {
-        throw new Error(struct.error + '');
+      workflow = await this.read('workflow', id);
+      if (workflow.error) {
+        throw new Error(workflow.error + '');
       }
-      merge(workflow, struct);
     } catch (err) {
-      this.log.error(`${id}: error fetching workflow ${String(err)}`);
+      const wrappedError = wrapAndLogError(`${id} error fetching workflow`, err, this.log);
       if (cb) {
-        cb(err);
+        cb(wrappedError);
         return;
       }
-      throw err;
+      throw wrappedError;
     }
 
-    // placeholder
-    merge(workflow, {
+    workflow = {
       params: {},
-    });
+      ...workflow,
+    };
 
     try {
       const workflowConfig = await utils.get(`workflow/config/${id}`, this.options);
       if (workflowConfig.error) {
         throw new Error(workflowConfig.error + '');
       }
-      merge(workflow, workflowConfig);
+      workflow = {
+        ...workflow,
+        ...workflowConfig,
+      };
     } catch (err) {
-      this.log.error(`${id}: error fetching workflow config ${String(err)}`);
+      const wrappedError = wrapAndLogError(`${id} error fetching workflow config`, err, this.log);
       if (cb) {
-        cb(err);
+        cb(wrappedError);
         return;
       }
-      throw err;
+      throw wrappedError;
     }
 
     // NOTE it would appear that params can be either an array or an object, the tests are not consistent
-    const params = isArray(workflow.params) ? asArray(workflow.params) : asRecord(workflow.params);
+    const params = isArray(workflow.params) ? asArray(workflow.params) : asDictionary(workflow.params);
     // MC-6483 - fetch ajax options for "AJAX drop down widget"
 
     const toFetch = Object.values(params)
-      .map((value: unknown) => asRecord(value))
-      .filter((obj: ObjectDict) => obj.widget === 'ajax_dropdown');
+      .map((value: unknown) => asDictionary(value))
+      .filter((obj: Dictionary) => obj.widget === 'ajax_dropdown');
 
     const promises = [
-      ...toFetch.map(async (param: ObjectDict) => {
+      ...toFetch.map(async (param: Dictionary) => {
         if (isUndefined(param)) {
           // NOTE should be unreachable
           throw new Error('parameter is undefined');
         }
 
-        const values = asRecord(param.values);
-        const items = asRecord(values.items);
+        const values = asDictionary(param.values);
+        const items = asDictionary(values.items);
         const uri = asString(values.source)
           .replace('{{EPI2ME_HOST}}', '')
           .replace(/&?apikey=\{\{EPI2ME_API_KEY\}\}/, '');
 
-        let workflowParam;
+        let workflowParam: Dictionary;
         try {
           workflowParam = await utils.get(uri, this.options);
         } catch (err) {
-          this.log.error(`failed to fetch ${uri}`);
+          const wrappedError = wrapAndLogError(`failed to fetch ${uri}`, err, this.log);
+
           if (cb) {
-            cb(err);
+            cb(wrappedError);
             return;
           }
-          throw err;
+          throw wrappedError;
         }
         // e.g. {datasets:[...]} from the /dataset.json list response
         // NOTE unclear if data_root is number | string
 
         const index = asOptIndex(values.data_root);
         // NOTE dataRoot appears to be an array of object/arrays
-        const dataRoot = asOptArrayRecursive(isUndefined(index) ? index : workflowParam[index], asIndexable); // e.g. [{dataset},{dataset}]
+        const dataRoot = isDefined(index) && asOptArrayOf(isIndexable)(workflowParam[index]); // e.g. [{dataset},{dataset}]
 
         if (dataRoot) {
           param.values = dataRoot.map((o) => ({
@@ -305,17 +309,18 @@ export class REST {
         cb(null, workflow);
       }
     } catch (err) {
-      this.log.error(`${id}: error fetching config and parameters ${String(err)}`);
+      const wrappedError = wrapAndLogError(`${id}: error fetching config and parameters`, err, this.log);
+
       if (cb) {
-        cb(err);
+        cb(wrappedError);
       } else {
-        throw err;
+        throw wrappedError;
       }
     }
     return workflow;
   }
 
-  async updateWorkflow(id: string, obj: ObjectDict, cb?: Function): Promise<ObjectDict> {
+  async updateWorkflow(id: string, obj: Dictionary, cb?: UnknownFunction): Promise<Dictionary> {
     const promise = utils.put('workflow', id, obj, this.options);
     if (cb) {
       try {
@@ -327,7 +332,7 @@ export class REST {
     return promise;
   }
 
-  async createWorkflow(obj: ObjectDict, cb?: Function): Promise<ObjectDict> {
+  async createWorkflow(obj: Dictionary, cb?: UnknownFunction): Promise<Dictionary> {
     const promise = utils.post('workflow', obj, this.options);
     if (cb) {
       try {
@@ -339,11 +344,11 @@ export class REST {
     return promise;
   }
 
-  async startWorkflow(config: ObjectDict): Promise<ObjectDict> {
+  async startWorkflow(config: Dictionary): Promise<Dictionary> {
     return utils.post('workflow_instance', config, { ...this.options, legacy_form: true });
   }
 
-  async stopWorkflow(idWorkflowInstance: Index): Promise<ObjectDict> {
+  async stopWorkflow(idWorkflowInstance: Index): Promise<Dictionary> {
     return utils.put(
       'workflow_instance/stop',
       idWorkflowInstance.toString(),
@@ -362,8 +367,8 @@ export class REST {
       this.options,
     );
 
-    const data = asArrayRecursive(json.data, asRecord);
-    return data.map((o: ObjectDict) => ({
+    const data = asArrayOf(isDictionary)(json.data);
+    return data.map((o: Dictionary) => ({
       id_workflow_instance: o.id_ins,
       id_workflow: o.id_flo,
       run_id: o.run_id,
@@ -372,24 +377,25 @@ export class REST {
     }));
   }
 
-  async workflowInstance(id: Index): Promise<ObjectDict> {
+  async workflowInstance(id: Index): Promise<Dictionary> {
     return this.read('workflow_instance', id + '');
   }
 
-  async workflowConfig(id: string): Promise<ObjectDict> {
+  async workflowConfig(id: string): Promise<Dictionary> {
     return utils.get(`workflow/config/${id}`, this.options);
   }
 
-  async register(code: string, description: unknown): Promise<ObjectDict> {
+  async register(code: string, description: unknown): Promise<Dictionary> {
     return utils.put(
       'reg',
       code,
       {
         description: description || `${os.userInfo().username}@${os.hostname()}`,
       },
-      assign({}, this.options, {
+      {
+        ...this.options,
         signing: false,
-      }),
+      },
     );
   }
 
@@ -408,7 +414,7 @@ export class REST {
     }
 
     const sets = await this.list(`dataset?show=${query.show}`);
-    return asArrayRecursive(sets, asRecord);
+    return asArrayOf(isDictionary)(sets);
   }
 
   async dataset(id: string): Promise<unknown> {
@@ -416,12 +422,12 @@ export class REST {
       return this.read('dataset', id);
     }
 
-    const datasets = asArrayRecursive(await this.datasets(), asRecord);
+    const datasets = asArrayOf(isDictionary)(await this.datasets());
 
     return datasets.find((o) => o.id_dataset === id);
   }
 
-  async fetchContent(url: string): Promise<ObjectDict> {
+  async fetchContent(url: string): Promise<JSONObject | null> {
     const options = {
       ...this.options,
       skip_url_mangle: true,
@@ -439,11 +445,17 @@ export class REST {
       if (etag && cachedRes && cachedRes.etag === etag) {
         return cachedRes.response;
       }
-    } catch (headException) {
-      this.log.warn(`Failed to HEAD request ${url}: ${String(headException)}`);
+    } catch (err) {
+      const message = getErrorMessage(err);
+      // this is the standard reason for the error, and it's not really an error. Just that the report isn't ready yet
+      // so lets make the error less scary
+      if (message !== 'Network error 404') {
+        this.log.warn(`Failed to HEAD request ${url}: ${message}`);
+      }
+      return null;
     }
 
-    const response = await utils.get(url, options);
+    const response = (await utils.get(url, options)) as JSONObject;
     // cache only if the URLs endpoint supports HEAD requests with etag in the response
     if (etag) {
       this.cachedResponses.set(url, {
