@@ -1,7 +1,7 @@
 import type { Experiment, Experiments } from './sample.type';
 
 import { fdir } from 'fdir';
-import fs from 'fs/promises';
+import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { asString, Dictionary } from 'ts-runtime-typecheck';
@@ -136,7 +136,7 @@ export async function getSampleDirectory(): Promise<string> {
 
 export async function getOutputDirectoryConfig(location: string): Promise<string | null> {
   try {
-    const raw = await fs.readFile(location, 'utf-8');
+    const raw = await fs.promises.readFile(location, 'utf-8');
     const j = JSON.parse(raw);
     return asString(j.user.output_dirs.base.value0);
   } catch {
@@ -154,7 +154,7 @@ export async function isONTDevice(): Promise<boolean> {
   }
 
   try {
-    const users = await fs.readFile('/etc/passwd', 'utf-8');
+    const users = await fs.promises.readFile('/etc/passwd', 'utf-8');
     return /^(minit|grid|prom)/im.test(users);
   } catch {
     return false;
