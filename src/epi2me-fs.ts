@@ -11,6 +11,8 @@ import type { Configuration } from './Configuration.type';
 import type { JSONObject, Dictionary, Index } from 'ts-runtime-typecheck';
 import type { EPI2ME_OPTIONS } from './epi2me-options.type';
 import type { JSONValue } from 'ts-runtime-typecheck';
+import type { Agent } from 'http';
+import ProxyAgent from 'proxy-agent';
 
 import {
   asOptString,
@@ -56,6 +58,7 @@ import { Duration } from './Duration';
 import { asNodeError, isNodeError, NestedError, wrapAndLogError } from './NodeError';
 import type { InstanceTokenMutation, StartWorkflowMutation, StartWorkflowMutationVariables } from './generated/graphql';
 import { DEFAULT_OPTIONS } from './default_options';
+import Socket from './socket';
 
 const networkStreamErrors: WeakSet<Writable> = new WeakSet();
 
@@ -96,13 +99,20 @@ export class EPI2ME_FS extends EPI2ME {
   private telemetry?: Telemetry;
   private sqs?: AWS.SQS;
   private s3?: AWS.S3;
+  readonly proxyAgent?: Agent;
 
   constructor(opts: Partial<EPI2ME_OPTIONS>) {
     super(opts); // sets up this.config & this.log
 
+    const { proxy } = this.config.options;
+    const hasProxy = isDefined(proxy);
+    const proxyAgent = hasProxy ? ProxyAgent(proxy) : undefined;
+
+    this.proxyAgent = proxyAgent;
+
     // overwrite non-fs REST and GQL object
-    this.REST = new REST_FS(this.config.options);
-    this.graphQL = new GraphQLFS(this.config.options);
+    this.REST = new REST_FS(this.config.options, proxyAgent);
+    this.graphQL = new GraphQLFS(this.config.options, proxyAgent);
   }
 
   private fetchToken = async (): Promise<InstanceTokenMutation> => {
@@ -127,6 +137,9 @@ export class EPI2ME_FS extends EPI2ME {
       ...options,
       region: this.config.instance.region,
       credentials,
+      httpOptions: {
+        agent: this.proxyAgent,
+      },
     });
   }
 
@@ -136,6 +149,9 @@ export class EPI2ME_FS extends EPI2ME {
       ...options,
       region: this.config.instance.region,
       credentials,
+      httpOptions: {
+        agent: this.proxyAgent,
+      },
     });
   }
 
@@ -1030,7 +1046,7 @@ export class EPI2ME_FS extends EPI2ME {
     const telemetryNames = this.config?.instance?.telemetryNames;
     const idWorkflowInstance = makeString(this.config.instance.id_workflow_instance);
 
-    this.telemetry = Telemetry.connect(idWorkflowInstance, this.graphQL, asDefined(telemetryNames));
+    this.telemetry = Telemetry.connect(idWorkflowInstance, this.graphQL, asDefined(telemetryNames), this.proxyAgent);
 
     // const reports$ = this.telemetry.telemetryReports$().pipe(filter(isDefined));
 
@@ -1160,5 +1176,25 @@ export class EPI2ME_FS extends EPI2ME {
     } catch (err) {
       this.log.warn(NestedError.formatMessage('summary telemetry incomplete', err));
     }
+  }
+
+  realtimeFeedback(channel: string, object: unknown): void {
+    this.getSocket().emit(channel, object);
+  }
+
+  getSocket(): Socket {
+    if (this.socket) {
+      return this.socket;
+    }
+
+    const socket = new Socket(this.REST, this.config.options, this.proxyAgent);
+    const { id_workflow_instance: id } = this.config.instance;
+
+    if (id) {
+      socket.watch(`workflow_instance:state:${id}`, this.updateWorkerStatus);
+    }
+
+    this.socket = socket;
+    return socket;
   }
 }

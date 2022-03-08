@@ -4,6 +4,7 @@ import type { Logger } from './Logger.type';
 import type { SampleReader } from './sample-reader';
 import type { Index, Dictionary } from 'ts-runtime-typecheck';
 import type { EPI2ME_OPTIONS } from './epi2me-options.type';
+import type { Agent } from 'http';
 import { EPI2ME_FS } from './epi2me-fs';
 
 import { BehaviorSubject, Subject, merge } from 'rxjs';
@@ -80,8 +81,12 @@ export class Factory {
     return this.primary.SampleReader;
   }
 
+  get proxyAgent(): Agent | undefined {
+    return this.primary.proxyAgent;
+  }
+
   telemetry(id: string, telemetryNames: Dictionary<Dictionary<string>>): Telemetry {
-    return Telemetry.connect(id, this.graphQL, telemetryNames);
+    return Telemetry.connect(id, this.graphQL, telemetryNames, this.proxyAgent);
   }
 
   reset(options: Partial<EPI2ME_OPTIONS> = {}): void {

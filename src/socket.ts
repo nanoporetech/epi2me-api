@@ -2,6 +2,7 @@ import type { Logger } from './Logger.type';
 import type { REST } from './rest';
 import type { SocketOptions } from './socket.type';
 import type { Duration } from './Duration';
+import type { Agent } from 'http';
 
 import io from 'socket.io-client';
 import { isDictionary } from 'ts-runtime-typecheck';
@@ -14,21 +15,22 @@ export default class Socket {
   debounceWindow: Duration;
   socket?: ReturnType<typeof io>;
 
-  constructor(rest: REST, opts: SocketOptions) {
+  constructor(rest: REST, opts: SocketOptions, agent?: Agent) {
     this.debounceWindow = opts.debounceWindow;
     this.log = opts.log;
-    this.initialise(rest, opts.url);
+    this.initialise(rest, opts.url, agent);
   }
 
   destroy(): void {
     this.socket?.disconnect();
   }
 
-  private async initialise(rest: REST, url: string): Promise<void> {
+  private async initialise(rest: REST, url: string, agent?: Agent): Promise<void> {
     try {
       const jwt = await rest.jwt();
 
       this.socket = io(url, {
+        agent: agent as any, // appears to be an error in @types/socket.io-client here
         transportOptions: {
           polling: {
             extraHeaders: {

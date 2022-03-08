@@ -10,8 +10,14 @@ import path from 'path';
 import { asOptDictionary, asOptFunction, asFunction, asDictionary, isFunction } from 'ts-runtime-typecheck';
 import { REST } from './rest';
 import { utilsFS as utils } from './utils-fs';
+import type { Agent } from 'http';
+import type { Configuration } from './Configuration.type';
 
 export class REST_FS extends REST {
+  constructor(opts: Configuration['options'], proxyAgent?: Agent) {
+    super(opts, proxyAgent);
+  }
+
   async workflows(cb?: AsyncCallback): Promise<unknown> {
     if (!this.options.local) {
       return super.workflows(cb);

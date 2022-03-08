@@ -7,6 +7,7 @@ import type { AxiosResponse } from 'axios';
 import type { Index, Dictionary, UnknownFunction, JSONObject } from 'ts-runtime-typecheck';
 import type { AsyncCallback } from './rest.type';
 import type { Configuration } from './Configuration.type';
+import type { Agent } from 'http';
 
 import os from 'os';
 import { utils } from './utils';
@@ -34,9 +35,10 @@ export class REST {
   log: Logger;
   cachedResponses = new Map<string, { etag: string; response: JSONObject }>();
 
-  constructor(options: Configuration['options']) {
+  constructor(options: Configuration['options'], proxyAgent?: Agent) {
     this.options = options;
     this.log = this.options.log;
+    utils.setProxyAgent(proxyAgent);
   }
 
   async list(entity: string): Promise<unknown[]> {

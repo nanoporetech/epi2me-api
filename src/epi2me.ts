@@ -18,7 +18,6 @@ import { BehaviorSubject, combineLatest } from 'rxjs';
 import { GraphQL } from './graphql';
 import { niceSize } from './niceSize';
 import { REST } from './rest';
-import Socket from './socket';
 import { utils } from './utils';
 import { asDictionary, asString, asNumber, asIndexable, asIndex, asDefined } from 'ts-runtime-typecheck';
 import { createUploadState, createDownloadState } from './epi2me-state';
@@ -27,6 +26,7 @@ import { parseOptions } from './parseOptions';
 import { filter, mapTo, skipWhile, takeWhile } from 'rxjs/operators';
 import { wrapAndLogError } from './NodeError';
 import { DEFAULT_OPTIONS } from './default_options';
+import type Socket from './socket';
 export class EPI2ME {
   static version = DEFAULT_OPTIONS.agent_version;
   static utils = utils;
@@ -116,22 +116,6 @@ export class EPI2ME {
     return asIndex(this.config.instance.id_workflow_instance);
   }
 
-  getSocket(): Socket {
-    if (this.socket) {
-      return this.socket;
-    }
-
-    const socket = new Socket(this.REST, this.config.options);
-    const { id_workflow_instance: id } = this.config.instance;
-
-    if (id) {
-      socket.watch(`workflow_instance:state:${id}`, this.updateWorkerStatus);
-    }
-
-    this.socket = socket;
-    return socket;
-  }
-
   updateWorkerStatus = (newWorkerStatus: unknown): void => {
     const { instance: instanceConfig } = this.config;
     const components = instanceConfig.chain?.components;
@@ -169,10 +153,6 @@ export class EPI2ME {
 
     this.experimentalWorkerStatus$.next(results);
   };
-
-  realtimeFeedback(channel: string, object: unknown): void {
-    this.getSocket().emit(channel, object);
-  }
 
   setTimer(
     intervalName: 'downloadCheckInterval' | 'stateCheckInterval' | 'fileCheckInterval' | 'summaryTelemetryInterval',

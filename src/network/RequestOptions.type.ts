@@ -19,6 +19,12 @@ export interface RequestOptions {
   mutate_request?: (request: Request) => Promise<Request>;
 }
 
+export interface NodeRequestInit extends RequestInit {
+  agent?: Agent;
+}
+
+export type NodeFetch = (info: RequestInfo, init?: NodeRequestInit) => Promise<Response>;
+
 export interface ExtendedRequestOptions extends RequestOptions {
   method?: 'head' | 'get' | 'put' | 'post';
   body?: Body;

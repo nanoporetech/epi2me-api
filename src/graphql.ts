@@ -93,6 +93,9 @@ export class GraphQL {
         const headers = writeCommonHeaders({ headers: new Headers(init.headers) });
         headers.set('Authorization', `Bearer ${jwt}`);
         init.headers = headers;
+        // NOTE we don't do anything proxy related here
+        // it would be nice to offer the option but this is primarily used in the "web"
+        // version which cannot reference a HTTPAgent that's required
         return fetch(uri, init);
       };
     });

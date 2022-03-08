@@ -3,6 +3,7 @@ import sinon from 'sinon';
 import axios from 'axios';
 import { utils } from '../../src/utils';
 import { USER_AGENT } from '../../src/UserAgent.constants';
+import ProxyAgent from 'proxy-agent'
 
 describe('utils.get', () => {
   let stubs = [];
@@ -26,6 +27,7 @@ describe('utils.get', () => {
     stubs.forEach((s) => {
       s.restore();
     });
+    utils.setProxyAgent(undefined)
   });
 
   it('should invoke get', async () => {
@@ -83,8 +85,10 @@ describe('utils.get', () => {
 
   it('should invoke get with proxy', async () => {
     stubs.push(sinon.stub(axios, 'get').resolves({ data: { data: 'data' } }));
+    const proxy = 'http://proxy.internal:3128/'
+    utils.setProxyAgent(ProxyAgent(proxy));
     const data = await utils.get('entity/123', {
-      proxy: 'http://proxy.internal:3128/',
+      proxy,
       apikey: 'foo',
       url: 'http://epi2me.test',
       agent_version: '3.0.0',

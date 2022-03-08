@@ -17,6 +17,7 @@ import {
 import { isDefined } from 'ts-runtime-typecheck';
 import type { GraphQL } from './graphql';
 import { GetTelemetrySourceDocument } from './generated/graphql';
+import type { Agent } from 'http';
 
 const TELEMETRY_INTERVAL = 30 * 1000;
 const EXPIRY_GRACE_PERIOD = 5000;
@@ -37,8 +38,9 @@ export class Telemetry {
   readonly updates$: Observable<ExtendedTelemetrySource[]>;
   readonly reports$: Observable<{ report: JSONObject | null; id: string }[]>;
   readonly anyReportsReady$: Observable<boolean>;
+  httpAgent?: Agent;
 
-  constructor(id: string, graphql: GraphQL, telemetryNames: TelemetryNames) {
+  constructor(id: string, graphql: GraphQL, telemetryNames: TelemetryNames, httpAgent?: Agent) {
     /*
       NOTE this used to flatten sources so that each pipeline dealt with only
       1 report at a time, and then aggregated them as needed. This caused more
@@ -57,6 +59,7 @@ export class Telemetry {
       a new observable."
     */
 
+    this.httpAgent = httpAgent;
     // get the sources for the telemetry reports on this instance ( automatically updates when the sources expire )
     this.sources = this.getSources$(graphql, id, telemetryNames);
 
@@ -69,7 +72,7 @@ export class Telemetry {
       switchMap(async (sources) => {
         return Promise.all(
           sources.map(async (source) => {
-            const response = await fetch(source.headUrl, { method: 'head' });
+            const response = await fetch(source.headUrl, { method: 'head', agent: this.httpAgent });
             if (!response.ok) {
               // when no report is available yet the head request produces a 404
               return { ...source, etag: '', hasReport: false };
@@ -134,7 +137,7 @@ export class Telemetry {
 
             // first run, or has changed. we should fetch the report content
             if (!reports || current.etag !== previousSources[index]?.etag) {
-              const response = await fetch(current.getUrl);
+              const response = await fetch(current.getUrl, { agent: this.httpAgent });
               if (!response.ok) {
                 throw new Error('Unable to retrieve report content');
               }
@@ -213,10 +216,10 @@ export class Telemetry {
   }
 
   // ensures we don't get more than 1 instance of telemetry for a epi2me instance
-  static connect(id: string, graphQL: GraphQL, reportNames: TelemetryNames): Telemetry {
+  static connect(id: string, graphQL: GraphQL, reportNames: TelemetryNames, httpAgent?: Agent): Telemetry {
     let inst = TELEMETRY_INSTANCES.get(id);
     if (!inst) {
-      inst = new Telemetry(id, graphQL, reportNames);
+      inst = new Telemetry(id, graphQL, reportNames, httpAgent);
       TELEMETRY_INSTANCES.set(id, inst);
     }
     return inst;

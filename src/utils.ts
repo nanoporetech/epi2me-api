@@ -3,20 +3,20 @@
  * Authors: rpettett, ahurst, gvanginkel
  * Created: 2016-05-17
  */
-import type { Dictionary } from 'ts-runtime-typecheck';
+import { Dictionary, isDefined } from 'ts-runtime-typecheck';
 import type { Logger } from './Logger.type';
 
 import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 import crypto from 'crypto';
 import { isDictionary } from 'ts-runtime-typecheck';
-import ProxyAgent from 'proxy-agent';
 import { NoopLogger } from './Logger';
 import { DEFAULT_OPTIONS } from './default_options';
 import { USER_AGENT } from './UserAgent.constants';
+import type { Agent } from 'http';
 
 axios.defaults.validateStatus = (status: number): boolean => status <= 504; // Reject only if the status code is greater than or equal to 500
-
 export interface Utility {
+  setProxyAgent(proxyAgent?: Agent): void;
   headers(request: AxiosRequestConfig, options: UtilityOptions): void;
   head(uri: string, options: UtilityOptions): Promise<AxiosResponse<unknown>>;
   get(uri: string, options: UtilityOptions): Promise<Dictionary>;
@@ -44,6 +44,8 @@ export interface UtilityOptions {
 }
 
 export const utils: Utility = (function magic(): Utility {
+  let proxyAgent: Agent | undefined = undefined;
+
   const internal = {
     sign: (req: AxiosRequestConfig, options?: UtilityOptions): void => {
       // unable to sign if options is undefined
@@ -130,6 +132,9 @@ export const utils: Utility = (function magic(): Utility {
   };
 
   return {
+    setProxyAgent(agent?: Agent) {
+      proxyAgent = agent;
+    },
     headers(req: AxiosRequestConfig, options: UtilityOptions): void {
       // common headers required for everything
       req.headers = {
@@ -147,11 +152,10 @@ export const utils: Utility = (function magic(): Utility {
         internal.sign(req, options);
       }
 
-      if (options.proxy) {
-        const proxy = ProxyAgent(options.proxy);
+      if (isDefined(proxyAgent)) {
         const log = options.log ?? NoopLogger;
         log.debug('Using proxy for request');
-        req.httpsAgent = proxy;
+        req.httpsAgent = proxyAgent;
         req.proxy = false; // do not double-interpret proxy settings
       }
     },
