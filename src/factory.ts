@@ -1,5 +1,3 @@
-import type { REST_FS } from './rest-fs';
-import type { GraphQL } from './graphql';
 import type { Logger } from './Logger.type';
 import type { SampleReader } from './sample-reader';
 import type { Index, Dictionary } from 'ts-runtime-typecheck';
@@ -13,6 +11,7 @@ import { Map as ImmutableMap } from 'immutable';
 import { Telemetry } from './telemetry';
 import { wrapAndLogError } from './NodeError';
 import type { StartWorkflowMutationVariables } from './generated/graphql';
+import type { GraphQLFS } from './graphql-fs';
 
 /*
 Factory seems to be designed with the intention that a version of the EPI2ME
@@ -53,10 +52,6 @@ export class Factory {
     });
   }
 
-  get utils(): typeof EPI2ME_FS.utils {
-    return this.EPI2ME.utils;
-  }
-
   get version(): string {
     return this.EPI2ME.version;
   }
@@ -65,18 +60,17 @@ export class Factory {
     return this.primary.log;
   }
 
-  get REST(): REST_FS {
-    return this.primary.REST;
-  }
-
   get url(): string {
-    return this.primary.url();
+    return this.primary.url;
   }
 
-  get graphQL(): GraphQL {
+  get graphQL(): GraphQLFS {
     return this.primary.graphQL;
   }
 
+  /**
+   * @deprecated use `getExperiments` instead
+   */
   get sampleReader(): SampleReader {
     return this.primary.SampleReader;
   }
@@ -114,42 +108,14 @@ export class Factory {
     inst.analysisStopped$.pipe(mapTo(inst.id)).subscribe((id: Index) => this.removeRunningInstanceById$.next(id));
   }
 
-  async startRun(
-    options: Partial<EPI2ME_OPTIONS>,
-    workflowConfig: {
-      id_workflow: string;
-      is_consented_human: 0 | 1;
-      user_defined: unknown;
-      instance_attributes: unknown;
-      compute_account?: Index;
-      storage_account?: Index;
-      store_results?: boolean;
-      workflowAttributes?: Dictionary<string | number | boolean>;
-    },
-  ): Promise<EPI2ME_FS> {
-    const inst = this.instantiate(options);
-    try {
-      await inst.autoStart(workflowConfig);
-      this.manageInstance(inst);
-    } catch (err) {
-      wrapAndLogError('experienced error starting', err, this.log);
-      try {
-        await inst.stopEverything();
-      } catch (err) {
-        wrapAndLogError('also experienced error stopping', err, this.log);
-      }
-    }
-    return inst;
-  }
-
   /**
    * @param {Object<string, any>} options
    * @param {GQLRunVariables} variables { userDefined: { [componentID]: { [paramOverride]: any } } }
    */
-  async startGQLRun(options: Partial<EPI2ME_OPTIONS>, variables: StartWorkflowMutationVariables): Promise<EPI2ME_FS> {
-    const inst = this.instantiate({ ...options, useGraphQL: true });
+  async startRun(options: Partial<EPI2ME_OPTIONS>, variables: StartWorkflowMutationVariables): Promise<EPI2ME_FS> {
+    const inst = this.instantiate({ ...options });
     try {
-      await inst.autoStartGQL(variables);
+      await inst.autoStart(variables);
       this.manageInstance(inst);
     } catch (err) {
       wrapAndLogError('experienced error starting', err, this.log);

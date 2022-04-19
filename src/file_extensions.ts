@@ -51,7 +51,7 @@ export function isValidExtension(filepath: string): boolean {
   return VALID_EXTENSIONS.has(ext);
 }
 
-export function defineExtensionCheck(format: string): (filepath: string, allowGzip: boolean) => boolean {
+export function defineExtensionCheck(format: string): (filepath: string, allowGzip?: boolean) => boolean {
   const gzipFormat = format + '.gz';
   return (filepath: string, allowGzip = false) => {
     const ext = getNormalisedFileExtension(filepath);

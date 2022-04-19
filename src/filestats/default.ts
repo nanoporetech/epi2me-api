@@ -1,7 +1,7 @@
 import fs from 'fs';
+import type { DefaultStats } from './filestats.type';
 
-export async function genericFileStatistics(filePath: string): Promise<{ type: string; bytes: number }> {
-  return fs.promises.stat(filePath).then((d) => {
-    return { type: 'bytes', bytes: d.size };
-  });
+export async function genericFileStatistics(filePath: string): Promise<DefaultStats> {
+  const { size: bytes } = await fs.promises.stat(filePath);
+  return { type: 'bytes', bytes };
 }

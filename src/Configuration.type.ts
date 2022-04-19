@@ -15,7 +15,6 @@ export interface Configuration {
     inFlightDelay: Duration;
     waitTimeSeconds: Duration;
     debounceWindow: Duration;
-    useGraphQL: boolean;
     waitTokenError: number;
     transferPoolSize: number;
     downloadMode: 'data' | 'telemetry' | 'none' | 'data+telemetry';

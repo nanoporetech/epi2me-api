@@ -1,10 +1,10 @@
 import type { Experiment, Experiments } from './sample.type';
 
-import { fdir } from 'fdir';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import { asString, Dictionary } from 'ts-runtime-typecheck';
+import { asDefined, asString, Dictionary } from 'ts-runtime-typecheck';
+import { createInspector } from 'fs-inspect';
 
 /**
  * @deprecated Use `getExperiments` instead
@@ -29,6 +29,45 @@ export class SampleReader {
   }
 }
 
+const samplePattern = /(?<date>[0-9]{8})_(?<time>[0-9]{4})_.*_(?<flowcell>\w+\d+)_\w+/;
+
+const sampleInspector = createInspector({
+  includeFolders: true,
+  maxDepth: 3,
+  filter: (info) => info.isDirectory && samplePattern.test(info.base),
+  map: (info) => {
+    const { date, time, flowcell } = asDefined(samplePattern.exec(info.base)).groups ?? {};
+
+    const startDate = parseDate(date, time);
+    const sample = info.base;
+    const experiment = path.basename(path.dirname(info.relative));
+
+    return {
+      sample,
+      flowcell,
+      path: path.join(info.absolute, 'fastq_pass'),
+      failed: path.join(info.absolute, 'fastq_fail'),
+      experiment,
+      startDate,
+    };
+  },
+});
+
+/**
+ * @param date YYYYMMDD
+ * @param time HHMM
+ */
+function parseDate(date: string, time: string): Date {
+  const years = +date.slice(0, 4),
+    months = +date.slice(4, 6),
+    days = +date.slice(6, 8);
+  const hours = +time.slice(0, 2),
+    minutes = +time.slice(2, 4);
+
+  // NOTE the 2nd parameter is a monthIndex, starting at 0
+  return new Date(years, months - 1, days, hours, minutes);
+}
+
 /*
   Taking a directory, look for MinKNOW results and build a tree of
   experiments and samples
@@ -49,52 +88,30 @@ export async function getExperiments(sourceDir?: string): Promise<Dictionary<Exp
   if (!sourceDir) {
     sourceDir = await getSampleDirectory();
   }
-  const fileToCheck = 'fastq_pass'; // Actually a dir now
-  // TODO refactor this to use fs-inspect to reduce our dependencies
-  const crawler = new fdir()
-    .withBasePath()
-    .withErrors()
-    .withDirs()
-    .filter((path: string) => !path.includes(fileToCheck))
-    .exclude((path: string) => path.includes('fastq_'))
-    .withMaxDepth(3)
-    .crawl(sourceDir);
 
   const experiments: Dictionary<Experiment> = {};
-
-  let files;
+  let samples;
   try {
-    files = (await crawler.withPromise()) as string[];
-  } catch {
-    // TODO this doesn't really feel like the correct behaviour
-    // should we check for ENOENT here perhaps?
+    samples = await sampleInspector.search(sourceDir);
+  } catch (err) {
     return experiments;
   }
 
-  for (const absPath of files) {
-    const [experiment, sample] = absPath.split(path.sep).slice(-2);
-    const parser = /(?<date>[0-9]{8})_(?<time>[0-9]{4})_.*_(?<flowcell>\w+\d+)_\w+/;
-    if (!experiment || !sample || !parser.test(sample)) {
-      continue;
-    }
-    const { date, time, flowcell } = parser.exec(sample)?.groups as { date: string; time: string; flowcell: string };
-    const dateString = `${date.slice(0, 4)}-${date.slice(4, 6)}-${date.slice(6, 8)}`;
-    const timeString = `T${time.slice(0, 2)}:${time.slice(2, 4)}:00`;
-    const startDate = new Date(dateString + timeString);
+  for (const sample of samples) {
+    const existing = experiments[sample.experiment];
+    const { startDate, experiment } = sample;
 
-    const newSample = { sample, flowcell, path: path.join(absPath, 'fastq_pass') };
     const startDateString = `${startDate.toDateString()} ${startDate.toLocaleTimeString()}`;
-    const existing = experiments[experiment];
 
     if (existing) {
       // WARN the old version used to update existing entries with a new start date
       // this behavior has been preserved, but is it correct?
       existing.startDate = startDateString;
-      existing.samples.push(newSample);
+      existing.samples.push(sample);
     } else {
       experiments[experiment] = {
         startDate: startDateString,
-        samples: [newSample],
+        samples: [sample],
       };
     }
   }

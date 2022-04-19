@@ -6,100 +6,49 @@
   If we need it we could potentially replace the signing behavior with web crypto, but it's problematic
   to test.
 */
-import type { RequestOptions } from './RequestOptions.type';
-import type { Body } from './Body.type';
-import type { Credentials } from './Credentials.type';
-import type { NetworkInterface } from './NetworkInterface.type';
 
-import { Network } from './index';
+import { isUndefined } from 'ts-runtime-typecheck';
 import crypto from 'crypto';
+import { fetch } from './fetch';
+import type { Agent } from 'http';
+import type { NodeRequestInit } from './RequestOptions.type';
+import type { Credentials } from './Credentials.type';
+import type { Client } from './Client.type';
+import { commonHeaders } from './common';
 
-export function signMessage(
-  headers: Headers,
-  createMessage: (headers: string[]) => string[],
-  { apikey, apisecret }: Credentials,
-  forceUppercaseHeaders = false,
-): void {
-  headers.set('X-EPI2ME-ApiKey', apikey);
-  headers.set('X-EPI2ME-SignatureDate', new Date().toISOString());
-
-  let keys: string[] = [];
-
-  headers.forEach((_value, key) => {
-    if (key.match(/^x-epi2me/i)) {
-      keys.push(key);
-    }
-  });
-
-  keys = keys.sort();
-
-  // Case matters. Uppercase for gql. Else for portal.
-  const message = createMessage(
-    keys.map((key) => `${forceUppercaseHeaders ? key.toUpperCase() : key}:${headers.get(key)}`),
-  ).join('\n');
-
-  const digest = crypto.createHmac('sha1', apisecret).update(message).digest('hex');
-  headers.set('X-EPI2ME-SignatureV0', digest);
+export interface SignedFetchOptions {
+  client: Client;
+  credentials?: Credentials;
+  agent?: Agent;
 }
 
-export function sign(request: Request, credentials: Credentials): Request {
-  const headers = request.headers;
-  let url = request.url;
-  // MC-6412 - signing generated with https://...:443 but validated with https://...
-  if (url.match(/^https:/)) {
-    url = url.replace(/:443/, '');
-  }
-  if (url.match(/^http:/)) {
-    url = url.replace(/:80/, '');
+export function signMessage(init: RequestInit, client: Client, credentials?: Credentials): Headers {
+  const headers = commonHeaders(init, client);
+
+  if (isUndefined(credentials)) {
+    return headers;
   }
 
-  const createMessage = (headers: string[]): string[] => [url, ...headers];
-  signMessage(headers, createMessage, credentials);
-  return request;
+  headers.set('x-epi2me-apikey', credentials.apikey);
+  headers.set('x-epi2me-signaturedate', new Date().toISOString());
+
+  const message = [...headers]
+    .filter(([key]) => key.startsWith('x-epi2me'))
+    .sort()
+    .map(([key, value]) => `${key.toUpperCase()}:${value}`);
+
+  message.push(init.body?.toString() ?? '');
+
+  const digest = crypto.createHmac('sha1', credentials.apisecret).update(message.join('\n')).digest('hex');
+  headers.set('x-epi2me-signaturev0', digest);
+
+  return headers;
 }
 
-export const SignedNetwork: NetworkInterface = {
-  async get(uri: string, options: RequestOptions = {}): Promise<unknown> {
-    const key = options.credentials;
-    if (key) {
-      return Network.get(uri, {
-        ...options,
-        mutate_request: async (req) => sign(req, key),
-      });
-    }
-    return Network.get(uri, options);
-  },
+export function signedFetch(uri: string | URL, init: RequestInit, options: SignedFetchOptions): Promise<Response> {
+  const { client, credentials, agent } = options;
+  const headers = signMessage(init, client, credentials);
+  const newInit: NodeRequestInit = { ...init, headers, agent };
 
-  async head(uri: string, options: RequestOptions = {}): Promise<Response> {
-    const key = options.credentials;
-    if (key) {
-      return Network.head(uri, {
-        ...options,
-        mutate_request: async (req) => sign(req, key),
-      });
-    }
-    return Network.head(uri, options);
-  },
-
-  async put(uri: string, body: Body, options: RequestOptions = {}): Promise<unknown> {
-    const key = options.credentials;
-    if (key) {
-      return Network.put(uri, body, {
-        ...options,
-        mutate_request: async (req) => sign(req, key),
-      });
-    }
-    return Network.put(uri, body, options);
-  },
-
-  async post(uri: string, body: Body, options: RequestOptions = {}): Promise<unknown> {
-    const key = options.credentials;
-    if (key) {
-      return Network.post(uri, body, {
-        ...options,
-        mutate_request: async (req) => sign(req, key),
-      });
-    }
-    return Network.post(uri, body, options);
-  },
-};
+  return fetch(uri.toString(), newInit);
+}

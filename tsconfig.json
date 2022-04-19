@@ -7,6 +7,6 @@
       "@metrichor/epi2me-web": ["./src/index-web.ts"]
     }
   },
-  "include": ["**/*.ts"],
-  "exclude": ["./dist", "./node_modules", "./test"]
+  "include": ["**/*.ts", "**/*.js"],
+  "exclude": ["./dist", "./node_modules"]
 }

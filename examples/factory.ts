@@ -14,7 +14,7 @@ async function main () {
     console.log("RUNNING: ", Array.from(instances.keys()));
   });
 
-  const instance = await controller.startGQLRun({
+  const instance = await controller.startRun({
     inputFolders: [ SOURCE_DATA_LOCATION ]
   }, {
     idWorkflow: WORKFLOW_ID,

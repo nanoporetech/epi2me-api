@@ -4,6 +4,7 @@ export interface Sample {
   flowcell: string;
   sample: string;
   path: string;
+  startDate: Date;
 }
 
 export interface Experiment {

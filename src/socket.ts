@@ -1,5 +1,4 @@
 import type { Logger } from './Logger.type';
-import type { REST } from './rest';
 import type { SocketOptions } from './socket.type';
 import type { Duration } from './Duration';
 import type { Agent } from 'http';
@@ -8,28 +7,30 @@ import io from 'socket.io-client';
 import { isDictionary } from 'ts-runtime-typecheck';
 import { createTimeout } from './timers';
 import { wrapAndLogError } from './NodeError';
+import type { GraphQLFS } from './graphql-fs';
 
-export default class Socket {
-  debounces: Set<unknown> = new Set();
-  log: Logger;
-  debounceWindow: Duration;
-  socket?: ReturnType<typeof io>;
+export class Socket {
+  private debounces: Set<unknown> = new Set();
+  private log: Logger;
+  private debounceWindow: Duration;
+  private socket?: ReturnType<typeof io>;
 
-  constructor(rest: REST, opts: SocketOptions, agent?: Agent) {
+  constructor(opts: SocketOptions, gql: GraphQLFS, agent?: Agent) {
     this.debounceWindow = opts.debounceWindow;
     this.log = opts.log;
-    this.initialise(rest, opts.url, agent);
+    this.initialise(gql, opts.url, agent);
   }
 
   destroy(): void {
     this.socket?.disconnect();
   }
 
-  private async initialise(rest: REST, url: string, agent?: Agent): Promise<void> {
+  private async initialise(gql: GraphQLFS, url: string, agent?: Agent): Promise<void> {
     try {
-      const jwt = await rest.jwt();
+      const jwt = await gql.jwt();
 
       this.socket = io(url, {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         agent: agent as any, // appears to be an error in @types/socket.io-client here
         transportOptions: {
           polling: {
@@ -48,7 +49,7 @@ export default class Socket {
     }
   }
 
-  debounce(data: unknown, func: (data: unknown) => void): void {
+  private debounce(data: unknown, func: (data: unknown) => void): void {
     if (isDictionary(data) && '_uuid' in data) {
       const { _uuid: uuid } = data;
 

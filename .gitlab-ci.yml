@@ -15,13 +15,6 @@ variables:
     apt-get clean
     apt-get update
     apt-get install -y curl git wget lsb-release gnupg build-essential openssl unzip jq
-    echo "Installing protoc"
-    export PROTOC_ZIP=protoc-$PROTOC_VERSION-linux-x86_64.zip
-    echo "Fetching https://github.com/protocolbuffers/protobuf/releases/download/v$PROTOC_VERSION/$PROTOC_ZIP"
-    curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v$PROTOC_VERSION/$PROTOC_ZIP
-    unzip -o $PROTOC_ZIP -d /usr/local bin/protoc
-    unzip -o $PROTOC_ZIP -d /usr/local 'include/*'
-    rm -f $PROTOC_ZIP
     echo "Installing node.js"
     curl -sL https://deb.nodesource.com/setup_${NODEVER}.x > nodejs-repo
     chmod +x nodejs-repo
@@ -39,14 +32,6 @@ test:
     - *common
     - npm run lint
     - npm run cover
-
-.install-protobuf-compiler: &install_protobuf_compiler |
-    export PROTOC_ZIP=protoc-$PROTOC_VERSION-linux-x86_64.zip
-    echo "Fetching https://github.com/protocolbuffers/protobuf/releases/download/v$PROTOC_VERSION/$PROTOC_ZIP"
-    curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v$PROTOC_VERSION/$PROTOC_ZIP
-    unzip -o $PROTOC_ZIP -d /usr/local bin/protoc
-    unzip -o $PROTOC_ZIP -d /usr/local 'include/*'
-    rm -f $PROTOC_ZIP
 
 .npm-publish-external: &npm_publish_external
   stage: publish

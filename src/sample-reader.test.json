@@ -1,0 +1,3872 @@
+[
+  {
+    "files": {
+      "rehan_07_01_20": {
+        "VSK002_11_DEGREES": {
+          "20200107_1441_X5_FAL69641_c67dbc23": {
+            "fastq_pass": {
+              "a.fastq": "fastq content here"
+            }
+          },
+          "20200107_1441_X5_FAL69641_c67dbc24": {
+            "fastq_pass": {
+              "a.fastq": "fastq content here"
+            }
+          },
+          "bad": {
+            "fastq_pass": {
+              "a.fastq": "fastq content here"
+            }
+          }
+        }
+      }
+    },
+    "experiment": "rehan_07_01_20",
+    "samples": [
+      {
+        "flowcell": "FAL69641",
+        "sample": "20200107_1441_X5_FAL69641_c67dbc23",
+        "path": "rehan_07_01_20/VSK002_11_DEGREES/20200107_1441_X5_FAL69641_c67dbc23/fastq_pass"
+      },
+      {
+        "flowcell": "FAL69641",
+        "sample": "20200107_1441_X5_FAL69641_c67dbc24",
+        "path": "rehan_07_01_20/VSK002_11_DEGREES/20200107_1441_X5_FAL69641_c67dbc24/fastq_pass"
+      }
+    ]
+  },
+  {
+    "files": {
+      "ExampleExperiment": {
+        "ExampleSample": {
+          "30011003_1001_X_MOCK001_MockCommunity": {
+            "downloads": {
+              "16629": {
+                "PASS": {
+                  "fastq_pass_mock_community_sample_500_reads.fastq": ""
+                }
+              },
+              "epi2me-logs": {
+                "telemetry-16629.log": ""
+              }
+            },
+            "fastq_pass": {
+              "mock_community_sample_500_reads.fastq": ""
+            }
+          },
+          "30011003_1001_X_MOCK002_ConnectionTest": {
+            "fastq_pass": {
+              "CTC_FastQ_v2.fastq": ""
+            }
+          },
+          "30011003_1001_X_MOCK003_NoFastqPass": {},
+          "30011003_1001_X_MOCK004_FastaReference": {
+            "fastq_pass": {
+              "ONT_seq_test.fasta": ""
+            }
+          },
+          "30011003_1001_X_MOCK005_NormalRun": {
+            "fastq_pass": {
+              "FA7357_pass_6c623849_0.fastq": "",
+              "FA7357_pass_6c623849_1.fastq": "",
+              "FA7357_pass_6c623849_2.fastq": "",
+              "FA7357_pass_6c623849_3.fastq": "",
+              "FA7357_pass_6c623849_4.fastq": "",
+              "FA7357_pass_6c623849_5.fastq": "",
+              "FA7357_pass_6c623849_6.fastq": "",
+              "FA7357_pass_6c623849_7.fastq": "",
+              "FA7357_pass_6c623849_8.fastq": "",
+              "FA7357_pass_6c623849_9.fastq": ""
+            }
+          },
+          "30011003_1001_X_MOCK006_InvalidHeader": {
+            "fastq_pass": {
+              "ERR3493792.fastq": ""
+            }
+          },
+          "30011003_1001_X_MOCK007_InvalidAndGoodHeaders": {
+            "fastq_pass": {
+              "xaa.fastq": "",
+              "xab.fastq": "",
+              "xac.fastq": "",
+              "xad.fastq": "",
+              "split_aa.fastq": "",
+              "split_ab.fastq": "",
+              "split_ac.fastq": "",
+              "split_ad.fastq": "",
+              "split_ae.fastq": ""
+            }
+          }
+        }
+      }
+    },
+    "experiment": "ExampleExperiment",
+    "samples": [
+      {
+        "flowcell": "MOCK001",
+        "sample": "30011003_1001_X_MOCK001_MockCommunity",
+        "path": "ExampleExperiment/ExampleSample/30011003_1001_X_MOCK001_MockCommunity/fastq_pass"
+      },
+      {
+        "flowcell": "MOCK002",
+        "sample": "30011003_1001_X_MOCK002_ConnectionTest",
+        "path": "ExampleExperiment/ExampleSample/30011003_1001_X_MOCK002_ConnectionTest/fastq_pass"
+      },
+      {
+        "flowcell": "MOCK003",
+        "sample": "30011003_1001_X_MOCK003_NoFastqPass",
+        "path": "ExampleExperiment/ExampleSample/30011003_1001_X_MOCK003_NoFastqPass/fastq_pass"
+      },
+      {
+        "flowcell": "MOCK004",
+        "sample": "30011003_1001_X_MOCK004_FastaReference",
+        "path": "ExampleExperiment/ExampleSample/30011003_1001_X_MOCK004_FastaReference/fastq_pass"
+      },
+      {
+        "flowcell": "MOCK005",
+        "sample": "30011003_1001_X_MOCK005_NormalRun",
+        "path": "ExampleExperiment/ExampleSample/30011003_1001_X_MOCK005_NormalRun/fastq_pass"
+      },
+      {
+        "flowcell": "MOCK006",
+        "sample": "30011003_1001_X_MOCK006_InvalidHeader",
+        "path": "ExampleExperiment/ExampleSample/30011003_1001_X_MOCK006_InvalidHeader/fastq_pass"
+      },
+      {
+        "flowcell": "MOCK007",
+        "sample": "30011003_1001_X_MOCK007_InvalidAndGoodHeaders",
+        "path": "ExampleExperiment/ExampleSample/30011003_1001_X_MOCK007_InvalidAndGoodHeaders/fastq_pass"
+      }
+    ]
+  },
+  {
+    "files": {
+      "20220314_MT_WSH004_BATCH31_KBA_2ND": {
+        "no_sample": {
+          "20220314_1138_X2_FAS00781_eee658ec": {
+            "fastq_pass": {
+              "barcode08": {},
+              "barcode03": {},
+              "barcode05": {},
+              "barcode07": {},
+              "barcode04": {},
+              "unclassified": {},
+              "barcode06": {},
+              "barcode01": {},
+              "barcode02": {}
+            },
+            "fastq_fail": {
+              "barcode08": {},
+              "barcode05": {},
+              "barcode07": {},
+              "unclassified": {},
+              "barcode06": {},
+              "barcode01": {}
+            }
+          },
+          "20220314_1138_X4_FAR99418_5f7946a7": {
+            "fastq_pass": {
+              "barcode08": {},
+              "barcode03": {},
+              "barcode05": {},
+              "barcode07": {},
+              "barcode04": {},
+              "unclassified": {},
+              "barcode06": {},
+              "barcode01": {},
+              "barcode02": {}
+            },
+            "fastq_fail": {
+              "barcode08": {},
+              "barcode03": {},
+              "barcode05": {},
+              "barcode07": {},
+              "barcode04": {},
+              "unclassified": {},
+              "barcode06": {},
+              "barcode01": {},
+              "barcode02": {}
+            }
+          },
+          "20220314_1138_X1_FAS00661_88fa96e9": {
+            "fastq_pass": {
+              "barcode08": {},
+              "barcode12": {},
+              "barcode03": {},
+              "barcode05": {},
+              "barcode07": {},
+              "barcode04": {},
+              "unclassified": {},
+              "barcode06": {},
+              "barcode01": {},
+              "barcode02": {}
+            },
+            "fastq_fail": {
+              "barcode08": {},
+              "barcode03": {},
+              "barcode05": {},
+              "barcode07": {},
+              "barcode04": {},
+              "unclassified": {},
+              "barcode06": {},
+              "barcode01": {},
+              "barcode02": {}
+            }
+          }
+        }
+      }
+    },
+    "experiment": "20220314_MT_WSH004_BATCH31_KBA_2ND",
+    "samples": [
+      {
+        "flowcell": "FAS00781",
+        "sample": "20220314_1138_X2_FAS00781_eee658ec",
+        "path": "20220314_MT_WSH004_BATCH31_KBA_2ND/no_sample/20220314_1138_X2_FAS00781_eee658ec/fastq_pass"
+      },
+      {
+        "flowcell": "FAR99418",
+        "sample": "20220314_1138_X4_FAR99418_5f7946a7",
+        "path": "20220314_MT_WSH004_BATCH31_KBA_2ND/no_sample/20220314_1138_X4_FAR99418_5f7946a7/fastq_pass"
+      },
+      {
+        "flowcell": "FAS00661",
+        "sample": "20220314_1138_X1_FAS00661_88fa96e9",
+        "path": "20220314_MT_WSH004_BATCH31_KBA_2ND/no_sample/20220314_1138_X1_FAS00661_88fa96e9/fastq_pass"
+      }
+    ]
+  },
+  {
+    "files": {
+      "20220309_MT_LSK109_XL_BASELINE_MIN": {
+        "no_sample": {
+          "20220309_1643_X5_FAR95916_d3b3f7a6": {
+            "fastq_pass": {},
+            "fastq_fail": {}
+          }
+        }
+      }
+    },
+    "experiment": "20220309_MT_LSK109_XL_BASELINE_MIN",
+    "samples": [
+      {
+        "flowcell": "FAR95916",
+        "sample": "20220309_1643_X5_FAR95916_d3b3f7a6",
+        "path": "20220309_MT_LSK109_XL_BASELINE_MIN/no_sample/20220309_1643_X5_FAR95916_d3b3f7a6/fastq_pass"
+      }
+    ]
+  },
+  {
+    "files": {
+      "20220301_AL_PQCTT-1559_SHELFLIFE": {
+        "no_sample": {
+          "20220301_1139_X1_AIQ334_a4c10eff": {
+            "fastq_pass": {},
+            "fastq_fail": {}
+          },
+          "20220301_1139_X2_AIQ365_8b287d66": {
+            "fastq_pass": {},
+            "fastq_fail": {}
+          },
+          "20220301_1139_X4_AIQ884_5dd4d293": {
+            "fastq_pass": {},
+            "fastq_fail": {}
+          }
+        }
+      }
+    },
+    "experiment": "20220301_AL_PQCTT-1559_SHELFLIFE",
+    "samples": [
+      {
+        "flowcell": "AIQ334",
+        "sample": "20220301_1139_X1_AIQ334_a4c10eff",
+        "path": "20220301_AL_PQCTT-1559_SHELFLIFE/no_sample/20220301_1139_X1_AIQ334_a4c10eff/fastq_pass"
+      },
+      {
+        "flowcell": "AIQ365",
+        "sample": "20220301_1139_X2_AIQ365_8b287d66",
+        "path": "20220301_AL_PQCTT-1559_SHELFLIFE/no_sample/20220301_1139_X2_AIQ365_8b287d66/fastq_pass"
+      },
+      {
+        "flowcell": "AIQ884",
+        "sample": "20220301_1139_X4_AIQ884_5dd4d293",
+        "path": "20220301_AL_PQCTT-1559_SHELFLIFE/no_sample/20220301_1139_X4_AIQ884_5dd4d293/fastq_pass"
+      }
+    ]
+  },
+  {
+    "files": {
+      "X5_check": {
+        "no_sample": {
+          "20220314_1553_X5_FAS01123_e6235066": {
+            "fastq_pass": {},
+            "fastq_fail": {}
+          }
+        }
+      }
+    },
+    "experiment": "X5_check",
+    "samples": [
+      {
+        "flowcell": "FAS01123",
+        "sample": "20220314_1553_X5_FAS01123_e6235066",
+        "path": "X5_check/no_sample/20220314_1553_X5_FAS01123_e6235066/fastq_pass"
+      }
+    ]
+  },
+  {
+    "files": {
+      "24Q": {
+        "no_sample": {
+          "20211202_1648_X2_FAR47130_175a9228": {
+            "fastq_pass": {
+              "unclassified": {}
+            },
+            "fastq_fail": {
+              "unclassified": {}
+            }
+          }
+        }
+      }
+    },
+    "experiment": "24Q",
+    "samples": [
+      {
+        "flowcell": "FAR47130",
+        "sample": "20211202_1648_X2_FAR47130_175a9228",
+        "path": "24Q/no_sample/20211202_1648_X2_FAR47130_175a9228/fastq_pass"
+      }
+    ]
+  },
+  {
+    "files": {
+      "20220302_AL_PQCTT-1561_SHELFLIFE": {
+        "no_sample": {
+          "20220302_1213_X2_AIL694_51463275": {
+            "fastq_pass": {},
+            "fastq_fail": {}
+          },
+          "20220302_1213_X4_AIO711_8354a58e": {
+            "fastq_pass": {},
+            "fastq_fail": {}
+          },
+          "20220302_1213_X1_AIK546_cca6b931": {
+            "fastq_pass": {},
+            "fastq_fail": {}
+          }
+        }
+      }
+    },
+    "experiment": "20220302_AL_PQCTT-1561_SHELFLIFE",
+    "samples": [
+      {
+        "flowcell": "AIL694",
+        "sample": "20220302_1213_X2_AIL694_51463275",
+        "path": "20220302_AL_PQCTT-1561_SHELFLIFE/no_sample/20220302_1213_X2_AIL694_51463275/fastq_pass"
+      },
+      {
+        "flowcell": "AIO711",
+        "sample": "20220302_1213_X4_AIO711_8354a58e",
+        "path": "20220302_AL_PQCTT-1561_SHELFLIFE/no_sample/20220302_1213_X4_AIO711_8354a58e/fastq_pass"
+      },
+      {
+        "flowcell": "AIK546",
+        "sample": "20220302_1213_X1_AIK546_cca6b931",
+        "path": "20220302_AL_PQCTT-1561_SHELFLIFE/no_sample/20220302_1213_X1_AIK546_cca6b931/fastq_pass"
+      }
+    ]
+  },
+  {
+    "files": {
+      "20220304_MT_RBK11096_BATCH15_MP9_AMP": {
+        "no_sample": {
+          "20220304_1317_X4_FAR95811_d5500724": {
+            "fastq_pass": {
+              "barcode08": {},
+              "barcode18": {},
+              "barcode94": {},
+              "barcode21": {},
+              "barcode15": {},
+              "barcode28": {},
+              "barcode91": {},
+              "barcode56": {},
+              "barcode12": {},
+              "barcode63": {},
+              "barcode43": {},
+              "barcode17": {},
+              "barcode40": {},
+              "barcode26": {},
+              "barcode03": {},
+              "barcode38": {},
+              "barcode81": {},
+              "barcode83": {},
+              "barcode75": {},
+              "barcode20": {},
+              "barcode39": {},
+              "barcode96": {},
+              "barcode52": {},
+              "barcode55": {},
+              "barcode58": {},
+              "barcode85": {},
+              "barcode10": {},
+              "barcode53": {},
+              "barcode74": {},
+              "barcode34": {},
+              "barcode61": {},
+              "barcode71": {},
+              "barcode69": {},
+              "barcode59": {},
+              "barcode37": {},
+              "barcode05": {},
+              "barcode57": {},
+              "barcode88": {},
+              "barcode07": {},
+              "barcode67": {},
+              "barcode04": {},
+              "barcode93": {},
+              "barcode68": {},
+              "unclassified": {},
+              "barcode23": {},
+              "barcode41": {},
+              "barcode48": {},
+              "barcode90": {},
+              "barcode79": {},
+              "barcode27": {},
+              "barcode25": {},
+              "barcode72": {},
+              "barcode35": {},
+              "barcode06": {},
+              "barcode77": {},
+              "barcode30": {},
+              "barcode01": {},
+              "barcode44": {},
+              "barcode78": {},
+              "barcode86": {},
+              "barcode46": {},
+              "barcode11": {},
+              "barcode49": {},
+              "barcode76": {},
+              "barcode60": {},
+              "barcode65": {},
+              "barcode51": {},
+              "barcode31": {},
+              "barcode89": {},
+              "barcode02": {},
+              "barcode42": {},
+              "barcode13": {},
+              "barcode09": {},
+              "barcode87": {},
+              "barcode70": {},
+              "barcode82": {},
+              "barcode47": {},
+              "barcode84": {},
+              "barcode22": {},
+              "barcode54": {},
+              "barcode24": {},
+              "barcode62": {},
+              "barcode19": {},
+              "barcode33": {},
+              "barcode36": {},
+              "barcode32": {},
+              "barcode73": {},
+              "barcode45": {},
+              "barcode64": {},
+              "barcode66": {},
+              "barcode92": {},
+              "barcode50": {},
+              "barcode95": {},
+              "barcode29": {},
+              "barcode16": {},
+              "barcode14": {},
+              "barcode80": {}
+            },
+            "fastq_fail": {
+              "barcode08": {},
+              "barcode18": {},
+              "barcode94": {},
+              "barcode21": {},
+              "barcode15": {},
+              "barcode28": {},
+              "barcode91": {},
+              "barcode56": {},
+              "barcode12": {},
+              "barcode63": {},
+              "barcode43": {},
+              "barcode17": {},
+              "barcode40": {},
+              "barcode26": {},
+              "barcode03": {},
+              "barcode38": {},
+              "barcode81": {},
+              "barcode83": {},
+              "barcode75": {},
+              "barcode20": {},
+              "barcode39": {},
+              "barcode96": {},
+              "barcode52": {},
+              "barcode55": {},
+              "barcode58": {},
+              "barcode85": {},
+              "barcode10": {},
+              "barcode53": {},
+              "barcode74": {},
+              "barcode34": {},
+              "barcode61": {},
+              "barcode71": {},
+              "barcode69": {},
+              "barcode59": {},
+              "barcode37": {},
+              "barcode05": {},
+              "barcode57": {},
+              "barcode88": {},
+              "barcode07": {},
+              "barcode67": {},
+              "barcode04": {},
+              "barcode93": {},
+              "barcode68": {},
+              "unclassified": {},
+              "barcode23": {},
+              "barcode41": {},
+              "barcode48": {},
+              "barcode90": {},
+              "barcode79": {},
+              "barcode27": {},
+              "barcode25": {},
+              "barcode72": {},
+              "barcode35": {},
+              "barcode06": {},
+              "barcode77": {},
+              "barcode30": {},
+              "barcode01": {},
+              "barcode44": {},
+              "barcode78": {},
+              "barcode86": {},
+              "barcode46": {},
+              "barcode11": {},
+              "barcode49": {},
+              "barcode76": {},
+              "barcode60": {},
+              "barcode65": {},
+              "barcode51": {},
+              "barcode31": {},
+              "barcode89": {},
+              "barcode02": {},
+              "barcode42": {},
+              "barcode13": {},
+              "barcode09": {},
+              "barcode87": {},
+              "barcode70": {},
+              "barcode82": {},
+              "barcode47": {},
+              "barcode84": {},
+              "barcode22": {},
+              "barcode54": {},
+              "barcode24": {},
+              "barcode62": {},
+              "barcode19": {},
+              "barcode33": {},
+              "barcode36": {},
+              "barcode32": {},
+              "barcode73": {},
+              "barcode45": {},
+              "barcode64": {},
+              "barcode66": {},
+              "barcode92": {},
+              "barcode50": {},
+              "barcode95": {},
+              "barcode29": {},
+              "barcode16": {},
+              "barcode14": {},
+              "barcode80": {}
+            }
+          }
+        }
+      }
+    },
+    "experiment": "20220304_MT_RBK11096_BATCH15_MP9_AMP",
+    "samples": [
+      {
+        "flowcell": "FAR95811",
+        "sample": "20220304_1317_X4_FAR95811_d5500724",
+        "path": "20220304_MT_RBK11096_BATCH15_MP9_AMP/no_sample/20220304_1317_X4_FAR95811_d5500724/fastq_pass"
+      }
+    ]
+  },
+  {
+    "files": {
+      "20220302_VM_NBD114_HAC": {
+        "no_sample": {
+          "20220302_1452_X5_AJF303_f6f8335f": {
+            "fastq_pass": {
+              "barcode18": {},
+              "barcode21": {},
+              "barcode15": {},
+              "barcode17": {},
+              "barcode20": {},
+              "unclassified": {},
+              "barcode23": {},
+              "barcode13": {},
+              "barcode22": {},
+              "barcode24": {},
+              "barcode19": {},
+              "barcode16": {},
+              "barcode14": {}
+            },
+            "fastq_fail": {
+              "barcode18": {},
+              "barcode21": {},
+              "barcode15": {},
+              "barcode17": {},
+              "barcode20": {},
+              "unclassified": {},
+              "barcode23": {},
+              "barcode13": {},
+              "barcode22": {},
+              "barcode24": {},
+              "barcode19": {},
+              "barcode16": {},
+              "barcode14": {}
+            }
+          }
+        }
+      }
+    },
+    "experiment": "20220302_VM_NBD114_HAC",
+    "samples": [
+      {
+        "flowcell": "AJF303",
+        "sample": "20220302_1452_X5_AJF303_f6f8335f",
+        "path": "20220302_VM_NBD114_HAC/no_sample/20220302_1452_X5_AJF303_f6f8335f/fastq_pass"
+      }
+    ]
+  },
+  {
+    "files": {
+      "20220314_MT_WSH004_BATCH31_KBA_3RD": {
+        "no_sample": {
+          "20220314_1325_X4_FAR99418_32fe7a47": {
+            "fastq_pass": {
+              "barcode08": {},
+              "barcode12": {},
+              "barcode10": {},
+              "barcode05": {},
+              "barcode07": {},
+              "barcode04": {},
+              "unclassified": {},
+              "barcode06": {},
+              "barcode11": {},
+              "barcode02": {},
+              "barcode09": {}
+            },
+            "fastq_fail": {
+              "barcode08": {},
+              "barcode12": {},
+              "barcode10": {},
+              "barcode05": {},
+              "barcode07": {},
+              "barcode04": {},
+              "unclassified": {},
+              "barcode06": {},
+              "barcode11": {},
+              "barcode09": {}
+            }
+          },
+          "20220314_1325_X1_FAS00661_32624dad": {
+            "fastq_pass": {
+              "barcode08": {},
+              "barcode12": {},
+              "barcode10": {},
+              "barcode05": {},
+              "barcode07": {},
+              "unclassified": {},
+              "barcode06": {},
+              "barcode01": {},
+              "barcode11": {},
+              "barcode09": {}
+            },
+            "fastq_fail": {
+              "barcode08": {},
+              "barcode12": {},
+              "barcode10": {},
+              "barcode05": {},
+              "barcode07": {},
+              "unclassified": {},
+              "barcode11": {},
+              "barcode09": {}
+            }
+          },
+          "20220314_1325_X2_FAS00781_04ab6526": {
+            "fastq_pass": {
+              "barcode08": {},
+              "barcode12": {},
+              "barcode03": {},
+              "barcode10": {},
+              "barcode05": {},
+              "barcode07": {},
+              "barcode04": {},
+              "unclassified": {},
+              "barcode06": {},
+              "barcode01": {},
+              "barcode11": {},
+              "barcode09": {}
+            },
+            "fastq_fail": {
+              "barcode08": {},
+              "barcode12": {},
+              "barcode10": {},
+              "barcode05": {},
+              "barcode07": {},
+              "unclassified": {},
+              "barcode06": {},
+              "barcode11": {},
+              "barcode09": {}
+            }
+          }
+        }
+      }
+    },
+    "experiment": "20220314_MT_WSH004_BATCH31_KBA_3RD",
+    "samples": [
+      {
+        "flowcell": "FAR99418",
+        "sample": "20220314_1325_X4_FAR99418_32fe7a47",
+        "path": "20220314_MT_WSH004_BATCH31_KBA_3RD/no_sample/20220314_1325_X4_FAR99418_32fe7a47/fastq_pass"
+      },
+      {
+        "flowcell": "FAS00661",
+        "sample": "20220314_1325_X1_FAS00661_32624dad",
+        "path": "20220314_MT_WSH004_BATCH31_KBA_3RD/no_sample/20220314_1325_X1_FAS00661_32624dad/fastq_pass"
+      },
+      {
+        "flowcell": "FAS00781",
+        "sample": "20220314_1325_X2_FAS00781_04ab6526",
+        "path": "20220314_MT_WSH004_BATCH31_KBA_3RD/no_sample/20220314_1325_X2_FAS00781_04ab6526/fastq_pass"
+      }
+    ]
+  },
+  {
+    "files": {
+      "TEMP_CHECK": {
+        "no_sample": {
+          "20211213_1520_X2_FAQ43840_2e8b74c3": {
+            "fastq_pass": {},
+            "fastq_fail": {}
+          }
+        }
+      }
+    },
+    "experiment": "TEMP_CHECK",
+    "samples": [
+      {
+        "flowcell": "FAQ43840",
+        "sample": "20211213_1520_X2_FAQ43840_2e8b74c3",
+        "path": "TEMP_CHECK/no_sample/20211213_1520_X2_FAQ43840_2e8b74c3/fastq_pass"
+      }
+    ]
+  },
+  {
+    "files": {
+      "20220308_MT_RBK11096_BATCH15_BC18_AMP_T2": {
+        "no_sample": {
+          "20220308_1023_X2_FAS00373_f25f5464": {
+            "fastq_pass": {
+              "barcode08": {},
+              "barcode18": {},
+              "barcode28": {},
+              "barcode83": {},
+              "barcode52": {},
+              "barcode55": {},
+              "barcode74": {},
+              "barcode34": {},
+              "barcode05": {},
+              "barcode68": {},
+              "unclassified": {},
+              "barcode48": {},
+              "barcode72": {},
+              "barcode77": {},
+              "barcode78": {},
+              "barcode86": {},
+              "barcode76": {},
+              "barcode62": {},
+              "barcode92": {},
+              "barcode80": {}
+            },
+            "fastq_fail": {
+              "barcode08": {},
+              "barcode18": {},
+              "barcode94": {},
+              "barcode28": {},
+              "barcode56": {},
+              "barcode12": {},
+              "barcode26": {},
+              "barcode75": {},
+              "barcode55": {},
+              "barcode34": {},
+              "barcode93": {},
+              "barcode68": {},
+              "unclassified": {},
+              "barcode48": {},
+              "barcode72": {},
+              "barcode35": {},
+              "barcode78": {},
+              "barcode86": {},
+              "barcode76": {},
+              "barcode60": {},
+              "barcode31": {},
+              "barcode13": {},
+              "barcode84": {},
+              "barcode62": {},
+              "barcode16": {}
+            }
+          }
+        }
+      }
+    },
+    "experiment": "20220308_MT_RBK11096_BATCH15_BC18_AMP_T2",
+    "samples": [
+      {
+        "flowcell": "FAS00373",
+        "sample": "20220308_1023_X2_FAS00373_f25f5464",
+        "path": "20220308_MT_RBK11096_BATCH15_BC18_AMP_T2/no_sample/20220308_1023_X2_FAS00373_f25f5464/fastq_pass"
+      }
+    ]
+  },
+  {
+    "files": {
+      "20220304_VM_LSK110_BASELINE_HAC_F_RR": {
+        "no_sample": {
+          "20220304_1259_X4_AJO268_04131e3d": {
+            "fastq_pass": {},
+            "fastq_fail": {}
+          }
+        }
+      }
+    },
+    "experiment": "20220304_VM_LSK110_BASELINE_HAC_F_RR",
+    "samples": [
+      {
+        "flowcell": "AJO268",
+        "sample": "20220304_1259_X4_AJO268_04131e3d",
+        "path": "20220304_VM_LSK110_BASELINE_HAC_F_RR/no_sample/20220304_1259_X4_AJO268_04131e3d/fastq_pass"
+      }
+    ]
+  },
+  {
+    "files": {
+      "20220317_MT_LSK110_BASELINE_FLO": {
+        "no_sample": {
+          "20220317_1211_X4_AJP399_c6292b3b": {
+            "fastq_pass": {},
+            "fastq_fail": {}
+          },
+          "20220317_1211_X2_AJP060_2a85c896": {
+            "fastq_pass": {},
+            "fastq_fail": {}
+          }
+        }
+      }
+    },
+    "experiment": "20220317_MT_LSK110_BASELINE_FLO",
+    "samples": [
+      {
+        "flowcell": "AJP399",
+        "sample": "20220317_1211_X4_AJP399_c6292b3b",
+        "path": "20220317_MT_LSK110_BASELINE_FLO/no_sample/20220317_1211_X4_AJP399_c6292b3b/fastq_pass"
+      },
+      {
+        "flowcell": "AJP060",
+        "sample": "20220317_1211_X2_AJP060_2a85c896",
+        "path": "20220317_MT_LSK110_BASELINE_FLO/no_sample/20220317_1211_X2_AJP060_2a85c896/fastq_pass"
+      }
+    ]
+  },
+  {
+    "files": {
+      "reads": {
+        "tmp": {
+          "X3": {
+            "20210726_VM_LRK001_BASELINE": {
+              "no_sample": {
+                "20210726_1147_X3_FAQ50285_e2df2f86": {
+                  "fastq": {}
+                }
+              }
+            },
+            "20211118_MT_RBK196_BASELINE_F": {
+              "no_sample": {
+                "20211118_1708_X3_AIO750_423c865e": {
+                  "fastq": {}
+                }
+              }
+            }
+          },
+          "X5": {
+            "20211203_JS_AUX001_BASELINE": {
+              "no_sample": {
+                "20211203_1651_X5_FAR49620_dbb28034": {
+                  "fastq": {}
+                }
+              }
+            }
+          },
+          "X4": {
+            "20220112_VM_NBD104_BASELINE_FLONGLE": {
+              "no_sample": {
+                "20220112_1538_X4_AIZ609_a8d59256": {
+                  "fastq": {}
+                }
+              }
+            },
+            "20210810_JS_AMII_BATCH9_KBA": {
+              "no_sample": {
+                "20210810_1456_X4_FAQ48214_4d58bda1": {
+                  "fastq": {}
+                }
+              }
+            },
+            "20220324_MT_RNA002_BASELINE_MIN": {
+              "no_sample": {
+                "20220324_1335_X4_FAS07262_1f67ade2": {
+                  "fastq": {}
+                }
+              }
+            },
+            "20211011_MT_NBD104_BASELINE": {
+              "no_sample": {
+                "20211011_1347_X4_FAQ93736_1d94e9b6": {
+                  "fastq": {}
+                }
+              }
+            },
+            "20220303_MT_RAD004_BASELINE_FLO": {
+              "no_sample": {
+                "20220303_1235_X4_AJF360_680ce6b2": {
+                  "fastq": {}
+                }
+              }
+            }
+          },
+          "X1": {
+            "20211020_MT_LSK109_BOX74_KIT2KIT": {
+              "no_sample": {
+                "20211020_1654_X1_FAR59574_ab2c94d8": {
+                  "fastq": {}
+                }
+              }
+            },
+            "20210901_MT_RBK004_BASELINE": {
+              "no_sample": {
+                "20210901_1604_X1_FAQ68116_3eb0336d": {
+                  "fastq": {}
+                }
+              }
+            },
+            "20210817_RAD004_BATCH32_KBA": {
+              "no_sample": {
+                "20210817_1504_X1_FAQ63594_6a7c4fbb": {
+                  "fastq": {}
+                }
+              }
+            },
+            "20220324_VM_AUX110_BASELINE": {
+              "no_sample": {
+                "20220324_1156_X1_FAT41890_0280172b": {
+                  "fastq": {}
+                }
+              }
+            },
+            "20210823_MT_NBD114_AMII_BATCH10_KBA": {
+              "no_sample": {
+                "20210823_1541_X1_FAQ63978_2e4450f1": {
+                  "fastq": {}
+                }
+              }
+            }
+          },
+          "X2": {
+            "20220314_MT_WSH004_BATCH31_KBA_2ND": {
+              "no_sample": {
+                "20220314_1138_X2_FAS00781_eee658ec": {
+                  "fastq": {}
+                }
+              }
+            },
+            "20220221_JS_NBD196_KBR_BATCH5": {
+              "no_sample": {
+                "20220221_1309_X2_FAR96688_d3117d2e": {
+                  "fastq": {}
+                }
+              }
+            },
+            "20211216_VM_NBD104_KBA": {
+              "no_sample": {
+                "20211216_1300_X2_FAR68572_2402157d": {
+                  "fastq": {}
+                }
+              }
+            },
+            "20220324_MT_RNA002_BASELINE_MIN": {
+              "no_sample": {
+                "20220324_1335_X2_FAT43186_093736ff": {
+                  "fastq": {}
+                }
+              }
+            },
+            "20211103_AL_RBK11096_TT_FUNCTIONALITY": {
+              "no_sample": {
+                "20211103_1647_X2_FAR25345_bd6f748c": {
+                  "fastq": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "experiment": "reads",
+    "samples": []
+  },
+  {
+    "files": {
+      "20220318_JS_FSE001_BASELINE_FLONGLE": {
+        "no_sample": {
+          "20220318_1517_X1_AJP430_9f66b582": {
+            "fastq_pass": {},
+            "fastq_fail": {}
+          },
+          "20220318_1517_X2_AJP385_5093b1f0": {
+            "fastq_pass": {},
+            "fastq_fail": {}
+          },
+          "20220318_1517_X4_AJP410_813ffe21": {
+            "fastq_pass": {},
+            "fastq_fail": {}
+          }
+        }
+      }
+    },
+    "experiment": "20220318_JS_FSE001_BASELINE_FLONGLE",
+    "samples": [
+      {
+        "flowcell": "AJP430",
+        "sample": "20220318_1517_X1_AJP430_9f66b582",
+        "path": "20220318_JS_FSE001_BASELINE_FLONGLE/no_sample/20220318_1517_X1_AJP430_9f66b582/fastq_pass"
+      },
+      {
+        "flowcell": "AJP385",
+        "sample": "20220318_1517_X2_AJP385_5093b1f0",
+        "path": "20220318_JS_FSE001_BASELINE_FLONGLE/no_sample/20220318_1517_X2_AJP385_5093b1f0/fastq_pass"
+      },
+      {
+        "flowcell": "AJP410",
+        "sample": "20220318_1517_X4_AJP410_813ffe21",
+        "path": "20220318_JS_FSE001_BASELINE_FLONGLE/no_sample/20220318_1517_X4_AJP410_813ffe21/fastq_pass"
+      }
+    ]
+  },
+  {
+    "files": {
+      "20220314_MT_WSH004_BATCH31_KBA_1ST": {
+        "no_sample": {
+          "20220314_0950_X2_FAS00781_4f34af9b": {
+            "fastq_pass": {
+              "barcode03": {},
+              "barcode05": {},
+              "barcode04": {},
+              "unclassified": {},
+              "barcode01": {},
+              "barcode02": {},
+              "barcode09": {}
+            },
+            "fastq_fail": {
+              "barcode03": {},
+              "barcode05": {},
+              "barcode04": {},
+              "unclassified": {},
+              "barcode01": {},
+              "barcode02": {}
+            }
+          },
+          "20220314_0950_X4_FAR99418_7aa9d936": {
+            "fastq_pass": {
+              "barcode03": {},
+              "barcode04": {},
+              "unclassified": {},
+              "barcode01": {},
+              "barcode02": {}
+            },
+            "fastq_fail": {
+              "barcode03": {},
+              "barcode04": {},
+              "unclassified": {},
+              "barcode01": {},
+              "barcode02": {}
+            }
+          },
+          "20220314_0950_X1_FAS00661_452010cb": {
+            "fastq_pass": {
+              "barcode03": {},
+              "barcode04": {},
+              "unclassified": {},
+              "barcode01": {},
+              "barcode02": {},
+              "barcode09": {}
+            },
+            "fastq_fail": {
+              "barcode03": {},
+              "barcode04": {},
+              "unclassified": {},
+              "barcode01": {},
+              "barcode02": {}
+            }
+          }
+        }
+      }
+    },
+    "experiment": "20220314_MT_WSH004_BATCH31_KBA_1ST",
+    "samples": [
+      {
+        "flowcell": "FAS00781",
+        "sample": "20220314_0950_X2_FAS00781_4f34af9b",
+        "path": "20220314_MT_WSH004_BATCH31_KBA_1ST/no_sample/20220314_0950_X2_FAS00781_4f34af9b/fastq_pass"
+      },
+      {
+        "flowcell": "FAR99418",
+        "sample": "20220314_0950_X4_FAR99418_7aa9d936",
+        "path": "20220314_MT_WSH004_BATCH31_KBA_1ST/no_sample/20220314_0950_X4_FAR99418_7aa9d936/fastq_pass"
+      },
+      {
+        "flowcell": "FAS00661",
+        "sample": "20220314_0950_X1_FAS00661_452010cb",
+        "path": "20220314_MT_WSH004_BATCH31_KBA_1ST/no_sample/20220314_0950_X1_FAS00661_452010cb/fastq_pass"
+      }
+    ]
+  },
+  {
+    "files": {
+      "20220314_MT_NBD196_BATCH20_6_MP4_KBA": {
+        "no_sample": {
+          "20220314_1606_X1_FAS08997_e015fbde": {
+            "fastq_pass": {
+              "barcode08": {},
+              "barcode18": {},
+              "barcode94": {},
+              "barcode21": {},
+              "barcode15": {},
+              "barcode28": {},
+              "barcode91": {},
+              "barcode56": {},
+              "barcode12": {},
+              "barcode63": {},
+              "barcode43": {},
+              "barcode17": {},
+              "barcode40": {},
+              "barcode26": {},
+              "barcode03": {},
+              "barcode38": {},
+              "barcode81": {},
+              "barcode83": {},
+              "barcode75": {},
+              "barcode20": {},
+              "barcode39": {},
+              "barcode96": {},
+              "barcode52": {},
+              "barcode55": {},
+              "barcode58": {},
+              "barcode85": {},
+              "barcode10": {},
+              "barcode53": {},
+              "barcode74": {},
+              "barcode34": {},
+              "barcode61": {},
+              "barcode71": {},
+              "barcode69": {},
+              "barcode59": {},
+              "barcode37": {},
+              "barcode05": {},
+              "barcode57": {},
+              "barcode88": {},
+              "barcode07": {},
+              "barcode67": {},
+              "barcode04": {},
+              "barcode93": {},
+              "barcode68": {},
+              "unclassified": {},
+              "barcode23": {},
+              "barcode41": {},
+              "barcode48": {},
+              "barcode90": {},
+              "barcode79": {},
+              "barcode27": {},
+              "barcode25": {},
+              "barcode72": {},
+              "barcode35": {},
+              "barcode06": {},
+              "barcode77": {},
+              "barcode30": {},
+              "barcode01": {},
+              "barcode44": {},
+              "barcode78": {},
+              "barcode86": {},
+              "barcode46": {},
+              "barcode11": {},
+              "barcode49": {},
+              "barcode76": {},
+              "barcode60": {},
+              "barcode65": {},
+              "barcode51": {},
+              "barcode31": {},
+              "barcode89": {},
+              "barcode02": {},
+              "barcode42": {},
+              "barcode13": {},
+              "barcode09": {},
+              "barcode87": {},
+              "barcode70": {},
+              "barcode82": {},
+              "barcode47": {},
+              "barcode84": {},
+              "barcode22": {},
+              "barcode54": {},
+              "barcode24": {},
+              "barcode62": {},
+              "barcode19": {},
+              "barcode33": {},
+              "barcode36": {},
+              "barcode32": {},
+              "barcode73": {},
+              "barcode45": {},
+              "barcode64": {},
+              "barcode66": {},
+              "barcode92": {},
+              "barcode50": {},
+              "barcode95": {},
+              "barcode29": {},
+              "barcode16": {},
+              "barcode14": {},
+              "barcode80": {}
+            },
+            "fastq_fail": {
+              "barcode08": {},
+              "barcode18": {},
+              "barcode94": {},
+              "barcode21": {},
+              "barcode15": {},
+              "barcode28": {},
+              "barcode91": {},
+              "barcode56": {},
+              "barcode12": {},
+              "barcode63": {},
+              "barcode43": {},
+              "barcode17": {},
+              "barcode40": {},
+              "barcode26": {},
+              "barcode03": {},
+              "barcode38": {},
+              "barcode81": {},
+              "barcode83": {},
+              "barcode75": {},
+              "barcode20": {},
+              "barcode39": {},
+              "barcode96": {},
+              "barcode52": {},
+              "barcode55": {},
+              "barcode58": {},
+              "barcode85": {},
+              "barcode10": {},
+              "barcode53": {},
+              "barcode74": {},
+              "barcode34": {},
+              "barcode61": {},
+              "barcode71": {},
+              "barcode69": {},
+              "barcode59": {},
+              "barcode37": {},
+              "barcode05": {},
+              "barcode57": {},
+              "barcode88": {},
+              "barcode07": {},
+              "barcode67": {},
+              "barcode04": {},
+              "barcode93": {},
+              "barcode68": {},
+              "unclassified": {},
+              "barcode23": {},
+              "barcode41": {},
+              "barcode48": {},
+              "barcode90": {},
+              "barcode79": {},
+              "barcode27": {},
+              "barcode25": {},
+              "barcode72": {},
+              "barcode35": {},
+              "barcode06": {},
+              "barcode77": {},
+              "barcode30": {},
+              "barcode01": {},
+              "barcode44": {},
+              "barcode78": {},
+              "barcode86": {},
+              "barcode46": {},
+              "barcode11": {},
+              "barcode49": {},
+              "barcode76": {},
+              "barcode60": {},
+              "barcode65": {},
+              "barcode51": {},
+              "barcode31": {},
+              "barcode89": {},
+              "barcode02": {},
+              "barcode42": {},
+              "barcode13": {},
+              "barcode09": {},
+              "barcode87": {},
+              "barcode70": {},
+              "barcode82": {},
+              "barcode47": {},
+              "barcode84": {},
+              "barcode22": {},
+              "barcode54": {},
+              "barcode24": {},
+              "barcode62": {},
+              "barcode19": {},
+              "barcode33": {},
+              "barcode36": {},
+              "barcode32": {},
+              "barcode73": {},
+              "barcode45": {},
+              "barcode64": {},
+              "barcode66": {},
+              "barcode92": {},
+              "barcode50": {},
+              "barcode95": {},
+              "barcode29": {},
+              "barcode16": {},
+              "barcode14": {},
+              "barcode80": {}
+            }
+          },
+          "20220314_1606_X4_FAS28460_5c314ce5": {
+            "fastq_pass": {
+              "barcode08": {},
+              "barcode18": {},
+              "barcode94": {},
+              "barcode21": {},
+              "barcode15": {},
+              "barcode28": {},
+              "barcode91": {},
+              "barcode56": {},
+              "barcode12": {},
+              "barcode63": {},
+              "barcode43": {},
+              "barcode17": {},
+              "barcode40": {},
+              "barcode26": {},
+              "barcode03": {},
+              "barcode38": {},
+              "barcode81": {},
+              "barcode83": {},
+              "barcode75": {},
+              "barcode20": {},
+              "barcode39": {},
+              "barcode96": {},
+              "barcode52": {},
+              "barcode55": {},
+              "barcode58": {},
+              "barcode85": {},
+              "barcode10": {},
+              "barcode53": {},
+              "barcode74": {},
+              "barcode34": {},
+              "barcode61": {},
+              "barcode71": {},
+              "barcode69": {},
+              "barcode59": {},
+              "barcode37": {},
+              "barcode05": {},
+              "barcode57": {},
+              "barcode88": {},
+              "barcode07": {},
+              "barcode67": {},
+              "barcode04": {},
+              "barcode93": {},
+              "barcode68": {},
+              "unclassified": {},
+              "barcode23": {},
+              "barcode41": {},
+              "barcode48": {},
+              "barcode90": {},
+              "barcode79": {},
+              "barcode27": {},
+              "barcode25": {},
+              "barcode72": {},
+              "barcode35": {},
+              "barcode06": {},
+              "barcode77": {},
+              "barcode30": {},
+              "barcode01": {},
+              "barcode44": {},
+              "barcode78": {},
+              "barcode86": {},
+              "barcode46": {},
+              "barcode11": {},
+              "barcode49": {},
+              "barcode76": {},
+              "barcode60": {},
+              "barcode65": {},
+              "barcode51": {},
+              "barcode31": {},
+              "barcode89": {},
+              "barcode02": {},
+              "barcode42": {},
+              "barcode13": {},
+              "barcode09": {},
+              "barcode87": {},
+              "barcode70": {},
+              "barcode82": {},
+              "barcode47": {},
+              "barcode84": {},
+              "barcode22": {},
+              "barcode54": {},
+              "barcode24": {},
+              "barcode62": {},
+              "barcode19": {},
+              "barcode33": {},
+              "barcode36": {},
+              "barcode32": {},
+              "barcode73": {},
+              "barcode45": {},
+              "barcode64": {},
+              "barcode66": {},
+              "barcode92": {},
+              "barcode50": {},
+              "barcode95": {},
+              "barcode29": {},
+              "barcode16": {},
+              "barcode14": {},
+              "barcode80": {}
+            },
+            "fastq_fail": {
+              "barcode08": {},
+              "barcode18": {},
+              "barcode94": {},
+              "barcode21": {},
+              "barcode15": {},
+              "barcode28": {},
+              "barcode91": {},
+              "barcode56": {},
+              "barcode12": {},
+              "barcode63": {},
+              "barcode43": {},
+              "barcode17": {},
+              "barcode40": {},
+              "barcode26": {},
+              "barcode03": {},
+              "barcode38": {},
+              "barcode81": {},
+              "barcode83": {},
+              "barcode75": {},
+              "barcode20": {},
+              "barcode39": {},
+              "barcode96": {},
+              "barcode52": {},
+              "barcode55": {},
+              "barcode58": {},
+              "barcode85": {},
+              "barcode10": {},
+              "barcode53": {},
+              "barcode74": {},
+              "barcode34": {},
+              "barcode61": {},
+              "barcode71": {},
+              "barcode69": {},
+              "barcode59": {},
+              "barcode37": {},
+              "barcode05": {},
+              "barcode57": {},
+              "barcode88": {},
+              "barcode07": {},
+              "barcode67": {},
+              "barcode04": {},
+              "barcode93": {},
+              "barcode68": {},
+              "unclassified": {},
+              "barcode23": {},
+              "barcode41": {},
+              "barcode48": {},
+              "barcode90": {},
+              "barcode79": {},
+              "barcode27": {},
+              "barcode25": {},
+              "barcode72": {},
+              "barcode35": {},
+              "barcode06": {},
+              "barcode77": {},
+              "barcode30": {},
+              "barcode01": {},
+              "barcode44": {},
+              "barcode78": {},
+              "barcode86": {},
+              "barcode46": {},
+              "barcode11": {},
+              "barcode49": {},
+              "barcode76": {},
+              "barcode60": {},
+              "barcode65": {},
+              "barcode51": {},
+              "barcode31": {},
+              "barcode89": {},
+              "barcode02": {},
+              "barcode42": {},
+              "barcode13": {},
+              "barcode09": {},
+              "barcode87": {},
+              "barcode70": {},
+              "barcode82": {},
+              "barcode47": {},
+              "barcode84": {},
+              "barcode22": {},
+              "barcode54": {},
+              "barcode24": {},
+              "barcode62": {},
+              "barcode19": {},
+              "barcode33": {},
+              "barcode36": {},
+              "barcode32": {},
+              "barcode73": {},
+              "barcode45": {},
+              "barcode64": {},
+              "barcode66": {},
+              "barcode92": {},
+              "barcode50": {},
+              "barcode95": {},
+              "barcode29": {},
+              "barcode16": {},
+              "barcode14": {},
+              "barcode80": {}
+            }
+          },
+          "20220314_1606_X2_FAS20204_2923a162": {
+            "fastq_pass": {
+              "barcode08": {},
+              "barcode18": {},
+              "barcode94": {},
+              "barcode21": {},
+              "barcode15": {},
+              "barcode28": {},
+              "barcode91": {},
+              "barcode56": {},
+              "barcode12": {},
+              "barcode63": {},
+              "barcode43": {},
+              "barcode17": {},
+              "barcode40": {},
+              "barcode26": {},
+              "barcode03": {},
+              "barcode38": {},
+              "barcode81": {},
+              "barcode83": {},
+              "barcode75": {},
+              "barcode20": {},
+              "barcode39": {},
+              "barcode96": {},
+              "barcode52": {},
+              "barcode55": {},
+              "barcode58": {},
+              "barcode85": {},
+              "barcode10": {},
+              "barcode53": {},
+              "barcode74": {},
+              "barcode34": {},
+              "barcode61": {},
+              "barcode71": {},
+              "barcode69": {},
+              "barcode59": {},
+              "barcode37": {},
+              "barcode05": {},
+              "barcode57": {},
+              "barcode88": {},
+              "barcode07": {},
+              "barcode67": {},
+              "barcode04": {},
+              "barcode93": {},
+              "barcode68": {},
+              "unclassified": {},
+              "barcode23": {},
+              "barcode41": {},
+              "barcode48": {},
+              "barcode90": {},
+              "barcode79": {},
+              "barcode27": {},
+              "barcode25": {},
+              "barcode72": {},
+              "barcode35": {},
+              "barcode06": {},
+              "barcode77": {},
+              "barcode30": {},
+              "barcode01": {},
+              "barcode44": {},
+              "barcode78": {},
+              "barcode86": {},
+              "barcode46": {},
+              "barcode11": {},
+              "barcode49": {},
+              "barcode76": {},
+              "barcode60": {},
+              "barcode65": {},
+              "barcode51": {},
+              "barcode31": {},
+              "barcode89": {},
+              "barcode02": {},
+              "barcode42": {},
+              "barcode13": {},
+              "barcode09": {},
+              "barcode87": {},
+              "barcode70": {},
+              "barcode82": {},
+              "barcode47": {},
+              "barcode84": {},
+              "barcode22": {},
+              "barcode54": {},
+              "barcode24": {},
+              "barcode62": {},
+              "barcode19": {},
+              "barcode33": {},
+              "barcode36": {},
+              "barcode32": {},
+              "barcode73": {},
+              "barcode45": {},
+              "barcode64": {},
+              "barcode66": {},
+              "barcode92": {},
+              "barcode50": {},
+              "barcode95": {},
+              "barcode29": {},
+              "barcode16": {},
+              "barcode14": {},
+              "barcode80": {}
+            },
+            "fastq_fail": {
+              "barcode08": {},
+              "barcode18": {},
+              "barcode94": {},
+              "barcode21": {},
+              "barcode15": {},
+              "barcode28": {},
+              "barcode91": {},
+              "barcode56": {},
+              "barcode12": {},
+              "barcode63": {},
+              "barcode43": {},
+              "barcode17": {},
+              "barcode40": {},
+              "barcode26": {},
+              "barcode03": {},
+              "barcode38": {},
+              "barcode81": {},
+              "barcode83": {},
+              "barcode75": {},
+              "barcode20": {},
+              "barcode39": {},
+              "barcode96": {},
+              "barcode52": {},
+              "barcode55": {},
+              "barcode58": {},
+              "barcode85": {},
+              "barcode10": {},
+              "barcode53": {},
+              "barcode74": {},
+              "barcode34": {},
+              "barcode61": {},
+              "barcode71": {},
+              "barcode69": {},
+              "barcode59": {},
+              "barcode37": {},
+              "barcode05": {},
+              "barcode57": {},
+              "barcode88": {},
+              "barcode07": {},
+              "barcode67": {},
+              "barcode04": {},
+              "barcode93": {},
+              "barcode68": {},
+              "unclassified": {},
+              "barcode23": {},
+              "barcode41": {},
+              "barcode48": {},
+              "barcode90": {},
+              "barcode79": {},
+              "barcode27": {},
+              "barcode25": {},
+              "barcode72": {},
+              "barcode35": {},
+              "barcode06": {},
+              "barcode77": {},
+              "barcode30": {},
+              "barcode01": {},
+              "barcode44": {},
+              "barcode78": {},
+              "barcode86": {},
+              "barcode46": {},
+              "barcode11": {},
+              "barcode49": {},
+              "barcode76": {},
+              "barcode60": {},
+              "barcode65": {},
+              "barcode51": {},
+              "barcode31": {},
+              "barcode89": {},
+              "barcode02": {},
+              "barcode42": {},
+              "barcode13": {},
+              "barcode09": {},
+              "barcode87": {},
+              "barcode70": {},
+              "barcode82": {},
+              "barcode47": {},
+              "barcode84": {},
+              "barcode22": {},
+              "barcode54": {},
+              "barcode24": {},
+              "barcode62": {},
+              "barcode19": {},
+              "barcode33": {},
+              "barcode36": {},
+              "barcode32": {},
+              "barcode73": {},
+              "barcode45": {},
+              "barcode64": {},
+              "barcode66": {},
+              "barcode92": {},
+              "barcode50": {},
+              "barcode95": {},
+              "barcode29": {},
+              "barcode16": {},
+              "barcode14": {},
+              "barcode80": {}
+            }
+          }
+        }
+      }
+    },
+    "experiment": "20220314_MT_NBD196_BATCH20_6_MP4_KBA",
+    "samples": [
+      {
+        "flowcell": "FAS08997",
+        "sample": "20220314_1606_X1_FAS08997_e015fbde",
+        "path": "20220314_MT_NBD196_BATCH20_6_MP4_KBA/no_sample/20220314_1606_X1_FAS08997_e015fbde/fastq_pass"
+      },
+      {
+        "flowcell": "FAS28460",
+        "sample": "20220314_1606_X4_FAS28460_5c314ce5",
+        "path": "20220314_MT_NBD196_BATCH20_6_MP4_KBA/no_sample/20220314_1606_X4_FAS28460_5c314ce5/fastq_pass"
+      },
+      {
+        "flowcell": "FAS20204",
+        "sample": "20220314_1606_X2_FAS20204_2923a162",
+        "path": "20220314_MT_NBD196_BATCH20_6_MP4_KBA/no_sample/20220314_1606_X2_FAS20204_2923a162/fastq_pass"
+      }
+    ]
+  },
+  {
+    "files": {
+      "20220309_JS_RBK11096_BASELINE_FLONGLE": {
+        "no_sample": {
+          "20220309_1621_X1_AJO877_3da10488": {
+            "fastq_pass": {
+              "barcode08": {},
+              "barcode18": {},
+              "barcode94": {},
+              "barcode21": {},
+              "barcode15": {},
+              "barcode28": {},
+              "barcode91": {},
+              "barcode56": {},
+              "barcode12": {},
+              "barcode63": {},
+              "barcode17": {},
+              "barcode40": {},
+              "barcode26": {},
+              "barcode03": {},
+              "barcode38": {},
+              "barcode81": {},
+              "barcode75": {},
+              "barcode20": {},
+              "barcode39": {},
+              "barcode96": {},
+              "barcode52": {},
+              "barcode55": {},
+              "barcode58": {},
+              "barcode85": {},
+              "barcode10": {},
+              "barcode53": {},
+              "barcode74": {},
+              "barcode34": {},
+              "barcode61": {},
+              "barcode71": {},
+              "barcode69": {},
+              "barcode59": {},
+              "barcode37": {},
+              "barcode05": {},
+              "barcode57": {},
+              "barcode88": {},
+              "barcode07": {},
+              "barcode67": {},
+              "barcode04": {},
+              "barcode93": {},
+              "barcode68": {},
+              "unclassified": {},
+              "barcode23": {},
+              "barcode41": {},
+              "barcode48": {},
+              "barcode90": {},
+              "barcode79": {},
+              "barcode25": {},
+              "barcode72": {},
+              "barcode06": {},
+              "barcode77": {},
+              "barcode30": {},
+              "barcode01": {},
+              "barcode44": {},
+              "barcode78": {},
+              "barcode86": {},
+              "barcode46": {},
+              "barcode11": {},
+              "barcode49": {},
+              "barcode76": {},
+              "barcode60": {},
+              "barcode65": {},
+              "barcode51": {},
+              "barcode31": {},
+              "barcode89": {},
+              "barcode02": {},
+              "barcode42": {},
+              "barcode13": {},
+              "barcode09": {},
+              "barcode87": {},
+              "barcode70": {},
+              "barcode82": {},
+              "barcode47": {},
+              "barcode84": {},
+              "barcode22": {},
+              "barcode54": {},
+              "barcode24": {},
+              "barcode62": {},
+              "barcode19": {},
+              "barcode33": {},
+              "barcode36": {},
+              "barcode32": {},
+              "barcode73": {},
+              "barcode45": {},
+              "barcode64": {},
+              "barcode66": {},
+              "barcode92": {},
+              "barcode50": {},
+              "barcode95": {},
+              "barcode29": {},
+              "barcode16": {},
+              "barcode14": {},
+              "barcode80": {}
+            },
+            "fastq_fail": {
+              "barcode08": {},
+              "barcode18": {},
+              "barcode94": {},
+              "barcode21": {},
+              "barcode15": {},
+              "barcode28": {},
+              "barcode91": {},
+              "barcode56": {},
+              "barcode12": {},
+              "barcode63": {},
+              "barcode17": {},
+              "barcode40": {},
+              "barcode26": {},
+              "barcode03": {},
+              "barcode38": {},
+              "barcode81": {},
+              "barcode83": {},
+              "barcode75": {},
+              "barcode20": {},
+              "barcode39": {},
+              "barcode96": {},
+              "barcode52": {},
+              "barcode55": {},
+              "barcode58": {},
+              "barcode85": {},
+              "barcode10": {},
+              "barcode53": {},
+              "barcode74": {},
+              "barcode34": {},
+              "barcode61": {},
+              "barcode71": {},
+              "barcode69": {},
+              "barcode37": {},
+              "barcode05": {},
+              "barcode57": {},
+              "barcode88": {},
+              "barcode07": {},
+              "barcode67": {},
+              "barcode04": {},
+              "barcode93": {},
+              "barcode68": {},
+              "unclassified": {},
+              "barcode23": {},
+              "barcode41": {},
+              "barcode48": {},
+              "barcode90": {},
+              "barcode79": {},
+              "barcode27": {},
+              "barcode25": {},
+              "barcode72": {},
+              "barcode06": {},
+              "barcode77": {},
+              "barcode30": {},
+              "barcode01": {},
+              "barcode44": {},
+              "barcode78": {},
+              "barcode86": {},
+              "barcode46": {},
+              "barcode11": {},
+              "barcode49": {},
+              "barcode76": {},
+              "barcode60": {},
+              "barcode65": {},
+              "barcode51": {},
+              "barcode31": {},
+              "barcode89": {},
+              "barcode02": {},
+              "barcode42": {},
+              "barcode13": {},
+              "barcode09": {},
+              "barcode87": {},
+              "barcode70": {},
+              "barcode82": {},
+              "barcode47": {},
+              "barcode84": {},
+              "barcode22": {},
+              "barcode54": {},
+              "barcode24": {},
+              "barcode62": {},
+              "barcode19": {},
+              "barcode33": {},
+              "barcode36": {},
+              "barcode32": {},
+              "barcode73": {},
+              "barcode45": {},
+              "barcode64": {},
+              "barcode66": {},
+              "barcode92": {},
+              "barcode50": {},
+              "barcode95": {},
+              "barcode29": {},
+              "barcode16": {},
+              "barcode14": {},
+              "barcode80": {}
+            }
+          },
+          "20220309_1621_X4_AJO558_70ca6336": {
+            "fastq_pass": {
+              "barcode08": {},
+              "barcode18": {},
+              "barcode94": {},
+              "barcode21": {},
+              "barcode15": {},
+              "barcode28": {},
+              "barcode91": {},
+              "barcode56": {},
+              "barcode12": {},
+              "barcode63": {},
+              "barcode43": {},
+              "barcode17": {},
+              "barcode40": {},
+              "barcode26": {},
+              "barcode03": {},
+              "barcode38": {},
+              "barcode81": {},
+              "barcode83": {},
+              "barcode75": {},
+              "barcode20": {},
+              "barcode39": {},
+              "barcode96": {},
+              "barcode52": {},
+              "barcode55": {},
+              "barcode58": {},
+              "barcode85": {},
+              "barcode10": {},
+              "barcode53": {},
+              "barcode74": {},
+              "barcode34": {},
+              "barcode61": {},
+              "barcode71": {},
+              "barcode69": {},
+              "barcode59": {},
+              "barcode37": {},
+              "barcode05": {},
+              "barcode57": {},
+              "barcode88": {},
+              "barcode07": {},
+              "barcode67": {},
+              "barcode04": {},
+              "barcode93": {},
+              "barcode68": {},
+              "unclassified": {},
+              "barcode23": {},
+              "barcode41": {},
+              "barcode48": {},
+              "barcode90": {},
+              "barcode79": {},
+              "barcode27": {},
+              "barcode25": {},
+              "barcode72": {},
+              "barcode35": {},
+              "barcode06": {},
+              "barcode77": {},
+              "barcode30": {},
+              "barcode01": {},
+              "barcode44": {},
+              "barcode78": {},
+              "barcode86": {},
+              "barcode46": {},
+              "barcode11": {},
+              "barcode49": {},
+              "barcode76": {},
+              "barcode60": {},
+              "barcode65": {},
+              "barcode51": {},
+              "barcode31": {},
+              "barcode89": {},
+              "barcode02": {},
+              "barcode42": {},
+              "barcode13": {},
+              "barcode09": {},
+              "barcode87": {},
+              "barcode70": {},
+              "barcode82": {},
+              "barcode47": {},
+              "barcode84": {},
+              "barcode22": {},
+              "barcode54": {},
+              "barcode24": {},
+              "barcode62": {},
+              "barcode19": {},
+              "barcode33": {},
+              "barcode36": {},
+              "barcode32": {},
+              "barcode73": {},
+              "barcode45": {},
+              "barcode64": {},
+              "barcode66": {},
+              "barcode92": {},
+              "barcode50": {},
+              "barcode95": {},
+              "barcode29": {},
+              "barcode16": {},
+              "barcode14": {},
+              "barcode80": {}
+            },
+            "fastq_fail": {
+              "barcode08": {},
+              "barcode18": {},
+              "barcode94": {},
+              "barcode21": {},
+              "barcode15": {},
+              "barcode28": {},
+              "barcode91": {},
+              "barcode56": {},
+              "barcode12": {},
+              "barcode63": {},
+              "barcode43": {},
+              "barcode17": {},
+              "barcode40": {},
+              "barcode26": {},
+              "barcode03": {},
+              "barcode38": {},
+              "barcode81": {},
+              "barcode83": {},
+              "barcode75": {},
+              "barcode20": {},
+              "barcode39": {},
+              "barcode96": {},
+              "barcode52": {},
+              "barcode55": {},
+              "barcode58": {},
+              "barcode85": {},
+              "barcode10": {},
+              "barcode53": {},
+              "barcode74": {},
+              "barcode34": {},
+              "barcode61": {},
+              "barcode71": {},
+              "barcode69": {},
+              "barcode59": {},
+              "barcode37": {},
+              "barcode05": {},
+              "barcode57": {},
+              "barcode88": {},
+              "barcode07": {},
+              "barcode67": {},
+              "barcode04": {},
+              "barcode93": {},
+              "barcode68": {},
+              "unclassified": {},
+              "barcode23": {},
+              "barcode41": {},
+              "barcode48": {},
+              "barcode90": {},
+              "barcode79": {},
+              "barcode27": {},
+              "barcode25": {},
+              "barcode72": {},
+              "barcode35": {},
+              "barcode06": {},
+              "barcode77": {},
+              "barcode30": {},
+              "barcode01": {},
+              "barcode44": {},
+              "barcode78": {},
+              "barcode86": {},
+              "barcode46": {},
+              "barcode11": {},
+              "barcode49": {},
+              "barcode76": {},
+              "barcode60": {},
+              "barcode65": {},
+              "barcode51": {},
+              "barcode31": {},
+              "barcode89": {},
+              "barcode02": {},
+              "barcode42": {},
+              "barcode13": {},
+              "barcode09": {},
+              "barcode87": {},
+              "barcode70": {},
+              "barcode82": {},
+              "barcode47": {},
+              "barcode84": {},
+              "barcode22": {},
+              "barcode54": {},
+              "barcode24": {},
+              "barcode62": {},
+              "barcode19": {},
+              "barcode33": {},
+              "barcode36": {},
+              "barcode32": {},
+              "barcode73": {},
+              "barcode45": {},
+              "barcode64": {},
+              "barcode66": {},
+              "barcode92": {},
+              "barcode50": {},
+              "barcode95": {},
+              "barcode29": {},
+              "barcode16": {},
+              "barcode14": {},
+              "barcode80": {}
+            }
+          },
+          "20220309_1621_X2_AJP631_471070cf": {
+            "fastq_pass": {
+              "barcode08": {},
+              "barcode18": {},
+              "barcode94": {},
+              "barcode21": {},
+              "barcode15": {},
+              "barcode28": {},
+              "barcode91": {},
+              "barcode56": {},
+              "barcode12": {},
+              "barcode63": {},
+              "barcode43": {},
+              "barcode17": {},
+              "barcode40": {},
+              "barcode26": {},
+              "barcode03": {},
+              "barcode38": {},
+              "barcode81": {},
+              "barcode83": {},
+              "barcode75": {},
+              "barcode20": {},
+              "barcode39": {},
+              "barcode96": {},
+              "barcode52": {},
+              "barcode55": {},
+              "barcode58": {},
+              "barcode85": {},
+              "barcode10": {},
+              "barcode53": {},
+              "barcode74": {},
+              "barcode34": {},
+              "barcode61": {},
+              "barcode71": {},
+              "barcode69": {},
+              "barcode59": {},
+              "barcode37": {},
+              "barcode05": {},
+              "barcode57": {},
+              "barcode88": {},
+              "barcode07": {},
+              "barcode67": {},
+              "barcode04": {},
+              "barcode93": {},
+              "barcode68": {},
+              "unclassified": {},
+              "barcode23": {},
+              "barcode41": {},
+              "barcode48": {},
+              "barcode90": {},
+              "barcode79": {},
+              "barcode27": {},
+              "barcode25": {},
+              "barcode72": {},
+              "barcode35": {},
+              "barcode06": {},
+              "barcode77": {},
+              "barcode30": {},
+              "barcode01": {},
+              "barcode44": {},
+              "barcode78": {},
+              "barcode86": {},
+              "barcode46": {},
+              "barcode11": {},
+              "barcode49": {},
+              "barcode76": {},
+              "barcode60": {},
+              "barcode65": {},
+              "barcode51": {},
+              "barcode31": {},
+              "barcode89": {},
+              "barcode02": {},
+              "barcode42": {},
+              "barcode13": {},
+              "barcode09": {},
+              "barcode87": {},
+              "barcode70": {},
+              "barcode82": {},
+              "barcode47": {},
+              "barcode84": {},
+              "barcode22": {},
+              "barcode54": {},
+              "barcode24": {},
+              "barcode62": {},
+              "barcode19": {},
+              "barcode33": {},
+              "barcode36": {},
+              "barcode32": {},
+              "barcode73": {},
+              "barcode45": {},
+              "barcode64": {},
+              "barcode66": {},
+              "barcode92": {},
+              "barcode50": {},
+              "barcode95": {},
+              "barcode29": {},
+              "barcode16": {},
+              "barcode14": {},
+              "barcode80": {}
+            },
+            "fastq_fail": {
+              "barcode08": {},
+              "barcode18": {},
+              "barcode94": {},
+              "barcode21": {},
+              "barcode15": {},
+              "barcode28": {},
+              "barcode91": {},
+              "barcode56": {},
+              "barcode12": {},
+              "barcode63": {},
+              "barcode43": {},
+              "barcode17": {},
+              "barcode40": {},
+              "barcode26": {},
+              "barcode03": {},
+              "barcode38": {},
+              "barcode81": {},
+              "barcode83": {},
+              "barcode75": {},
+              "barcode20": {},
+              "barcode39": {},
+              "barcode96": {},
+              "barcode52": {},
+              "barcode55": {},
+              "barcode58": {},
+              "barcode85": {},
+              "barcode10": {},
+              "barcode53": {},
+              "barcode74": {},
+              "barcode34": {},
+              "barcode61": {},
+              "barcode71": {},
+              "barcode69": {},
+              "barcode59": {},
+              "barcode37": {},
+              "barcode05": {},
+              "barcode57": {},
+              "barcode88": {},
+              "barcode07": {},
+              "barcode67": {},
+              "barcode04": {},
+              "barcode93": {},
+              "barcode68": {},
+              "unclassified": {},
+              "barcode23": {},
+              "barcode41": {},
+              "barcode48": {},
+              "barcode90": {},
+              "barcode79": {},
+              "barcode27": {},
+              "barcode25": {},
+              "barcode72": {},
+              "barcode35": {},
+              "barcode06": {},
+              "barcode77": {},
+              "barcode30": {},
+              "barcode01": {},
+              "barcode44": {},
+              "barcode78": {},
+              "barcode86": {},
+              "barcode46": {},
+              "barcode11": {},
+              "barcode49": {},
+              "barcode76": {},
+              "barcode60": {},
+              "barcode65": {},
+              "barcode51": {},
+              "barcode31": {},
+              "barcode89": {},
+              "barcode02": {},
+              "barcode42": {},
+              "barcode13": {},
+              "barcode09": {},
+              "barcode87": {},
+              "barcode70": {},
+              "barcode82": {},
+              "barcode47": {},
+              "barcode84": {},
+              "barcode22": {},
+              "barcode54": {},
+              "barcode24": {},
+              "barcode62": {},
+              "barcode19": {},
+              "barcode33": {},
+              "barcode36": {},
+              "barcode32": {},
+              "barcode73": {},
+              "barcode45": {},
+              "barcode64": {},
+              "barcode66": {},
+              "barcode92": {},
+              "barcode50": {},
+              "barcode95": {},
+              "barcode29": {},
+              "barcode16": {},
+              "barcode14": {},
+              "barcode80": {}
+            }
+          }
+        }
+      }
+    },
+    "experiment": "20220309_JS_RBK11096_BASELINE_FLONGLE",
+    "samples": [
+      {
+        "flowcell": "AJO877",
+        "sample": "20220309_1621_X1_AJO877_3da10488",
+        "path": "20220309_JS_RBK11096_BASELINE_FLONGLE/no_sample/20220309_1621_X1_AJO877_3da10488/fastq_pass"
+      },
+      {
+        "flowcell": "AJO558",
+        "sample": "20220309_1621_X4_AJO558_70ca6336",
+        "path": "20220309_JS_RBK11096_BASELINE_FLONGLE/no_sample/20220309_1621_X4_AJO558_70ca6336/fastq_pass"
+      },
+      {
+        "flowcell": "AJP631",
+        "sample": "20220309_1621_X2_AJP631_471070cf",
+        "path": "20220309_JS_RBK11096_BASELINE_FLONGLE/no_sample/20220309_1621_X2_AJP631_471070cf/fastq_pass"
+      }
+    ]
+  },
+  {
+    "files": {
+      "20220324_MT_RNA002_BASELINE_MIN": {
+        "no_sample": {
+          "20220324_1335_X4_FAS07262_1f67ade2": {
+            "fastq_pass": {},
+            "fastq_fail": {}
+          },
+          "20220324_1335_X2_FAT43186_093736ff": {
+            "fastq_pass": {},
+            "fastq_fail": {}
+          }
+        }
+      }
+    },
+    "experiment": "20220324_MT_RNA002_BASELINE_MIN",
+    "samples": [
+      {
+        "flowcell": "FAS07262",
+        "sample": "20220324_1335_X4_FAS07262_1f67ade2",
+        "path": "20220324_MT_RNA002_BASELINE_MIN/no_sample/20220324_1335_X4_FAS07262_1f67ade2/fastq_pass"
+      },
+      {
+        "flowcell": "FAT43186",
+        "sample": "20220324_1335_X2_FAT43186_093736ff",
+        "path": "20220324_MT_RNA002_BASELINE_MIN/no_sample/20220324_1335_X2_FAT43186_093736ff/fastq_pass"
+      }
+    ]
+  },
+  {
+    "files": {
+      "20220308_JS_LSK110_BASELINE": {
+        "no_sample": {
+          "20220308_1522_X1_FAS01235_c3d2dbd7": {
+            "fastq_pass": {},
+            "fastq_fail": {}
+          },
+          "20220308_1522_X4_FAS00773_2f7209d2": {
+            "fastq_pass": {},
+            "fastq_fail": {}
+          },
+          "20220308_1522_X2_FAR95846_2559f2df": {
+            "fastq_pass": {},
+            "fastq_fail": {}
+          }
+        }
+      }
+    },
+    "experiment": "20220308_JS_LSK110_BASELINE",
+    "samples": [
+      {
+        "flowcell": "FAS01235",
+        "sample": "20220308_1522_X1_FAS01235_c3d2dbd7",
+        "path": "20220308_JS_LSK110_BASELINE/no_sample/20220308_1522_X1_FAS01235_c3d2dbd7/fastq_pass"
+      },
+      {
+        "flowcell": "FAS00773",
+        "sample": "20220308_1522_X4_FAS00773_2f7209d2",
+        "path": "20220308_JS_LSK110_BASELINE/no_sample/20220308_1522_X4_FAS00773_2f7209d2/fastq_pass"
+      },
+      {
+        "flowcell": "FAR95846",
+        "sample": "20220308_1522_X2_FAR95846_2559f2df",
+        "path": "20220308_JS_LSK110_BASELINE/no_sample/20220308_1522_X2_FAR95846_2559f2df/fastq_pass"
+      }
+    ]
+  },
+  {
+    "files": {
+      "20220304_JS_LSK110_BASELINE": {
+        "no_sample": {
+          "20220304_1641_X4_FAR97378_db7e1ae3": {
+            "fastq_pass": {},
+            "fastq_fail": {}
+          },
+          "20220304_1641_X5_FAR98366_0c20db59": {
+            "fastq_pass": {},
+            "fastq_fail": {}
+          }
+        }
+      }
+    },
+    "experiment": "20220304_JS_LSK110_BASELINE",
+    "samples": [
+      {
+        "flowcell": "FAR97378",
+        "sample": "20220304_1641_X4_FAR97378_db7e1ae3",
+        "path": "20220304_JS_LSK110_BASELINE/no_sample/20220304_1641_X4_FAR97378_db7e1ae3/fastq_pass"
+      },
+      {
+        "flowcell": "FAR98366",
+        "sample": "20220304_1641_X5_FAR98366_0c20db59",
+        "path": "20220304_JS_LSK110_BASELINE/no_sample/20220304_1641_X5_FAR98366_0c20db59/fastq_pass"
+      }
+    ]
+  },
+  {
+    "files": {
+      "20220315_MT_NBD196_BATCH20_6_MP8_KBA": {
+        "no_sample": {
+          "20220315_1614_X2_FAS09327_d55a9457": {
+            "fastq_pass": {
+              "barcode08": {},
+              "barcode18": {},
+              "barcode94": {},
+              "barcode21": {},
+              "barcode15": {},
+              "barcode28": {},
+              "barcode91": {},
+              "barcode56": {},
+              "barcode12": {},
+              "barcode63": {},
+              "barcode43": {},
+              "barcode17": {},
+              "barcode40": {},
+              "barcode26": {},
+              "barcode03": {},
+              "barcode38": {},
+              "barcode81": {},
+              "barcode83": {},
+              "barcode75": {},
+              "barcode20": {},
+              "barcode39": {},
+              "barcode96": {},
+              "barcode52": {},
+              "barcode55": {},
+              "barcode58": {},
+              "barcode85": {},
+              "barcode10": {},
+              "barcode53": {},
+              "barcode74": {},
+              "barcode34": {},
+              "barcode61": {},
+              "barcode71": {},
+              "barcode69": {},
+              "barcode59": {},
+              "barcode37": {},
+              "barcode05": {},
+              "barcode57": {},
+              "barcode88": {},
+              "barcode07": {},
+              "barcode67": {},
+              "barcode04": {},
+              "barcode93": {},
+              "barcode68": {},
+              "unclassified": {},
+              "barcode23": {},
+              "barcode41": {},
+              "barcode48": {},
+              "barcode90": {},
+              "barcode79": {},
+              "barcode27": {},
+              "barcode25": {},
+              "barcode72": {},
+              "barcode35": {},
+              "barcode06": {},
+              "barcode77": {},
+              "barcode30": {},
+              "barcode01": {},
+              "barcode44": {},
+              "barcode78": {},
+              "barcode86": {},
+              "barcode46": {},
+              "barcode11": {},
+              "barcode49": {},
+              "barcode76": {},
+              "barcode60": {},
+              "barcode65": {},
+              "barcode51": {},
+              "barcode31": {},
+              "barcode89": {},
+              "barcode02": {},
+              "barcode42": {},
+              "barcode13": {},
+              "barcode09": {},
+              "barcode87": {},
+              "barcode70": {},
+              "barcode82": {},
+              "barcode47": {},
+              "barcode84": {},
+              "barcode22": {},
+              "barcode54": {},
+              "barcode24": {},
+              "barcode62": {},
+              "barcode19": {},
+              "barcode33": {},
+              "barcode36": {},
+              "barcode32": {},
+              "barcode73": {},
+              "barcode45": {},
+              "barcode64": {},
+              "barcode66": {},
+              "barcode92": {},
+              "barcode50": {},
+              "barcode95": {},
+              "barcode29": {},
+              "barcode16": {},
+              "barcode14": {},
+              "barcode80": {}
+            },
+            "fastq_fail": {
+              "barcode08": {},
+              "barcode18": {},
+              "barcode94": {},
+              "barcode21": {},
+              "barcode15": {},
+              "barcode28": {},
+              "barcode91": {},
+              "barcode56": {},
+              "barcode12": {},
+              "barcode63": {},
+              "barcode43": {},
+              "barcode17": {},
+              "barcode40": {},
+              "barcode26": {},
+              "barcode03": {},
+              "barcode38": {},
+              "barcode81": {},
+              "barcode83": {},
+              "barcode75": {},
+              "barcode20": {},
+              "barcode39": {},
+              "barcode96": {},
+              "barcode52": {},
+              "barcode55": {},
+              "barcode58": {},
+              "barcode85": {},
+              "barcode10": {},
+              "barcode53": {},
+              "barcode74": {},
+              "barcode34": {},
+              "barcode61": {},
+              "barcode71": {},
+              "barcode69": {},
+              "barcode59": {},
+              "barcode37": {},
+              "barcode05": {},
+              "barcode57": {},
+              "barcode88": {},
+              "barcode07": {},
+              "barcode67": {},
+              "barcode04": {},
+              "barcode93": {},
+              "barcode68": {},
+              "unclassified": {},
+              "barcode23": {},
+              "barcode41": {},
+              "barcode48": {},
+              "barcode90": {},
+              "barcode79": {},
+              "barcode27": {},
+              "barcode25": {},
+              "barcode72": {},
+              "barcode35": {},
+              "barcode06": {},
+              "barcode77": {},
+              "barcode30": {},
+              "barcode01": {},
+              "barcode44": {},
+              "barcode78": {},
+              "barcode86": {},
+              "barcode46": {},
+              "barcode11": {},
+              "barcode49": {},
+              "barcode76": {},
+              "barcode60": {},
+              "barcode65": {},
+              "barcode51": {},
+              "barcode31": {},
+              "barcode89": {},
+              "barcode02": {},
+              "barcode42": {},
+              "barcode13": {},
+              "barcode09": {},
+              "barcode87": {},
+              "barcode70": {},
+              "barcode82": {},
+              "barcode47": {},
+              "barcode84": {},
+              "barcode22": {},
+              "barcode54": {},
+              "barcode24": {},
+              "barcode62": {},
+              "barcode19": {},
+              "barcode33": {},
+              "barcode36": {},
+              "barcode32": {},
+              "barcode73": {},
+              "barcode45": {},
+              "barcode64": {},
+              "barcode66": {},
+              "barcode92": {},
+              "barcode50": {},
+              "barcode95": {},
+              "barcode29": {},
+              "barcode16": {},
+              "barcode14": {},
+              "barcode80": {}
+            }
+          },
+          "20220315_1614_X4_FAS01212_9988bf78": {
+            "fastq_pass": {
+              "barcode08": {},
+              "barcode18": {},
+              "barcode94": {},
+              "barcode21": {},
+              "barcode15": {},
+              "barcode28": {},
+              "barcode91": {},
+              "barcode56": {},
+              "barcode12": {},
+              "barcode63": {},
+              "barcode43": {},
+              "barcode17": {},
+              "barcode40": {},
+              "barcode26": {},
+              "barcode03": {},
+              "barcode38": {},
+              "barcode81": {},
+              "barcode83": {},
+              "barcode75": {},
+              "barcode20": {},
+              "barcode39": {},
+              "barcode96": {},
+              "barcode52": {},
+              "barcode55": {},
+              "barcode58": {},
+              "barcode85": {},
+              "barcode10": {},
+              "barcode53": {},
+              "barcode74": {},
+              "barcode34": {},
+              "barcode61": {},
+              "barcode71": {},
+              "barcode69": {},
+              "barcode59": {},
+              "barcode37": {},
+              "barcode05": {},
+              "barcode57": {},
+              "barcode88": {},
+              "barcode07": {},
+              "barcode67": {},
+              "barcode04": {},
+              "barcode93": {},
+              "barcode68": {},
+              "unclassified": {},
+              "barcode23": {},
+              "barcode41": {},
+              "barcode48": {},
+              "barcode90": {},
+              "barcode79": {},
+              "barcode27": {},
+              "barcode25": {},
+              "barcode72": {},
+              "barcode35": {},
+              "barcode06": {},
+              "barcode77": {},
+              "barcode30": {},
+              "barcode01": {},
+              "barcode44": {},
+              "barcode78": {},
+              "barcode86": {},
+              "barcode46": {},
+              "barcode11": {},
+              "barcode49": {},
+              "barcode76": {},
+              "barcode60": {},
+              "barcode65": {},
+              "barcode51": {},
+              "barcode31": {},
+              "barcode89": {},
+              "barcode02": {},
+              "barcode42": {},
+              "barcode13": {},
+              "barcode09": {},
+              "barcode87": {},
+              "barcode70": {},
+              "barcode82": {},
+              "barcode47": {},
+              "barcode84": {},
+              "barcode22": {},
+              "barcode54": {},
+              "barcode24": {},
+              "barcode62": {},
+              "barcode19": {},
+              "barcode33": {},
+              "barcode36": {},
+              "barcode32": {},
+              "barcode73": {},
+              "barcode45": {},
+              "barcode64": {},
+              "barcode66": {},
+              "barcode92": {},
+              "barcode50": {},
+              "barcode95": {},
+              "barcode29": {},
+              "barcode16": {},
+              "barcode14": {},
+              "barcode80": {}
+            },
+            "fastq_fail": {
+              "barcode08": {},
+              "barcode18": {},
+              "barcode94": {},
+              "barcode21": {},
+              "barcode15": {},
+              "barcode28": {},
+              "barcode91": {},
+              "barcode56": {},
+              "barcode12": {},
+              "barcode63": {},
+              "barcode43": {},
+              "barcode17": {},
+              "barcode40": {},
+              "barcode26": {},
+              "barcode03": {},
+              "barcode38": {},
+              "barcode81": {},
+              "barcode83": {},
+              "barcode75": {},
+              "barcode20": {},
+              "barcode39": {},
+              "barcode96": {},
+              "barcode52": {},
+              "barcode55": {},
+              "barcode58": {},
+              "barcode85": {},
+              "barcode10": {},
+              "barcode53": {},
+              "barcode74": {},
+              "barcode34": {},
+              "barcode61": {},
+              "barcode71": {},
+              "barcode69": {},
+              "barcode59": {},
+              "barcode37": {},
+              "barcode05": {},
+              "barcode57": {},
+              "barcode88": {},
+              "barcode07": {},
+              "barcode67": {},
+              "barcode04": {},
+              "barcode93": {},
+              "barcode68": {},
+              "unclassified": {},
+              "barcode23": {},
+              "barcode41": {},
+              "barcode48": {},
+              "barcode90": {},
+              "barcode79": {},
+              "barcode27": {},
+              "barcode25": {},
+              "barcode72": {},
+              "barcode35": {},
+              "barcode06": {},
+              "barcode77": {},
+              "barcode30": {},
+              "barcode01": {},
+              "barcode44": {},
+              "barcode78": {},
+              "barcode86": {},
+              "barcode46": {},
+              "barcode11": {},
+              "barcode49": {},
+              "barcode76": {},
+              "barcode60": {},
+              "barcode65": {},
+              "barcode51": {},
+              "barcode31": {},
+              "barcode89": {},
+              "barcode02": {},
+              "barcode42": {},
+              "barcode13": {},
+              "barcode09": {},
+              "barcode87": {},
+              "barcode70": {},
+              "barcode82": {},
+              "barcode47": {},
+              "barcode84": {},
+              "barcode22": {},
+              "barcode54": {},
+              "barcode24": {},
+              "barcode62": {},
+              "barcode19": {},
+              "barcode33": {},
+              "barcode36": {},
+              "barcode32": {},
+              "barcode73": {},
+              "barcode45": {},
+              "barcode64": {},
+              "barcode66": {},
+              "barcode92": {},
+              "barcode50": {},
+              "barcode95": {},
+              "barcode29": {},
+              "barcode16": {},
+              "barcode14": {},
+              "barcode80": {}
+            }
+          },
+          "20220315_1614_X1_FAS28129_2e6398d7": {
+            "fastq_pass": {
+              "barcode08": {},
+              "barcode18": {},
+              "barcode94": {},
+              "barcode21": {},
+              "barcode15": {},
+              "barcode28": {},
+              "barcode91": {},
+              "barcode56": {},
+              "barcode12": {},
+              "barcode63": {},
+              "barcode43": {},
+              "barcode17": {},
+              "barcode40": {},
+              "barcode26": {},
+              "barcode03": {},
+              "barcode38": {},
+              "barcode81": {},
+              "barcode83": {},
+              "barcode75": {},
+              "barcode20": {},
+              "barcode39": {},
+              "barcode96": {},
+              "barcode52": {},
+              "barcode55": {},
+              "barcode58": {},
+              "barcode85": {},
+              "barcode10": {},
+              "barcode53": {},
+              "barcode74": {},
+              "barcode34": {},
+              "barcode61": {},
+              "barcode71": {},
+              "barcode69": {},
+              "barcode59": {},
+              "barcode37": {},
+              "barcode05": {},
+              "barcode57": {},
+              "barcode88": {},
+              "barcode07": {},
+              "barcode67": {},
+              "barcode04": {},
+              "barcode93": {},
+              "barcode68": {},
+              "unclassified": {},
+              "barcode23": {},
+              "barcode41": {},
+              "barcode48": {},
+              "barcode90": {},
+              "barcode79": {},
+              "barcode27": {},
+              "barcode25": {},
+              "barcode72": {},
+              "barcode35": {},
+              "barcode06": {},
+              "barcode77": {},
+              "barcode30": {},
+              "barcode01": {},
+              "barcode44": {},
+              "barcode78": {},
+              "barcode86": {},
+              "barcode46": {},
+              "barcode11": {},
+              "barcode49": {},
+              "barcode76": {},
+              "barcode60": {},
+              "barcode65": {},
+              "barcode51": {},
+              "barcode31": {},
+              "barcode89": {},
+              "barcode02": {},
+              "barcode42": {},
+              "barcode13": {},
+              "barcode09": {},
+              "barcode87": {},
+              "barcode70": {},
+              "barcode82": {},
+              "barcode47": {},
+              "barcode84": {},
+              "barcode22": {},
+              "barcode54": {},
+              "barcode24": {},
+              "barcode62": {},
+              "barcode19": {},
+              "barcode33": {},
+              "barcode36": {},
+              "barcode32": {},
+              "barcode73": {},
+              "barcode45": {},
+              "barcode64": {},
+              "barcode66": {},
+              "barcode92": {},
+              "barcode50": {},
+              "barcode95": {},
+              "barcode29": {},
+              "barcode16": {},
+              "barcode14": {},
+              "barcode80": {}
+            },
+            "fastq_fail": {
+              "barcode08": {},
+              "barcode18": {},
+              "barcode94": {},
+              "barcode21": {},
+              "barcode15": {},
+              "barcode28": {},
+              "barcode91": {},
+              "barcode56": {},
+              "barcode12": {},
+              "barcode63": {},
+              "barcode43": {},
+              "barcode17": {},
+              "barcode40": {},
+              "barcode26": {},
+              "barcode03": {},
+              "barcode38": {},
+              "barcode81": {},
+              "barcode83": {},
+              "barcode75": {},
+              "barcode20": {},
+              "barcode39": {},
+              "barcode96": {},
+              "barcode52": {},
+              "barcode55": {},
+              "barcode58": {},
+              "barcode85": {},
+              "barcode10": {},
+              "barcode53": {},
+              "barcode74": {},
+              "barcode34": {},
+              "barcode61": {},
+              "barcode71": {},
+              "barcode69": {},
+              "barcode59": {},
+              "barcode37": {},
+              "barcode05": {},
+              "barcode57": {},
+              "barcode88": {},
+              "barcode07": {},
+              "barcode67": {},
+              "barcode04": {},
+              "barcode93": {},
+              "barcode68": {},
+              "unclassified": {},
+              "barcode23": {},
+              "barcode41": {},
+              "barcode48": {},
+              "barcode90": {},
+              "barcode79": {},
+              "barcode27": {},
+              "barcode25": {},
+              "barcode72": {},
+              "barcode35": {},
+              "barcode06": {},
+              "barcode77": {},
+              "barcode30": {},
+              "barcode01": {},
+              "barcode44": {},
+              "barcode78": {},
+              "barcode86": {},
+              "barcode46": {},
+              "barcode11": {},
+              "barcode49": {},
+              "barcode76": {},
+              "barcode60": {},
+              "barcode65": {},
+              "barcode51": {},
+              "barcode31": {},
+              "barcode89": {},
+              "barcode02": {},
+              "barcode42": {},
+              "barcode13": {},
+              "barcode09": {},
+              "barcode87": {},
+              "barcode70": {},
+              "barcode82": {},
+              "barcode47": {},
+              "barcode84": {},
+              "barcode22": {},
+              "barcode54": {},
+              "barcode24": {},
+              "barcode62": {},
+              "barcode19": {},
+              "barcode33": {},
+              "barcode36": {},
+              "barcode32": {},
+              "barcode73": {},
+              "barcode45": {},
+              "barcode64": {},
+              "barcode66": {},
+              "barcode92": {},
+              "barcode50": {},
+              "barcode95": {},
+              "barcode29": {},
+              "barcode16": {},
+              "barcode14": {},
+              "barcode80": {}
+            }
+          }
+        }
+      }
+    },
+    "experiment": "20220315_MT_NBD196_BATCH20_6_MP8_KBA",
+    "samples": [
+      {
+        "flowcell": "FAS09327",
+        "sample": "20220315_1614_X2_FAS09327_d55a9457",
+        "path": "20220315_MT_NBD196_BATCH20_6_MP8_KBA/no_sample/20220315_1614_X2_FAS09327_d55a9457/fastq_pass"
+      },
+      {
+        "flowcell": "FAS01212",
+        "sample": "20220315_1614_X4_FAS01212_9988bf78",
+        "path": "20220315_MT_NBD196_BATCH20_6_MP8_KBA/no_sample/20220315_1614_X4_FAS01212_9988bf78/fastq_pass"
+      },
+      {
+        "flowcell": "FAS28129",
+        "sample": "20220315_1614_X1_FAS28129_2e6398d7",
+        "path": "20220315_MT_NBD196_BATCH20_6_MP8_KBA/no_sample/20220315_1614_X1_FAS28129_2e6398d7/fastq_pass"
+      }
+    ]
+  },
+  {
+    "files": {
+      "20220323_VM_RAD004_BASELINE_FLONGLE": {
+        "no_sample": {
+          "20220323_1030_X1_AJB204_175f1bc1": {
+            "fastq_pass": {},
+            "fastq_fail": {}
+          }
+        }
+      }
+    },
+    "experiment": "20220323_VM_RAD004_BASELINE_FLONGLE",
+    "samples": [
+      {
+        "flowcell": "AJB204",
+        "sample": "20220323_1030_X1_AJB204_175f1bc1",
+        "path": "20220323_VM_RAD004_BASELINE_FLONGLE/no_sample/20220323_1030_X1_AJB204_175f1bc1/fastq_pass"
+      }
+    ]
+  },
+  {
+    "files": {
+      "20220321_JS_NBD114_BATCH22_KBR": {
+        "no_sample": {
+          "20220321_1512_X4_FAR82003_f2bd25f2": {
+            "fastq_pass": {
+              "barcode18": {},
+              "barcode21": {},
+              "barcode15": {},
+              "barcode17": {},
+              "barcode20": {},
+              "unclassified": {},
+              "barcode23": {},
+              "barcode13": {},
+              "barcode22": {},
+              "barcode24": {},
+              "barcode19": {},
+              "barcode16": {},
+              "barcode14": {}
+            },
+            "fastq_fail": {
+              "barcode18": {},
+              "barcode21": {},
+              "barcode15": {},
+              "barcode17": {},
+              "barcode20": {},
+              "unclassified": {},
+              "barcode23": {},
+              "barcode13": {},
+              "barcode22": {},
+              "barcode24": {},
+              "barcode19": {},
+              "barcode16": {},
+              "barcode14": {}
+            }
+          },
+          "20220321_1512_X1_FAS28430_02d7b8e5": {
+            "fastq_pass": {
+              "barcode18": {},
+              "barcode21": {},
+              "barcode15": {},
+              "barcode17": {},
+              "barcode20": {},
+              "unclassified": {},
+              "barcode23": {},
+              "barcode13": {},
+              "barcode22": {},
+              "barcode24": {},
+              "barcode19": {},
+              "barcode16": {},
+              "barcode14": {}
+            },
+            "fastq_fail": {
+              "barcode18": {},
+              "barcode21": {},
+              "barcode15": {},
+              "barcode17": {},
+              "barcode20": {},
+              "unclassified": {},
+              "barcode23": {},
+              "barcode13": {},
+              "barcode22": {},
+              "barcode24": {},
+              "barcode19": {},
+              "barcode16": {},
+              "barcode14": {}
+            }
+          },
+          "20220321_1512_X2_FAS20294_e98b0208": {
+            "fastq_pass": {
+              "barcode18": {},
+              "barcode21": {},
+              "barcode15": {},
+              "barcode17": {},
+              "barcode20": {},
+              "unclassified": {},
+              "barcode23": {},
+              "barcode13": {},
+              "barcode22": {},
+              "barcode24": {},
+              "barcode19": {},
+              "barcode16": {},
+              "barcode14": {}
+            },
+            "fastq_fail": {
+              "barcode18": {},
+              "barcode21": {},
+              "barcode15": {},
+              "barcode17": {},
+              "barcode20": {},
+              "unclassified": {},
+              "barcode23": {},
+              "barcode13": {},
+              "barcode22": {},
+              "barcode24": {},
+              "barcode19": {},
+              "barcode16": {},
+              "barcode14": {}
+            }
+          }
+        }
+      }
+    },
+    "experiment": "20220321_JS_NBD114_BATCH22_KBR",
+    "samples": [
+      {
+        "flowcell": "FAR82003",
+        "sample": "20220321_1512_X4_FAR82003_f2bd25f2",
+        "path": "20220321_JS_NBD114_BATCH22_KBR/no_sample/20220321_1512_X4_FAR82003_f2bd25f2/fastq_pass"
+      },
+      {
+        "flowcell": "FAS28430",
+        "sample": "20220321_1512_X1_FAS28430_02d7b8e5",
+        "path": "20220321_JS_NBD114_BATCH22_KBR/no_sample/20220321_1512_X1_FAS28430_02d7b8e5/fastq_pass"
+      },
+      {
+        "flowcell": "FAS20294",
+        "sample": "20220321_1512_X2_FAS20294_e98b0208",
+        "path": "20220321_JS_NBD114_BATCH22_KBR/no_sample/20220321_1512_X2_FAS20294_e98b0208/fastq_pass"
+      }
+    ]
+  },
+  {
+    "files": {
+      "20220322_JS_LSK110_FLONGLE_BL": {
+        "no_sample": {
+          "20220322_1634_X2_AJB499_75770d3b": {
+            "fastq_pass": {},
+            "fastq_fail": {}
+          },
+          "20220322_1634_X4_AJL055_cc3b6e07": {
+            "fastq_pass": {},
+            "fastq_fail": {}
+          }
+        }
+      }
+    },
+    "experiment": "20220322_JS_LSK110_FLONGLE_BL",
+    "samples": [
+      {
+        "flowcell": "AJB499",
+        "sample": "20220322_1634_X2_AJB499_75770d3b",
+        "path": "20220322_JS_LSK110_FLONGLE_BL/no_sample/20220322_1634_X2_AJB499_75770d3b/fastq_pass"
+      },
+      {
+        "flowcell": "AJL055",
+        "sample": "20220322_1634_X4_AJL055_cc3b6e07",
+        "path": "20220322_JS_LSK110_FLONGLE_BL/no_sample/20220322_1634_X4_AJL055_cc3b6e07/fastq_pass"
+      }
+    ]
+  },
+  {
+    "files": {
+      "20220304_VM_LSK110_BASELINE": {
+        "no_sample": {
+          "20220304_1252_X1_AJF035_da479eb3": {
+            "fastq_pass": {},
+            "fastq_fail": {}
+          },
+          "20220304_1252_X2_AJO247_7513a52f": {
+            "fastq_pass": {},
+            "fastq_fail": {}
+          }
+        }
+      }
+    },
+    "experiment": "20220304_VM_LSK110_BASELINE",
+    "samples": [
+      {
+        "flowcell": "AJF035",
+        "sample": "20220304_1252_X1_AJF035_da479eb3",
+        "path": "20220304_VM_LSK110_BASELINE/no_sample/20220304_1252_X1_AJF035_da479eb3/fastq_pass"
+      },
+      {
+        "flowcell": "AJO247",
+        "sample": "20220304_1252_X2_AJO247_7513a52f",
+        "path": "20220304_VM_LSK110_BASELINE/no_sample/20220304_1252_X2_AJO247_7513a52f/fastq_pass"
+      }
+    ]
+  },
+  {
+    "files": {
+      "x3check": {
+        "no_sample": {
+          "20220201_1505_X3_FAR69974_12e74e2c": {
+            "fastq_pass": {
+              "unclassified": {}
+            },
+            "fastq_fail": {
+              "unclassified": {}
+            }
+          }
+        }
+      }
+    },
+    "experiment": "x3check",
+    "samples": [
+      {
+        "flowcell": "FAR69974",
+        "sample": "20220201_1505_X3_FAR69974_12e74e2c",
+        "path": "x3check/no_sample/20220201_1505_X3_FAR69974_12e74e2c/fastq_pass"
+      }
+    ]
+  },
+  {
+    "files": {
+      "20220308_AL_RBK11096_BATCH15_BC11_AMP_T3": {
+        "no_sample": {
+          "20220308_1021_X1_FAS00503_a372f8fb": {
+            "fastq_pass": {
+              "barcode12": {},
+              "barcode03": {},
+              "barcode38": {},
+              "barcode83": {},
+              "barcode57": {},
+              "barcode88": {},
+              "barcode93": {},
+              "barcode68": {},
+              "unclassified": {},
+              "barcode11": {},
+              "barcode65": {},
+              "barcode89": {},
+              "barcode62": {},
+              "barcode19": {},
+              "barcode33": {}
+            },
+            "fastq_fail": {
+              "barcode43": {},
+              "barcode03": {},
+              "barcode83": {},
+              "barcode58": {},
+              "barcode53": {},
+              "barcode57": {},
+              "barcode93": {},
+              "barcode68": {},
+              "unclassified": {},
+              "barcode11": {},
+              "barcode65": {},
+              "barcode24": {},
+              "barcode19": {},
+              "barcode45": {}
+            }
+          }
+        }
+      }
+    },
+    "experiment": "20220308_AL_RBK11096_BATCH15_BC11_AMP_T3",
+    "samples": [
+      {
+        "flowcell": "FAS00503",
+        "sample": "20220308_1021_X1_FAS00503_a372f8fb",
+        "path": "20220308_AL_RBK11096_BATCH15_BC11_AMP_T3/no_sample/20220308_1021_X1_FAS00503_a372f8fb/fastq_pass"
+      }
+    ]
+  },
+  {
+    "files": {
+      "TEST2": {
+        "no_sample": {
+          "20211213_1537_X2_FAQ43840_02b2ba88": {
+            "fastq_pass": {},
+            "fastq_fail": {}
+          }
+        }
+      }
+    },
+    "experiment": "TEST2",
+    "samples": [
+      {
+        "flowcell": "FAQ43840",
+        "sample": "20211213_1537_X2_FAQ43840_02b2ba88",
+        "path": "TEST2/no_sample/20211213_1537_X2_FAQ43840_02b2ba88/fastq_pass"
+      }
+    ]
+  },
+  {
+    "files": {
+      "20220303_VM_RBK11096_B15_MP4_LAMBDA": {
+        "no_sample": {
+          "20220303_1530_X5_FAR95932_272de714": {
+            "fastq_pass": {
+              "barcode08": {},
+              "barcode18": {},
+              "barcode94": {},
+              "barcode21": {},
+              "barcode15": {},
+              "barcode28": {},
+              "barcode91": {},
+              "barcode56": {},
+              "barcode12": {},
+              "barcode63": {},
+              "barcode43": {},
+              "barcode17": {},
+              "barcode40": {},
+              "barcode26": {},
+              "barcode03": {},
+              "barcode38": {},
+              "barcode81": {},
+              "barcode83": {},
+              "barcode75": {},
+              "barcode20": {},
+              "barcode39": {},
+              "barcode96": {},
+              "barcode52": {},
+              "barcode55": {},
+              "barcode58": {},
+              "barcode85": {},
+              "barcode10": {},
+              "barcode53": {},
+              "barcode74": {},
+              "barcode34": {},
+              "barcode61": {},
+              "barcode71": {},
+              "barcode69": {},
+              "barcode59": {},
+              "barcode37": {},
+              "barcode05": {},
+              "barcode57": {},
+              "barcode88": {},
+              "barcode07": {},
+              "barcode67": {},
+              "barcode04": {},
+              "barcode93": {},
+              "barcode68": {},
+              "unclassified": {},
+              "barcode23": {},
+              "barcode41": {},
+              "barcode48": {},
+              "barcode90": {},
+              "barcode79": {},
+              "barcode27": {},
+              "barcode25": {},
+              "barcode72": {},
+              "barcode35": {},
+              "barcode06": {},
+              "barcode77": {},
+              "barcode30": {},
+              "barcode01": {},
+              "barcode44": {},
+              "barcode78": {},
+              "barcode86": {},
+              "barcode46": {},
+              "barcode11": {},
+              "barcode49": {},
+              "barcode76": {},
+              "barcode60": {},
+              "barcode65": {},
+              "barcode51": {},
+              "barcode31": {},
+              "barcode89": {},
+              "barcode02": {},
+              "barcode42": {},
+              "barcode13": {},
+              "barcode09": {},
+              "barcode87": {},
+              "barcode70": {},
+              "barcode82": {},
+              "barcode47": {},
+              "barcode84": {},
+              "barcode22": {},
+              "barcode54": {},
+              "barcode24": {},
+              "barcode62": {},
+              "barcode19": {},
+              "barcode33": {},
+              "barcode36": {},
+              "barcode32": {},
+              "barcode73": {},
+              "barcode45": {},
+              "barcode64": {},
+              "barcode66": {},
+              "barcode92": {},
+              "barcode50": {},
+              "barcode95": {},
+              "barcode29": {},
+              "barcode16": {},
+              "barcode14": {},
+              "barcode80": {}
+            },
+            "fastq_fail": {
+              "barcode08": {},
+              "barcode18": {},
+              "barcode94": {},
+              "barcode21": {},
+              "barcode15": {},
+              "barcode28": {},
+              "barcode91": {},
+              "barcode56": {},
+              "barcode12": {},
+              "barcode63": {},
+              "barcode43": {},
+              "barcode17": {},
+              "barcode40": {},
+              "barcode26": {},
+              "barcode03": {},
+              "barcode38": {},
+              "barcode81": {},
+              "barcode83": {},
+              "barcode75": {},
+              "barcode20": {},
+              "barcode39": {},
+              "barcode96": {},
+              "barcode52": {},
+              "barcode55": {},
+              "barcode58": {},
+              "barcode85": {},
+              "barcode10": {},
+              "barcode53": {},
+              "barcode74": {},
+              "barcode34": {},
+              "barcode61": {},
+              "barcode71": {},
+              "barcode69": {},
+              "barcode59": {},
+              "barcode37": {},
+              "barcode05": {},
+              "barcode57": {},
+              "barcode88": {},
+              "barcode07": {},
+              "barcode67": {},
+              "barcode04": {},
+              "barcode93": {},
+              "barcode68": {},
+              "unclassified": {},
+              "barcode23": {},
+              "barcode41": {},
+              "barcode48": {},
+              "barcode90": {},
+              "barcode79": {},
+              "barcode27": {},
+              "barcode25": {},
+              "barcode72": {},
+              "barcode35": {},
+              "barcode06": {},
+              "barcode77": {},
+              "barcode30": {},
+              "barcode01": {},
+              "barcode44": {},
+              "barcode78": {},
+              "barcode86": {},
+              "barcode46": {},
+              "barcode11": {},
+              "barcode49": {},
+              "barcode76": {},
+              "barcode60": {},
+              "barcode65": {},
+              "barcode51": {},
+              "barcode31": {},
+              "barcode89": {},
+              "barcode02": {},
+              "barcode42": {},
+              "barcode13": {},
+              "barcode09": {},
+              "barcode87": {},
+              "barcode70": {},
+              "barcode82": {},
+              "barcode47": {},
+              "barcode84": {},
+              "barcode22": {},
+              "barcode54": {},
+              "barcode24": {},
+              "barcode62": {},
+              "barcode19": {},
+              "barcode33": {},
+              "barcode36": {},
+              "barcode32": {},
+              "barcode73": {},
+              "barcode45": {},
+              "barcode64": {},
+              "barcode66": {},
+              "barcode92": {},
+              "barcode50": {},
+              "barcode95": {},
+              "barcode29": {},
+              "barcode16": {},
+              "barcode14": {},
+              "barcode80": {}
+            }
+          }
+        }
+      }
+    },
+    "experiment": "20220303_VM_RBK11096_B15_MP4_LAMBDA",
+    "samples": [
+      {
+        "flowcell": "FAR95932",
+        "sample": "20220303_1530_X5_FAR95932_272de714",
+        "path": "20220303_VM_RBK11096_B15_MP4_LAMBDA/no_sample/20220303_1530_X5_FAR95932_272de714/fastq_pass"
+      }
+    ]
+  },
+  {
+    "files": {
+      "20220303_MT_RAD004_BASELINE_FLO": {
+        "no_sample": {
+          "20220303_1235_X1_AJF047_5057dcf6": {
+            "fastq_pass": {},
+            "fastq_fail": {}
+          },
+          "20220303_1235_X2_AJF186_663cad41": {
+            "fastq_pass": {},
+            "fastq_fail": {}
+          },
+          "20220303_1235_X4_AJF360_680ce6b2": {
+            "fastq_pass": {},
+            "fastq_fail": {}
+          }
+        }
+      }
+    },
+    "experiment": "20220303_MT_RAD004_BASELINE_FLO",
+    "samples": [
+      {
+        "flowcell": "AJF047",
+        "sample": "20220303_1235_X1_AJF047_5057dcf6",
+        "path": "20220303_MT_RAD004_BASELINE_FLO/no_sample/20220303_1235_X1_AJF047_5057dcf6/fastq_pass"
+      },
+      {
+        "flowcell": "AJF186",
+        "sample": "20220303_1235_X2_AJF186_663cad41",
+        "path": "20220303_MT_RAD004_BASELINE_FLO/no_sample/20220303_1235_X2_AJF186_663cad41/fastq_pass"
+      },
+      {
+        "flowcell": "AJF360",
+        "sample": "20220303_1235_X4_AJF360_680ce6b2",
+        "path": "20220303_MT_RAD004_BASELINE_FLO/no_sample/20220303_1235_X4_AJF360_680ce6b2/fastq_pass"
+      }
+    ]
+  },
+  {
+    "files": {
+      "20220311_MT_PQCTT_1586_SHELF_LIFE_FLO": {
+        "no_sample": {
+          "20220311_0948_X2_AIR507_79131ace": {
+            "fastq_pass": {},
+            "fastq_fail": {}
+          },
+          "20220311_0948_X1_AIR334_95223972": {
+            "fastq_pass": {},
+            "fastq_fail": {}
+          },
+          "20220311_0948_X4_AHR220_db10ec9b": {
+            "fastq_pass": {},
+            "fastq_fail": {}
+          },
+          "20220311_0948_X5_AHR239_9e5f17a2": {
+            "fastq_pass": {},
+            "fastq_fail": {}
+          }
+        }
+      }
+    },
+    "experiment": "20220311_MT_PQCTT_1586_SHELF_LIFE_FLO",
+    "samples": [
+      {
+        "flowcell": "AIR507",
+        "sample": "20220311_0948_X2_AIR507_79131ace",
+        "path": "20220311_MT_PQCTT_1586_SHELF_LIFE_FLO/no_sample/20220311_0948_X2_AIR507_79131ace/fastq_pass"
+      },
+      {
+        "flowcell": "AIR334",
+        "sample": "20220311_0948_X1_AIR334_95223972",
+        "path": "20220311_MT_PQCTT_1586_SHELF_LIFE_FLO/no_sample/20220311_0948_X1_AIR334_95223972/fastq_pass"
+      },
+      {
+        "flowcell": "AHR220",
+        "sample": "20220311_0948_X4_AHR220_db10ec9b",
+        "path": "20220311_MT_PQCTT_1586_SHELF_LIFE_FLO/no_sample/20220311_0948_X4_AHR220_db10ec9b/fastq_pass"
+      },
+      {
+        "flowcell": "AHR239",
+        "sample": "20220311_0948_X5_AHR239_9e5f17a2",
+        "path": "20220311_MT_PQCTT_1586_SHELF_LIFE_FLO/no_sample/20220311_0948_X5_AHR239_9e5f17a2/fastq_pass"
+      }
+    ]
+  },
+  {
+    "files": {
+      "20220324_VM_AUX110_BASELINE": {
+        "no_sample": {
+          "20220324_1156_X1_FAT41890_0280172b": {
+            "fastq_pass": {},
+            "fastq_fail": {}
+          }
+        }
+      }
+    },
+    "experiment": "20220324_VM_AUX110_BASELINE",
+    "samples": [
+      {
+        "flowcell": "FAT41890",
+        "sample": "20220324_1156_X1_FAT41890_0280172b",
+        "path": "20220324_VM_AUX110_BASELINE/no_sample/20220324_1156_X1_FAT41890_0280172b/fastq_pass"
+      }
+    ]
+  },
+  {
+    "files": {
+      "20220308_AL_RNA002_BASELINE_H": {
+        "no_sample": {
+          "20220308_1613_X5_FAR95808_4332aba1": {
+            "fastq_pass": {},
+            "fastq_fail": {}
+          }
+        }
+      }
+    },
+    "experiment": "20220308_AL_RNA002_BASELINE_H",
+    "samples": [
+      {
+        "flowcell": "FAR95808",
+        "sample": "20220308_1613_X5_FAR95808_4332aba1",
+        "path": "20220308_AL_RNA002_BASELINE_H/no_sample/20220308_1613_X5_FAR95808_4332aba1/fastq_pass"
+      }
+    ]
+  },
+  {
+    "files": {
+      "test": {
+        "no_sample": {
+          "20210712_0840_X4_FAO63761_7373a6b1": {
+            "fastq_pass": {},
+            "fastq_fail": {}
+          },
+          "20210712_0840_X2_FAO43729_2242c2fd": {
+            "fastq_pass": {},
+            "fastq_fail": {}
+          }
+        }
+      }
+    },
+    "experiment": "test",
+    "samples": [
+      {
+        "flowcell": "FAO63761",
+        "sample": "20210712_0840_X4_FAO63761_7373a6b1",
+        "path": "test/no_sample/20210712_0840_X4_FAO63761_7373a6b1/fastq_pass"
+      },
+      {
+        "flowcell": "FAO43729",
+        "sample": "20210712_0840_X2_FAO43729_2242c2fd",
+        "path": "test/no_sample/20210712_0840_X2_FAO43729_2242c2fd/fastq_pass"
+      }
+    ]
+  },
+  {
+    "files": {
+      "20220317_MT_RBK004_BASELINE_MIN": {
+        "no_sample": {
+          "20220317_1015_X1_FAS08934_d48deccd": {
+            "fastq_pass": {
+              "barcode08": {},
+              "barcode12": {},
+              "barcode03": {},
+              "barcode10": {},
+              "barcode05": {},
+              "barcode07": {},
+              "barcode04": {},
+              "unclassified": {},
+              "barcode06": {},
+              "barcode01": {},
+              "barcode11": {},
+              "barcode02": {},
+              "barcode09": {}
+            },
+            "fastq_fail": {
+              "barcode08": {},
+              "barcode12": {},
+              "barcode03": {},
+              "barcode10": {},
+              "barcode05": {},
+              "barcode07": {},
+              "barcode04": {},
+              "unclassified": {},
+              "barcode06": {},
+              "barcode01": {},
+              "barcode11": {},
+              "barcode02": {},
+              "barcode09": {}
+            }
+          }
+        }
+      }
+    },
+    "experiment": "20220317_MT_RBK004_BASELINE_MIN",
+    "samples": [
+      {
+        "flowcell": "FAS08934",
+        "sample": "20220317_1015_X1_FAS08934_d48deccd",
+        "path": "20220317_MT_RBK004_BASELINE_MIN/no_sample/20220317_1015_X1_FAS08934_d48deccd/fastq_pass"
+      }
+    ]
+  },
+  {
+    "files": {
+      "X3_check": {
+        "no_sample": {
+          "20220211_1327_X3_FAR93531_d3beb5bb": {
+            "fastq_pass": {
+              "barcode08": {},
+              "barcode12": {},
+              "barcode03": {},
+              "barcode10": {},
+              "barcode05": {},
+              "barcode07": {},
+              "barcode04": {},
+              "unclassified": {},
+              "barcode06": {},
+              "barcode01": {},
+              "barcode11": {},
+              "barcode02": {},
+              "barcode09": {}
+            },
+            "fastq_fail": {
+              "barcode08": {},
+              "barcode12": {},
+              "barcode03": {},
+              "barcode10": {},
+              "barcode05": {},
+              "barcode07": {},
+              "barcode04": {},
+              "unclassified": {},
+              "barcode06": {},
+              "barcode01": {},
+              "barcode11": {},
+              "barcode02": {},
+              "barcode09": {}
+            }
+          }
+        }
+      }
+    },
+    "experiment": "X3_check",
+    "samples": [
+      {
+        "flowcell": "FAR93531",
+        "sample": "20220211_1327_X3_FAR93531_d3beb5bb",
+        "path": "X3_check/no_sample/20220211_1327_X3_FAR93531_d3beb5bb/fastq_pass"
+      }
+    ]
+  }
+]

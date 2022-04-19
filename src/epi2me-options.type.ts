@@ -25,7 +25,6 @@ export interface EPI2ME_OPTIONS {
   signing: boolean;
 
   // optional values
-  useGraphQL?: boolean;
   apikey?: string;
   apisecret?: string;
   id_workflow_instance?: Index;

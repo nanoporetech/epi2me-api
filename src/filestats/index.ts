@@ -6,7 +6,7 @@ import { fastqFileStatistics } from './fastq';
 import { fastqgzFileStatistics } from './fastqgz';
 import { getNormalisedFileExtension } from '../file_extensions';
 
-const mapping = new Map([
+const mapping = new Map<string, (filepath: string) => Promise<MappedFileStats>>([
   ['fastq', fastqFileStatistics],
   ['fasta', fastaFileStatistics],
   ['fastq.gz', fastqgzFileStatistics],

@@ -91,7 +91,6 @@ export function parseOptions(opt: Partial<EPI2ME_OPTIONS>): Configuration['optio
     filetype: asArrayOf(isString)(opt.filetype, DEFAULT_OPTIONS.filetype),
     // optional values
     region: asOptString(opt.region),
-    useGraphQL: asBoolean(opt.useGraphQL, false),
     idWorkflowInstance: asOptIndex(opt.id_workflow_instance),
     idDataset: asOptIndex(opt.id_dataset),
     debounceWindow: Duration.Seconds(asNumber(opt.debounceWindow, DEFAULT_OPTIONS.debounceWindow)),

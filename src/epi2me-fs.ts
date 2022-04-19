@@ -8,16 +8,15 @@
 import type { Readable, Writable } from 'stream';
 import type { PromiseResult } from 'aws-sdk/lib/request';
 import type { Configuration } from './Configuration.type';
-import type { JSONObject, Dictionary, Index } from 'ts-runtime-typecheck';
-import type { EPI2ME_OPTIONS } from './epi2me-options.type';
-import type { JSONValue } from 'ts-runtime-typecheck';
-import type { Agent } from 'http';
-import ProxyAgent from 'proxy-agent';
-
 import {
+  JSONObject,
+  Dictionary,
+  Index,
+  asIndex,
+  asDictionary,
+  asIndexable,
   asOptString,
   asString,
-  asDictionary,
   asOptIndex,
   asOptDictionary,
   asDefined,
@@ -34,23 +33,26 @@ import {
   isArrayOf,
   assertDefined,
   isIndex,
+  Optional,
+  asNumber,
 } from 'ts-runtime-typecheck';
+import type { EPI2ME_OPTIONS } from './epi2me-options.type';
+import type { JSONValue } from 'ts-runtime-typecheck';
+import type { Agent } from 'http';
+import ProxyAgent from 'proxy-agent';
+
 import * as AWS from 'aws-sdk';
-import fs from 'fs-extra'; /* MC-565 handle EMFILE & EXDIR gracefully; use Promises */
+import fs from 'fs'; /* MC-565 handle EMFILE & EXDIR gracefully; use Promises */
 import { EOL, homedir } from 'os';
 import path from 'path';
-import { EPI2ME } from './epi2me';
 import { Factory } from './factory';
-import { REST_FS } from './rest-fs';
 import { SampleReader } from './sample-reader';
 import { Epi2meCredentials } from './credentials';
-import { utilsFS as utils } from './utils-fs';
 import { createInterval, createTimeout } from './timers';
 import { Telemetry } from './telemetry';
-import { resolve } from 'url';
-import { filter, first, map, takeUntil, withLatestFrom } from 'rxjs/operators';
+import { filter, first, map, mapTo, skipWhile, takeUntil, takeWhile, withLatestFrom } from 'rxjs/operators';
 import { GraphQLFS } from './graphql-fs';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, combineLatest } from 'rxjs';
 import { createQueue } from './queue';
 import { filestats } from './filestats';
 import { instantiateFileUpload } from './fileUploader';
@@ -58,7 +60,13 @@ import { Duration } from './Duration';
 import { asNodeError, isNodeError, NestedError, wrapAndLogError } from './NodeError';
 import type { InstanceTokenMutation, StartWorkflowMutation, StartWorkflowMutationVariables } from './generated/graphql';
 import { DEFAULT_OPTIONS } from './default_options';
-import Socket from './socket';
+import type { Logger } from './Logger.type';
+import type { Timer } from './timer.type';
+import type { DownloadState, ProgressState, States, SuccessState, UploadState } from './epi2me-state.type';
+import { createDownloadState, createUploadState } from './epi2me-state';
+import { parseOptions } from './parseOptions';
+import { niceSize } from './niceSize';
+import { Socket } from './socket';
 
 const networkStreamErrors: WeakSet<Writable> = new WeakSet();
 
@@ -80,58 +88,225 @@ const asChain = asOptStruct({
   targetComponentId: isIndex,
 });
 
-export class EPI2ME_FS extends EPI2ME {
-  static REST = REST_FS;
-  static utils = utils;
+export class EPI2ME_FS {
+  static version = DEFAULT_OPTIONS.agent_version;
   static EPI2ME_HOME = rootDir();
   static Factory = Factory;
   static GraphQL = GraphQLFS;
 
+  /**
+   * @deprecated use `getExperiments` instead
+   */
   SampleReader = new SampleReader();
   telemetryLogStream?: fs.WriteStream;
   checkForDownloadsRunning?: boolean;
   dirScanInProgress?: boolean;
   uploadMessageQueue?: unknown;
   downloadMessageQueue?: unknown;
+  stateReportTime?: number;
+  downloadWorkerPool?: Dictionary;
+  stopped = true;
+  config: Configuration;
+  graphQL: GraphQLFS;
+  states: States = {
+    download: createDownloadState(),
+    upload: createUploadState(),
+    warnings: [],
+  };
 
-  REST: REST_FS;
+  // placeholders for all the timers we might want to cancel if forcing a stop
+  timers: {
+    downloadCheckInterval?: Timer;
+    stateCheckInterval?: Timer;
+    fileCheckInterval?: Timer;
+    transferTimeouts: Dictionary<Timer>;
+    visibilityIntervals: Dictionary<Timer>;
+    summaryTelemetryInterval?: Timer;
+  } = {
+    transferTimeouts: {},
+    visibilityIntervals: {},
+  };
+
+  uploadState$ = new BehaviorSubject(false);
+  analyseState$ = new BehaviorSubject(false);
+  reportState$ = new BehaviorSubject(false);
+  runningStates$ = combineLatest([this.uploadState$, this.analyseState$, this.reportState$]);
+  liveStates$ = new BehaviorSubject(this.states);
+
+  // NOTE emits a signal exactly once, after uploadState changes from true, to false
+  uploadStopped$ = this.uploadState$.pipe(
+    skipWhile((state) => !state),
+    takeWhile((state) => state, true),
+    filter((state) => !state),
+    mapTo(true),
+  );
+
+  // NOTE emits a signal exactly once, after analyseState changes from true, to false
+  analysisStopped$ = this.analyseState$.pipe(
+    skipWhile((state) => !state),
+    takeWhile((state) => state, true),
+    filter((state) => !state),
+    mapTo(true),
+  );
+
+  instanceTelemetry$ = new BehaviorSubject<(JSONObject | null)[]>([]);
+  experimentalWorkerStatus$ = new BehaviorSubject<
+    {
+      running: number;
+      complete: number;
+      error: number;
+      step: number;
+      name: string;
+    }[]
+  >([]);
 
   private telemetry?: Telemetry;
   private sqs?: AWS.SQS;
   private s3?: AWS.S3;
+  private socket?: Socket;
   readonly proxyAgent?: Agent;
+  readonly log: Logger;
 
   constructor(opts: Partial<EPI2ME_OPTIONS>) {
-    super(opts); // sets up this.config & this.log
+    const options = parseOptions(opts);
+    const { idWorkflowInstance, log, proxy } = options;
 
-    const { proxy } = this.config.options;
+    this.config = {
+      options: options,
+      instance: {
+        id_workflow_instance: idWorkflowInstance,
+        discoverQueueCache: {},
+      },
+    };
+
+    this.log = log;
+
     const hasProxy = isDefined(proxy);
     const proxyAgent = hasProxy ? ProxyAgent(proxy) : undefined;
 
     this.proxyAgent = proxyAgent;
-
-    // overwrite non-fs REST and GQL object
-    this.REST = new REST_FS(this.config.options, proxyAgent);
     this.graphQL = new GraphQLFS(this.config.options, proxyAgent);
   }
 
-  private fetchToken = async (): Promise<InstanceTokenMutation> => {
-    let token: InstanceTokenMutation;
-    const id = this.id.toString();
+  get id(): Index {
+    return asIndex(this.config.instance.id_workflow_instance);
+  }
 
-    if (this.config.options.useGraphQL) {
-      const result = await this.graphQL.instanceToken({ instance: id });
-      token = asDefined(result.token);
-    } else {
-      const opts = { id_dataset: this.config.options.idDataset };
-      token = await this.REST.instanceToken(id, opts);
+  get url(): string {
+    return asDefined(this.config.options.url);
+  }
+
+  async stopEverything(): Promise<void> {
+    await this.stopAnalysis();
+
+    this.stopTransferTimers();
+    this.stopVisibilityTimers();
+    this.stopDownloadWorkers();
+
+    if (this.socket) {
+      this.socket.destroy();
     }
-    return token;
+
+    this.stopTimer('summaryTelemetryInterval');
+    this.stopTimer('downloadCheckInterval');
+  }
+
+  private stopTimer(
+    intervalGroupName:
+      | 'downloadCheckInterval'
+      | 'stateCheckInterval'
+      | 'fileCheckInterval'
+      | 'summaryTelemetryInterval',
+  ): void {
+    const timer = this.timers[intervalGroupName];
+    if (timer) {
+      this.log.debug(`clearing ${intervalGroupName} interval`);
+      timer.cancel();
+      delete this.timers[intervalGroupName];
+    }
+  }
+
+  private stopTimeout(timerGroupName: 'transferTimeouts', timerName: string): void {
+    const timeout = this.timers[timerGroupName][timerName];
+    if (timeout) {
+      timeout.cancel();
+      delete this.timers[timerGroupName][timerName];
+    }
+  }
+
+  private stopTransferTimers(): void {
+    for (const key in this.timers.transferTimeouts) {
+      this.log.debug(`clearing transferTimeout for ${key}`);
+      const timer = this.timers.transferTimeouts[key];
+      // NOTE id should always be defined here, this is purely for type checking
+      if (timer) {
+        timer.cancel();
+      }
+      delete this.timers.transferTimeouts[key];
+    }
+  }
+
+  private stopVisibilityTimers(): void {
+    for (const key in this.timers.visibilityIntervals) {
+      this.log.debug(`clearing visibilityInterval for ${key}`);
+      const timer = this.timers.visibilityIntervals[key];
+      if (timer) {
+        timer.cancel();
+      }
+      delete this.timers.visibilityIntervals[key];
+    }
+  }
+
+  private async stopDownloadWorkers(): Promise<void> {
+    if (this.downloadWorkerPool) {
+      this.log.debug('clearing downloadWorkerPool');
+      await Promise.all(Object.values(this.downloadWorkerPool));
+      delete this.downloadWorkerPool;
+    }
+  }
+
+  async stopAnalysis(): Promise<void> {
+    // If we stop the cloud, there's no point uploading any more
+    this.stopUpload();
+    // This will stop all the intervals on their next call
+    this.stopped = true;
+
+    const { id_workflow_instance: id } = this.config.instance;
+
+    if (!id) {
+      return;
+    }
+
+    try {
+      await this.graphQL.stopWorkflow({ instance: id.toString() });
+
+      this.analyseState$.next(false);
+      this.analyseState$.complete();
+    } catch (err) {
+      throw wrapAndLogError('error stopping instance', err, this.log);
+    }
+
+    this.log.info(`workflow instance ${id} stopped`);
+  }
+
+  stopUpload(): void {
+    this.log.debug('stopping watchers');
+
+    this.stopTimer('stateCheckInterval');
+    this.stopTimer('fileCheckInterval');
+
+    this.uploadState$.next(false);
+    this.uploadState$.complete();
+  }
+
+  private fetchToken = async (): Promise<InstanceTokenMutation> => {
+    const result = await this.graphQL.instanceToken({ instance: this.id.toString() });
+    return asDefined(result.token);
   };
 
   sessionedS3(options: AWS.S3.ClientConfiguration = {}): AWS.S3 {
     const credentials = new Epi2meCredentials(this.fetchToken, this.config.options.sessionGrace);
-    // Will need to prefetch a token to acccess region before creating the S3 service
+    // Will need to prefetch a token to access region before creating the S3 service
     return new AWS.S3({
       useAccelerateEndpoint: this.config.options.awsAcceleration === 'on',
       ...options,
@@ -169,7 +344,7 @@ export class EPI2ME_FS extends EPI2ME {
     return this.s3;
   }
 
-  async deleteMessage(message: { ReceiptHandle?: string }): Promise<unknown> {
+  async deleteMessage(message: Pick<AWS.SQS.Message, 'ReceiptHandle'>): Promise<unknown> {
     try {
       assertDefined(this.config.instance.outputQueueName, 'Output Queue Name');
 
@@ -233,28 +408,13 @@ export class EPI2ME_FS extends EPI2ME {
         const len = attrs.Attributes.ApproximateNumberOfMessages;
         return parseInt(len, 10);
       }
+      throw new Error('unexpected response from getQueueAttributes');
     } catch (err) {
       throw wrapAndLogError('error in getQueueAttributes', err, this.log);
     }
-    throw new Error('unexpected response from getQueueAttributes');
   }
 
-  async autoStart(workflowConfig: Dictionary): Promise<Dictionary> {
-    this.stopped = false;
-
-    let instance;
-    try {
-      instance = await this.REST.startWorkflow(workflowConfig);
-    } catch (err) {
-      throw wrapAndLogError('failed to start workflow', err, this.log);
-    }
-
-    await this.autoStartGeneric(workflowConfig, instance);
-    this.setClassConfigREST(instance);
-    return this.autoConfigure(instance);
-  }
-
-  async autoStartGQL(variables: StartWorkflowMutationVariables): Promise<Configuration['instance']> {
+  async autoStart(variables: StartWorkflowMutationVariables): Promise<Configuration['instance']> {
     this.stopped = false;
 
     let instance;
@@ -265,46 +425,22 @@ export class EPI2ME_FS extends EPI2ME {
       throw wrapAndLogError('failed to start workflow', err, this.log);
     }
 
-    await this.autoStartGeneric(variables, instance);
-    this.setClassConfigGQL(instance);
+    this.analyseState$.next(true);
+    this.config.workflow = JSON.parse(JSON.stringify(variables)); // object copy
+    this.log.info(`instance ${JSON.stringify(instance)}`);
+    this.log.info(`workflow config ${JSON.stringify(this.config.workflow)}`);
+
+    this.setClassConfig(instance);
     // Pass this.config.instance because we need the old format
     // This can be improved
     return this.autoConfigure(this.config.instance);
   }
 
-  // TODO improves the parameter types
-  autoStartGeneric(workflowConfig: unknown, instance: unknown): void {
-    this.analyseState$.next(true);
-    this.config.workflow = JSON.parse(JSON.stringify(workflowConfig)); // object copy
-    this.log.info(`instance ${JSON.stringify(instance)}`);
-    this.log.info(`workflow config ${JSON.stringify(this.config.workflow)}`);
-  }
-
-  async autoJoin(id: Index): Promise<unknown> {
-    this.stopped = false;
-    this.config.instance.id_workflow_instance = id;
-    let instance;
-    try {
-      // Theoretically this can work with GQL using the same setClassConfigGQL
-      instance = await this.REST.workflowInstance(id);
-    } catch (err) {
-      throw wrapAndLogError('failed to join workflow instance', err, this.log);
-    }
-
-    if (instance.state === 'stopped') {
-      throw new Error('could not join workflow');
-    }
-
-    this.autoStartGeneric(this.config.workflow ?? {}, instance);
-    this.setClassConfigREST(instance);
-    return this.autoConfigure(instance);
-  }
-
-  validateChain(chain: unknown): ReturnType<typeof asChain> {
+  private validateChain(chain: unknown): ReturnType<typeof asChain> {
     return asChain(isString(chain) ? JSON.parse(chain) : chain);
   }
 
-  setClassConfigGQL(startData: StartWorkflowMutation['startData']): void {
+  private setClassConfig(startData: StartWorkflowMutation['startData']): void {
     assertDefined(startData, 'Workflow Start Data');
     const { instance, bucket, idUser, remoteAddr } = startData;
     assertDefined(instance, 'Workflow Instance');
@@ -337,27 +473,6 @@ export class EPI2ME_FS extends EPI2ME {
       ...this.config.instance,
       ...map,
     };
-  }
-
-  setClassConfigREST(instance: Dictionary): void {
-    const conf = this.config.instance;
-
-    conf.id_workflow_instance = asOptIndex(instance.id_workflow_instance);
-    conf.id_workflow = asOptIndex(instance.id_workflow);
-    conf.remote_addr = asOptString(instance.remote_addr);
-    conf.key_id = asOptString(instance.key_id);
-    conf.bucket = asOptString(instance.bucket);
-    conf.start_date = asOptString(instance.start_date);
-    conf.id_user = asOptIndex(instance.id_user);
-
-    // copy tuples with different names / structures
-    conf.inputQueueName = asOptString(instance.inputqueue);
-    conf.outputQueueName = asOptString(instance.outputqueue);
-    conf.region = asOptString(instance.region) ?? this.config.options.region ?? DEFAULT_OPTIONS.region;
-    conf.bucketFolder = `${instance.outputqueue}/${instance.id_user}/${instance.id_workflow_instance}`;
-    conf.summaryTelemetry = asOptDictionary(instance.telemetry); // MC-7056 for fetchTelemetry (summary) telemetry periodically
-
-    conf.chain = this.validateChain(instance.chain);
   }
 
   // WARN
@@ -416,7 +531,7 @@ export class EPI2ME_FS extends EPI2ME {
     // NOTE now for actual setup
 
     try {
-      await fs.mkdirp(this.config.options.outputFolder);
+      await fs.promises.mkdir(this.config.options.outputFolder, { recursive: true });
     } catch (err) {
       if (asNodeError(err).code !== 'EEXIST') {
         throw wrapAndLogError('failed to create output folder', err, this.log);
@@ -427,7 +542,7 @@ export class EPI2ME_FS extends EPI2ME {
     const instancesDir = path.join(rootDir(), 'instances');
     const thisInstanceDir = path.join(instancesDir, makeString(this.config.instance.id_workflow_instance));
     try {
-      await fs.mkdirp(thisInstanceDir);
+      await fs.promises.mkdir(thisInstanceDir, { recursive: true });
     } catch (err) {
       if (asNodeError(err).code !== 'EEXIST') {
         throw wrapAndLogError('failed to create instance folder', err, this.log);
@@ -442,7 +557,7 @@ export class EPI2ME_FS extends EPI2ME {
     const telemetryLogPath = path.join(telemetryLogFolder, fileName);
 
     try {
-      await fs.mkdirp(telemetryLogFolder);
+      await fs.promises.mkdir(telemetryLogFolder, { recursive: true });
     } catch (err) {
       if (isNodeError(err) && err.code !== 'EEXIST') {
         throw wrapAndLogError(
@@ -465,21 +580,7 @@ export class EPI2ME_FS extends EPI2ME {
       throw wrapAndLogError('error opening telemetry log stream', asNodeError(err), this.log);
     }
 
-    if (this.config.options.useGraphQL) {
-      this.observeTelemetry();
-    } else {
-      // MC-7056 periodically fetch summary telemetry for local reporting purposes
-      this.timers.summaryTelemetryInterval = createInterval(
-        this.config.options.downloadCheckInterval.multiply(10),
-        () => {
-          if (this.stopped) {
-            this.timers.summaryTelemetryInterval?.cancel();
-            return;
-          }
-          this.fetchTelemetry();
-        },
-      );
-    }
+    this.observeTelemetry();
 
     // TODO this comment appears to clash with the implementation... figure out why
     // MC-2068 - Don't use an interval.
@@ -499,19 +600,11 @@ export class EPI2ME_FS extends EPI2ME {
       }
 
       try {
-        const id = this.id.toString();
+        const response = await this.graphQL.workflowInstance({ instance: this.id.toString() });
+        // state should always be defined, but stop date won't exist until it's been stopped
+        const state = response.workflowInstance?.state;
+        const stopDate = response.workflowInstance?.stopDate;
 
-        let state, stopDate;
-        if (this.config.options.useGraphQL) {
-          const response = await this.graphQL.workflowInstance({ instance: id });
-          // state should always be defined, but stop date won't exist until it's been stopped
-          state = response.workflowInstance?.state;
-          stopDate = response.workflowInstance?.stopDate;
-        } else {
-          const response = await this.REST.workflowInstance(id);
-          state = response.state;
-          stopDate = response.stop_date;
-        }
         if (state === 'stopped') {
           this.log.warn(`instance was stopped remotely at ${stopDate}. shutting down the workflow.`);
           try {
@@ -603,7 +696,7 @@ export class EPI2ME_FS extends EPI2ME {
     return this.receiveMessages(receiveMessageSet);
   }
 
-  incrementDownloadFailure(msg: string, err: unknown): NestedError {
+  private incrementDownloadFailure(msg: string, err: unknown): NestedError {
     const downloadState = this.states.download;
     let failures = downloadState.failure;
     if (!failures) {
@@ -617,7 +710,9 @@ export class EPI2ME_FS extends EPI2ME {
     return wrappedError;
   }
 
-  async receiveMessages(receiveMessages?: PromiseResult<AWS.SQS.ReceiveMessageResult, AWS.AWSError>): Promise<void> {
+  async receiveMessages(
+    receiveMessages?: Pick<PromiseResult<AWS.SQS.ReceiveMessageResult, AWS.AWSError>, 'Messages'>,
+  ): Promise<void> {
     if (!receiveMessages || !receiveMessages.Messages || !receiveMessages.Messages.length) {
       /* no work to do */
       this.log.info('complete (empty)');
@@ -662,7 +757,9 @@ export class EPI2ME_FS extends EPI2ME {
     // return Promise.all(this.downloadWorkerPool); // does awaiting here control parallelism better?
   }
 
-  async processMessage(message?: AWS.SQS.Message): Promise<void> {
+  async processMessage(
+    message?: Pick<AWS.SQS.Message, 'Attributes' | 'MessageId' | 'Body' | 'ReceiptHandle'>,
+  ): Promise<void> {
     let messageBody: Dictionary;
 
     if (!message) {
@@ -734,7 +831,7 @@ export class EPI2ME_FS extends EPI2ME {
         }
         this.telemetryLogStream.write(JSON.stringify(telemetry) + EOL);
       } catch (err) {
-        this.log.error(NestedError.formatMessage('error writing telemtry', err));
+        this.log.error(NestedError.formatMessage('error writing telemetry', err));
       }
       if (this.config.options.telemetryCb) {
         this.config.options.telemetryCb(telemetry);
@@ -748,10 +845,7 @@ export class EPI2ME_FS extends EPI2ME {
 
     // MC-7519: Multiple instances running means multiple outputs need to be namespaced by id_workflow_instance
     const idWorkflowInstance = this.config.instance.id_workflow_instance;
-    let folder = path.join(
-      asString(this.config.options.outputFolder),
-      isUndefined(idWorkflowInstance) ? '' : makeString(idWorkflowInstance),
-    );
+    let folder = path.join(asString(this.config.options.outputFolder), `${idWorkflowInstance ?? ''}`);
 
     const telemetryHintsFolder = asOptString(asOptDictionary(telemetry?.hints)?.folder);
     /* MC-940: use folder hinting if present */
@@ -763,11 +857,11 @@ export class EPI2ME_FS extends EPI2ME {
       const codes = telemetryHintsFolder
         .split('/') // hints are always unix-style
         .map((o: string) => o.toUpperCase()); // MC-5612 cross-platform uppercase "pass" folder
-      folder = path.join.apply(null, [folder, ...codes]);
+      folder = path.join(...[folder, ...codes]);
     }
 
     try {
-      await fs.mkdirp(folder);
+      await fs.promises.mkdir(folder, { recursive: true });
     } catch (err) {
       this.log.critical('FS_FAILURE', NestedError.formatMessage('failed to create instance output folder', err));
     }
@@ -859,10 +953,10 @@ export class EPI2ME_FS extends EPI2ME {
           file.close();
 
           try {
-            await fs.remove(outputFile);
+            await fs.promises.unlink(outputFile);
             this.log.warn(`removed failed download ${outputFile}`);
           } catch (err) {
-            if (isNodeError(err) && err.code !== 'EEXIST') {
+            if (isNodeError(err) && err.code !== 'ENOENT') {
               throw new NestedError(`failed to delete ${outputFile}`, err);
             }
           }
@@ -870,11 +964,14 @@ export class EPI2ME_FS extends EPI2ME {
           this.log.error(NestedError.formatMessage('error while trying to recover from download stream error', err));
         }
 
+        // well this doesn't work!
         if (rs instanceof fs.ReadStream && rs.destroy) {
           // && !rs.destroyed) {
           this.log.error(`destroying read stream for ${outputFile}`);
           rs.destroy();
         }
+
+        reject(err);
       };
 
       try {
@@ -886,9 +983,7 @@ export class EPI2ME_FS extends EPI2ME {
         // MC-6270 : disable append to avoid appending the same data
         // file = fs.createWriteStream(outputFile, { "flags": "a" });
         file = fs.createWriteStream(outputFile);
-        if (!s3) {
-          throw new Error('S3 is required but not initialized');
-        }
+
         const req = s3.getObject(params);
 
         // track request/response bytes expected
@@ -1033,11 +1128,156 @@ export class EPI2ME_FS extends EPI2ME {
     });
   }
 
-  observeTelemetry(): void {
-    if (!this.config.options.useGraphQL) {
-      // uses fetchTelemetry instead
-      throw new Error('observeTelemetry is only supported with GraphQL enabled');
+  private downloadState(
+    table: 'success' | 'types' | 'progress',
+    op: string,
+    newData: Dictionary<Optional<number>>,
+  ): void {
+    const direction = 'upload';
+    const state: DownloadState = this.states.download ?? createDownloadState();
+
+    if (table === 'success') {
+      this.updateSuccessState(state.success, op, newData);
+    } else if (table === 'types') {
+      this.updateTypesState(state.types, op, newData);
+    } else {
+      this.updateProgressState(state.progress, op, newData);
     }
+
+    // Prettify new totals
+    try {
+      state.success.niceReads = niceSize(this.states[direction].success.reads);
+    } catch {
+      state.success.niceReads = 0;
+    }
+
+    try {
+      // complete plus in-transit
+      state.progress.niceSize = niceSize(state.success.bytes + state.progress.bytes ?? 0);
+    } catch {
+      state.progress.niceSize = 0;
+    }
+
+    try {
+      // complete
+      state.success.niceSize = niceSize(this.states[direction].success.bytes);
+    } catch {
+      state.success.niceSize = 0;
+    }
+
+    state.niceTypes = Object.keys(this.states[direction].types || {})
+      .sort()
+      .map((fileType) => {
+        return `${this.states[direction].types[fileType]} ${fileType}`;
+      })
+      .join(', ');
+
+    const now = Date.now();
+    if (!this.stateReportTime || now - this.stateReportTime > 2000) {
+      // report at most every 2 seconds
+      this.stateReportTime = now;
+      this.reportProgress();
+    }
+    this.liveStates$.next({ ...this.states });
+  }
+
+  uploadState(table: 'success' | 'types' | 'progress', op: string, newData: Dictionary<number>): void {
+    const direction = 'upload';
+    const state: UploadState = this.states.upload ?? createUploadState();
+
+    if (table === 'success') {
+      this.updateSuccessState(state.success, op, newData);
+    } else if (table === 'types') {
+      this.updateTypesState(state.types, op, newData);
+    } else {
+      this.updateProgressState(state.progress, op, newData);
+    }
+
+    // Prettify new totals
+    try {
+      state.success.niceReads = niceSize(this.states[direction].success.reads);
+    } catch {
+      state.success.niceReads = 0;
+    }
+
+    try {
+      // complete plus in-transit
+      state.progress.niceSize = niceSize(state.success.bytes + state.progress.bytes ?? 0);
+    } catch {
+      state.progress.niceSize = 0;
+    }
+
+    try {
+      // complete
+      state.success.niceSize = niceSize(this.states[direction].success.bytes);
+    } catch {
+      state.success.niceSize = 0;
+    }
+
+    state.niceTypes = Object.keys(this.states[direction].types || {})
+      .sort()
+      .map((fileType) => {
+        return `${this.states[direction].types[fileType]} ${fileType}`;
+      })
+      .join(', ');
+
+    const now = Date.now();
+    if (!this.stateReportTime || now - this.stateReportTime > 2000) {
+      // report at most every 2 seconds
+      this.stateReportTime = now;
+      this.reportProgress();
+    }
+    this.liveStates$.next({ ...this.states });
+  }
+
+  private reportProgress(): void {
+    const { upload, download } = this.states;
+    this.log.debug(
+      JSON.stringify({
+        progress: {
+          download,
+          upload,
+        },
+      }),
+    );
+  }
+
+  private updateSuccessState(state: SuccessState, op: string, newData: Dictionary<Optional<number>>): void {
+    const safeKeys = new Set(['files', 'bytes', 'reads']);
+    for (const key of Object.keys(newData)) {
+      // Increment or decrement
+      const sign = op === 'incr' ? 1 : -1;
+      const delta = sign * (newData[key] ?? 0);
+      if (safeKeys.has(key)) {
+        const typedKey = key as 'files' | 'bytes' | 'reads';
+        state[typedKey] = state[typedKey] + delta;
+      }
+    }
+  }
+
+  private updateTypesState(state: Dictionary, op: string, newData: Dictionary<Optional<number>>): void {
+    for (const key of Object.keys(newData)) {
+      // Increment or decrement
+      const sign = op === 'incr' ? 1 : -1;
+      const delta = sign * (newData[key] ?? 0);
+      state[key] = asNumber(state[key], 0) + delta;
+    }
+  }
+
+  private updateProgressState(state: ProgressState, op: string, newData: Dictionary<Optional<number>>): void {
+    const safeKeys = new Set(['bytes', 'total']);
+    for (const key of Object.keys(newData)) {
+      // Increment or decrement
+      const sign = op === 'incr' ? 1 : -1;
+      const delta = sign * (newData[key] ?? 0);
+      if (safeKeys.has(key)) {
+        const typedKey = key as 'bytes' | 'total';
+        state[typedKey] = state[typedKey] + delta;
+      }
+    }
+  }
+
+  private observeTelemetry(): void {
     if (this.telemetry) {
       throw new Error('telemetry is already instantiated');
     }
@@ -1054,7 +1294,7 @@ export class EPI2ME_FS extends EPI2ME {
       { signal$: this.analysisStopped$ },
       async ([filePath, content]: [string, JSONValue]) => {
         try {
-          await fs.writeJSON(filePath, content);
+          await fs.promises.writeFile(filePath, JSON.stringify(content));
         } catch (err) {
           this.log.critical('FS_FAILURE', NestedError.formatMessage('failed to write report telemetry to disk', err));
         }
@@ -1115,69 +1355,6 @@ export class EPI2ME_FS extends EPI2ME {
       });
   }
 
-  async fetchTelemetry(): Promise<void> {
-    const instanceDir = path.join(rootDir(), 'instances', makeString(this.config.instance.id_workflow_instance));
-
-    if (this.config.options.useGraphQL) {
-      // uses observeTelemetry instead
-      throw new Error('fetchTelemetry is not supported with GraphQL enabled');
-    }
-    if (!this.config?.instance?.summaryTelemetry) {
-      return;
-    }
-
-    const toFetch: Promise<JSONObject | null>[] = [];
-
-    const summaryTelemetry = asDictionary(this.config.instance.summaryTelemetry);
-    Object.keys(summaryTelemetry).forEach((componentId) => {
-      const component = asDictionary(summaryTelemetry[componentId]) ?? {};
-      const firstReport = Object.keys(component)[0]; // poor show
-      let url = asOptString(component[firstReport]);
-
-      if (!url) {
-        return;
-      }
-
-      if (!url.startsWith('http')) {
-        url = resolve(this.config.options.url, url);
-      }
-
-      const fn = path.join(instanceDir, `${componentId}.json`);
-
-      toFetch.push(
-        (async (): Promise<JSONObject | null> => {
-          let body;
-          try {
-            body = await this.REST.fetchContent(url);
-            if (body === null) {
-              return null;
-            }
-            this.log.debug(`fetched telemetry summary ${fn}`);
-            this.reportState$.next(true);
-          } catch (err) {
-            this.log.debug(NestedError.formatMessage('error fetching telemetry', err));
-            return null;
-          }
-
-          try {
-            // NOTE sadly this needs to be sync atm
-            fs.writeJSONSync(fn, body);
-          } catch (err) {
-            this.log.critical('FS_FAILURE', NestedError.formatMessage('failed to write report telemetry to disk', err));
-          }
-          return body;
-        })(),
-      );
-    });
-
-    try {
-      const allTelemetryPayloads = await Promise.all(toFetch);
-      this.instanceTelemetry$.next(allTelemetryPayloads);
-    } catch (err) {
-      this.log.warn(NestedError.formatMessage('summary telemetry incomplete', err));
-    }
-  }
-
   realtimeFeedback(channel: string, object: unknown): void {
     this.getSocket().emit(channel, object);
   }
@@ -1187,7 +1364,7 @@ export class EPI2ME_FS extends EPI2ME {
       return this.socket;
     }
 
-    const socket = new Socket(this.REST, this.config.options, this.proxyAgent);
+    const socket = new Socket(this.config.options, this.graphQL, this.proxyAgent);
     const { id_workflow_instance: id } = this.config.instance;
 
     if (id) {
@@ -1197,4 +1374,42 @@ export class EPI2ME_FS extends EPI2ME {
     this.socket = socket;
     return socket;
   }
+
+  private updateWorkerStatus = (newWorkerStatus: unknown): void => {
+    const { instance: instanceConfig } = this.config;
+    const components = instanceConfig.chain?.components;
+
+    if (!components) {
+      return;
+    }
+
+    const summaryTelemetry = asDictionary(instanceConfig.summaryTelemetry);
+    const workerStatus = Object.entries(components).sort((a, b) => parseInt(a[0], 10) - parseInt(b[0], 10));
+    const indexableNewWorkerStatus = asIndexable(newWorkerStatus);
+    const results = [];
+
+    for (const [key, value] of workerStatus) {
+      if (key in indexableNewWorkerStatus) {
+        const step = +key;
+        let name = 'ROOT';
+        if (step !== 0) {
+          const wid = asIndex(asDictionary(value).wid);
+          name = Object.keys(asDictionary(summaryTelemetry[wid]))[0] ?? 'ROOT';
+        }
+        const [running, complete, error] = asString(indexableNewWorkerStatus[key])
+          .split(',')
+          .map((componentID) => Math.max(0, +componentID)); // It's dodgy but assuming the componentID is a number happens all over the place
+
+        results.push({
+          running,
+          complete,
+          error,
+          step,
+          name,
+        });
+      }
+    }
+
+    this.experimentalWorkerStatus$.next(results);
+  };
 }

@@ -15,7 +15,7 @@ const commonPlugins = [
   commonjs(),
   // terser(),
   license({
-    banner: 'Copyright Metrichor Ltd. (An Oxford Nanopore Technologies Company) <%= moment().format(\'YYYY\') %>',
+    banner: "Copyright Metrichor Ltd. (An Oxford Nanopore Technologies Company) <%= moment().format('YYYY') %>",
   }),
 ];
 
@@ -46,21 +46,16 @@ const external = [
   'rxjs/operators',
   '@apollo/client/core',
   '@apollo/client/link/error',
-  'google-protobuf/google/protobuf/empty_pb',
-  'google-protobuf/google/protobuf/struct_pb',
-  'google-protobuf/google/protobuf/empty_pb.js',
-  'google-protobuf/google/protobuf/struct_pb.js'
 ];
 
 const normal = {
   input: 'src/index.ts',
-	preserveModules: true,
+  preserveModules: true,
   external,
   plugins: [
     ...commonPlugins,
     copy({
       targets: [
-        { src: './protos', dest: 'dist/core' },
         { src: './LICENCE', dest: 'dist/core' },
         { src: './README.md', dest: 'dist/core' },
       ],
@@ -77,18 +72,17 @@ const normal = {
       additionalDependencies: pkg.dependencies,
     }),
   ],
-  output: generateOutput('dist/core')
+  output: generateOutput('dist/core'),
 };
 
 const web = {
   input: 'src/index-web.ts',
-	preserveModules: true,
+  preserveModules: true,
   external,
   plugins: [
     ...commonPlugins,
     copy({
       targets: [
-        { src: './protos', dest: 'dist/web' },
         { src: './LICENCE', dest: 'dist/web' },
         { src: './README.md', dest: 'dist/web' },
       ],
@@ -108,33 +102,33 @@ const web = {
       additionalDependencies: pkg.dependencies,
     }),
   ],
-  output: generateOutput('dist/web')
+  output: generateOutput('dist/web'),
 };
 
-function generateVersion (version) {
+function generateVersion(version) {
   const match = /^(\d+.\d+)/.exec(version);
   invariant(match, 'Invalid package version');
 
   return `${match[1]}.${process.env.PATCH ?? 0}`;
 }
 
-function generateOutput (folder) {
+function generateOutput(folder) {
   return [
     {
-			dir: join(folder, 'cjs'),
-			entryFileNames: '[name].js',
+      dir: join(folder, 'cjs'),
+      entryFileNames: '[name].js',
       exports: 'named',
       sourcemap: true,
-			format: 'cjs'
-		},
-		{
-			dir: join(folder, 'mjs'),
-			entryFileNames: '[name].mjs',
+      format: 'cjs',
+    },
+    {
+      dir: join(folder, 'mjs'),
+      entryFileNames: '[name].mjs',
       exports: 'named',
       sourcemap: true,
-			format: 'esm'
-		}
-  ]
+      format: 'esm',
+    },
+  ];
 }
 
 export default [web, normal];

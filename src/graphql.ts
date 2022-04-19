@@ -17,11 +17,7 @@ import type { GraphQLConfiguration, RequestContext } from './graphql.type';
 import type { Configuration } from './Configuration.type';
 
 import { createClient } from './gql-client';
-import { Network } from './network';
-import { NoopLogMethod } from './Logger';
-import { fetch, Headers } from './network/fetch';
-import { asBoolean, invariant } from 'ts-runtime-typecheck';
-import { writeCommonHeaders } from './network';
+import { invariant } from 'ts-runtime-typecheck';
 import { parseCoreOptions } from './parseOptions';
 import {
   CreateInstanceTokenDocument,
@@ -36,6 +32,16 @@ import {
   StartWorkflowDocument,
   StopWorkflowDocument,
 } from './generated/graphql';
+import { commonFetch } from './network/common';
+import { USER_AGENT } from './UserAgent.constants';
+
+export function getGraphQLEndpoint(base: string): string {
+  if (base.includes('://graphql.')) {
+    return base;
+  }
+  return base.replace(/:\/\//, '://graphql.');
+}
+
 export class GraphQL {
   readonly log: Logger;
   readonly options: GraphQLConfiguration;
@@ -59,8 +65,7 @@ export class GraphQL {
       proxy,
     } = parseCoreOptions(opts);
 
-    // https://epi2me-dev.bla => https://graphql.epi2me-dev.bla
-    const url = originalUrl.replace(/:\/\//, '://graphql.');
+    const url = getGraphQLEndpoint(originalUrl);
 
     this.context = {
       apikey,
@@ -86,17 +91,25 @@ export class GraphQL {
 
   initClient = (): ApolloClient<NormalizedCacheObject> => {
     return createClient(this.log, () => {
-      return (uri: RequestInfo, init: RequestInit = {}): Promise<Response> => {
-        invariant(isString(this.options.jwt), 'A JWT is required to use this GraphQL client');
-        const { jwt } = this.options;
+      const client = { name: USER_AGENT, version: this.options.agent_version };
+      const { jwt } = this.options;
 
-        const headers = writeCommonHeaders({ headers: new Headers(init.headers) });
-        headers.set('Authorization', `Bearer ${jwt}`);
-        init.headers = headers;
-        // NOTE we don't do anything proxy related here
-        // it would be nice to offer the option but this is primarily used in the "web"
-        // version which cannot reference a HTTPAgent that's required
-        return fetch(uri, init);
+      invariant(isString(jwt), 'A JWT is required to use this GraphQL client');
+
+      return (uri: RequestInfo, init: RequestInit = {}): Promise<Response> => {
+        invariant(isString(uri), ``);
+
+        return commonFetch(
+          uri,
+          {
+            ...init,
+            headers: {
+              ...(init.headers ?? {}),
+              Authorization: `Bearer ${jwt}`,
+            },
+          },
+          { client },
+        );
       };
     });
   };
@@ -167,25 +180,42 @@ export class GraphQL {
     if (requestData.token_type !== 'jwt' && !requestData.description) {
       throw new Error('Description required for signature requests');
     }
-    return Network.post('convert-ont', requestData, {
-      ...this.options,
-      log: NoopLogMethod,
-      headers: { 'X-ONT-JWT': jwt },
-    }) as Promise<{
+
+    const client = { name: USER_AGENT, version: this.options.agent_version };
+
+    const response = await commonFetch(
+      new URL('convert-ont', this.context.url),
+      {
+        headers: { 'X-ONT-JWT': jwt },
+      },
+      { client },
+    );
+
+    if (!response.ok) {
+      throw new Error(response.statusText);
+    }
+
+    const data: {
       apikey?: string;
       apisecret?: string;
       description?: string;
       access?: string;
-    }>;
+    } = await response.json();
+
+    return data;
   }
 
   async healthCheck(): Promise<{ status: boolean }> {
-    const result = (await Network.get('/status', { ...this.options, log: NoopLogMethod })) as {
-      status: boolean;
-    };
+    const client = { name: USER_AGENT, version: this.options.agent_version };
 
-    return {
-      status: asBoolean(result.status),
-    };
+    const response = await commonFetch(new URL('status', this.context.url), {}, { client });
+
+    if (!response.ok) {
+      throw new Error(response.statusText);
+    }
+
+    const data: { status: boolean } = await response.json();
+
+    return data;
   }
 }

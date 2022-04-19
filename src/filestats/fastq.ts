@@ -1,37 +1,38 @@
 import fs from 'fs';
+import type { FastqStats } from './filestats.type';
 
-export function fastqFileStatistics(filePath: string): Promise<{ type: string; bytes: number; reads: number }> {
-  return new Promise((resolve, reject) => {
-    const linesPerRead = 4;
-    let lineCount = 1;
-    let idx = -1;
-    let stat = {
-      size: 0,
+const LINES_PER_READ = 4;
+
+export async function fastqFileStatistics(filePath: string): Promise<FastqStats> {
+  let lineCount = 1;
+
+  const stat = await fs.promises.stat(filePath);
+
+  if (stat.size === 0) {
+    return {
+      type: 'fastq',
+      bytes: 0,
+      reads: 0,
     };
+  }
 
-    try {
-      // TODO make this async
-      stat = fs.statSync(filePath);
-    } catch (e) {
-      reject(e);
-      return;
-    }
+  const readStream = fs.createReadStream(filePath).on('data', (buffer: Buffer) => {
+    let idx = -1;
+    lineCount -= 1;
 
-    fs.createReadStream(filePath)
-      .on('data', (buffer: Buffer) => {
-        idx = -1;
-        lineCount -= 1;
+    do {
+      idx = buffer.indexOf(10, idx + 1);
+      lineCount += 1;
+    } while (idx !== -1);
+  });
 
-        do {
-          idx = buffer.indexOf(10, idx + 1);
-          lineCount += 1;
-        } while (idx !== -1);
-      })
+  return new Promise((resolve, reject) => {
+    readStream
       .on('end', () =>
         resolve({
           type: 'fastq',
           bytes: stat.size,
-          reads: Math.floor(lineCount / linesPerRead),
+          reads: Math.floor(lineCount / LINES_PER_READ),
         }),
       )
       .on('error', reject);
