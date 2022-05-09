@@ -171,3 +171,7 @@ You can start workflows from dataset using the start workflow mutation by specif
 ## Development
 
 The EPI2ME API is under constant refinement based on the requirements and capabilities of the system. We are currently in the process of migrating from a REST based backend to a newer GraphQL one. For compatibility we are supporting both for the time being, but once internal projects have migrated away from the old REST API those components will be removed facilitating further simplification and improvement to this library.
+
+## Depreciation
+
+We are depreciating the old REST api systems soon in favour of our GraphQL backend. These changes are reflected in the removal/replacement of these systems in our dev branch. Migration is intended to be feature complete, but there will be some slight change to how you access certain content. If it's not clear from the documentation please create an issue so that it can be correctly documented, or implemented if we missed something.
