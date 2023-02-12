@@ -32,7 +32,7 @@
     "ts-runtime-typecheck": "^2.4.2"
   },
   "devDependencies": {
-    "@graphql-codegen/cli": "2.2.2",
+    "@graphql-codegen/cli": "2.16.5",
     "@graphql-codegen/typed-document-node": "2.2.0",
     "@graphql-codegen/typescript": "2.3.1",
     "@graphql-codegen/typescript-generic-sdk": "2.2.0",
